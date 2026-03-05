@@ -1,9 +1,10 @@
 # Integration Scenarios
 
-> **Status:** Definitive
-> **Date:** 2026-03-04
+> **Status:** Definitive (revised)
+> **Date:** 2026-03-05 (originally 2026-03-04)
 > **Author:** Test Architect (Phase 4b)
 > **Input:** All feature areas (FA-1–FA-17), `api-design.md`, `agent-architecture.md`, `test-matrix.md`
+> **Revision:** Added 5 missing scenarios (SCN-020 through SCN-024) identified during improvement assessment
 
 This document defines cross-feature integration test scenarios, end-to-end user journeys, concurrency scenarios, and error propagation scenarios. These tests catch bugs that individual feature tests miss — broken handoffs, state inconsistencies, and race conditions between subsystems.
 
@@ -387,6 +388,97 @@ This document defines cross-feature integration test scenarios, end-to-end user 
 
 ---
 
+### SCN-020: Read-Only Link Access → Edit Attempt → Denied
+
+- **Features involved:** F-8.3, F-8.1
+- **Description:** External user with share link can view idea but all mutations are blocked.
+- **Preconditions:** Idea with generated share_link_token. User B is authenticated but not owner/collaborator.
+- **Steps:**
+  1. User B navigates to `/idea/:uuid?share=<token>`
+  2. Idea loads in read-only mode — chat visible, board visible
+  3. User B attempts to send chat message → 403
+  4. User B attempts to create board node → 403
+  5. User B attempts to edit BRD → 403
+  6. User B sees "View Only" indicator in workspace header
+- **Expected result:** All read operations succeed. All write operations return 403. No WebSocket subscription for edits.
+- **Priority:** P1
+- **Layer:** Integration
+
+---
+
+### SCN-021: Admin Context Update → Re-Indexing → Affects Future AI Processing
+
+- **Features involved:** F-11.2, F-2.15, F-2.16
+- **Description:** Admin updates company context, re-indexing pipeline rebuilds RAG chunks, subsequent AI processing uses new context.
+- **Preconditions:** Existing context_agent_bucket with old content. Idea with active brainstorming.
+- **Steps:**
+  1. Admin updates context agent bucket with new company information
+  2. PUT /api/admin/ai-context/context-agent succeeds
+  3. Re-indexing pipeline triggers: old context_chunks deleted, new chunks created with embeddings
+  4. User asks about company context in existing idea
+  5. Facilitator delegates to Context Agent
+  6. Context Agent retrieves chunks from the NEW content (not old)
+  7. Response reflects updated company information
+- **Expected result:** Re-indexing is atomic (DELETE + INSERT). New RAG queries return new content. In-progress ideas see updated context on next delegation.
+- **Priority:** P1
+- **Layer:** Integration
+
+---
+
+### SCN-022: Collaborator Removal → Notification → Access Revoked
+
+- **Features involved:** F-8.4, F-12.5, F-6.4
+- **Description:** Owner removes a collaborator, removed user loses access immediately.
+- **Preconditions:** Idea with owner + 2 collaborators, all connected via WebSocket.
+- **Steps:**
+  1. Owner removes Collaborator B via DELETE /api/ideas/:id/collaborators/:userId
+  2. Collaborator B receives "Removed from idea" notification (bell + warning toast)
+  3. Collaborator B's WebSocket receives `collaborator_removed` event
+  4. Collaborator B's workspace transitions to read-only / redirect
+  5. Collaborator B attempts API call → 403 ACCESS_DENIED
+  6. Other collaborator (A) sees updated presence (B removed)
+  7. Idea visibility stays "collaborating" if A remains
+- **Expected result:** Access revoked immediately. Notification sent. WebSocket cleans up removed user's subscription.
+- **Priority:** P1
+- **Layer:** Integration
+
+---
+
+### SCN-023: Manual Merge Request for Previously Declined Pair
+
+- **Features involved:** F-5.8, F-5.7
+- **Description:** User manually initiates merge after automatic suggestion was declined, overriding permanent dismissal.
+- **Preconditions:** Declined merge request exists for idea pair (A, B).
+- **Steps:**
+  1. Background matching skips this pair (permanently dismissed)
+  2. Owner of A enters B's UUID in manual merge interface
+  3. POST /api/ideas/:id/manual-merge creates new pending merge request
+  4. Target (B) receives merge request notification
+  5. Normal merge consent flow proceeds
+- **Expected result:** Manual merge bypasses permanent dismissal. New merge request created for same pair. Automatic matching still ignores the pair.
+- **Priority:** P2
+- **Layer:** Integration
+
+---
+
+### SCN-024: Recursive Merge — Previously Merged Idea Merges Again
+
+- **Features involved:** F-5.5, F-5.6
+- **Description:** A merged idea (with 2 co-owners) merges with a third idea. Co-owner demotion applies.
+- **Preconditions:** Idea C (merged from A+B, co-owners: User1, User2). Idea D (owner: User3). Similarity detected.
+- **Steps:**
+  1. User1 (co-owner of C) requests merge with D
+  2. User3 accepts merge
+  3. User2 is NOT the requesting co-owner → User2 demoted to collaborator
+  4. New idea E created with co-owners: User1 + User3
+  5. User2 added as collaborator on E
+  6. Idea C and D become read-only with reference to E
+- **Expected result:** 2-owner model never violated. Non-initiating co-owner demoted to collaborator. All collaborators from both ideas transferred.
+- **Priority:** P1
+- **Layer:** Integration
+
+---
+
 ## 2. User Journey Tests
 
 ### JOURNEY-001: New User — First Idea to Accepted
@@ -706,8 +798,8 @@ This document defines cross-feature integration test scenarios, end-to-end user 
 
 | Category | Count | P1 | P2 |
 |----------|-------|----|----|
-| Cross-Feature Scenarios | 19 | 16 | 3 |
+| Cross-Feature Scenarios | 24 | 20 | 4 |
 | User Journey Tests | 5 | 5 | 0 |
 | Concurrency Scenarios | 6 | 5 | 1 |
 | Error Propagation Scenarios | 8 | 7 | 1 |
-| **Total** | **38** | **33** | **5** |
+| **Total** | **43** | **37** | **6** |

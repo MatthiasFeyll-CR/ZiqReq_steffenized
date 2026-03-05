@@ -1,9 +1,10 @@
 # Test Fixtures & Mocks
 
-> **Status:** Definitive
-> **Date:** 2026-03-04
+> **Status:** Definitive (revised)
+> **Date:** 2026-03-05 (originally 2026-03-04)
 > **Author:** Test Architect (Phase 4b)
 > **Input:** `test-plan.md`, `test-matrix.md`, `docs/02-architecture/data-model.md`, `docs/03-ai/agent-architecture.md`
+> **Revision:** Added MonitoringAlertConfigFactory, CollaborationFlow composite scenario, review timeline version links
 
 This document defines all shared test data, factory functions, mock services, seed scripts, and determinism strategies. It complements the test plan's Shared Test Utilities section with concrete field-level specifications.
 
@@ -285,7 +286,7 @@ Location: services/core/tests/factories.py
 | Trait | Overrides |
 |-------|-----------|
 | `state_change` | `entry_type="state_change", content=None, old_state="open", new_state="in_review"` |
-| `resubmission` | `entry_type="resubmission", content="Updated based on feedback"` |
+| `resubmission` | `entry_type="resubmission", content="Updated based on feedback", old_version_id=SubFactory(BrdVersionFactory), new_version_id=SubFactory(BrdVersionFactory)` |
 | `reply` | `parent_entry_id=factory.SubFactory(ReviewTimelineEntryFactory)` |
 
 ---
@@ -389,7 +390,20 @@ Location: services/core/tests/factories.py
 
 ---
 
-### 1.17 IdeaKeywordsFactory
+### 1.17 MonitoringAlertConfigFactory
+
+```
+Location: services/gateway/tests/factories.py
+```
+
+| Field | Default Strategy | Notes |
+|-------|-----------------|-------|
+| `user` | `factory.SubFactory(UserFactory, roles=["user", "admin"])` | Must be admin |
+| `is_active` | `True` | |
+
+---
+
+### 1.18 IdeaKeywordsFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -785,7 +799,22 @@ Creates two ideas with overlapping keywords for merge testing.
 | Keywords | 2 | Overlapping keywords (8+ shared) |
 | Merge request | 1 | `MergeRequestFactory(requesting_idea=idea1, target_idea=idea2)` |
 
-### 5.4 AdminWithParameters
+### 5.4 CollaborationFlow
+
+Creates a complete collaboration setup with invitation accepted, both users active.
+
+| Entity | Count | Configuration |
+|--------|-------|---------------|
+| User (owner) | 1 | `UserFactory()` |
+| User (collaborator) | 1 | `UserFactory()` |
+| Idea | 1 | `IdeaFactory(owner=owner, visibility="collaborating")` |
+| Invitation | 1 | `CollaborationInvitationFactory.accepted(idea=idea, inviter=owner, invitee=collaborator)` |
+| Collaborator record | 1 | `IdeaCollaboratorFactory(idea=idea, user=collaborator)` |
+| Notifications | 2 | `NotificationFactory.collaboration_invite(user=collaborator)`, `NotificationFactory(event_type="collaboration.joined", user=owner)` |
+
+---
+
+### 5.5 AdminWithParameters
 
 Creates an admin user with all default admin parameters seeded.
 
@@ -937,10 +966,10 @@ Seed script: `e2e/scripts/seed-db.ts` (called by Playwright `globalSetup`).
 
 | Location | Files | Purpose |
 |----------|-------|---------|
-| `services/core/tests/factories.py` | 1 | All core entity factories (User through MergeRequest) |
-| `services/core/tests/scenarios.py` | 1 | Composite fixture scenarios |
+| `services/core/tests/factories.py` | 1 | All core entity factories (User through MergeRequest, 17 factories) |
+| `services/core/tests/scenarios.py` | 1 | Composite fixture scenarios (5 scenarios) |
 | `services/core/tests/helpers/` | `broker_mock.py`, `assertions.py`, `shortcuts.py` | Backend test helpers |
-| `services/gateway/tests/factories.py` | 1 | Notification factory |
+| `services/gateway/tests/factories.py` | 1 | Notification factory + MonitoringAlertConfig factory |
 | `services/gateway/tests/helpers/` | `grpc_mock.py`, `api_client.py`, `ws_mock.py`, `assertions.py` | Gateway test helpers |
 | `services/ai/tests/factories.py` | 1 | AI entity factories |
 | `services/ai/tests/helpers/` | `mock_openai.py`, `agent_harness.py`, `assertions.py` | AI test helpers |

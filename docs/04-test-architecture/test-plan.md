@@ -1,9 +1,10 @@
 # Test Plan
 
-> **Status:** Definitive
-> **Date:** 2026-03-04
+> **Status:** Definitive (revised)
+> **Date:** 2026-03-05 (originally 2026-03-04)
 > **Author:** Test Architect (Phase 4b)
 > **Input:** All validated specs from phases [1]–[4] + Architect's `testing-strategy.md`
+> **Revision:** Added visual regression and snapshot testing considerations, clarified WebSocket coverage strategy
 
 This document defines the overall test architecture for ZiqReq. It builds on the Software Architect's `testing-strategy.md` (which defines framework choices, file organization, test patterns, and CI pipeline) and goes deeper into concrete coverage standards, test utility design, and non-functional testing requirements.
 
@@ -174,6 +175,24 @@ Stage 4: Coverage Report
 | API response time | pytest benchmark plugin | Nightly | p95 < 500ms for REST, p95 < 100ms for WebSocket | NFR-P2, NFR-P3 |
 | Security headers | Playwright response intercept | E2E (spot check) | CSP, X-Frame-Options, etc. present | NFR-S1 |
 | i18n completeness | Custom script (compare de.json vs en.json keys) | CI (Stage 1) | 0 missing translation keys | FA-16 |
+
+### Visual Regression & Snapshot Testing
+
+| Approach | Decision | Rationale |
+|----------|----------|-----------|
+| Component snapshots (Vitest) | **Not used** | Snapshot tests are brittle and produce noisy diffs on any styling change. React Testing Library behavior tests are sufficient for component correctness. |
+| Visual regression (Percy/Chromatic) | **Deferred** | Too heavy for initial development. Can be added post-MVP if theme/design drift becomes a problem. Playwright screenshots capture regressions in E2E for now. |
+| Playwright visual comparison | **Selective** | Enabled for the 13 critical E2E flows only. `toHaveScreenshot()` assertions on key page states (landing, workspace, review, admin) in both light and dark mode. Baseline screenshots stored in repo. Threshold: 0.1% pixel difference. |
+
+### WebSocket Testing Strategy — Depth Note
+
+The 5 WebSocket-layer tests in the test matrix cover the core consumer lifecycle (connect, subscribe, receive, disconnect). However, WebSocket behavior is also covered extensively through:
+- **Integration tests** (SCN-001 through SCN-019) that verify event delivery end-to-end
+- **Frontend unit tests** (T-3.5.01, T-3.6.01, T-6.2.01, T-6.3.01, etc.) that verify client-side WebSocket event handling
+- **E2E tests** that verify real-time updates across browser instances
+- **Runtime safety tests** (LEAK-001, LEAK-004) that verify connection lifecycle and subscription cleanup
+
+The 70% coverage standard for WebSocket consumers is achievable because the consumers are thin dispatchers — the business logic lives in the services they call.
 
 ---
 

@@ -1,9 +1,10 @@
 # Runtime Safety Specifications
 
-> **Status:** Definitive
-> **Date:** 2026-03-04
+> **Status:** Definitive (revised)
+> **Date:** 2026-03-05 (originally 2026-03-04)
 > **Author:** Test Architect (Phase 4b)
 > **Input:** `agent-architecture.md`, `guardrails.md`, `api-design.md`, `data-model.md`, `tech-stack.md`
+> **Revision:** Added LOOP-008, TIMEOUT-007, LEAK-007, INTEGRITY-009, INTEGRITY-010 from improvement assessment
 
 These tests catch the class of bugs that unit and integration tests typically miss: infinite loops, resource leaks, state corruption, and timeout failures. Every specification here is P1 — runtime safety is non-negotiable.
 
@@ -141,6 +142,28 @@ These tests catch the class of bugs that unit and integration tests typically mi
   - New idea with 0 messages
   - First page: 0 messages, `has_next=false`
   - Verify no additional requests
+
+---
+
+### LOOP-008: Soft Delete Cleanup Job
+
+- **Location:** Core service — Celery beat periodic task (daily)
+- **Loop type:** Iterates over all ideas where `deleted_at + soft_delete_countdown` has elapsed
+- **Termination condition:** All eligible ideas processed
+- **Test — Normal completion:**
+  - Create 5 ideas with `deleted_at` past the countdown
+  - Run cleanup job
+  - Verify all 5 permanently deleted with CASCADE
+  - Verify job completes in bounded time
+- **Test — Partial failure:**
+  - Create 3 ideas past countdown, mock CASCADE failure on idea 2
+  - Verify idea 1 deleted successfully
+  - Verify idea 2 skipped with error logged (not the whole job fails)
+  - Verify idea 3 still processed
+  - Verify job reports partial success
+- **Test — Empty dataset:**
+  - No ideas past countdown
+  - Verify job completes immediately (no error)
 
 ---
 
@@ -351,6 +374,23 @@ These tests catch the class of bugs that unit and integration tests typically mi
 
 ---
 
+### TIMEOUT-007: Company Context Re-Indexing
+
+- **Operation:** Admin updates context agent bucket → chunking + embedding generation for all content
+- **Expected timeout:** 120s (aligned with Celery task timeout)
+- **Test:**
+  - Mock embedding API to hang
+  - Verify re-indexing times out after 120s
+  - Verify old chunks are NOT deleted (atomic: only delete old chunks after new chunks succeed)
+  - Verify admin receives error notification
+  - Verify retry is possible (next bucket save triggers fresh re-index)
+- **Partial failure test:**
+  - Mock embedding API to fail on chunk 5 of 10
+  - Verify entire re-indexing rolls back (old chunks preserved)
+  - Verify no orphaned partial chunk sets
+
+---
+
 ## 4. Resource Leak Tests
 
 ### LEAK-001: WebSocket Connections
@@ -444,6 +484,22 @@ These tests catch the class of bugs that unit and integration tests typically mi
   - Process 100 sequential AI invocations
   - Verify Python process memory stays within bounds (no monotonic growth)
   - Verify garbage collection runs between invocations
+
+---
+
+### LEAK-007: Celery Worker Memory Under Load
+
+- **Resource:** Python process memory in Celery worker (handles keyword generation, matching, cleanup, re-indexing)
+- **Acquisition point:** Task execution allocates memory for data processing
+- **Release point:** Task completion, garbage collection
+- **Test:**
+  - Run 200 sequential Celery tasks (mix of keyword generation, matching, compression)
+  - Verify worker RSS memory stays within 2x baseline (no monotonic growth)
+  - Verify no leaked Django DB connections after tasks
+- **Error path test:**
+  - Run 50 tasks that raise exceptions mid-execution
+  - Verify memory returns to baseline (exception paths don't leak)
+  - Verify DB connections returned to pool
 
 ---
 
@@ -548,6 +604,37 @@ These tests catch the class of bugs that unit and integration tests typically mi
   - `uq_active_review_assignment (idea_id, reviewer_id) WHERE unassigned_at IS NULL` → Duplicate active assignment fails
   - `uq_active_merge_request (requesting_idea_id, target_idea_id) WHERE status = 'pending'` → Duplicate pending merge fails
   - Verify all return proper error messages (not 500 Internal Server Error)
+
+---
+
+### INTEGRITY-009: Recursive Merge — 2-Owner Model Enforcement
+
+- **Description:** When a previously-merged idea (2 co-owners) merges again with a third idea, the 2-owner model must not be violated. Non-initiating co-owner must be demoted to collaborator.
+- **Test:**
+  - Create merged idea C (co-owners: User1, User2, from ideas A+B)
+  - Create idea D (owner: User3)
+  - User1 requests merge of C with D → User3 accepts
+  - Verify new idea E has co-owners: User1 (initiator) + User3
+  - Verify User2 is collaborator on E (not co-owner)
+  - Verify all collaborators from C and D transferred to E
+  - Verify no idea in the system has more than 2 owners (owner_id + co_owner_id)
+- **Concurrent merge test:**
+  - Two merge requests for the same idea processed simultaneously
+  - Verify only one succeeds (unique constraint on pending merge requests)
+  - Verify no orphaned resulting ideas
+- **Priority:** P1
+
+---
+
+### INTEGRITY-010: Monitoring Alert Config Singleton Per Admin
+
+- **Description:** Each admin can have at most one monitoring alert configuration (UNIQUE on user_id).
+- **Test:**
+  - Admin creates alert config (is_active=true)
+  - Admin updates alert config (is_active=false) → same row updated, not new row
+  - Second admin creates their own config → succeeds (different user_id)
+  - Verify total rows = number of distinct admins who configured alerts
+- **Priority:** P2
 
 ---
 
@@ -696,13 +783,15 @@ These tests catch the class of bugs that unit and integration tests typically mi
 
 | Category | Count |
 |----------|-------|
-| Loop Termination Tests | 7 (14 sub-tests) |
+| Loop Termination Tests | 8 (17 sub-tests) |
 | State Machine Tests | 4 (42 sub-tests) |
-| Timeout & Cancellation Tests | 6 (10 sub-tests) |
-| Resource Leak Tests | 6 (13 sub-tests) |
-| Data Integrity Tests | 8 (16 sub-tests) |
+| Timeout & Cancellation Tests | 7 (12 sub-tests) |
+| Resource Leak Tests | 7 (15 sub-tests) |
+| Data Integrity Tests | 10 (20 sub-tests) |
 | AI-Specific Safety Tests | 10 (22 sub-tests) |
-| **Total Specifications** | **41** |
-| **Total Sub-Tests** | **117** |
+| **Total Specifications** | **46** |
+| **Total Sub-Tests** | **128** |
 
-All specifications are **P1 (Critical)**. Runtime safety tests are non-negotiable and must be implemented before the first production deployment.
+All specifications are **P1 (Critical)** unless explicitly marked P2. Runtime safety tests are non-negotiable and must be implemented before the first production deployment.
+
+**Changes from v1 (2026-03-04):** Added 5 specifications: LOOP-008 (soft delete cleanup partial failure), TIMEOUT-007 (context re-indexing timeout + rollback), LEAK-007 (Celery worker memory under load), INTEGRITY-009 (recursive merge 2-owner enforcement), INTEGRITY-010 (monitoring alert config singleton).

@@ -1,9 +1,10 @@
 # Test Matrix
 
-> **Status:** Definitive
-> **Date:** 2026-03-04
+> **Status:** Definitive (revised)
+> **Date:** 2026-03-05 (originally 2026-03-04)
 > **Author:** Test Architect (Phase 4b)
 > **Input:** All validated specs from phases [1]–[4]
+> **Revision:** Added 26 missing test cases identified during improvement assessment
 
 This document maps every feature, API endpoint, data entity, and page to specific test cases at each testing layer. Every test case traces back to a requirement ID, endpoint, or entity.
 
@@ -102,6 +103,14 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | T-2.3.01 | AI Agent | Title generated from first message | First message in new idea | `update_title` tool called | P1 |
 | T-2.3.02 | AI Agent | Title not updated when manually edited | `title_manually_edited=true` | `update_title` tool NOT called | P1 |
 | T-2.3.03 | Unit | Title update animates | WebSocket title_update event | Animation triggers on title element | P2 |
+
+#### F-2.2: Language Detection
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-2.2.01 | AI Agent | AI detects German and responds in German | German chat messages | Response in German | P1 |
+| T-2.2.02 | AI Agent | AI detects English and responds in English | English chat messages | Response in English | P1 |
+| T-2.2.03 | AI Agent | Initial language follows creator's app language | New idea, creator language = de | First AI response in German | P2 |
 
 #### F-2.4–F-2.5: Decision Layer, Multi-User Awareness
 
@@ -245,6 +254,13 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | T-3.7.04 | Unit | Undo stack bounded at 100 entries | Push 101 actions | Oldest entry dropped | P2 |
 | T-3.7.05 | Integration | Undo sends REST PATCH to persist reverted state | Undo dispatched | REST call made with reverted data | P1 |
 
+#### F-3.8: Board Item Reference Action
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-3.8.01 | Unit | Reference button visible on node hover | Hover over board node | Reference button in top-right | P1 |
+| T-3.8.02 | Unit | Click reference inserts @board[uuid] into chat input | Click reference button | Chat input contains @board[node-uuid] format | P1 |
+
 ---
 
 ### FA-4: Review & BRD
@@ -312,6 +328,13 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | T-4.10.02 | Integration | Submit without reviewers goes to shared queue | POST submit without reviewer_ids | Appears in "unassigned" list | P1 |
 | T-4.11.01 | Integration | Any reviewer can independently act | Two reviewers assigned, one accepts | State = accepted | P1 |
 
+#### F-4.12: Similar Ideas in Review Section
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-4.12.01 | Integration | Similar ideas shown to reviewer | GET /api/ideas/:id/review/similar | 200 + similar ideas list (declined merges + near-threshold) | P2 |
+| T-4.12.02 | Unit | Similar ideas panel renders in review section | Similar ideas data | Cards with title, keywords, similarity info | P2 |
+
 ---
 
 ### FA-5: Similarity & Merge
@@ -356,6 +379,14 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 |---------|-------|-------------|-------|-----------------|----------|
 | T-5.7.01 | Integration | Declined pair permanently excluded | Check merge_requests for declined status=pair | Query filters out declined pairs | P1 |
 
+#### F-5.8: Manual Merge Request
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-5.8.01 | Integration | Manual merge via UUID | POST /api/ideas/:id/manual-merge {target_idea_id: uuid} | 201 merge request created | P1 |
+| T-5.8.02 | Integration | Manual merge with invalid UUID | POST with non-existent target | 404 TARGET_NOT_FOUND | P1 |
+| T-5.8.03 | Integration | Manual merge with own idea | POST targeting same idea | 400 CANNOT_MERGE_SELF | P1 |
+
 ---
 
 ### FA-6: Real-Time Collaboration
@@ -367,6 +398,13 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | T-6.1.01 | WebSocket | Connection with valid token succeeds | /ws/?token=valid_jwt | connected=True | P1 |
 | T-6.1.02 | WebSocket | Connection with invalid token rejected | /ws/?token=expired | connected=False | P1 |
 | T-6.1.03 | Unit | Exponential backoff on disconnect | Connection lost | Retry intervals: 1s, 2s, 4s... max 30s | P1 |
+
+#### F-6.6: Connection State Indicator
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-6.6.01 | Unit | Green "Online" indicator when connected | WebSocket connected | Green dot + "Online" in navbar | P1 |
+| T-6.6.02 | Unit | Red "Offline" indicator when disconnected | WebSocket disconnected | Red dot + "Offline" in navbar | P1 |
 
 #### F-6.2: Offline Banner
 
@@ -454,6 +492,9 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | T-11.2.02 | Integration | Context agent bucket CRUD | PUT /api/admin/ai-context/context-agent | Sections + free_text updated | P1 |
 | T-11.3.01 | Integration | Parameter update applies immediately | PATCH /api/admin/parameters/debounce_timer {value: "5"} | Value updated, runtime reads new value | P1 |
 | T-11.4.01 | Integration | Monitoring dashboard returns data | GET /api/admin/monitoring | All fields populated | P1 |
+| T-11.5.01 | Integration | Monitoring service detects unhealthy service | Health check fails for one service | Alert email sent to opted-in admins | P1 |
+| T-11.5.02 | Integration | Monitoring alert config opt-in/opt-out | POST /api/admin/monitoring/alerts {is_active: true} | Alert config created/updated | P1 |
+| T-11.5.03 | Integration | DLQ threshold triggers alert | DLQ count exceeds dlq_alert_threshold | Alert event generated | P2 |
 | T-11.6.01 | Integration | User search returns stats | GET /api/admin/users/search?q=dev | Users with idea_count, review_count, contribution_count | P1 |
 
 ---
@@ -478,6 +519,9 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | T-13.1.01 | Integration | Get notification preferences | GET /api/users/me/notification-preferences | Categories with toggle states | P1 |
 | T-13.1.02 | Integration | Update preferences persists | PATCH preferences {collaboration_invitation: false} | Preference saved | P1 |
 | T-13.2.01 | Unit | Group toggle switches all items | Toggle group switch | All child toggles change | P2 |
+| T-13.3.01 | Unit | Reviewer-only section visible for reviewers | User with reviewer role | "Review Management" group visible | P1 |
+| T-13.3.02 | Unit | Reviewer-only section hidden for regular users | User without reviewer role | "Review Management" group not rendered | P1 |
+| T-13.3.03 | Unit | Admin-only section visible for admins | User with admin role | "System" group visible | P1 |
 
 ---
 
@@ -565,6 +609,7 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | API-CHAT.04 | POST /api/ideas/:id/chat | Locked | Idea in review state | 403 IDEA_LOCKED | P1 |
 | API-CHAT.05 | POST /api/ideas/:id/chat | Rate limited | Cap reached | 429 RATE_LIMITED | P1 |
 | API-CHAT.06 | POST /api/ideas/:id/chat | Validation | Empty content | 400 | P1 |
+| API-CHAT.07 | POST /api/ideas/:id/chat | Validation | Content > 5000 chars | 400 CONTENT_TOO_LONG | P1 |
 
 ### Reactions
 
@@ -575,6 +620,7 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | API-REACT.03 | POST .../reactions | Validation | React to self | 400 CANNOT_REACT_TO_SELF | P1 |
 | API-REACT.04 | POST .../reactions | Duplicate | Already reacted | 409 ALREADY_REACTED | P1 |
 | API-REACT.05 | DELETE .../reactions | Happy path | Remove reaction | 204 | P1 |
+| API-REACT.06 | POST .../reactions | Validation | Invalid reaction_type | 400 INVALID_REACTION_TYPE | P1 |
 
 ### Board
 
@@ -584,6 +630,8 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | API-BOARD.02 | POST .../board/nodes | Happy path | Create box node | 201 + node object | P1 |
 | API-BOARD.03 | POST .../board/nodes | Happy path | Create group node | 201 | P1 |
 | API-BOARD.04 | PATCH .../board/nodes/:id | Happy path | Update node content | 200 | P1 |
+| API-BOARD.04b | PATCH .../board/nodes/:id | Validation | Title > 500 chars | 400 TITLE_TOO_LONG | P1 |
+| API-BOARD.04c | PATCH .../board/nodes/:id | Validation | Body > 5000 chars | 400 BODY_TOO_LONG | P1 |
 | API-BOARD.05 | PATCH .../board/nodes/:id | Locked | Update locked node | 403 or 400 | P1 |
 | API-BOARD.06 | DELETE .../board/nodes/:id | Happy path | Delete node | 204, children detached | P1 |
 | API-BOARD.07 | POST .../board/nodes/batch | Happy path | Batch operations | 200 + results per op | P1 |
@@ -819,12 +867,14 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 
 | Layer | Total Tests | P1 (Critical) | P2 (Important) | P3 (Nice-to-have) |
 |-------|-------------|---------------|----------------|-------------------|
-| Unit (Frontend) | 82 | 62 | 18 | 2 |
-| Integration (Backend) | 89 | 82 | 6 | 1 |
-| AI Agent | 23 | 20 | 3 | 0 |
+| Unit (Frontend) | 95 | 73 | 20 | 2 |
+| Integration (Backend) | 99 | 92 | 6 | 1 |
+| AI Agent | 26 | 22 | 4 | 0 |
 | WebSocket | 5 | 5 | 0 | 0 |
 | E2E | 4 | 4 | 0 | 0 |
 | Data Entity | 27 | 23 | 4 | 0 |
-| **Total** | **230** | **196** | **31** | **3** |
+| **Total** | **256** | **219** | **34** | **3** |
 
 > **Note:** E2E flows from the architect's testing strategy (13 critical flows) are tracked separately in `docs/02-architecture/testing-strategy.md` § Critical Test Flows. This matrix adds the feature-specific test cases that implement those flows.
+>
+> **Changes from v1 (2026-03-04):** Added 26 test cases: F-2.2 language detection (3), F-3.8 board reference action (2), F-4.12 similar ideas in review (2), F-5.8 manual merge (3), F-6.6 connection indicator (2), F-11.5 monitoring service (3), F-13.3 role-based notification groups (3), input validation edge cases (6: chat length, board title/body length, reaction type, similar ideas API).
