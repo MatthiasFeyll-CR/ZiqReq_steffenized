@@ -1,0 +1,110 @@
+{
+  "$schema": "pipeline-config-schema.json",
+  "version": "1.0",
+
+  "project": {
+    "name": "[Project Name]",
+    "description": "[One-line description of the project]"
+  },
+
+  "paths": {
+    "docs_dir": "docs",
+    "tasks_dir": "tasks",
+    "scripts_dir": "scripts/ralph",
+    "skills_dir": "~/.claude/skills",
+    "qa_dir": "docs/08-qa",
+    "reconciliation_dir": "docs/05-reconciliation",
+    "milestones_dir": "docs/05-milestones",
+    "archive_dir": "scripts/ralph/archive"
+  },
+
+  "milestones": [
+    {
+      "id": 1,
+      "slug": "foundation",
+      "name": "Foundation",
+      "stories": 10,
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "slug": "core-feature-a",
+      "name": "Core Feature A",
+      "stories": 8,
+      "dependencies": [1]
+    },
+    {
+      "id": 3,
+      "slug": "core-feature-b",
+      "name": "Core Feature B",
+      "stories": 8,
+      "dependencies": [1, 2]
+    }
+  ],
+
+  "ralph": {
+    "tool": "claude",
+    "max_iterations_multiplier": 3,
+    "stuck_threshold": 3
+  },
+
+  "qa": {
+    "max_bugfix_cycles": 3
+  },
+
+  "gate_checks": {
+    "max_fix_cycles": 3,
+    "checks": [
+      {
+        "name": "Docker build",
+        "command": "docker compose -f infra/docker/docker-compose.yml build",
+        "condition": "command -v docker && test -f infra/docker/docker-compose.yml",
+        "required": true
+      },
+      {
+        "name": "Frontend typecheck",
+        "command": "cd frontend && npx tsc --noEmit",
+        "condition": "test -f frontend/package.json",
+        "required": true
+      },
+      {
+        "name": "Python typecheck",
+        "command": "mypy services/",
+        "condition": "test -d services && command -v mypy",
+        "required": false
+      },
+      {
+        "name": "Frontend lint",
+        "command": "cd frontend && npx eslint src/",
+        "condition": "test -f frontend/.eslintrc*",
+        "required": false
+      }
+    ]
+  },
+
+  "test_execution": {
+    "test_command": "",
+    "integration_test_command": null,
+    "timeout_seconds": 300,
+    "max_fix_cycles": 5,
+    "condition": "",
+    "build_command": null,
+    "build_timeout_seconds": 300,
+    "setup_command": null,
+    "teardown_command": null,
+    "force_teardown_command": null,
+    "check_command": null,
+    "setup_timeout_seconds": 120
+  },
+
+  "env_setup": {
+    "source_file": null,
+    "setup_function": null,
+    "description": "Set to the path of a shell script to source before running Claude subprocesses (e.g., 'ralph.sh' for Azure endpoint setup). If setup_function is set, that function is called after sourcing."
+  },
+
+  "retry": {
+    "max_retries": 3,
+    "backoff_seconds": 30
+  }
+}

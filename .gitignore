@@ -1,0 +1,53 @@
+.ai.env
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+*.db
+
+# Generated proto stubs (regenerate with: ./scripts/generate-proto.sh)
+**/proto_gen/
+
+# Node
+node_modules/
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# mypy
+.mypy_cache/
+
+# pytest
+.pytest_cache/
+
+# Ruff
+.ruff_cache/
+
+# Pipeline runtime state (written continuously by log/save_state)
+pipeline-token-usage.jsonl
+scripts/ralph/pipeline.log
+scripts/ralph/pipeline-state.json

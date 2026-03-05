@@ -1,0 +1,50 @@
+{
+  "from": "spec_qa",
+  "to": "strategy_planner",
+  "timestamp": "2026-03-03T12:00:00Z",
+  "verdict": "CONDITIONAL PASS",
+  "summary": "All 32 specification files validated. 8 fixes applied (incorrect table/column refs, missing review category, wrong feature cross-references). 0 CRITICAL issues remain, 27 WARNINGs (derived field docs, endpoint error codes, minor ambiguities). Specs are ready for milestone planning.",
+  "files_produced": [
+    "docs/04-spec-qa/spec-qa-report.md",
+    "docs/04-spec-qa/handover.json"
+  ],
+  "files_modified": [
+    "docs/01-requirements/features.md",
+    "docs/03-ai/agent-architecture.md",
+    "docs/02-architecture/api-design.md"
+  ],
+  "fixes_applied": [
+    "features.md F-10.2: Added missing 'Rejected' to Review Page group list",
+    "agent-architecture.md §9.2: Fixed brd_drafts column reference (sections_json → individual section_* columns)",
+    "agent-architecture.md §9.2: Fixed keywords table reference (ideas.keywords → idea_keywords.keywords)",
+    "agent-architecture.md §6.2: Fixed column names (version → compression_iteration, messages_compressed_count → messages_covered_up_to_id)",
+    "agent-architecture.md §4.1: Fixed param name (ai_debounce_delay → debounce_timer)",
+    "agent-architecture.md §3.1/§8: Fixed feature references (F-15.1 → F-14.1)",
+    "api-design.md: Fixed feature reference (F-5.12 → F-4.12)",
+    "api-design.md: Fixed feature reference (F-2.16 → F-2.14)"
+  ],
+  "warnings": [
+    "7 API response fields are derived/computed but derivation logic not documented (has_been_submitted, is_locked, merge_request_pending, submitted_at, user stats, board node created_by inference, ai_modified_indicator auto-set)",
+    "5 endpoint groups lack specific error codes (submit, review actions, merge, board ops, WebSocket close codes)",
+    "BRD generation gRPC mode names differ from agent mode names (full/selective vs full_generation/selective_regeneration/section_regeneration)",
+    "Warning toast auto-dismiss behavior conflicts between page-layouts.md (persistent) and component-specs.md (10 seconds)",
+    "Navbar role-gated link placement ambiguous between design-system.md (left) and pages.md (right)",
+    "AI agent identifier 'summarizing' inconsistent with snake_case convention (should be 'summarizing_ai')",
+    "IdeasListFloating component has no corresponding feature requirement",
+    "10 requirements use vague language without measurable criteria (see report Ambiguous Requirements section)"
+  ],
+  "spec_directories": {
+    "requirements": "docs/01-requirements/",
+    "architecture": "docs/02-architecture/",
+    "design": "docs/03-design/",
+    "ai": "docs/03-ai/",
+    "integration": "docs/03-integration/"
+  },
+  "next_commands": [
+    {
+      "skill": "strategy_planner",
+      "command": "/strategy_planner Read handover at docs/04-spec-qa/handover.json. All specs validated and ready for milestone planning.",
+      "description": "Start milestone planning and wave strategy"
+    }
+  ]
+}
