@@ -99,12 +99,12 @@
   ],
 
   "models": {
-    "ralph": "",
-    "prd_generation": "claude-sonnet-4-6",
-    "qa_review": "claude-sonnet-4-6",
-    "test_fix": "",
-    "gate_fix": "",
-    "reconciliation": "claude-sonnet-4-6"
+    "ralph": "claude-opus-4-6",
+    "prd_generation": "claude-sonnet-4-5",
+    "qa_review": "claude-sonnet-4-5",
+    "test_fix": "claude-opus-4-6",
+    "gate_fix": "claude-opus-4-6",
+    "reconciliation": "claude-sonnet-4-5"
   },
 
   "ralph": {
