@@ -601,3 +601,22 @@ Started: 2026-03-09T17:27:54+0100
   - IdeaWorkspaceContent extracted as inner component to allow calling useSectionVisibility hook (hooks can't be conditional)
   - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
 ---
+
+## US-007: Chat Message Display
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/chat.ts (new), frontend/src/components/chat/ChatMessageList.tsx (new), frontend/src/components/chat/UserMessageBubble.tsx (new), frontend/src/components/chat/AIMessageBubble.tsx (new), frontend/src/components/chat/DelegationMessage.tsx (new), frontend/src/components/workspace/ChatPanel.tsx (modified), frontend/src/pages/IdeaWorkspace/index.tsx (modified)
+- Tests: 63 Python passed, 52 Node passed, tsc --noEmit passed, ruff passed, docker build (gateway/core/ai) passed
+- Learnings for future iterations:
+  - Chat API client (api/chat.ts) follows same pattern as api/ideas.ts: fetch with credentials:"include", error handling
+  - ChatMessageList fetches messages on mount via fetchChatMessages(idea.id), displays loading spinner then messages or empty state
+  - Auto-scroll uses useRef on a div at bottom of message list + scrollIntoView in useEffect watching messages array
+  - First scroll (on load) uses behavior:"instant", subsequent scrolls (new messages) use behavior:"smooth" — tracked via prevMessageCountRef
+  - Multi-user detection: idea.collaborators.length > 0 — sender name shown below user bubbles for other users' messages only
+  - UserMessageBubble: right-aligned (items-end), bg-secondary text-secondary-foreground, rounded-tr-sm for chat bubble shape
+  - AIMessageBubble: left-aligned (items-start), bg-card border, rounded-tl-sm, Bot icon + "AI" label above bubble
+  - DelegationMessage: same as AI but opacity-60, italic text, lighter border (border-border/50)
+  - ChatPanel now requires idea prop — pass from IdeaWorkspaceContent where idea is guaranteed non-null
+  - EmptyState component accepts LucideIcon type — used Lightbulb icon for "Start brainstorming..." empty state
+  - i18n fallback strings used (t("chat.emptyState", "Start brainstorming...")) — works without explicit i18n keys
+---
