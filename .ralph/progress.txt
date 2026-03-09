@@ -786,3 +786,15 @@ Started: 2026-03-09T17:27:54+0100
   - Lucide icons: Pin, Bot, Lock all available from "lucide-react"
   - Node type generics: Node<BoxNodeData, "box"> for type-safe custom nodes
 ---
+
+## US-005: GroupNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/GroupNode.tsx (new), frontend/src/components/board/BoardCanvas.tsx (added group to nodeTypes)
+- Tests: tsc --noEmit PASS, ruff PASS, docker build (gateway/core/ai) PASS
+- Learnings for future iterations:
+  - NodeResizer from @xyflow/react provides resize handles; use minWidth/minHeight props for constraints
+  - Group nodes need h-full w-full on inner div to fill the resizable container
+  - For semi-transparent backgrounds, color-mix(in srgb, var(--muted) 30%, transparent) works well with CSS variables
+  - Pattern: memo + Handle top/bottom + data-testid consistent with BoxNode
+---
