@@ -744,3 +744,16 @@ Started: 2026-03-09T17:27:54+0100
   - Test path in Docker container: `services/gateway/apps/board/` (not `apps/board/`)
   - Auto-generated migrations may have long lines — need manual formatting to pass ruff E501
 ---
+
+## US-002: Board Connections REST API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/board/models.py, services/gateway/apps/board/serializers.py, services/gateway/apps/board/views.py, services/gateway/apps/board/urls.py, services/gateway/apps/board/tests/test_views.py, services/gateway/apps/board/migrations/0002_boardconnection.py
+- Tests: 108 Python tests passed, 103 Node tests passed. All gate checks (ruff, tsc, docker build) passed.
+- Learnings for future iterations:
+  - Connection serializers use source_node_id/target_node_id (Django FK _id suffix) for both input and output
+  - Duplicate connection check done at application level before DB insert to return 409 with proper error body
+  - CASCADE delete on source/target FKs means deleting a node automatically removes its connections
+  - Gateway mirror model uses related_name="outgoing_connections"/"incoming_connections" to avoid clash with core model
+  - Migration 0002_boardconnection adds unique_together constraint at DB level
+---
