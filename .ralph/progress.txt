@@ -851,3 +851,30 @@ Started: 2026-03-09T17:27:54+0100
   - The board-canvas test mock needed MarkerType and useReactFlow exports added for completeness (was missing from US-003 mock)
   - Ghost button style for controls: transparent bg, border-none, hover with var(--accent)
 ---
+
+---
+
+## US-004: BoxNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/box-node.test.tsx (new)
+- Tests: 116/116 passed (14 files), typecheck PASS, ruff PASS, docker build PASS
+- Learnings for future iterations:
+  - BoxNode implementation was already correct from Phase 2; only missing unit tests
+  - Mock @xyflow/react Handle and Position for custom node tests (minimal mock)
+  - NodeProps requires many fields (id, data, type, selected, isConnectable, zIndex, positionAbsoluteX/Y, dragging, etc.)
+  - CustomEvent dispatch tested via window.addEventListener + vi.fn() handler
+  - node-tests Docker image must be rebuilt after adding new test files (no volume mount)
+---
+
+## US-005: GroupNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/group-node.test.tsx (new)
+- Tests: 125 frontend tests pass (9 new group-node tests). Typecheck passes.
+- Learnings for future iterations:
+  - Mock NodeResizer from @xyflow/react as a simple div with data attributes for min-width/height verification
+  - GroupNode uses inline styles for border and backgroundColor, so test via element.style not className
+  - Docker image rebuild required (docker compose -f docker-compose.test.yml build node-tests) for new test files to be picked up
+  - Follow same renderHelper pattern as box-node.test.tsx: pass NodeProps shape with all required fields
+---
