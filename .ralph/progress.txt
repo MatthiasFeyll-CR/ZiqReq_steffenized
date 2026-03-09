@@ -138,3 +138,21 @@ Started: 2026-03-09T17:27:54+0100
   - Frontend Dockerfile build fails (pre-existing nginx.conf issue) — build gateway/core/ai individually
   - docker-compose.yml is at infra/docker/docker-compose.yml, not project root
 ---
+## US-008: Layout Components
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/hooks/use-auth.ts, frontend/src/hooks/use-auth-provider.ts, frontend/src/components/layout/Navbar.tsx, NavbarLink.tsx, UserDropdown.tsx, PageShell.tsx, AuthenticatedLayout.tsx, ConnectionIndicator.tsx, frontend/src/components/auth/DevUserSwitcher.tsx, frontend/src/app/providers.tsx
+- Tests: No automated tests for this story (UI layout only). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Created useAuth hook + AuthContext for auth state — future stories can use useAuth() for user info, roles, and isAuthenticated
+  - AuthProvider wired into providers.tsx using createElement to avoid JSX in .tsx with context
+  - useAuthProvider hook manages state; AuthContext is the React context; useAuth is the consumer hook
+  - NavbarLink uses react-router-dom NavLink with isActive callback for gold underline (border-primary)
+  - Navbar is 56px (h-14), bg-[#002E3C] light / bg-[#0F1A2E] dark, role-gated links via hasRole()
+  - UserDropdown uses Radix DropdownMenu from ui/ primitives — theme toggle and language toggle placeholders
+  - ConnectionIndicator is a simple green dot + "Online" text placeholder
+  - DevUserSwitcher reads VITE_AUTH_BYPASS env var and fetches /auth/dev-users (with hardcoded fallback)
+  - AuthenticatedLayout uses Navigate to /login if not authenticated and not in dev bypass mode
+  - PageShell wraps Navbar (sticky via sticky top-0) + main content
+  - docker-compose.yml is at infra/docker/docker-compose.yml, not project root
+---

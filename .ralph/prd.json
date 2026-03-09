@@ -183,7 +183,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: docs/03-design/design-system.md § Navbar; docs/03-design/page-layouts.md\nFiles: frontend/src/components/layout/Navbar.tsx, NavbarLink.tsx, UserDropdown.tsx, PageShell.tsx, AuthenticatedLayout.tsx, ConnectionIndicator.tsx, frontend/src/components/auth/DevUserSwitcher.tsx\nGotchas: Role-gated links via useAuth(); ConnectionIndicator is placeholder; AuthenticatedLayout redirects if not authenticated",
       "context": {
