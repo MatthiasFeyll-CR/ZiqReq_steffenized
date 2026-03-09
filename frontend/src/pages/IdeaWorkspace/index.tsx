@@ -7,6 +7,8 @@ import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
+import { ChatPanel } from "@/components/workspace/ChatPanel";
+import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 
 export default function IdeaWorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -111,9 +113,28 @@ export default function IdeaWorkspacePage() {
   if (!idea) return null;
 
   return (
+    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} />
+  );
+}
+
+function IdeaWorkspaceContent({
+  idea,
+  onIdeaUpdate,
+}: {
+  idea: Idea;
+  onIdeaUpdate: (idea: Idea) => void;
+}) {
+  const { reviewVisible, chatLocked, allReadOnly, lockReason } = useSectionVisibility(idea);
+
+  return (
     <div className="flex flex-col h-full" data-testid="idea-workspace">
-      <WorkspaceHeader idea={idea} onIdeaUpdate={handleIdeaUpdate} />
-      <WorkspaceLayout />
+      <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={allReadOnly} />
+      <WorkspaceLayout
+        chatPanel={
+          <ChatPanel locked={chatLocked} lockReason={lockReason} />
+        }
+        reviewVisible={reviewVisible}
+      />
     </div>
   );
 }

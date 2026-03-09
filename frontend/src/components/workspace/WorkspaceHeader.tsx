@@ -15,9 +15,10 @@ import { patchIdea, type Idea } from "@/api/ideas";
 interface WorkspaceHeaderProps {
   idea: Idea;
   onIdeaUpdate: (idea: Idea) => void;
+  readOnly?: boolean;
 }
 
-export function WorkspaceHeader({ idea, onIdeaUpdate }: WorkspaceHeaderProps) {
+export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: WorkspaceHeaderProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -26,10 +27,11 @@ export function WorkspaceHeader({ idea, onIdeaUpdate }: WorkspaceHeaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleTitleClick = useCallback(() => {
+    if (readOnly) return;
     setEditValue(idea.title);
     setIsEditing(true);
     setTimeout(() => inputRef.current?.select(), 0);
-  }, [idea.title]);
+  }, [idea.title, readOnly]);
 
   const handleTitleSave = useCallback(async () => {
     const trimmed = editValue.trim();
@@ -117,7 +119,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate }: WorkspaceHeaderProps) {
       )}
 
       {/* Agent mode dropdown */}
-      <Select value={idea.agent_mode} onValueChange={handleAgentModeChange}>
+      <Select value={idea.agent_mode} onValueChange={handleAgentModeChange} disabled={readOnly}>
         <SelectTrigger
           className="w-40 shrink-0"
           data-testid="agent-mode-trigger"

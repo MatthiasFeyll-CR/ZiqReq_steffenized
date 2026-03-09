@@ -586,3 +586,18 @@ Started: 2026-03-09T17:27:54+0100
   - Pre-existing Docker build failures (pdf service apt-get, frontend nginx.conf) unrelated to changes
   - ideas_detail view now supports GET, PATCH, DELETE methods
 ---
+
+## US-006: Section Visibility + Locking
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/useSectionVisibility.ts (new), frontend/src/components/workspace/LockOverlay.tsx (new), frontend/src/components/workspace/ChatPanel.tsx (new), frontend/src/components/workspace/WorkspaceLayout.tsx (modified), frontend/src/components/workspace/WorkspaceHeader.tsx (modified), frontend/src/pages/IdeaWorkspace/index.tsx (modified)
+- Tests: 63 Python passed, 52 Node passed, tsc --noEmit passed, ruff passed, docker build (gateway/core/ai) passed
+- Learnings for future iterations:
+  - useSectionVisibility hook derives all visibility/lock state from idea.state using M3 heuristic: has_been_submitted = state !== 'open'
+  - LockOverlay uses absolute positioning with bg-card/80 backdrop, Lock icon from lucide-react
+  - ChatPanel is a thin wrapper that shows LockOverlay when locked
+  - WorkspaceLayout accepts reviewVisible prop to conditionally render the Review tab trigger and content
+  - WorkspaceHeader accepts readOnly prop to disable title editing and agent mode dropdown in terminal states (accepted/dropped)
+  - IdeaWorkspaceContent extracted as inner component to allow calling useSectionVisibility hook (hooks can't be conditional)
+  - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
+---

@@ -38,9 +38,10 @@ function saveRatio(ratio: number) {
 
 interface WorkspaceLayoutProps {
   chatPanel?: React.ReactNode;
+  reviewVisible?: boolean;
 }
 
-export function WorkspaceLayout({ chatPanel }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ chatPanel, reviewVisible = true }: WorkspaceLayoutProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(loadRatio);
@@ -111,20 +112,24 @@ export function WorkspaceLayout({ chatPanel }: WorkspaceLayoutProps) {
             <TabsTrigger value="board" data-testid="tab-board">
               {t("workspace.boardTab", "Board")}
             </TabsTrigger>
-            <TabsTrigger value="review" data-testid="tab-review">
-              {t("workspace.reviewTab", "Review")}
-            </TabsTrigger>
+            {reviewVisible && (
+              <TabsTrigger value="review" data-testid="tab-review">
+                {t("workspace.reviewTab", "Review")}
+              </TabsTrigger>
+            )}
           </TabsList>
           <TabsContent value="board" className="flex-1 overflow-auto" data-testid="board-content">
             <div className="flex items-center justify-center h-full text-muted-foreground">
               {t("workspace.boardPlaceholder", "Board canvas (M4)")}
             </div>
           </TabsContent>
-          <TabsContent value="review" className="flex-1 overflow-auto" data-testid="review-content">
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              {t("workspace.reviewPlaceholder", "Review (M9)")}
-            </div>
-          </TabsContent>
+          {reviewVisible && (
+            <TabsContent value="review" className="flex-1 overflow-auto" data-testid="review-content">
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                {t("workspace.reviewPlaceholder", "Review (M9)")}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
