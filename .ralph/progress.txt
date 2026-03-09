@@ -246,3 +246,17 @@ Started: 2026-03-09T17:27:54+0100
   - MemoryRouter needed for components that use react-router-dom NavLink
   - Avatar initials (e.g. "AA" for Alice Admin) can be used as assertion target for user identity visibility
 ---
+
+## US-006: gRPC Service Definitions and Stubs (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — QA confirmed PASS; re-verified gate checks
+- Tests: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai)
+- Learnings for future iterations:
+  - US-006 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - All 5 proto files confirmed: common.proto, core.proto, ai.proto, gateway.proto, pdf.proto
+  - Generated _pb2.py, _pb2_grpc.py, _pb2.pyi files all present in proto/
+  - Stub servicers confirmed in core, gateway, ai (processing + context), pdf
+  - gRPC clients confirmed in gateway (core, ai, pdf), ai (core), notification (gateway, core)
+  - .ralph/prd.json is a symlink to tasks/prd-m1.json — commit the real file
+---
