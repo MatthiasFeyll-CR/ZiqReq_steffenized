@@ -398,3 +398,22 @@ Started: 2026-03-09T17:27:54+0100
   - Joins to ideas table (for idea_title) and users table (for inviter display_name) done via batch queries with ID sets to avoid N+1
   - .ralph/ dir is in .gitignore — use git add -f for .ralph/ files
 ---
+
+## US-003: Landing Page Layout
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/pages/LandingPage/index.tsx, frontend/src/components/landing/HeroSection.tsx, frontend/src/components/landing/InvitationCard.tsx, frontend/src/app/router.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/landing-page.test.tsx, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 13 Node tests PASS (8 landing page + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - i18n default language is German ("de") — tests must either use German strings or call i18n.changeLanguage("en") in beforeAll
+  - LandingPage accepts props for data (myIdeas, collaborating, invitations, trash) — data fetching hooks will be wired in US-006
+  - IdeaCard is a separate US-004 story — LandingPage uses simple placeholder cards for now
+  - InvitationCard created but not used in LandingPage yet — will be wired when data fetching is integrated in US-006
+  - HeroSection's onSubmit prop is a placeholder for US-005 (idea creation flow)
+  - EmptyState component from M1 uses LucideIcon type for icon prop — import icons from lucide-react (Lightbulb, Users, Mail, Trash2)
+  - Router updated path from /ideas/:id to /idea/:id to match navigation pattern used in cards
+  - PageShell wraps Navbar + main content — LandingPage includes PageShell directly
+  - Section component is local to LandingPage — renders heading with count badge
+  - Count badge uses rounded-full bg-muted pill style
+  - vi.mock("react-router-dom") with useNavigate mock needed for testing card click navigation
+---
