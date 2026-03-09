@@ -417,3 +417,21 @@ Started: 2026-03-09T17:27:54+0100
   - Count badge uses rounded-full bg-muted pill style
   - vi.mock("react-router-dom") with useNavigate mock needed for testing card click navigation
 ---
+
+## US-004: IdeaCard Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/landing/IdeaCard.tsx, frontend/src/lib/utils.ts, frontend/src/pages/LandingPage/index.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/idea-card.test.tsx, frontend/src/__tests__/landing-page.test.tsx
+- Tests: 23 Node tests PASS (10 IdeaCard + 8 landing page + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - IdeaCard uses inline style for state dot color (dynamic per state) rather than Tailwind classes
+  - State dot colors: open=#0284C7, in_review=#F59E0B, accepted=#16A34A, dropped=#9CA3AF, rejected=#F97316
+  - formatRelativeTime helper added to lib/utils.ts — simple logic: <1min="just now", <1hr="X minutes ago", <1day="X hours ago", else="X days ago"
+  - Three-dot menu uses stopPropagation on both onClick and onKeyDown to prevent card navigation
+  - DropdownMenuTrigger wraps a span (not button) with role="button" — avoids nested button issue inside card's button element
+  - Badge component already has state variants (open, in_review, accepted, dropped, rejected) from M1
+  - LandingPage invitations section must use InvitationCard (not IdeaCard) — invitations have different data shape
+  - InvitationCard renders "From {{name}}" via i18n, not raw inviter name — tests must match this format
+  - Docker test images copy files at build time — must rebuild node-tests after source changes
+  - i18n keys added under landing.ideaCard namespace: lastUpdated, delete, restore
+---
