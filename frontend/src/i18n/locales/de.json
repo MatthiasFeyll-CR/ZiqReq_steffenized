@@ -48,7 +48,9 @@
     "ideaCard": {
       "lastUpdated": "Zuletzt aktualisiert {{time}}",
       "delete": "Löschen",
-      "restore": "Wiederherstellen"
+      "restore": "Wiederherstellen",
+      "deletedUndo": "Idee in den Papierkorb verschoben",
+      "undo": "Rückgängig"
     },
     "invitations": {
       "from": "Von {{name}}",

@@ -19,6 +19,43 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+// Mock list hooks so LandingPage renders without real fetches
+vi.mock("@/hooks/use-my-ideas", () => ({
+  useMyIdeas: vi.fn(() => ({
+    data: { results: [], count: 0, next: null, previous: null },
+    isLoading: false,
+  })),
+}));
+vi.mock("@/hooks/use-collaborating-ideas", () => ({
+  useCollaboratingIdeas: vi.fn(() => ({
+    data: { results: [], count: 0, next: null, previous: null },
+    isLoading: false,
+  })),
+}));
+vi.mock("@/hooks/use-invitations", () => ({
+  useInvitations: vi.fn(() => ({
+    data: { invitations: [] },
+    isLoading: false,
+  })),
+}));
+vi.mock("@/hooks/use-trash", () => ({
+  useTrash: vi.fn(() => ({
+    data: { results: [], count: 0, next: null, previous: null },
+    isLoading: false,
+  })),
+}));
+vi.mock("@/hooks/use-delete-idea", () => ({
+  useDeleteIdea: vi.fn(() => ({ mutate: vi.fn() })),
+}));
+vi.mock("@/hooks/use-restore-idea", () => ({
+  useRestoreIdea: vi.fn(() => ({ mutate: vi.fn() })),
+}));
+
+vi.mock("react-toastify", () => ({
+  toast: vi.fn(),
+  ToastContainer: () => null,
+}));
+
 function createAuthValue(): AuthContextValue {
   return {
     user: {

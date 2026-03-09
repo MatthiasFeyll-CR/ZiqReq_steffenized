@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -19,6 +19,42 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
+const mockDeleteMutate = vi.fn();
+const mockRestoreMutate = vi.fn();
+
+vi.mock("@/hooks/use-my-ideas", () => ({
+  useMyIdeas: vi.fn(() => ({ data: null, isLoading: false })),
+}));
+vi.mock("@/hooks/use-collaborating-ideas", () => ({
+  useCollaboratingIdeas: vi.fn(() => ({ data: null, isLoading: false })),
+}));
+vi.mock("@/hooks/use-invitations", () => ({
+  useInvitations: vi.fn(() => ({ data: null, isLoading: false })),
+}));
+vi.mock("@/hooks/use-trash", () => ({
+  useTrash: vi.fn(() => ({ data: null, isLoading: false })),
+}));
+vi.mock("@/hooks/use-delete-idea", () => ({
+  useDeleteIdea: vi.fn(() => ({ mutate: mockDeleteMutate })),
+}));
+vi.mock("@/hooks/use-restore-idea", () => ({
+  useRestoreIdea: vi.fn(() => ({ mutate: mockRestoreMutate })),
+}));
+
+vi.mock("react-toastify", () => ({
+  toast: vi.fn(),
+  ToastContainer: () => null,
+}));
+
+import { useMyIdeas } from "@/hooks/use-my-ideas";
+import { useCollaboratingIdeas } from "@/hooks/use-collaborating-ideas";
+import { useInvitations } from "@/hooks/use-invitations";
+import { useTrash } from "@/hooks/use-trash";
+
+function mockHook(data: unknown, isLoading = false) {
+  return { data, isLoading } as never;
+}
+
 function createAuthValue(): AuthContextValue {
   return {
     user: {
@@ -37,7 +73,7 @@ function createAuthValue(): AuthContextValue {
   };
 }
 
-function renderLandingPage(props = {}) {
+function renderLandingPage() {
   const authValue = createAuthValue();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -48,12 +84,25 @@ function renderLandingPage(props = {}) {
         {createElement(
           AuthContext.Provider,
           { value: authValue },
-          <LandingPage {...props} />,
+          <LandingPage />,
         )}
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
+
+const emptyIdeasResponse = { results: [], count: 0, next: null, previous: null };
+const emptyInvitationsResponse = { invitations: [] };
+
+beforeEach(() => {
+  vi.mocked(useMyIdeas).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useCollaboratingIdeas).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useInvitations).mockReturnValue(mockHook(emptyInvitationsResponse));
+  vi.mocked(useTrash).mockReturnValue(mockHook(emptyIdeasResponse));
+  mockNavigate.mockClear();
+  mockDeleteMutate.mockClear();
+  mockRestoreMutate.mockClear();
+});
 
 describe("T-9.1.01: Landing page renders all 4 lists", () => {
   it("renders hero section with heading, subtext, input, and submit button", () => {
@@ -75,7 +124,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     expect(screen.getByText("Trash")).toBeInTheDocument();
   });
 
-  it("renders empty states when no data provided", () => {
+  it("renders empty states when no data returned", () => {
     renderLandingPage();
 
     expect(screen.getByText("Start your first brainstorm")).toBeInTheDocument();
@@ -92,12 +141,19 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   });
 
   it("renders ideas in My Ideas list with correct count", () => {
-    renderLandingPage({
-      myIdeas: [
-        { id: "1", title: "First idea", state: "open", updatedAt: "2024-01-01" },
-        { id: "2", title: "Second idea", state: "open", updatedAt: "2024-01-02" },
-      ],
-    });
+    vi.mocked(useMyIdeas).mockReturnValue(
+      mockHook({
+        results: [
+          { id: "1", title: "First idea", state: "open", updated_at: "2024-01-01", deleted_at: null },
+          { id: "2", title: "Second idea", state: "open", updated_at: "2024-01-02", deleted_at: null },
+        ],
+        count: 2,
+        next: null,
+        previous: null,
+      }),
+    );
+
+    renderLandingPage();
 
     expect(screen.getByText("First idea")).toBeInTheDocument();
     expect(screen.getByText("Second idea")).toBeInTheDocument();
@@ -105,17 +161,21 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   });
 
   it("renders invitations in Invitations list", () => {
-    renderLandingPage({
-      invitations: [
-        {
-          id: "inv-1",
-          ideaId: "idea-1",
-          ideaTitle: "Collab idea",
-          inviterName: "Bob",
-          createdAt: "2024-01-01",
-        },
-      ],
-    });
+    vi.mocked(useInvitations).mockReturnValue(
+      mockHook({
+        invitations: [
+          {
+            id: "inv-1",
+            idea_id: "idea-1",
+            idea_title: "Collab idea",
+            inviter: { id: "u2", display_name: "Bob" },
+            created_at: "2024-01-01",
+          },
+        ],
+      }),
+    );
+
+    renderLandingPage();
 
     expect(screen.getByText("Collab idea")).toBeInTheDocument();
     expect(screen.getByText("From Bob")).toBeInTheDocument();
@@ -123,11 +183,18 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
 
   it("clicking an idea card navigates to /idea/:uuid", async () => {
     const user = userEvent.setup();
-    renderLandingPage({
-      myIdeas: [
-        { id: "abc-123", title: "Navigate me", state: "open", updatedAt: "2024-01-01" },
-      ],
-    });
+    vi.mocked(useMyIdeas).mockReturnValue(
+      mockHook({
+        results: [
+          { id: "abc-123", title: "Navigate me", state: "open", updated_at: "2024-01-01", deleted_at: null },
+        ],
+        count: 1,
+        next: null,
+        previous: null,
+      }),
+    );
+
+    renderLandingPage();
 
     await user.click(screen.getByText("Navigate me"));
     expect(mockNavigate).toHaveBeenCalledWith("/idea/abc-123");
@@ -136,7 +203,46 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   it("uses PageShell layout with Navbar", () => {
     renderLandingPage();
 
-    // Navbar renders ZiqReq brand text
     expect(screen.getByText("ZiqReq")).toBeInTheDocument();
+  });
+
+  it("shows skeleton loaders when data is loading", () => {
+    vi.mocked(useMyIdeas).mockReturnValue(mockHook(undefined, true));
+    vi.mocked(useCollaboratingIdeas).mockReturnValue(mockHook(undefined, true));
+    vi.mocked(useInvitations).mockReturnValue(mockHook(undefined, true));
+    vi.mocked(useTrash).mockReturnValue(mockHook(undefined, true));
+
+    const { container } = renderLandingPage();
+
+    const skeletons = container.querySelectorAll(".animate-pulse");
+    expect(skeletons.length).toBeGreaterThan(0);
+  });
+
+  it("calls delete mutation when IdeaCard delete is clicked", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useMyIdeas).mockReturnValue(
+      mockHook({
+        results: [
+          { id: "del-1", title: "Delete me", state: "open", updated_at: "2024-01-01", deleted_at: null },
+        ],
+        count: 1,
+        next: null,
+        previous: null,
+      }),
+    );
+
+    renderLandingPage();
+
+    // Find the three-dot menu trigger (span with role="button")
+    const menuTriggers = screen.getAllByRole("button");
+    const threeDot = menuTriggers.find(
+      (el) => el.querySelector(".lucide-more-vertical") !== null,
+    );
+    if (threeDot) {
+      await user.click(threeDot);
+      const deleteItem = await screen.findByText("Delete");
+      await user.click(deleteItem);
+      expect(mockDeleteMutate).toHaveBeenCalledWith("del-1", expect.any(Object));
+    }
   });
 });

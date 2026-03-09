@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider as ReduxProvider } from "react-redux";
 import { createElement } from "react";
+import { ToastContainer } from "react-toastify";
 import { store } from "../store";
 import { AuthContext } from "../hooks/use-auth";
 import { useAuthProvider } from "../hooks/use-auth-provider";
@@ -25,7 +26,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <ToastContainer position="bottom-right" />
+        </AuthProvider>
       </QueryClientProvider>
     </ReduxProvider>
   );

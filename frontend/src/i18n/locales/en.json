@@ -48,7 +48,9 @@
     "ideaCard": {
       "lastUpdated": "Last updated {{time}}",
       "delete": "Delete",
-      "restore": "Restore"
+      "restore": "Restore",
+      "deletedUndo": "Idea moved to trash",
+      "undo": "Undo"
     },
     "invitations": {
       "from": "From {{name}}",

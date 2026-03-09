@@ -1,27 +1,20 @@
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Lightbulb, Users, Mail, Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
 import { PageShell } from "@/components/layout/PageShell";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { EmptyState } from "@/components/common/EmptyState";
 import { IdeaCard } from "@/components/landing/IdeaCard";
 import type { IdeaState } from "@/components/landing/IdeaCard";
 import { InvitationCard } from "@/components/landing/InvitationCard";
-
-interface IdeaListItem {
-  id: string;
-  title: string;
-  state: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-}
-
-interface InvitationListItem {
-  id: string;
-  ideaId: string;
-  ideaTitle: string;
-  inviterName: string;
-  createdAt: string;
-}
+import { IdeaCardSkeleton } from "@/components/landing/IdeaCardSkeleton";
+import { useMyIdeas } from "@/hooks/use-my-ideas";
+import { useCollaboratingIdeas } from "@/hooks/use-collaborating-ideas";
+import { useInvitations } from "@/hooks/use-invitations";
+import { useTrash } from "@/hooks/use-trash";
+import { useDeleteIdea } from "@/hooks/use-delete-idea";
+import { useRestoreIdea } from "@/hooks/use-restore-idea";
 
 interface SectionProps {
   title: string;
@@ -43,24 +36,62 @@ function Section({ title, count, children }: SectionProps) {
   );
 }
 
-export interface LandingPageProps {
-  myIdeas?: IdeaListItem[];
-  collaborating?: IdeaListItem[];
-  invitations?: InvitationListItem[];
-  trash?: IdeaListItem[];
-  onDeleteIdea?: (id: string) => void;
-  onRestoreIdea?: (id: string) => void;
+function SkeletonList() {
+  return (
+    <div className="flex flex-col gap-2">
+      <IdeaCardSkeleton />
+      <IdeaCardSkeleton />
+      <IdeaCardSkeleton />
+    </div>
+  );
 }
 
-export default function LandingPage({
-  myIdeas = [],
-  collaborating = [],
-  invitations = [],
-  trash = [],
-  onDeleteIdea,
-  onRestoreIdea,
-}: LandingPageProps) {
+export default function LandingPage() {
   const { t } = useTranslation();
+  const myIdeas = useMyIdeas();
+  const collaborating = useCollaboratingIdeas();
+  const invitations = useInvitations();
+  const trash = useTrash();
+  const deleteMutation = useDeleteIdea();
+  const restoreMutation = useRestoreIdea();
+
+  const myIdeasData = myIdeas.data?.results ?? [];
+  const collaboratingData = collaborating.data?.results ?? [];
+  const invitationsData = invitations.data?.invitations ?? [];
+  const trashData = trash.data?.results ?? [];
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      deleteMutation.mutate(id, {
+        onSuccess: () => {
+          const toastId = toast(
+            <div className="flex items-center justify-between gap-4">
+              <span>{t("landing.ideaCard.deletedUndo")}</span>
+              <button
+                type="button"
+                className="shrink-0 font-medium text-primary underline"
+                onClick={() => {
+                  restoreMutation.mutate(id);
+                  toast.dismiss(toastId);
+                }}
+              >
+                {t("landing.ideaCard.undo")}
+              </button>
+            </div>,
+            { autoClose: 5000 },
+          );
+        },
+      });
+    },
+    [deleteMutation, restoreMutation, t],
+  );
+
+  const handleRestore = useCallback(
+    (id: string) => {
+      restoreMutation.mutate(id);
+    },
+    [restoreMutation],
+  );
 
   return (
     <PageShell>
@@ -68,23 +99,28 @@ export default function LandingPage({
         <HeroSection />
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">
-          <Section title={t("landing.lists.myIdeas")} count={myIdeas.length}>
-            {myIdeas.length === 0 ? (
+          <Section
+            title={t("landing.lists.myIdeas")}
+            count={myIdeasData.length}
+          >
+            {myIdeas.isLoading ? (
+              <SkeletonList />
+            ) : myIdeasData.length === 0 ? (
               <EmptyState
                 icon={Lightbulb}
                 message={t("landing.empty.myIdeas")}
               />
             ) : (
               <div className="flex flex-col gap-2">
-                {myIdeas.map((idea) => (
+                {myIdeasData.map((idea) => (
                   <IdeaCard
                     key={idea.id}
                     id={idea.id}
                     title={idea.title}
                     state={idea.state as IdeaState}
-                    updatedAt={idea.updatedAt}
-                    deletedAt={idea.deletedAt}
-                    onDelete={onDeleteIdea}
+                    updatedAt={idea.updated_at}
+                    deletedAt={idea.deleted_at}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
@@ -93,24 +129,26 @@ export default function LandingPage({
 
           <Section
             title={t("landing.lists.collaborating")}
-            count={collaborating.length}
+            count={collaboratingData.length}
           >
-            {collaborating.length === 0 ? (
+            {collaborating.isLoading ? (
+              <SkeletonList />
+            ) : collaboratingData.length === 0 ? (
               <EmptyState
                 icon={Users}
                 message={t("landing.empty.collaborating")}
               />
             ) : (
               <div className="flex flex-col gap-2">
-                {collaborating.map((idea) => (
+                {collaboratingData.map((idea) => (
                   <IdeaCard
                     key={idea.id}
                     id={idea.id}
                     title={idea.title}
                     state={idea.state as IdeaState}
-                    updatedAt={idea.updatedAt}
-                    deletedAt={idea.deletedAt}
-                    onDelete={onDeleteIdea}
+                    updatedAt={idea.updated_at}
+                    deletedAt={idea.deleted_at}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
@@ -119,46 +157,50 @@ export default function LandingPage({
 
           <Section
             title={t("landing.lists.invitations")}
-            count={invitations.length}
+            count={invitationsData.length}
           >
-            {invitations.length === 0 ? (
+            {invitations.isLoading ? (
+              <SkeletonList />
+            ) : invitationsData.length === 0 ? (
               <EmptyState
                 icon={Mail}
                 message={t("landing.empty.invitations")}
               />
             ) : (
               <div className="flex flex-col gap-2">
-                {invitations.map((inv) => (
+                {invitationsData.map((inv) => (
                   <InvitationCard
                     key={inv.id}
                     id={inv.id}
-                    ideaId={inv.ideaId}
-                    ideaTitle={inv.ideaTitle}
-                    inviterName={inv.inviterName}
-                    createdAt={inv.createdAt}
+                    ideaId={inv.idea_id}
+                    ideaTitle={inv.idea_title}
+                    inviterName={inv.inviter.display_name}
+                    createdAt={inv.created_at}
                   />
                 ))}
               </div>
             )}
           </Section>
 
-          <Section title={t("landing.lists.trash")} count={trash.length}>
-            {trash.length === 0 ? (
+          <Section title={t("landing.lists.trash")} count={trashData.length}>
+            {trash.isLoading ? (
+              <SkeletonList />
+            ) : trashData.length === 0 ? (
               <EmptyState
                 icon={Trash2}
                 message={t("landing.empty.trash")}
               />
             ) : (
               <div className="flex flex-col gap-2">
-                {trash.map((idea) => (
+                {trashData.map((idea) => (
                   <IdeaCard
                     key={idea.id}
                     id={idea.id}
                     title={idea.title}
                     state={idea.state as IdeaState}
-                    updatedAt={idea.updatedAt}
-                    deletedAt={idea.deletedAt}
-                    onRestore={onRestoreIdea}
+                    updatedAt={idea.updated_at}
+                    deletedAt={idea.deleted_at}
+                    onRestore={handleRestore}
                   />
                 ))}
               </div>
