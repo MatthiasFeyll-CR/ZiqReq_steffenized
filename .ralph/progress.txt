@@ -472,3 +472,21 @@ Started: 2026-03-09T17:27:54+0100
   - Undo toast uses react-toastify's toast() with JSX content containing an undo button; 5s autoClose
   - docker-compose.yml is at infra/docker/docker-compose.yml — use that for service builds
 ---
+
+## US-007: Search & Filter Bar
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/landing/FilterBar.tsx (new), frontend/src/hooks/use-ideas-filters.ts (new), frontend/src/hooks/use-my-ideas.ts, frontend/src/hooks/use-collaborating-ideas.ts, frontend/src/pages/LandingPage/index.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/filter-bar.test.tsx (new)
+- Tests: 44 Node tests PASS (13 filter-bar + 10 landing page + 10 IdeaCard + 6 idea creation + 4 dev login + 1 smoke), 36 Python tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - setSearchParams from useSearchParams creates a new function reference on every render — use a ref to avoid infinite re-render loops in useEffect dependencies
+  - useIdeasFilters hook uses refs (searchParamsRef, setSearchParamsRef) to break the setSearchParams → re-render → new setSearchParams → effect re-fires cycle
+  - userEvent.type triggers re-renders between keystrokes and waits for DOM to settle — this causes timeouts when combined with setSearchParams/MemoryRouter interactions
+  - Use fireEvent.change instead of userEvent.type for search input tests that involve URL params/debounce
+  - Test FilterBar as a controlled component (receiving props) for unit tests — avoids the useSearchParams/MemoryRouter timing issues
+  - Debounce effect (300ms) only depends on searchInput (not setSearchParams) — key to avoiding infinite loops
+  - Radix Select doesn't support empty string as value — use a sentinel value like "__all__" and map to "" in the handler
+  - FilterBar filters only apply to My Ideas and Collaborating lists — Invitations and Trash are unfiltered
+  - Ownership filter determines which lists to show: "my_ideas" → only My Ideas, "collaborating" → only Collaborating, "" → both
+  - i18n keys added under landing.filter namespace for search, state, ownership labels
+---
