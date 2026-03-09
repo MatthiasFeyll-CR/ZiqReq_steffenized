@@ -156,3 +156,20 @@ Started: 2026-03-09T17:27:54+0100
   - PageShell wraps Navbar (sticky via sticky top-0) + main content
   - docker-compose.yml is at infra/docker/docker-compose.yml, not project root
 ---
+## US-009: Theme System and i18n Setup
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/app/globals.css, frontend/src/app/providers.tsx, frontend/src/components/auth/DevUserSwitcher.tsx, frontend/src/components/layout/ConnectionIndicator.tsx, frontend/src/components/layout/Navbar.tsx, frontend/src/components/layout/UserDropdown.tsx, frontend/src/i18n/config.ts, frontend/src/i18n/locales/de.json, frontend/src/i18n/locales/en.json
+- Tests: No automated tests for this story (theme/i18n setup). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - CSS variables follow shadcn/ui convention: :root for light, .dark class for dark mode
+  - Tailwind v4 @theme directive maps CSS custom properties to utility classes (--color-X becomes bg-X, text-X)
+  - Additional design tokens (--surface, --text-primary, --text-secondary, --border-strong, etc.) added beyond shadcn defaults
+  - use-theme.ts already existed from US-008 — toggles 'dark' class on <html> and persists to localStorage
+  - i18n config uses localStorage.getItem("language") ?? "de" for default German
+  - i18next and react-i18next were already in package.json dependencies from initial scaffold
+  - Translation files moved from frontend/src/i18n/*.json to frontend/src/i18n/locales/*.json per project structure spec
+  - All hardcoded UI text in Navbar, UserDropdown, ConnectionIndicator, DevUserSwitcher replaced with t() calls
+  - Language toggle in UserDropdown calls i18n.changeLanguage() and persists to localStorage
+  - Theme toggle was already wired in UserDropdown from US-008; now uses translation keys for labels
+---
