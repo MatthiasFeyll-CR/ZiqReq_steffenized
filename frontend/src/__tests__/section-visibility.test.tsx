@@ -4,6 +4,11 @@ import { MemoryRouter, Routes, Route } from "react-router-dom";
 import i18n from "@/i18n/config";
 import type { Idea } from "@/api/ideas";
 
+// Mock BoardCanvas to avoid React Flow's ResizeObserver dependency in jsdom
+vi.mock("@/components/board/BoardCanvas", () => ({
+  BoardCanvas: () => <div data-testid="board-canvas">BoardCanvas</div>,
+}));
+
 // Mock child components to isolate section visibility behavior
 vi.mock("@/components/chat/ChatMessageList", () => ({
   ChatMessageList: () => <div data-testid="chat-message-list">messages</div>,

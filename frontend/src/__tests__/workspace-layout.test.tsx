@@ -1,6 +1,11 @@
-import { describe, it, expect, beforeAll, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import i18n from "@/i18n/config";
+
+vi.mock("@/components/board/BoardCanvas", () => ({
+  BoardCanvas: () => <div data-testid="board-canvas">BoardCanvas</div>,
+}));
+
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 
 beforeAll(async () => {
