@@ -83,3 +83,23 @@ Started: 2026-03-09T17:27:54+0100
   - Since RunSQL indexes already existed from US-001, used SeparateDatabaseAndState in new migrations to sync Django state without touching DB
   - `type: ignore[override]` comment needed on save() overrides to pass mypy (signature differs from Model.save)
 ---
+
+## US-005: Authentication Middleware and Dev Bypass
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/authentication/views.py, services/gateway/apps/authentication/middleware.py, services/gateway/apps/authentication/urls.py, services/gateway/apps/authentication/azure_ad.py, services/gateway/apps/authentication/tests/test_dev_bypass.py, services/gateway/apps/authentication/tests/test_azure_ad.py, services/gateway/gateway/settings/base.py, services/gateway/gateway/settings/test.py, requirements.txt, services/gateway/requirements.txt, pyproject.toml, .ralph/test-manifest.json
+- Tests: 14 passed (13 auth tests + 1 smoke). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Added PyJWT[crypto] for Azure AD JWT validation (RS256 signature verification)
+  - Azure AD token validation uses JWKS endpoint with 24h cache
+  - Dev bypass is double-gated: both DEBUG=True AND AUTH_BYPASS=True required
+  - Session support needed: added django.contrib.sessions to INSTALLED_APPS and SessionMiddleware
+  - Auth middleware added to MIDDLEWARE list in settings (apps.authentication.middleware.AuthenticationMiddleware)
+  - Test settings (test.py) updated to parse DATABASE_URL for PostgreSQL in docker test environment
+  - ArrayField requires PostgreSQL — SQLite fallback in test.py won't work for User model
+  - DJANGO_SETTINGS_MODULE added to root pyproject.toml [tool.pytest.ini_options] for pytest discovery
+  - Auth endpoints (validate, dev-users, dev-login, dev-switch) are exempt from middleware auth checks
+  - Tests use unittest.mock.patch to mock _get_signing_key for Azure AD JWT validation
+  - RSA key generation in tests uses cryptography library (comes with pyjwt[crypto])
+  - override_settings decorator used in tests to toggle DEBUG/AUTH_BYPASS per test
+---
