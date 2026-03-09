@@ -554,3 +554,35 @@ Started: 2026-03-09T17:27:54+0100
   - i18n keys added under "workspace" namespace: notFound, noAccess, backToHome
   - ruff check services/ fails with E902 — use individual dirs: services/gateway/ services/core/ services/ai/
 ---
+
+## US-004: Two-Panel Layout with Draggable Divider
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/WorkspaceLayout.tsx (new), frontend/src/components/workspace/PanelDivider.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx
+- Tests: 63 Python tests PASS, 52 Node tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - WorkspaceLayout uses ratio (0-1) stored in localStorage (key: workspace-panel-split), not pixels
+  - PanelDivider uses 4px visual width with 4px padding on each side for 12px hit area
+  - Document-level mousemove/mouseup listeners attached only while dragging (isDragging state)
+  - clampRatio ensures min 280px chat and 320px board based on container width
+  - Double-click resets to 40/60 default with 200ms CSS transition
+  - Tabs component from M1 (Radix Tabs) with defaultValue="board" makes Board tab active by default
+  - WorkspaceLayout accepts optional chatPanel prop for future chat content injection
+  - PanelDivider uses bg-primary (gold) on hover/drag with shadow glow effect
+---
+
+## US-005: Workspace Header
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/serializers.py, frontend/src/api/ideas.ts, frontend/src/components/workspace/WorkspaceHeader.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx
+- Tests: Python 63 passed, Node 52 passed, tsc --noEmit clean, ruff clean
+- Learnings for future iterations:
+  - Added PATCH /api/ideas/:id endpoint supporting title and agent_mode updates
+  - IdeaPatchSerializer validates at least one field provided, agent_mode choices
+  - Backend sets title_manually_edited=true when title field is in PATCH request
+  - WorkspaceHeader uses optimistic updates with rollback on error for both title and agent_mode
+  - Title editing: click to enter edit mode, Enter saves, Escape cancels, blur saves
+  - Agent mode uses shadcn Select component with onValueChange
+  - Pre-existing Docker build failures (pdf service apt-get, frontend nginx.conf) unrelated to changes
+  - ideas_detail view now supports GET, PATCH, DELETE methods
+---

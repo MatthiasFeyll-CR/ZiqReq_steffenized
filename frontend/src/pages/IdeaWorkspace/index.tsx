@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { fetchIdea, type Idea } from "@/api/ideas";
@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
+import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 
 export default function IdeaWorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -103,13 +104,15 @@ export default function IdeaWorkspacePage() {
     );
   }
 
+  const handleIdeaUpdate = useCallback((updated: Idea) => {
+    setIdea(updated);
+  }, []);
+
   if (!idea) return null;
 
   return (
     <div className="flex flex-col h-full" data-testid="idea-workspace">
-      <div className="text-foreground p-4 border-b">
-        <h1>{idea.title || t("landing.untitled")}</h1>
-      </div>
+      <WorkspaceHeader idea={idea} onIdeaUpdate={handleIdeaUpdate} />
       <WorkspaceLayout />
     </div>
   );

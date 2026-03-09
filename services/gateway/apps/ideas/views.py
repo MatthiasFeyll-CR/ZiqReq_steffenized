@@ -11,7 +11,7 @@ from apps.authentication.models import User
 
 from .authentication import MiddlewareAuthentication
 from .models import ChatMessage, Idea, IdeaCollaborator
-from .serializers import IdeaCreateSerializer, IdeaDetailSerializer
+from .serializers import IdeaCreateSerializer, IdeaDetailSerializer, IdeaPatchSerializer
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
@@ -41,12 +41,14 @@ def ideas_root(request: Request) -> Response:
     return _list_ideas(request)
 
 
-@api_view(["GET", "DELETE"])
+@api_view(["GET", "PATCH", "DELETE"])
 @authentication_classes([MiddlewareAuthentication])
 def ideas_detail(request: Request, idea_id: str) -> Response:
-    """Route /api/ideas/:id — GET detail, DELETE soft-delete."""
+    """Route /api/ideas/:id — GET detail, PATCH update, DELETE soft-delete."""
     if request.method == "DELETE":
         return _delete_idea(request, idea_id)
+    if request.method == "PATCH":
+        return _patch_idea(request, idea_id)
     return _get_idea(request, idea_id)
 
 
@@ -222,6 +224,58 @@ def _get_idea(request: Request, idea_id: str) -> Response:
             {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
             status=status.HTTP_403_FORBIDDEN,
         )
+
+    owner_ids = {idea.owner_id}
+    if idea.co_owner_id:
+        owner_ids.add(idea.co_owner_id)
+    users = User.objects.filter(id__in=owner_ids)
+    user_map = {u.id: u for u in users}
+
+    detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
+    return Response(detail_serializer.data)
+
+
+def _patch_idea(request: Request, idea_id: str) -> Response:
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_id)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if idea.owner_id != user.id and idea.co_owner_id != user.id:
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "Only owner or co-owner can update"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = IdeaPatchSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    update_fields = ["updated_at"]
+    if "title" in serializer.validated_data:
+        idea.title = serializer.validated_data["title"]
+        idea.title_manually_edited = True
+        update_fields.extend(["title", "title_manually_edited"])
+    if "agent_mode" in serializer.validated_data:
+        idea.agent_mode = serializer.validated_data["agent_mode"]
+        update_fields.append("agent_mode")
+
+    idea.save(update_fields=update_fields)
 
     owner_ids = {idea.owner_id}
     if idea.co_owner_id:

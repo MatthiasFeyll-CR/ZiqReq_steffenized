@@ -26,6 +26,25 @@ export async function fetchIdea(id: string): Promise<Idea> {
   return res.json();
 }
 
+export async function patchIdea(
+  id: string,
+  data: { title?: string; agent_mode?: "interactive" | "silent" },
+): Promise<Idea> {
+  const res = await fetch(`${env.apiBaseUrl}/ideas/${id}/`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 export interface CreateIdeaResponse {
   id: string;
   title: string;
