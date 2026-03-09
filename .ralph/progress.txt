@@ -210,3 +210,13 @@ Started: 2026-03-09T17:27:54+0100
   - 21 admin parameters (10 application, 3 infrastructure, 8 AI) confirmed in seed migration
   - .ralph/prd.json is a symlink to tasks/prd-m1.json — commit the real file not the symlink
 ---
+
+## US-003: Gateway Django Models (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — QA confirmed PASS; re-verified gate checks
+- Tests: ruff PASS, tsc --noEmit PASS
+- Learnings for future iterations:
+  - US-003 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - All 3 gateway models confirmed correct: User (uuid PK, ArrayField roles, JSONField prefs), Notification, MonitoringAlertConfig
+---
