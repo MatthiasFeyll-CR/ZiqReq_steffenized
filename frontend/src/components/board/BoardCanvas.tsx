@@ -10,12 +10,18 @@ import {
   type OnConnect,
   type Node,
   type Edge,
+  type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { BoxNode } from "./BoxNode";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
 const GRID_GAP = 20;
+
+const nodeTypes: NodeTypes = {
+  box: BoxNode,
+};
 
 const defaultNodes: Node[] = [];
 const defaultEdges: Edge[] = [];
@@ -38,6 +44,7 @@ export function BoardCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        nodeTypes={nodeTypes}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         fitView
