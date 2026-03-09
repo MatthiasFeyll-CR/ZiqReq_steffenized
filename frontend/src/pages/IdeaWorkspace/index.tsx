@@ -48,6 +48,10 @@ export default function IdeaWorkspacePage() {
     };
   }, [id, t]);
 
+  const handleIdeaUpdate = useCallback((updated: Idea) => {
+    setIdea(updated);
+  }, []);
+
   useEffect(() => {
     if (idea?.title) {
       document.title = idea.title;
@@ -105,10 +109,6 @@ export default function IdeaWorkspacePage() {
       </div>
     );
   }
-
-  const handleIdeaUpdate = useCallback((updated: Idea) => {
-    setIdea(updated);
-  }, []);
 
   if (!idea) return null;
 
