@@ -271,3 +271,17 @@ Started: 2026-03-09T17:27:54+0100
   - All 16 shadcn/ui components confirmed in frontend/src/components/ui/
   - Components: button, card, input, textarea, select, switch, checkbox, badge, avatar, tooltip, dropdown-menu, dialog, tabs, skeleton, toast, sheet
 ---
+
+## US-008: Layout Components (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — QA confirmed PASS; re-verified gate checks
+- Tests: tsc --noEmit PASS, ruff PASS
+- Learnings for future iterations:
+  - US-008 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - All 7 layout files confirmed: Navbar.tsx, NavbarLink.tsx, UserDropdown.tsx, PageShell.tsx, AuthenticatedLayout.tsx, ConnectionIndicator.tsx, DevUserSwitcher.tsx
+  - useAuth hook + AuthProvider confirmed in hooks/use-auth.ts and use-auth-provider.ts
+  - Navbar: 56px height, role-gated links via hasRole(), mobile hamburger menu
+  - AuthenticatedLayout: redirects to /login if not authenticated and not in dev bypass mode
+  - DevUserSwitcher: visible only when isDevBypass, fetches /auth/dev-users with hardcoded fallback
+---
