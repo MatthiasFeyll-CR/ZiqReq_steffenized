@@ -14,6 +14,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { BoxNode } from "./BoxNode";
+import { GroupNode } from "./GroupNode";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
@@ -21,6 +22,7 @@ const GRID_GAP = 20;
 
 const nodeTypes: NodeTypes = {
   box: BoxNode,
+  group: GroupNode,
 };
 
 const defaultNodes: Node[] = [];
