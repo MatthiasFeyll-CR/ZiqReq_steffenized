@@ -315,3 +315,14 @@ Started: 2026-03-09T17:27:54+0100
   - SkipLink uses sr-only + focus:not-sr-only pattern for keyboard-only visibility
   - ruff check services/ fails with E902 — use individual service dirs: services/gateway/ services/core/ services/ai/
 ---
+
+## US-005: Authentication Middleware and Dev Bypass (Bugfix Cycle 2)
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/gateway/settings/test.py
+- Tests: 14 Python tests PASS (7 dev bypass + 6 Azure AD + 1 smoke), 5 Node tests PASS (4 dev login E2E + 1 smoke). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - DEF-001 root cause: TEST.NAME = NAME = 'ziqreq_test' made Django reuse the live DB as the test DB, causing it to be dropped/recreated between test classes
+  - Fix: Remove the TEST block entirely from test settings; let Django auto-create test_ziqreq_test (prefixed with test_)
+  - testuser in docker-compose.test.yml is POSTGRES_USER (superuser) so it has CREATE DATABASE privileges for the auto-created test DB
+---
