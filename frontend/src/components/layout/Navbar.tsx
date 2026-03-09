@@ -1,15 +1,19 @@
-import { useState } from "react"
-import { Menu, X, Bell } from "lucide-react"
+import { useCallback, useState } from "react"
+import { Menu, X, Bell, Lightbulb } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
 import { NavbarLink } from "./NavbarLink"
 import { UserDropdown } from "./UserDropdown"
 import { ConnectionIndicator } from "./ConnectionIndicator"
+import { IdeasListFloating } from "./IdeasListFloating"
 
 export function Navbar() {
   const { user, hasRole } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [ideasOpen, setIdeasOpen] = useState(false)
   const { t } = useTranslation()
+
+  const closeIdeas = useCallback(() => setIdeasOpen(false), [])
 
   return (
     <nav className="sticky top-0 z-40 flex h-14 items-center bg-[#002E3C] px-4 text-white dark:bg-[#0F1A2E]">
@@ -31,6 +35,17 @@ export function Navbar() {
       {/* Right utility area */}
       <div className="flex items-center gap-3">
         <ConnectionIndicator />
+        <div className="relative">
+          <button
+            className="flex items-center gap-1 rounded-full px-2 py-1.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            onClick={() => setIdeasOpen((o) => !o)}
+            aria-label={t("ideasFloat.title")}
+          >
+            <Lightbulb className="h-5 w-5" />
+            <span className="hidden sm:inline">{t("nav.ideas")}</span>
+          </button>
+          {ideasOpen && <IdeasListFloating onClose={closeIdeas} />}
+        </div>
         <button
           className="rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           aria-label={t("nav.notifications")}

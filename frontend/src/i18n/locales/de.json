@@ -73,5 +73,21 @@
       "ownershipCollaborating": "Zusammenarbeit",
       "clearAll": "Filter zurücksetzen"
     }
+  },
+  "ideasFloat": {
+    "title": "Ideen",
+    "tabs": {
+      "active": "Aktiv",
+      "inReview": "In Prüfung",
+      "accepted": "Akzeptiert",
+      "closed": "Geschlossen"
+    },
+    "empty": "Keine {{state}} Ideen",
+    "stateLabels": {
+      "open": "aktiven",
+      "in_review": "in Prüfung befindlichen",
+      "accepted": "akzeptierten",
+      "dropped": "geschlossenen"
+    }
   }
 }
