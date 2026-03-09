@@ -37,6 +37,9 @@ class BoardNode(models.Model):
             models.Index(fields=["parent"], name="idx_board_parent"),
         ]
 
+    def __str__(self) -> str:
+        return f"BoardNode {self.node_type}: {self.title or self.id}"
+
 
 class BoardConnection(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -55,3 +58,6 @@ class BoardConnection(models.Model):
             models.Index(fields=["source_node"], name="idx_conn_source"),
             models.Index(fields=["target_node"], name="idx_conn_target"),
         ]
+
+    def __str__(self) -> str:
+        return f"Connection {self.source_node_id} → {self.target_node_id}"

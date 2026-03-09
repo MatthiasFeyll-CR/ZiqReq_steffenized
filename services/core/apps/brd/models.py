@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -22,6 +23,9 @@ class BrdDraft(models.Model):
     class Meta:
         db_table = "brd_drafts"
 
+    def __str__(self) -> str:
+        return f"BrdDraft for idea {self.idea_id}"
+
 
 class BrdVersion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -42,3 +46,11 @@ class BrdVersion(models.Model):
         indexes = [
             models.Index(fields=["idea_id", "version_number"], name="idx_brd_ver_idea"),
         ]
+
+    def save(self, *args, **kwargs):  # type: ignore[override]
+        if not self._state.adding:
+            raise ValidationError("BrdVersion is immutable and cannot be updated.")
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"BrdVersion {self.version_number} for idea {self.idea_id}"

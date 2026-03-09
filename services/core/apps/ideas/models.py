@@ -64,3 +64,6 @@ class IdeaCollaborator(models.Model):
             models.Index(fields=["user_id"], name="idx_collab_user"),
             models.Index(fields=["idea"], name="idx_collab_idea"),
         ]
+
+    def __str__(self) -> str:
+        return f"Collaborator {self.user_id} on {self.idea_id}"

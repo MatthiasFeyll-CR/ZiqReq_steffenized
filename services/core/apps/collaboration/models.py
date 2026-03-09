@@ -25,3 +25,6 @@ class CollaborationInvitation(models.Model):
             models.Index(fields=["invitee_id", "status"], name="idx_invite_invitee"),
             models.Index(fields=["idea_id"], name="idx_invite_idea"),
         ]
+
+    def __str__(self) -> str:
+        return f"Invitation {self.status} from {self.inviter_id} to {self.invitee_id}"

@@ -20,3 +20,6 @@ class AdminParameter(models.Model):
 
     class Meta:
         db_table = "admin_parameters"
+
+    def __str__(self) -> str:
+        return f"{self.key}={self.value}"

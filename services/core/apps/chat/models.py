@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -29,6 +30,14 @@ class ChatMessage(models.Model):
             models.Index(fields=["sender_id"], name="idx_chat_sender"),
         ]
 
+    def save(self, *args, **kwargs):  # type: ignore[override]
+        if not self._state.adding:
+            raise ValidationError("ChatMessage is immutable and cannot be updated.")
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"ChatMessage {self.id} ({self.sender_type})"
+
 
 class AiReaction(models.Model):
     REACTION_TYPE_CHOICES = [
@@ -44,6 +53,9 @@ class AiReaction(models.Model):
 
     class Meta:
         db_table = "ai_reactions"
+
+    def __str__(self) -> str:
+        return f"AiReaction {self.reaction_type} on {self.message_id}"
 
 
 class UserReaction(models.Model):
@@ -62,3 +74,6 @@ class UserReaction(models.Model):
     class Meta:
         db_table = "user_reactions"
         unique_together = [("message", "user_id")]
+
+    def __str__(self) -> str:
+        return f"UserReaction {self.reaction_type} by {self.user_id}"

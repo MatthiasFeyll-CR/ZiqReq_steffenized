@@ -13,6 +13,9 @@ class IdeaKeywords(models.Model):
     class Meta:
         db_table = "idea_keywords"
 
+    def __str__(self) -> str:
+        return f"Keywords for idea {self.idea_id}"
+
 
 class MergeRequest(models.Model):
     MERGE_TYPE_CHOICES = [
@@ -59,3 +62,13 @@ class MergeRequest(models.Model):
             models.Index(fields=["target_idea_id", "status"], name="idx_merge_target"),
             models.Index(fields=["requesting_idea_id", "status"], name="idx_merge_requesting"),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["requesting_idea_id", "target_idea_id"],
+                condition=models.Q(status="pending"),
+                name="uq_active_merge_request",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"MergeRequest {self.merge_type} {self.requesting_idea_id} → {self.target_idea_id}"

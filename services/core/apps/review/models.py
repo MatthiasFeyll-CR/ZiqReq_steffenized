@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -22,6 +23,16 @@ class ReviewAssignment(models.Model):
             models.Index(fields=["reviewer_id", "unassigned_at"], name="idx_review_reviewer"),
             models.Index(fields=["idea_id"], name="idx_review_idea"),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["idea_id", "reviewer_id"],
+                condition=models.Q(unassigned_at__isnull=True),
+                name="uq_active_review_assignment",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"ReviewAssignment {self.reviewer_id} on idea {self.idea_id}"
 
 
 class ReviewTimelineEntry(models.Model):
@@ -49,3 +60,11 @@ class ReviewTimelineEntry(models.Model):
             models.Index(fields=["idea_id", "created_at"], name="idx_timeline_idea"),
             models.Index(fields=["parent_entry_id"], name="idx_timeline_parent"),
         ]
+
+    def save(self, *args, **kwargs):  # type: ignore[override]
+        if not self._state.adding:
+            raise ValidationError("ReviewTimelineEntry is immutable and cannot be updated.")
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"TimelineEntry {self.entry_type} on idea {self.idea_id}"
