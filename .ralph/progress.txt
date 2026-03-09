@@ -1,0 +1,43 @@
+# Ralph Progress Log — M1 (foundation)
+Started: 2026-03-09T17:27:54+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Database Schema and pgvector Setup
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/authentication/models.py, services/gateway/apps/notifications/models.py, services/gateway/apps/monitoring/models.py, services/core/apps/ideas/models.py, services/core/apps/chat/models.py, services/core/apps/board/models.py, services/core/apps/brd/models.py, services/core/apps/review/models.py, services/core/apps/collaboration/models.py, services/core/apps/similarity/models.py, services/core/apps/admin_config/models.py, services/ai/apps/context/models.py, services/ai/apps/embedding/models.py, 12 migration files (0001_initial.py per app), 11 migration __init__.py files, frontend/tsconfig.json
+- Tests: No automated tests for this story (schema-only). Gate checks: ruff PASS, docker compose build PASS (gateway/core/ai), tsc --noEmit PASS.
+- Learnings for future iterations:
+  - User.roles uses ArrayField (not JSONField) - requires django.contrib.postgres
+  - IdeaKeywords.keywords uses ArrayField (not JSONField)
+  - pgvector vector columns require `pgvector` Python package and `CREATE EXTENSION vector` in migration
+  - HNSW indexes use pgvector.django.HnswIndex with opclasses=["vector_cosine_ops"]
+  - Partial unique indexes (ReviewAssignment, MergeRequest) done via RunSQL in migrations
+  - CHECK constraints done via RunSQL (Django choices don't enforce at DB level)
+  - Cross-service FK references stored as UUIDField (no Django ForeignKey) since services use separate Django projects
+  - ruff --fix can auto-fix F401 (unused imports) in scaffold files
+  - Frontend tsconfig needed `"types": ["vite/client"]` for import.meta.env
+  - SQL strings in migrations must use string concatenation to stay under 120 char line limit
+  - The embedding migration depends on context migration (for the vector extension order)
+---
