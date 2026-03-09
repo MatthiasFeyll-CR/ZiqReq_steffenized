@@ -164,8 +164,9 @@ ziqreq/
 │   │   │
 │   │   ├── i18n/                          # Internationalization
 │   │   │   ├── config.ts                  # i18next configuration
-│   │   │   ├── de.json                    # German translations
-│   │   │   └── en.json                    # English translations
+│   │   │   └── locales/                   # Translation files
+│   │   │       ├── de.json                # German translations
+│   │   │       └── en.json                # English translations
 │   │   │
 │   │   ├── config/                        # Environment and app config
 │   │   │   └── env.ts                     # Environment variable access
