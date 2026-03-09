@@ -168,7 +168,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: docs/03-design/design-system.md § Color Palette, Design Token Summary\nArchitecture: docs/02-architecture/tech-stack.md § Theming, User Preference Persistence\nFiles: frontend/src/app/globals.css, frontend/src/hooks/use-theme.ts, frontend/src/i18n/config.ts, frontend/src/i18n/locales/de.json, frontend/src/i18n/locales/en.json\nGotchas: Theme toggle adds/removes 'dark' class on <html>; default language 'de'",
       "context": {
