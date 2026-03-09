@@ -128,7 +128,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: docs/03-design/design-system.md; docs/03-design/component-specs.md § S1-S17\nFiles: frontend/src/components/ui/button.tsx (and 15 other files)\nGotchas: Copy-paste shadcn/ui (not npm); Button swaps teal→gold in dark mode; Badge colors match idea state palette",
       "context": {
