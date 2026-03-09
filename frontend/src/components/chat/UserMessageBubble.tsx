@@ -1,16 +1,21 @@
 import type { ChatMessage } from "@/api/chat";
 import { cn } from "@/lib/utils";
+import { ReactionChips } from "./ReactionChips";
 
 interface UserMessageBubbleProps {
   message: ChatMessage;
   senderName?: string;
   showSenderName: boolean;
+  ideaId: string;
+  isOwnMessage: boolean;
 }
 
 export function UserMessageBubble({
   message,
   senderName,
   showSenderName,
+  ideaId,
+  isOwnMessage,
 }: UserMessageBubbleProps) {
   const timestamp = new Date(message.created_at).toLocaleTimeString([], {
     hour: "2-digit",
@@ -35,6 +40,9 @@ export function UserMessageBubble({
         <span className="text-xs text-muted-foreground mt-0.5 mr-1">
           {senderName}
         </span>
+      )}
+      {!isOwnMessage && (
+        <ReactionChips ideaId={ideaId} messageId={message.id} />
       )}
     </div>
   );

@@ -102,6 +102,8 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
             message={msg}
             senderName={getSenderName(msg.sender_id)}
             showSenderName={isMultiUser && msg.sender_id !== user?.id}
+            ideaId={idea.id}
+            isOwnMessage={msg.sender_id === user?.id}
           />
         );
       })}
