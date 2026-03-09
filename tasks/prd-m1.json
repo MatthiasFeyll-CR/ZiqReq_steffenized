@@ -187,7 +187,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: docs/03-design/component-specs.md § ErrorBoundary, EmptyState, LoadingSpinner, SkipLink\nFiles: frontend/src/components/common/ErrorBoundary.tsx, EmptyState.tsx, ErrorToast.tsx, ErrorLogModal.tsx, LoadingSpinner.tsx, SkipLink.tsx\nGotchas: ErrorToast/ErrorLogModal are shells; full wiring in later milestones",
       "context": {
