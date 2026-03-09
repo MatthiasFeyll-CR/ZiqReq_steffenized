@@ -83,6 +83,10 @@
     "T-9.4.02": {
       "file": "services/gateway/apps/ideas/tests/test_views.py",
       "function": "test_filter_by_state"
+    },
+    "T-9.1.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_views.py",
+      "function": "test_list_pending_invitations"
     }
   }
 }
