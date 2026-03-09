@@ -186,3 +186,27 @@ Started: 2026-03-09T17:27:54+0100
   - SkipLink uses sr-only + focus:not-sr-only pattern for accessibility — becomes visible only on keyboard focus
   - All components follow existing codebase patterns: cn() for class merging, design token classes (text-foreground, bg-surface, etc.)
 ---
+
+## US-001: Database Schema and pgvector Setup (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — QA confirmed PASS; re-verified gate checks
+- Tests: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai)
+- Learnings for future iterations:
+  - US-001 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - All 13 migration files (0001_initial.py) confirmed present across gateway/core/ai apps
+  - pgvector VectorField + HnswIndex confirmed in services/ai/apps/embedding/models.py
+  - docker-compose.yml is at infra/docker/docker-compose.yml (not project root)
+---
+
+## US-002: Seed Data (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — QA confirmed PASS; re-verified gate checks
+- Tests: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai)
+- Learnings for future iterations:
+  - US-002 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - All 3 seed migrations confirmed: 0002_seed_parameters.py, 0002_seed_buckets.py, 0002_seed_dev_users.py
+  - 21 admin parameters (10 application, 3 infrastructure, 8 AI) confirmed in seed migration
+  - .ralph/prd.json is a symlink to tasks/prd-m1.json — commit the real file not the symlink
+---
