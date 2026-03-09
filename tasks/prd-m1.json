@@ -13,7 +13,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § All 22 tables\nFiles: services/gateway/apps/authentication/migrations/0001_initial.py, services/gateway/apps/notifications/migrations/0001_initial.py, services/core/apps/ideas/migrations/0001_initial.py, services/core/apps/chat/migrations/0001_initial.py, services/core/apps/board/migrations/0001_initial.py, services/core/apps/brd/migrations/0001_initial.py, services/core/apps/review/migrations/0001_initial.py, services/core/apps/collaboration/migrations/0001_initial.py, services/core/apps/similarity/migrations/0001_initial.py, services/core/apps/admin_config/migrations/0001_initial.py, services/ai/apps/context/migrations/0001_initial.py, services/ai/apps/embedding/migrations/0001_initial.py\nGotchas: pgvector extension before vector columns; partial unique indexes via raw SQL; CHECK constraints at DB level",
       "context": {
@@ -32,7 +32,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § Seed Data\nFiles: services/core/apps/admin_config/migrations/0002_seed_parameters.py, services/ai/apps/context/migrations/0002_seed_buckets.py, services/gateway/apps/authentication/migrations/0002_seed_dev_users.py\nGotchas: Dev users conditional on DEBUG; singleton buckets enforce single row",
       "context": {
