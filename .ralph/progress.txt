@@ -649,3 +649,17 @@ Started: 2026-03-09T17:27:54+0100
   - `onMouseDown` with `preventDefault` on dropdown items prevents textarea blur
   - TypeScript strict mode requires explicit undefined checks on array index access (`filteredMentionItems[index]`)
 ---
+
+## US-010: User Reactions UI
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/reactions.ts (new), frontend/src/components/chat/ReactionChips.tsx (new), frontend/src/components/chat/UserMessageBubble.tsx (modified), frontend/src/components/chat/ChatMessageList.tsx (modified)
+- Tests: 63 Python PASS, 52 Node PASS, tsc --noEmit PASS, ruff PASS, docker build (gateway/core/ai) PASS
+- Learnings for future iterations:
+  - ReactionChips uses optimistic updates with rollback on error
+  - react-toastify toast.error() for showing validation errors (400/409) from the reactions API
+  - UserMessageBubble now takes ideaId and isOwnMessage props to conditionally render ReactionChips
+  - Reactions are only shown on other users' messages (not own, not AI) per spec
+  - Switching reactions requires removing old reaction first then adding new one (UNIQUE constraint on message_id, user_id)
+  - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
+---
