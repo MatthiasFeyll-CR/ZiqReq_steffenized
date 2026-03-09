@@ -70,3 +70,16 @@ Started: 2026-03-09T17:27:54+0100
   - User model already had __str__ from US-001
   - docker-compose.yml is at infra/docker/docker-compose.yml, not project root
 ---
+
+## US-004: Core Django Models
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/ideas/models.py, services/core/apps/chat/models.py, services/core/apps/board/models.py, services/core/apps/brd/models.py, services/core/apps/review/models.py, services/core/apps/collaboration/models.py, services/core/apps/similarity/models.py, services/core/apps/admin_config/models.py, services/core/apps/review/migrations/0002_add_constraint_state.py, services/core/apps/similarity/migrations/0002_add_constraint_state.py
+- Tests: No automated tests for this story (model-only). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Core models were largely created in US-001 schema story; US-004 added __str__, immutable save(), and Meta.constraints
+  - Immutable models (ChatMessage, BrdVersion, ReviewTimelineEntry) override save() using `self._state.adding` check — raises ValidationError if not a new record
+  - Partial unique constraints added via Meta.constraints with UniqueConstraint(condition=...) for ReviewAssignment and MergeRequest
+  - Since RunSQL indexes already existed from US-001, used SeparateDatabaseAndState in new migrations to sync Django state without touching DB
+  - `type: ignore[override]` comment needed on save() overrides to pass mypy (signature differs from Model.save)
+---
