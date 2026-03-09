@@ -28,7 +28,9 @@
 | context_chunks | Chunked + embedded company context for RAG | uuid v4 | FK → context_agent_bucket | ai |
 | idea_embeddings | Semantic embeddings per idea for similarity detection | uuid v4 | FK → ideas | ai |
 
-> **Service ownership:** Each table is owned by one service. Only the owning service reads/writes that table directly. Cross-service data access happens via gRPC. See `project-structure.md` for service decomposition.
+> **Service ownership:** Each table is owned by one service. The owning service manages migrations and is the authority on schema. Cross-service data access happens via gRPC for business logic, but Gateway uses **mirror Django models** for REST API endpoints (see below). See `project-structure.md` for service decomposition.
+
+> **Mirror model pattern (Gateway ↔ Core):** When Gateway exposes REST endpoints for Core-owned tables, Gateway creates a mirror Django model with an identical schema and a `db_table` attribute pointing to Core's table. Both services connect to the same PostgreSQL database. Core owns migration authority. Gateway uses its mirror for DRF serializers and ORM queries. This pattern maintains microservice code isolation while enabling efficient REST API implementation. Implemented in M2 for `ideas`, `idea_collaborators`, `chat_messages`, `collaboration_invitations`. See `project-structure.md` § Django Model Sharing for full details.
 
 > **AI service tables:** The `ai` service owns 5 tables: `chat_context_summaries`, `facilitator_context_bucket`, `context_agent_bucket`, `context_chunks`, `idea_embeddings`. Schema is defined here for database-level completeness. The AI Engineer may refine column details or add columns for these tables in `docs/03-ai/`. If so, the Arch+AI Integrator will reconcile.
 

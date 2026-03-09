@@ -40,6 +40,62 @@ Each Django service has its own set of tables (own Django apps with own migratio
 
 In production (Azure Database for PostgreSQL), all tables live in the same instance. If scaling requires it, services can be split to separate databases later — the gRPC boundary already enforces the separation.
 
+### Django Model Sharing Pattern
+
+**Problem:** Gateway service exposes REST endpoints (via Django REST Framework) for tables owned by Core service. DRF serializers require Django model classes. Gateway and Core are separate Django projects — they cannot import each other's models (microservice code isolation).
+
+**Solution:** Gateway creates **mirror Django models** with identical schemas pointing to Core's tables via the `db_table` Meta attribute.
+
+**Example (M2 implementation):**
+
+```python
+# services/core/apps/ideas/models.py (Core owns the table)
+class Idea(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    title = models.CharField(max_length=500, default="")
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default="open")
+    # ... full schema ...
+
+    class Meta:
+        db_table = "ideas"  # Core creates migrations for this table
+
+# services/gateway/apps/ideas/models.py (Gateway mirrors the table)
+class Idea(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    title = models.CharField(max_length=500, default="")
+    state = models.CharField(max_length=20, choices=STATE_CHOICES, default="open")
+    # ... identical schema ...
+
+    class Meta:
+        db_table = "ideas"  # Points to Core's table (no migration)
+```
+
+**Rules:**
+1. **Core owns migration authority** — only Core creates/modifies migrations for the table
+2. **Gateway's mirror model has no migrations** — Gateway's app label (e.g., `gateway_ideas`) distinguishes it from Core's app
+3. **Schemas must stay synchronized** — if Core changes the schema, Gateway's mirror must be updated manually
+4. **Both models access the same physical table** — no data duplication
+5. **Gateway uses its mirror for REST API only** — DRF serializers, list queries, CRUD operations
+6. **Core uses its model for business logic** — gRPC servicers, Celery tasks, admin operations
+
+**When to use this pattern:**
+- Gateway needs to expose REST endpoints for Core-owned data (GET lists, POST creates, etc.)
+- The endpoint requires DRF serializers (which need Django models)
+- gRPC overhead would be excessive for simple CRUD (e.g., paginated list queries with filters)
+
+**When NOT to use this pattern:**
+- Complex business logic (use gRPC to Core service instead)
+- Cross-service transactions (use gRPC + distributed transaction patterns)
+- Gateway-owned tables (no mirroring needed — Gateway owns both model and migration)
+
+**Tables with mirror models (as of M2):**
+- `ideas` (Core-owned, Gateway mirrors for `/api/ideas` endpoints)
+- `idea_collaborators` (Core-owned, Gateway mirrors for join queries in idea lists)
+- `chat_messages` (Core-owned, Gateway mirrors for first message creation in POST `/api/ideas`)
+- `collaboration_invitations` (Core-owned, Gateway mirrors for `/api/invitations` endpoints)
+
+**Future milestones:** Expect Gateway mirror models for `board_nodes`, `board_connections` (M3), `review_assignments`, `review_timeline_entries` (M10), and potentially others as more REST endpoints are exposed.
+
 ### Communication Patterns
 
 ```
