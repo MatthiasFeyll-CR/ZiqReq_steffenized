@@ -32,7 +32,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § Seed Data\nFiles: services/core/apps/admin_config/migrations/0002_seed_parameters.py, services/ai/apps/context/migrations/0002_seed_buckets.py, services/gateway/apps/authentication/migrations/0002_seed_dev_users.py\nGotchas: Dev users conditional on DEBUG; singleton buckets enforce single row",
       "context": {

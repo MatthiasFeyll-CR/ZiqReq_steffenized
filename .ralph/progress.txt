@@ -41,3 +41,20 @@ Started: 2026-03-09T17:27:54+0100
   - SQL strings in migrations must use string concatenation to stay under 120 char line limit
   - The embedding migration depends on context migration (for the vector extension order)
 ---
+
+## US-002: Seed Data
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/admin_config/migrations/0002_seed_parameters.py, services/ai/apps/context/migrations/0002_seed_buckets.py, services/gateway/apps/authentication/migrations/0002_seed_dev_users.py
+- Tests: No automated tests for this story (seed data only). Gate checks: ruff PASS, docker compose build PASS (gateway/core/ai), tsc --noEmit PASS.
+- Learnings for future iterations:
+  - Seed migrations use RunPython with apps.get_model() for forward-compatibility
+  - get_or_create used for idempotent seed data (safe to re-run)
+  - Dev users conditional on os.environ DEBUG check (not Django settings, since migrations don't have full settings context)
+  - AI parameters with deployment-specific defaults use empty string as placeholder
+  - 21 admin parameters total: 10 application, 3 infrastructure, 8 AI
+  - Singleton buckets use .exists() guard before creating
+  - Dev user UUIDs use deterministic format (00000000-0000-0000-0000-00000000000N) for test stability
+  - ruff I001 (import sorting) auto-fixable with --fix in migration files
+  - PDF docker build fails (pre-existing issue) — build gateway/core/ai individually
+---
