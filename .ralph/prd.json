@@ -1,1 +1,315 @@
-../tasks/prd-m3.json
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m3-workspace-chat",
+  "description": "M3: Workspace page with two-panel layout, chat messages, reactions, inline title edit, agent mode dropdown, @mentions.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Chat Messages API",
+      "description": "Backend endpoints for sending and listing chat messages",
+      "acceptanceCriteria": [
+        "POST /api/ideas/:id/chat creates chat_message (sender_type=user, sender_id=current_user), returns 201 {id, idea_id, sender_type, sender_id, content, created_at}",
+        "GET /api/ideas/:id/chat lists messages ordered by created_at ASC with pagination (?limit, ?offset), returns 200 {messages, total, limit, offset}",
+        "Validates: content not empty, user has access to idea",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "testIds": [],
+      "notes": "Files: services/gateway/apps/chat/views.py, serializers.py, urls.py\nGotchas: Mirror model pattern (managed=False, db_table=chat_messages). Immutable model (append-only).",
+      "context": {
+        "data_model": [
+          "chat_messages: id uuid PK, idea_id uuid FK, sender_type IN(user,ai), sender_id uuid FK (NULL for AI), content text, created_at timestamptz"
+        ],
+        "api_endpoints": [
+          "POST /api/ideas/:id/chat \u2014 {content} \u2192 201 {id, ...}",
+          "GET /api/ideas/:id/chat?limit&offset \u2192 200 {messages, total}"
+        ]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "User Reactions API",
+      "description": "Endpoints for adding/removing reactions to user messages",
+      "acceptanceCriteria": [
+        "POST /api/ideas/:id/chat/:msgId/reactions creates user_reaction, returns 201",
+        "Validates: reaction_type IN(thumbs_up,thumbs_down,heart), target is user message, not AI message (400 CANNOT_REACT_TO_AI), not own message (400 CANNOT_REACT_TO_SELF), not duplicate (409 ALREADY_REACTED)",
+        "DELETE /api/ideas/:id/chat/:msgId/reactions removes reaction, returns 204",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "testIds": [
+        "T-2.8.01",
+        "T-2.8.02",
+        "T-2.8.03",
+        "T-2.8.04",
+        "T-2.8.05"
+      ],
+      "notes": "Files: services/gateway/apps/chat/views.py (AddReactionView, RemoveReactionView), serializers.py\nGotchas: Query chat_messages to validate sender_type and sender_id. UNIQUE(message_id, user_id).",
+      "context": {
+        "data_model": [
+          "user_reactions: id uuid PK, message_id uuid FK, user_id uuid FK, reaction_type IN(thumbs_up,thumbs_down,heart), UNIQUE(message_id,user_id)"
+        ],
+        "api_endpoints": [
+          "POST /api/ideas/:id/chat/:msgId/reactions \u2014 {reaction_type} \u2192 201",
+          "DELETE /api/ideas/:id/chat/:msgId/reactions \u2192 204"
+        ],
+        "test_cases": [
+          "T-2.8.01: react to other's msg",
+          "T-2.8.02: not AI msg (400)",
+          "T-2.8.03: not own msg (400)",
+          "T-2.8.04: not duplicate (409)",
+          "T-2.8.05: remove reaction (204)"
+        ]
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "Workspace Page Route",
+      "description": "Page component at /idea/:uuid that fetches and displays idea data",
+      "acceptanceCriteria": [
+        "Route /idea/:uuid renders IdeaWorkspacePage component",
+        "Fetches GET /api/ideas/:id on mount (uuid from useParams), displays loading skeleton, error state on 404/403",
+        "Updates document.title with idea.title",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "testIds": [
+        "T-1.7.01",
+        "T-1.7.02"
+      ],
+      "notes": "Files: frontend/src/pages/idea-workspace.tsx, frontend/src/app/router.tsx, frontend/src/api/ideas.ts\nGotchas: useParams() to extract uuid. useEffect to fetch. The GET /api/ideas/:id endpoint already exists from M2.\nQA DEF-002: useCallback at IdeaWorkspace/index.tsx:109 called conditionally after early returns \u2014 violates rules-of-hooks. Move it before the if(loading) check.\nQA DEF-001: Missing frontend tests T-1.7.01, T-1.7.02.",
+      "context": {
+        "data_model": [
+          "ideas: id uuid, title varchar, state IN(open,in_review,accepted,dropped,rejected), agent_mode IN(interactive,silent)"
+        ],
+        "api_endpoints": [
+          "GET /api/ideas/:id \u2192 200 {id, title, state, agent_mode, collaborators: [{user_id, display_name}]}"
+        ],
+        "test_cases": [
+          "T-1.7.01: /idea/:uuid renders workspace",
+          "T-1.7.02: invalid UUID \u2192 404"
+        ]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "Two-Panel Layout with Draggable Divider",
+      "description": "Chat (left) and board/review tabs (right) with resizable divider",
+      "acceptanceCriteria": [
+        "Two panels: chat (left), tabbed context panel (right) with Board/Review tabs. Board tab default active",
+        "Vertical divider (4px visual, 12px hit), draggable, gold on hover/drag, double-click resets to 40/60",
+        "Min widths: 280px chat, 320px board. localStorage persistence (key: workspace-panel-split)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "testIds": [
+        "T-1.1.01",
+        "T-1.1.02",
+        "T-1.1.03"
+      ],
+      "notes": "Files: frontend/src/components/workspace/WorkspaceLayout.tsx, PanelDivider.tsx\nGotchas: Mouse events (onMouseDown, onMouseMove, onMouseUp) with document listeners. Store % ratio in localStorage, not pixels.\nQA DEF-001: Missing frontend tests T-1.1.01, T-1.1.02, T-1.1.03.",
+      "context": {
+        "components": [
+          "PanelDivider: vertical draggable, 4px/12px, gold hover, double-click reset, localStorage"
+        ],
+        "test_cases": [
+          "T-1.1.01: panels render",
+          "T-1.1.02: drag resizes",
+          "T-1.1.03: Board tab default"
+        ]
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "Workspace Header",
+      "description": "Back button, inline title edit, agent mode dropdown, presence placeholder",
+      "acceptanceCriteria": [
+        "Header layout: back button (left), editable title (center-left), agent mode dropdown (center-right), presence placeholder (right)",
+        "Title: click to edit, Enter saves (PATCH /api/ideas/:id {title}), Escape cancels, sets title_manually_edited=true",
+        "Agent mode dropdown: Interactive/Silent options, sends PATCH /api/ideas/:id {agent_mode}",
+        "Optimistic updates for title and agent_mode",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "testIds": [
+        "T-1.6.01",
+        "T-1.6.02",
+        "T-1.6.03",
+        "T-2.1.01",
+        "T-2.1.02"
+      ],
+      "notes": "Files: frontend/src/components/workspace/WorkspaceHeader.tsx, frontend/src/api/ideas.ts\nGotchas: contentEditable or controlled input. Backend must set title_manually_edited=true when title field present. Use shadcn Select.\nQA DEF-001: Missing frontend tests T-1.6.01, T-1.6.02, T-1.6.03, T-2.1.01, T-2.1.02.",
+      "context": {
+        "data_model": [
+          "ideas: title varchar, title_manually_edited boolean, agent_mode IN(interactive,silent)"
+        ],
+        "api_endpoints": [
+          "PATCH /api/ideas/:id \u2014 {title?, agent_mode?} \u2192 200 {...}"
+        ],
+        "test_cases": [
+          "T-1.6.01: title editable",
+          "T-1.6.02: sets title_manually_edited",
+          "T-1.6.03: updates document.title",
+          "T-2.1.01: dropdown renders",
+          "T-2.1.02: mode persists"
+        ]
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "Section Visibility + Locking",
+      "description": "Show/hide/lock sections based on idea.state",
+      "acceptanceCriteria": [
+        "Open (never submitted): review hidden, chat enabled. Open (submitted): review visible, chat enabled",
+        "In Review: review active, chat locked (LockOverlay). Rejected: review visible, chat enabled. Accepted/Dropped: all read-only",
+        "LockOverlay wraps entire chat panel with bg-card/80, lock icon, explanation text",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "testIds": [
+        "T-1.2.01",
+        "T-1.2.02",
+        "T-1.2.03",
+        "T-1.4.01",
+        "T-1.4.02",
+        "T-1.4.03",
+        "T-1.4.04",
+        "T-1.4.05"
+      ],
+      "notes": "Files: frontend/src/components/workspace/SectionLockManager.tsx, LockOverlay.tsx, ChatPanel.tsx, pages/idea-workspace.tsx\nGotchas: has_been_submitted heuristic: idea.state !== 'open' (M3 simple approach). Refine in future milestones.\nQA DEF-001: Missing frontend tests T-1.2.01, T-1.2.02, T-1.2.03, T-1.4.01, T-1.4.02, T-1.4.03, T-1.4.04, T-1.4.05.",
+      "context": {
+        "data_model": [
+          "ideas: state IN(open,in_review,accepted,dropped,rejected)"
+        ],
+        "test_cases": [
+          "T-1.2.01: review hidden never-submitted",
+          "T-1.2.02: review visible after submit",
+          "T-1.2.03: persists all states",
+          "T-1.4.01\u201305: locking per state"
+        ]
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "Chat Message Display",
+      "description": "User bubbles (right), AI bubbles (left), auto-scroll",
+      "acceptanceCriteria": [
+        "Lists messages from GET /api/ideas/:id/chat. User: right-aligned, bg-secondary, rounded-tr-sm. AI: left-aligned, bg-card+border, rounded-tl-sm, Bot icon",
+        "Delegation messages: opacity-60, italic. Sender name below user bubbles (multi-user mode). Auto-scroll on load and new messages",
+        "Empty state: 'Start brainstorming...' + Lightbulb icon",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "testIds": [],
+      "notes": "Files: frontend/src/components/chat/ChatMessageList.tsx, UserMessageBubble.tsx, AIMessageBubble.tsx, DelegationMessage.tsx\nGotchas: useEffect scrollIntoView on messages change. Multi-user: idea.collaborators.length > 0. lucide-react Bot icon.",
+      "context": {
+        "data_model": [
+          "chat_messages: sender_type IN(user,ai), sender_id uuid (NULL for AI), content text, message_type IN(regular,delegation)"
+        ],
+        "components": [
+          "UserMessageBubble: right, bg-secondary, rounded-tr-sm",
+          "AIMessageBubble: left, bg-card+border, rounded-tl-sm, Bot icon"
+        ]
+      }
+    },
+    {
+      "id": "US-008",
+      "title": "ChatInput with Send Button",
+      "description": "Auto-grow textarea, send button, Enter to send",
+      "acceptanceCriteria": [
+        "Layout: context indicator (20px circle placeholder), textarea (flex-1, auto-grow), send button (disabled if empty)",
+        "Enter sends (without Shift), Shift+Enter newline. POST /api/ideas/:id/chat {content}, clears after 201",
+        "Loading state: disabled + spinner",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "testIds": [],
+      "notes": "Files: frontend/src/components/chat/ChatInput.tsx, frontend/src/components/workspace/ChatPanel.tsx\nGotchas: Auto-grow: rows=1, scrollHeight calc, update height. onKeyDown detect Enter/Shift. trim() check for empty.",
+      "context": {
+        "api_endpoints": [
+          "POST /api/ideas/:id/chat \u2014 {content} \u2192 201 {id, ...}"
+        ],
+        "components": [
+          "Textarea: auto-grow, min-h-20",
+          "Button: primary, ArrowRight icon"
+        ]
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "@Mention Dropdown",
+      "description": "Typing @ opens dropdown with users + @ai",
+      "acceptanceCriteria": [
+        "@ opens dropdown above input. First item: @ai (Bot icon). Remaining: collaborators (alphabetical)",
+        "Filter on typing after @. Arrow keys + Enter navigate/select. Inserts @username at cursor",
+        "Closes on Escape, click outside, or @ removal",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "testIds": [
+        "T-2.9.01",
+        "T-2.9.02",
+        "T-2.9.03"
+      ],
+      "notes": "Files: frontend/src/components/chat/MentionDropdown.tsx, ChatInput.tsx\nGotchas: selectionStart for @ position. Filter display_name (case-insensitive). setSelectionRange after insert. M3 uses plain @username (M7 adds backend parsing).\nQA DEF-001: Missing frontend tests T-2.9.01, T-2.9.02, T-2.9.03.",
+      "context": {
+        "api_endpoints": [
+          "GET /api/ideas/:id \u2192 {..., collaborators: [{user_id, display_name}]}"
+        ],
+        "components": [
+          "MentionDropdown: @ trigger, users+@ai, keyboard nav, filter"
+        ],
+        "test_cases": [
+          "T-2.9.01: @ opens dropdown",
+          "T-2.9.02: select inserts",
+          "T-2.9.03: renders display_name"
+        ]
+      }
+    },
+    {
+      "id": "US-010",
+      "title": "User Reactions UI",
+      "description": "Reaction chips below messages, toggle add/remove",
+      "acceptanceCriteria": [
+        "User messages (not AI, not own) show reaction chip row: thumbs_up, thumbs_down, heart (emoji + count if >0)",
+        "Click toggles: POST .../reactions or DELETE. Active state highlighted. Optimistic updates",
+        "Error toast on validation failure (400/409)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "testIds": [
+        "T-2.8.01",
+        "T-2.8.02",
+        "T-2.8.03",
+        "T-2.8.04",
+        "T-2.8.05"
+      ],
+      "notes": "Files: frontend/src/components/chat/ReactionChips.tsx, UserMessageBubble.tsx, frontend/src/api/reactions.ts\nGotchas: Map emoji to reaction_type string. Optimistic: add/remove locally, rollback on error. Show toast for 400/409.",
+      "context": {
+        "data_model": [
+          "user_reactions: message_id uuid FK, user_id uuid FK, reaction_type IN(thumbs_up,thumbs_down,heart)"
+        ],
+        "api_endpoints": [
+          "POST /api/ideas/:id/chat/:msgId/reactions \u2014 {reaction_type} \u2192 201",
+          "DELETE /api/ideas/:id/chat/:msgId/reactions \u2192 204"
+        ],
+        "components": [
+          "ReactionChips: 3 emojis, toggle, count, active highlight, bg-muted rounded-full"
+        ],
+        "test_cases": [
+          "T-2.8.01\u201305: add, AI check, self check, duplicate check, remove"
+        ]
+      }
+    }
+  ]
+}

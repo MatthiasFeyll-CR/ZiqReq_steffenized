@@ -701,3 +701,16 @@ Started: 2026-03-09T17:27:54+0100
   - Tests must run from frontend/ directory for @ alias resolution to work
   - Docker compose build has pre-existing nginx.conf issue unrelated to M3 changes
 ---
+
+## US-006: Section Visibility + Locking
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/section-visibility.test.tsx (new), .ralph/prd.json
+- Tests: 14 new tests (T-1.2.01, T-1.2.02, T-1.2.03, T-1.4.01-05) all passing. 92 total frontend tests pass. tsc --noEmit PASS. ruff check PASS. Docker build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Implementation (useSectionVisibility hook, LockOverlay, ChatPanel integration) was already complete from Phase 2
+  - QA flagged only missing tests — the bugfix was adding 14 integration tests covering all state transitions
+  - Tests mock ChatMessageList and ChatInput to isolate section visibility behavior
+  - The Idea type from @/api/ideas uses snake_case (agent_mode, owner_id) matching backend API
+  - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
+---
