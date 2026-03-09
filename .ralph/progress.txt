@@ -453,3 +453,22 @@ Started: 2026-03-09T17:27:54+0100
   - vi.stubGlobal("fetch", mockFetch) used to mock API calls in component tests
   - i18n keys added: landing.hero.validationEmpty, landing.hero.errorCreating
 ---
+
+## US-006: Idea Lists with TanStack Query
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/ideas.ts, frontend/src/hooks/use-my-ideas.ts (new), use-collaborating-ideas.ts (new), use-invitations.ts (new), use-trash.ts (new), use-delete-idea.ts (new), use-restore-idea.ts (new), use-create-idea.ts, frontend/src/components/landing/IdeaCardSkeleton.tsx (new), frontend/src/pages/LandingPage/index.tsx, frontend/src/app/providers.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/landing-page.test.tsx, frontend/src/__tests__/idea-creation-flow.test.tsx
+- Tests: 31 Node tests PASS (10 landing page + 10 IdeaCard + 6 idea creation + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - LandingPage no longer accepts props — it uses TanStack Query hooks internally for all 4 lists
+  - API response fields use snake_case (updated_at, deleted_at, idea_id) not camelCase — map accordingly in components
+  - react-toastify is in package.json but requires ToastContainer in providers.tsx to work
+  - ToastContainer added to Providers with position="bottom-right"
+  - Test mocking pattern for query hooks: use `vi.mock("@/hooks/use-xxx")` at module level, import mocked module, use `vi.mocked(hook).mockReturnValue()` per test
+  - Cast mock return values as `never` to bypass TanStack Query's complex UseQueryResult type in tests
+  - When LandingPage switches from prop-based to hook-based, ALL test files rendering LandingPage must mock the list hooks (including idea-creation-flow tests)
+  - useDeleteIdea/useRestoreIdea invalidate queryKey: ["ideas"] on success to refresh all idea lists
+  - useCreateIdea also invalidates ["ideas"] queries before navigating
+  - Undo toast uses react-toastify's toast() with JSX content containing an undo button; 5s autoClose
+  - docker-compose.yml is at infra/docker/docker-compose.yml — use that for service builds
+---
