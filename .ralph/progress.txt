@@ -825,3 +825,16 @@ Started: 2026-03-09T17:27:54+0100
   - Hover stroke-width done via CSS on .react-flow__edge:hover .connection-edge
   - Frontend Dockerfile build still fails (pre-existing nginx.conf issue)
 ---
+
+## US-008: BoardToolbar Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardToolbar.tsx (new), frontend/src/components/board/BoardCanvas.tsx (modified)
+- Tests: tsc --noEmit PASS, ruff PASS, eslint PASS, vitest 103/103 PASS, docker build PASS
+- Learnings for future iterations:
+  - BoardToolbar uses useReactFlow() hook (screenToFlowPosition) to calculate viewport center for new nodes
+  - BoardCanvas restructured to flex-col layout with toolbar on top and ReactFlow in flex-1 container
+  - crypto.randomUUID() for generating node IDs client-side
+  - Dividers between button groups use simple div with w-px h-5 bg-border
+  - selectedCount derived from both nodes and edges selection state
+---
