@@ -285,3 +285,17 @@ Started: 2026-03-09T17:27:54+0100
   - AuthenticatedLayout: redirects to /login if not authenticated and not in dev bypass mode
   - DevUserSwitcher: visible only when isDevBypass, fetches /auth/dev-users with hardcoded fallback
 ---
+
+## US-009: Theme System and i18n Setup (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — QA confirmed PASS; re-verified gate checks
+- Tests: tsc --noEmit PASS, ruff PASS
+- Learnings for future iterations:
+  - US-009 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - CSS variables confirmed: :root (light) + .dark class with full token set (background, foreground, card, primary, secondary, muted, accent, destructive, border, input, ring, surface, text-primary, text-secondary, border-strong)
+  - use-theme.ts: reads localStorage, falls back to prefers-color-scheme, toggles .dark class on <html>
+  - i18n config: de (German) as default language, localStorage persistence via localStorage.getItem("language") ?? "de"
+  - Translation keys cover nav, user menu, common, and dev sections in both de.json and en.json
+  - .ralph/prd.json is a symlink to tasks/prd-m1.json — commit the real file
+---
