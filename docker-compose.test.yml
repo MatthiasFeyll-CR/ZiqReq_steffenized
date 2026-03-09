@@ -1,0 +1,87 @@
+services:
+  # Infrastructure services
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: ziqreq_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser -d ziqreq_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - test-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - test-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: testuser
+      RABBITMQ_DEFAULT_PASS: testpass
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - test-net
+
+  # Test runtimes
+  python-tests:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.test-python
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://testuser:testpass@postgres:5432/ziqreq_test
+      REDIS_URL: redis://redis:6379/0
+      BROKER_URL: amqp://testuser:testpass@rabbitmq:5672/
+      DJANGO_SETTINGS_MODULE: gateway.settings.test
+      PYTHONDONTWRITEBYTECODE: "1"
+    networks:
+      - test-net
+
+  node-tests:
+    build:
+      context: frontend
+      dockerfile: ../infra/docker/Dockerfile.test-node
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://testuser:testpass@postgres:5432/ziqreq_test
+      REDIS_URL: redis://redis:6379/0
+      BROKER_URL: amqp://testuser:testpass@rabbitmq:5672/
+    networks:
+      - test-net
+
+networks:
+  test-net:
+    driver: bridge
