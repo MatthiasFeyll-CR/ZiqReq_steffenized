@@ -635,3 +635,17 @@ Started: 2026-03-09T17:27:54+0100
   - Send button uses Button variant="primary" size="icon" with ArrowRight icon, Loader2 spinner when sending
   - Context indicator is a 20px circle placeholder (for M7)
 ---
+
+## US-009: @Mention Dropdown
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/chat/MentionDropdown.tsx (new), frontend/src/components/chat/ChatInput.tsx (modified), frontend/src/components/workspace/ChatPanel.tsx (modified)
+- Tests: tsc --noEmit PASS, ruff check PASS. Docker build has pre-existing nginx.conf issue (not related to this story).
+- Learnings for future iterations:
+  - MentionDropdown is a presentational component; all state logic lives in ChatInput
+  - ChatInput now accepts optional `idea` prop for collaborator list access
+  - Regex `/(^|[\s])@([^\s]*)$/` detects @ trigger at word boundary before cursor
+  - Used `requestAnimationFrame` for `setSelectionRange` after React state update to ensure DOM is synced
+  - `onMouseDown` with `preventDefault` on dropdown items prevents textarea blur
+  - TypeScript strict mode requires explicit undefined checks on array index access (`filteredMentionItems[index]`)
+---
