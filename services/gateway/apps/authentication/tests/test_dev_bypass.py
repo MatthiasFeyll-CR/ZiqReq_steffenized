@@ -1,6 +1,5 @@
 import uuid
 
-import pytest
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
@@ -42,7 +41,6 @@ DEV_USERS = [
 ]
 
 
-@pytest.mark.django_db
 class TestDevBypass(TestCase):
     """Tests for dev bypass authentication endpoints."""
 

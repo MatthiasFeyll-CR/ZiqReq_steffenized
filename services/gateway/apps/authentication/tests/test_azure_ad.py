@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import jwt as pyjwt
-import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat, PublicFormat
 from django.test import TestCase, override_settings
@@ -34,7 +33,6 @@ def _mock_get_signing_key(token: str):
     return PUBLIC_KEY
 
 
-@pytest.mark.django_db
 @override_settings(
     DEBUG=False,
     AUTH_BYPASS=False,
