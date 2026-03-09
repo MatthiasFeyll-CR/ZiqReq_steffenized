@@ -53,7 +53,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-1.7.01", "T-1.7.02"],
       "notes": "Files: frontend/src/pages/idea-workspace.tsx, frontend/src/app/router.tsx, frontend/src/api/ideas.ts\nGotchas: useParams() to extract uuid. useEffect to fetch. The GET /api/ideas/:id endpoint already exists from M2.",
       "context": {
@@ -73,7 +73,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-1.1.01", "T-1.1.02", "T-1.1.03"],
       "notes": "Files: frontend/src/components/workspace/WorkspaceLayout.tsx, PanelDivider.tsx\nGotchas: Mouse events (onMouseDown, onMouseMove, onMouseUp) with document listeners. Store % ratio in localStorage, not pixels.",
       "context": {

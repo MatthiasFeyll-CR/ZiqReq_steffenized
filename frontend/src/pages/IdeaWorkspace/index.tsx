@@ -5,6 +5,7 @@ import { fetchIdea, type Idea } from "@/api/ideas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 
 export default function IdeaWorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -106,9 +107,10 @@ export default function IdeaWorkspacePage() {
 
   return (
     <div className="flex flex-col h-full" data-testid="idea-workspace">
-      <div className="text-foreground p-4">
+      <div className="text-foreground p-4 border-b">
         <h1>{idea.title || t("landing.untitled")}</h1>
       </div>
+      <WorkspaceLayout />
     </div>
   );
 }
