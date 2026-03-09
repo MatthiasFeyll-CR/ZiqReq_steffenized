@@ -490,3 +490,20 @@ Started: 2026-03-09T17:27:54+0100
   - Ownership filter determines which lists to show: "my_ideas" → only My Ideas, "collaborating" → only Collaborating, "" → both
   - i18n keys added under landing.filter namespace for search, state, ownership labels
 ---
+
+## US-008: Ideas List Floating Window
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/landing/IdeaCardCompact.tsx (new), frontend/src/components/layout/IdeasListFloating.tsx (new), frontend/src/hooks/use-ideas-by-state.ts (new), frontend/src/components/layout/Navbar.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/ideas-list-floating.test.tsx (new)
+- Tests: 52 Node tests PASS (8 floating window + 13 filter-bar + 10 landing page + 10 IdeaCard + 6 idea creation + 4 dev login + 1 smoke), 36 Python tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - No Popover component from M1 — used custom click-outside + Escape handling with useRef/useEffect instead of Radix Popover
+  - IdeasListFloating uses absolute positioning (z-20) anchored relative to its parent wrapper in the Navbar
+  - IdeaCardCompact is minimal: state dot + title only (no timestamp, badge, or menu) — separate from full IdeaCard
+  - useIdeasByState hook uses fetchIdeas with state param — Closed tab maps to state=dropped (not "closed")
+  - Tabs component from M1 (Radix Tabs) works well for the tabbed interface
+  - useCallback on onClose handler prevents unnecessary re-renders of IdeasListFloating
+  - i18n keys added under ideasFloat namespace (separate from landing namespace)
+  - Tests mock useIdeasByState at module level and verify tab rendering, navigation, and close behaviors
+  - mousedown event (not click) used for click-outside detection to match standard popover behavior
+---
