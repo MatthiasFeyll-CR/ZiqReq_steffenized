@@ -1,0 +1,2 @@
+export const MAX_UNDO_STACK_SIZE = 100;
+export const WS_RECONNECT_MAX_INTERVAL = 30_000;

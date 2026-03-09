@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ziqreq.common;
+
+message UserRef {
+  string id = 1;
+  string display_name = 2;
+  string email = 3;
+}
+
+message PaginationRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message PaginationResponse {
+  int32 total_count = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message Error {
+  string code = 1;
+  string message = 2;
+}

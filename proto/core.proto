@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package ziqreq.core;
+
+service CoreService {
+  // Placeholder — methods defined during milestone implementation
+}

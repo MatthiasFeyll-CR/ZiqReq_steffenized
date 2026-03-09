@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package ziqreq.ai;
+
+service AiService {
+  // Placeholder — methods defined during milestone implementation
+}

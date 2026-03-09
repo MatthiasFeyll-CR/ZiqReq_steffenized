@@ -1,0 +1,135 @@
+services:
+  # Infrastructure
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - frontend
+      - gateway
+
+  postgresql:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: ziqreq
+      POSTGRES_USER: ziqreq
+      POSTGRES_PASSWORD: ziqreq
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # Application
+  frontend:
+    build: ../../frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../../frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+
+  gateway:
+    build: ../../services/gateway
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: gateway.settings.development
+      DB_HOST: postgresql
+      REDIS_URL: redis://redis:6379/0
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      CORE_GRPC_ADDRESS: core:50051
+      AI_GRPC_ADDRESS: ai:50052
+      PDF_GRPC_ADDRESS: pdf:50053
+      DEBUG: "true"
+      AUTH_BYPASS: "true"
+    depends_on:
+      - postgresql
+      - redis
+      - rabbitmq
+
+  core:
+    build: ../../services/core
+    ports:
+      - "50051:50051"
+    environment:
+      DJANGO_SETTINGS_MODULE: core.settings.development
+      DB_HOST: postgresql
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      GATEWAY_GRPC_ADDRESS: gateway:50054
+      AI_GRPC_ADDRESS: ai:50052
+      PDF_GRPC_ADDRESS: pdf:50053
+      DEBUG: "true"
+    depends_on:
+      - postgresql
+      - rabbitmq
+
+  ai:
+    build: ../../services/ai
+    ports:
+      - "50052:50052"
+    environment:
+      DJANGO_SETTINGS_MODULE: ai_service.settings.development
+      DB_HOST: postgresql
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      CORE_GRPC_ADDRESS: core:50051
+      DEBUG: "true"
+    depends_on:
+      - postgresql
+      - rabbitmq
+
+  notification:
+    build: ../../services/notification
+    environment:
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      GATEWAY_GRPC_ADDRESS: gateway:50054
+      CORE_GRPC_ADDRESS: core:50051
+    depends_on:
+      - rabbitmq
+
+  pdf:
+    build: ../../services/pdf
+    ports:
+      - "50053:50053"
+
+  celery-worker:
+    build: ../../services/core
+    command: celery -A core worker -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: core.settings.development
+      DB_HOST: postgresql
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - postgresql
+      - rabbitmq
+      - redis
+
+  celery-beat:
+    build: ../../services/core
+    command: celery -A core beat -l info
+    environment:
+      DJANGO_SETTINGS_MODULE: core.settings.development
+      DB_HOST: postgresql
+      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - postgresql
+      - rabbitmq
+      - redis
+
+volumes:
+  pgdata:
