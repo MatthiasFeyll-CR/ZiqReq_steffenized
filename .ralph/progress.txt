@@ -771,3 +771,18 @@ Started: 2026-03-09T17:27:54+0100
   - proOptions={{ hideAttribution: true }} removes React Flow watermark
   - Background color uses var(--foreground) with opacity-20 style for dot grid visibility
 ---
+
+## US-004: BoxNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoxNode.tsx (new), frontend/src/components/board/BoardCanvas.tsx (updated)
+- Tests: tsc --noEmit PASS, vitest 103 passed, pytest 108 passed, ruff PASS, docker build PASS
+- Learnings for future iterations:
+  - BoxNode uses memo() wrapper for React Flow performance optimization
+  - Handle components from @xyflow/react need Position enum (Position.Top, Position.Bottom)
+  - NodeTypes map must be defined outside the component (not in useMemo) to avoid re-renders
+  - Reference button dispatches CustomEvent "board:reference" with @board[uuid] payload — ChatInput can listen for this in a future story
+  - BoxNodeData interface needs [key: string]: unknown index signature for React Flow compatibility
+  - Lucide icons: Pin, Bot, Lock all available from "lucide-react"
+  - Node type generics: Node<BoxNodeData, "box"> for type-safe custom nodes
+---
