@@ -4,6 +4,7 @@ import { Lightbulb, Users, Mail, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { PageShell } from "@/components/layout/PageShell";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { FilterBar } from "@/components/landing/FilterBar";
 import { EmptyState } from "@/components/common/EmptyState";
 import { IdeaCard } from "@/components/landing/IdeaCard";
 import type { IdeaState } from "@/components/landing/IdeaCard";
@@ -15,6 +16,7 @@ import { useInvitations } from "@/hooks/use-invitations";
 import { useTrash } from "@/hooks/use-trash";
 import { useDeleteIdea } from "@/hooks/use-delete-idea";
 import { useRestoreIdea } from "@/hooks/use-restore-idea";
+import { useIdeasFilters } from "@/hooks/use-ideas-filters";
 
 interface SectionProps {
   title: string;
@@ -48,15 +50,33 @@ function SkeletonList() {
 
 export default function LandingPage() {
   const { t } = useTranslation();
-  const myIdeas = useMyIdeas();
-  const collaborating = useCollaboratingIdeas();
+  const {
+    filters,
+    searchInput,
+    setSearchInput,
+    setStateFilter,
+    setOwnershipFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useIdeasFilters();
+
+  const showMyIdeas = !filters.ownership || filters.ownership === "my_ideas";
+  const showCollaborating =
+    !filters.ownership || filters.ownership === "collaborating";
+
+  const myIdeas = useMyIdeas(showMyIdeas ? filters : undefined);
+  const collaborating = useCollaboratingIdeas(
+    showCollaborating ? filters : undefined,
+  );
   const invitations = useInvitations();
   const trash = useTrash();
   const deleteMutation = useDeleteIdea();
   const restoreMutation = useRestoreIdea();
 
-  const myIdeasData = myIdeas.data?.results ?? [];
-  const collaboratingData = collaborating.data?.results ?? [];
+  const myIdeasData = showMyIdeas ? (myIdeas.data?.results ?? []) : [];
+  const collaboratingData = showCollaborating
+    ? (collaborating.data?.results ?? [])
+    : [];
   const invitationsData = invitations.data?.invitations ?? [];
   const trashData = trash.data?.results ?? [];
 
@@ -97,6 +117,19 @@ export default function LandingPage() {
     <PageShell>
       <div className="mx-auto max-w-5xl px-4 pb-12">
         <HeroSection />
+
+        <div className="mt-6">
+          <FilterBar
+            searchInput={searchInput}
+            onSearchChange={setSearchInput}
+            stateFilter={filters.state}
+            onStateChange={setStateFilter}
+            ownershipFilter={filters.ownership}
+            onOwnershipChange={setOwnershipFilter}
+            hasActiveFilters={hasActiveFilters}
+            onClear={clearFilters}
+          />
+        </div>
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">
           <Section

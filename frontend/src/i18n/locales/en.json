@@ -56,6 +56,22 @@
       "from": "From {{name}}",
       "accept": "Accept",
       "decline": "Decline"
+    },
+    "filter": {
+      "searchPlaceholder": "Search ideas by title...",
+      "clearSearch": "Clear search",
+      "statePlaceholder": "State",
+      "stateAll": "All states",
+      "stateOpen": "Open",
+      "stateInReview": "In Review",
+      "stateAccepted": "Accepted",
+      "stateDropped": "Dropped",
+      "stateRejected": "Rejected",
+      "ownershipPlaceholder": "Ownership",
+      "ownershipAll": "All ideas",
+      "ownershipMyIdeas": "My Ideas",
+      "ownershipCollaborating": "Collaborating",
+      "clearAll": "Clear filters"
     }
   }
 }

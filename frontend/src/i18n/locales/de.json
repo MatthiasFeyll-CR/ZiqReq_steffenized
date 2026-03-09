@@ -56,6 +56,22 @@
       "from": "Von {{name}}",
       "accept": "Annehmen",
       "decline": "Ablehnen"
+    },
+    "filter": {
+      "searchPlaceholder": "Ideen nach Titel suchen...",
+      "clearSearch": "Suche löschen",
+      "statePlaceholder": "Status",
+      "stateAll": "Alle Status",
+      "stateOpen": "Offen",
+      "stateInReview": "In Prüfung",
+      "stateAccepted": "Akzeptiert",
+      "stateDropped": "Verworfen",
+      "stateRejected": "Abgelehnt",
+      "ownershipPlaceholder": "Zugehörigkeit",
+      "ownershipAll": "Alle Ideen",
+      "ownershipMyIdeas": "Meine Ideen",
+      "ownershipCollaborating": "Zusammenarbeit",
+      "clearAll": "Filter zurücksetzen"
     }
   }
 }
