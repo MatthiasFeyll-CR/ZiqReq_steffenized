@@ -5,17 +5,20 @@ import {
   BackgroundVariant,
   MiniMap,
   Controls,
+  MarkerType,
   useNodesState,
   useEdgesState,
   type OnConnect,
   type Node,
   type Edge,
   type NodeTypes,
+  type EdgeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { BoxNode } from "./BoxNode";
 import { GroupNode } from "./GroupNode";
 import { FreeTextNode } from "./FreeTextNode";
+import { ConnectionEdge } from "./ConnectionEdge";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
@@ -25,6 +28,15 @@ const nodeTypes: NodeTypes = {
   box: BoxNode,
   group: GroupNode,
   free_text: FreeTextNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  connection: ConnectionEdge,
+};
+
+const defaultEdgeOptions = {
+  type: "connection" as const,
+  markerEnd: { type: MarkerType.ArrowClosed, color: "gray" },
 };
 
 const defaultNodes: Node[] = [];
@@ -49,6 +61,8 @@ export function BoardCanvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         fitView

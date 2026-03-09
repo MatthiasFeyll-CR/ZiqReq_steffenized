@@ -91,3 +91,8 @@
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 2px);
 }
+
+/* Connection edge hover effect */
+.react-flow__edge:hover .connection-edge {
+  stroke-width: 2.5px;
+}
