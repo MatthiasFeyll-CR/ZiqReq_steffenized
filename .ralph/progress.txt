@@ -326,3 +326,15 @@ Started: 2026-03-09T17:27:54+0100
   - Fix: Remove the TEST block entirely from test settings; let Django auto-create test_ziqreq_test (prefixed with test_)
   - testuser in docker-compose.test.yml is POSTGRES_USER (superuser) so it has CREATE DATABASE privileges for the auto-created test DB
 ---
+
+## US-005: Authentication Middleware and Dev Bypass (Bugfix Cycle 3)
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/authentication/tests/test_dev_bypass.py, services/gateway/apps/authentication/tests/test_azure_ad.py
+- Tests: 14 Python tests PASS (7 dev bypass + 6 Azure AD + 1 smoke), 5 Node tests PASS (4 dev login E2E + 1 smoke). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - DEF-001 root cause: @pytest.mark.django_db on django.test.TestCase subclasses creates a pytest-django/TestCase lifecycle conflict — both try to manage DB transactions, causing test DB to be dropped between test classes
+  - Fix: Remove @pytest.mark.django_db decorator from TestCase subclasses — Django's TestCase handles DB access natively with pytest-django
+  - Also remove unused `import pytest` after removing the decorator
+  - django.test.TestCase already wraps each test in a transaction that rolls back — no need for pytest-django's django_db marker
+---
