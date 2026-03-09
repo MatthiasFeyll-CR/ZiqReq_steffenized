@@ -89,7 +89,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-7.1.01", "T-7.1.02", "T-7.1.03", "T-7.1.04", "T-7.2.01", "T-7.2.02", "T-7.2.03"],
       "notes": "Architecture: docs/02-architecture/api-design.md § Authentication; docs/02-architecture/tech-stack.md § Authentication Flow\nTesting: docs/04-test-architecture/test-matrix.md § T-7.1.01–T-7.2.03\nFiles: services/gateway/apps/authentication/middleware.py, services/gateway/apps/authentication/views.py, services/gateway/apps/authentication/urls.py, services/gateway/apps/authentication/serializers.py\nGotchas: Double-gate dev bypass; cache JWKS keys 24h; upsert user sync",
       "context": {

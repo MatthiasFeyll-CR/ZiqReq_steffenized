@@ -12,6 +12,10 @@
       "file": "services/gateway/apps/authentication/tests/test_dev_bypass.py",
       "function": "test_dev_login_creates_session"
     },
+    "T-7.1.04": {
+      "file": "frontend/src/__tests__/dev-login-flow.test.tsx",
+      "function": "user identity visible in navbar after selecting dev user"
+    },
     "T-7.2.01": {
       "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
       "function": "test_valid_token_validates_and_syncs"
