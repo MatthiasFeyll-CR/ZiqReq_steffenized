@@ -232,3 +232,17 @@ Started: 2026-03-09T17:27:54+0100
   - Immutable save() overrides confirmed on ChatMessage, BrdVersion, ReviewTimelineEntry
   - UniqueConstraint with condition confirmed on ReviewAssignment and MergeRequest
 ---
+
+## US-005: Authentication Middleware and Dev Bypass (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/gateway/settings/test.py, frontend/src/__tests__/dev-login-flow.test.tsx, .ralph/test-manifest.json
+- Tests: 14 Python tests PASS (7 dev bypass + 6 Azure AD + 1 smoke), 5 frontend tests PASS (4 dev login E2E + 1 smoke). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - DEF-001: Django test runner prefixes "test_" to DB name. Fix: add TEST.NAME to DATABASES config to use the existing DB name directly
+  - DEF-002: T-7.1.04 E2E test uses React Testing Library + Vitest (jsdom) — renders DevUserSwitcher, selects dev user, verifies identity in Navbar
+  - Mock fetch with vi.stubGlobal for API calls in component tests
+  - AuthContext.Provider used directly in tests to control auth state (isDevBypass, user, setUser)
+  - MemoryRouter needed for components that use react-router-dom NavLink
+  - Avatar initials (e.g. "AA" for Alice Admin) can be used as assertion target for user identity visibility
+---
