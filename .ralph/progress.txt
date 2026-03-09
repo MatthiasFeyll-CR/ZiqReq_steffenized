@@ -435,3 +435,21 @@ Started: 2026-03-09T17:27:54+0100
   - Docker test images copy files at build time — must rebuild node-tests after source changes
   - i18n keys added under landing.ideaCard namespace: lastUpdated, delete, restore
 ---
+
+## US-005: Idea Creation Flow
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/ideas.ts (new), frontend/src/hooks/use-create-idea.ts (new), frontend/src/components/landing/HeroSection.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/idea-creation-flow.test.tsx (new), frontend/src/__tests__/landing-page.test.tsx, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 29 Node tests PASS (6 idea creation + 10 IdeaCard + 8 landing page + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - HeroSection now self-contained — uses useCreateIdea hook internally instead of accepting onSubmit prop
+  - API layer created at frontend/src/api/ideas.ts — uses fetch with credentials: "include" for session auth
+  - useCreateIdea hook wraps TanStack Query useMutation with onSuccess redirect via useNavigate
+  - Textarea used instead of Input for hero section (allows multi-line, min-h-24)
+  - Enter key submits (Shift+Enter for newline) via onKeyDown with e.shiftKey check
+  - Validation error state managed locally (not via mutation) — cleared on typing
+  - Error state from mutation rendered inline with retry button (not a separate toast component)
+  - QueryClientProvider needed in test wrappers when components use TanStack Query hooks
+  - vi.stubGlobal("fetch", mockFetch) used to mock API calls in component tests
+  - i18n keys added: landing.hero.validationEmpty, landing.hero.errorCreating
+---
