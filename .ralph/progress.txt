@@ -663,3 +663,15 @@ Started: 2026-03-09T17:27:54+0100
   - Switching reactions requires removing old reaction first then adding new one (UNIQUE constraint on message_id, user_id)
   - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
 ---
+
+## US-003: Workspace Page Route
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/__tests__/idea-workspace.test.tsx
+- Tests: 8 test files, 56 tests passed (node). 63 Python tests passed. tsc --noEmit PASS. ruff PASS. Docker build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - DEF-002 fix: useCallback must be called before any early returns to comply with rules-of-hooks
+  - Test pattern: mock heavy child components (WorkspaceLayout, WorkspaceHeader, ChatPanel) with vi.mock to isolate page-level behavior
+  - MemoryRouter with Routes/Route needed to provide useParams context in tests
+  - Docker compose build for frontend fails (pre-existing nginx.conf issue) — build gateway/core/ai individually
+---
