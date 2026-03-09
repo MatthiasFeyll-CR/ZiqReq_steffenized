@@ -675,3 +675,15 @@ Started: 2026-03-09T17:27:54+0100
   - MemoryRouter with Routes/Route needed to provide useParams context in tests
   - Docker compose build for frontend fails (pre-existing nginx.conf issue) — build gateway/core/ai individually
 ---
+
+## US-004: Two-Panel Layout with Draggable Divider
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/workspace-layout.test.tsx (new)
+- Tests: 9/9 pass (workspace-layout.test.tsx), 65/65 total frontend tests pass, tsc clean, ruff clean
+- Learnings for future iterations:
+  - WorkspaceLayout and PanelDivider were already fully implemented in Phase 2; only tests were missing (QA DEF-001)
+  - jsdom has 0 container width so clampRatio always returns DEFAULT_RATIO — test localStorage persistence by checking style.width is truthy rather than a specific value
+  - Radix Tabs set data-state="active" on the default tab trigger — use that for asserting default tab
+  - fireEvent.mouseMove/mouseUp must be dispatched on `document` (not the divider element) since the drag handlers are registered on document
+---
