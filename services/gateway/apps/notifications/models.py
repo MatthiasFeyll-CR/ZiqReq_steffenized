@@ -27,3 +27,6 @@ class Notification(models.Model):
                 name="idx_notif_created",
             ),
         ]
+
+    def __str__(self) -> str:
+        return f"{self.event_type}: {self.title}"

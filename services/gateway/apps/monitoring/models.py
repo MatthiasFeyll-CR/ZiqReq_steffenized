@@ -12,3 +12,6 @@ class MonitoringAlertConfig(models.Model):
 
     class Meta:
         db_table = "monitoring_alert_configs"
+
+    def __str__(self) -> str:
+        return f"AlertConfig(user={self.user_id}, active={self.is_active})"
