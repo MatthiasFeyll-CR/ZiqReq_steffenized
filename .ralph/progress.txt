@@ -299,3 +299,19 @@ Started: 2026-03-09T17:27:54+0100
   - Translation keys cover nav, user menu, common, and dev sections in both de.json and en.json
   - .ralph/prd.json is a symlink to tasks/prd-m1.json — commit the real file
 ---
+
+## US-010: Common Components (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — all 6 components already correctly implemented from Phase 2
+- Tests: tsc --noEmit PASS, ruff PASS
+- Learnings for future iterations:
+  - US-010 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - All 6 common components confirmed: ErrorBoundary.tsx, EmptyState.tsx, ErrorToast.tsx, ErrorLogModal.tsx, LoadingSpinner.tsx, SkipLink.tsx
+  - ErrorBoundary is a class component (required for getDerivedStateFromError lifecycle)
+  - EmptyState uses LucideIcon type for icon prop
+  - ErrorToast/ErrorLogModal are shell components — UI only, no backend wiring
+  - LoadingSpinner uses motion-safe:animate-spin (Tailwind v4 modifier) to respect prefers-reduced-motion
+  - SkipLink uses sr-only + focus:not-sr-only pattern for keyboard-only visibility
+  - ruff check services/ fails with E902 — use individual service dirs: services/gateway/ services/core/ services/ai/
+---
