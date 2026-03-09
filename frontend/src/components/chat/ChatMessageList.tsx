@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Lightbulb } from "lucide-react";
 import { fetchChatMessages, type ChatMessage } from "@/api/chat";
@@ -11,17 +11,24 @@ import { DelegationMessage } from "./DelegationMessage";
 
 interface ChatMessageListProps {
   idea: Idea;
+  appendedMessages?: ChatMessage[];
 }
 
-export function ChatMessageList({ idea }: ChatMessageListProps) {
+export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageListProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [fetchedMessages, setFetchedMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
 
   const isMultiUser = idea.collaborators.length > 0;
+
+  const allMessages = useMemo(() => {
+    const fetchedIds = new Set(fetchedMessages.map((m) => m.id));
+    const deduped = appendedMessages.filter((m) => !fetchedIds.has(m.id));
+    return [...fetchedMessages, ...deduped];
+  }, [fetchedMessages, appendedMessages]);
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +36,7 @@ export function ChatMessageList({ idea }: ChatMessageListProps) {
     fetchChatMessages(idea.id)
       .then((data) => {
         if (!cancelled) {
-          setMessages(data.messages);
+          setFetchedMessages(data.messages);
           setLoading(false);
         }
       })
@@ -45,11 +52,11 @@ export function ChatMessageList({ idea }: ChatMessageListProps) {
   }, [idea.id]);
 
   useEffect(() => {
-    if (messages.length > 0 && messages.length !== prevMessageCountRef.current) {
+    if (allMessages.length > 0 && allMessages.length !== prevMessageCountRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: prevMessageCountRef.current === 0 ? "instant" : "smooth" });
     }
-    prevMessageCountRef.current = messages.length;
-  }, [messages]);
+    prevMessageCountRef.current = allMessages.length;
+  }, [allMessages]);
 
   const getSenderName = (senderId: string | null): string | undefined => {
     if (!senderId) return undefined;
@@ -66,7 +73,7 @@ export function ChatMessageList({ idea }: ChatMessageListProps) {
     );
   }
 
-  if (messages.length === 0) {
+  if (allMessages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center" data-testid="chat-empty-state">
         <EmptyState
@@ -82,7 +89,7 @@ export function ChatMessageList({ idea }: ChatMessageListProps) {
       className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
       data-testid="chat-message-list"
     >
-      {messages.map((msg) => {
+      {allMessages.map((msg) => {
         if (msg.message_type === "delegation") {
           return <DelegationMessage key={msg.id} message={msg} />;
         }

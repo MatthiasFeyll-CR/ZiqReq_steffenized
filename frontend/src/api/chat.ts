@@ -18,6 +18,24 @@ export interface ChatMessagesResponse {
   offset: number;
 }
 
+export async function sendChatMessage(
+  ideaId: string,
+  content: string,
+): Promise<ChatMessage> {
+  const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/`;
+  const res = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function fetchChatMessages(
   ideaId: string,
   params?: { limit?: number; offset?: number },
