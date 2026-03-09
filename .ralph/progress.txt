@@ -363,3 +363,147 @@ Started: 2026-03-09T17:27:54+0100
   - Previous bugfix cycles failed because they didn't rebuild the Docker image after changing test.py
   - Django 5.2's ConnectionHandler.configure_settings uses setdefault to add TEST defaults but won't override existing keys
 ---
+
+## US-001: Ideas REST API — CRUD Endpoints
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/models.py, services/gateway/apps/ideas/migrations/__init__.py, services/gateway/apps/ideas/migrations/0001_initial.py, services/gateway/apps/ideas/authentication.py, services/gateway/apps/ideas/serializers.py, services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/ideas/tests/__init__.py, services/gateway/apps/ideas/tests/test_views.py, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 31 Python tests PASS (17 ideas CRUD + 13 auth + 1 smoke), 5 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Gateway ideas app (label=gateway_ideas) needs its own models for Idea, IdeaCollaborator, ChatMessage since it can't import from core service
+  - Models use db_table matching core's tables (ideas, idea_collaborators, chat_messages) — gateway manages tables in test; core manages in production
+  - MiddlewareAuthentication bridges middleware auth (request.user_obj) to DRF (request.user) via BaseAuthentication subclass
+  - _require_auth must check getattr(user, "id", None) not hasattr(user, "id") — AnonymousUser has id attribute but it's None
+  - In dev bypass mode, middleware passes through unauthenticated requests (user_obj=None) without returning 401 — views must handle this
+  - DRF api_view decorators should only be on top-level URL-routed functions; inner handlers called from routers should be plain functions
+  - Combined GET/POST or GET/DELETE at same URL uses a router function that dispatches by request.method
+  - Soft delete uses deleted_at timestamp (not hard delete); trash filter checks deleted_at__isnull=False
+  - Search by title uses title__icontains for case-insensitive partial match
+  - Collaborating filter joins IdeaCollaborator table; my_ideas filter checks owner_id
+  - docker-compose.yml for service builds is at infra/docker/docker-compose.yml
+  - Migration line length issues: use module-level constants for choices lists to keep lines under 120 chars
+---
+
+## US-002: Invitations List API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/collaboration/models.py, services/gateway/apps/collaboration/migrations/__init__.py, services/gateway/apps/collaboration/migrations/0001_initial.py, services/gateway/apps/collaboration/apps.py, services/gateway/apps/collaboration/views.py, services/gateway/apps/collaboration/urls.py, services/gateway/apps/collaboration/tests/__init__.py, services/gateway/apps/collaboration/tests/test_views.py, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 36 Python tests PASS (5 invitations + 17 ideas + 13 auth + 1 smoke), 5 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Gateway collaboration app needed its own models.py with CollaborationInvitation model (db_table="collaboration_invitations") since it can't import from core service
+  - Added label="gateway_collaboration" to CollaborationConfig to avoid potential migration table conflicts with core's collaboration app
+  - Reused MiddlewareAuthentication from apps.ideas.authentication — DRF auth bridge pattern works across gateway apps
+  - URL route was already wired in gateway/urls.py: path("api/invitations/", include("apps.collaboration.urls"))
+  - Serializer not needed — direct dict construction in view is simpler for read-only list endpoints
+  - Joins to ideas table (for idea_title) and users table (for inviter display_name) done via batch queries with ID sets to avoid N+1
+  - .ralph/ dir is in .gitignore — use git add -f for .ralph/ files
+---
+
+## US-003: Landing Page Layout
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/pages/LandingPage/index.tsx, frontend/src/components/landing/HeroSection.tsx, frontend/src/components/landing/InvitationCard.tsx, frontend/src/app/router.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/landing-page.test.tsx, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 13 Node tests PASS (8 landing page + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - i18n default language is German ("de") — tests must either use German strings or call i18n.changeLanguage("en") in beforeAll
+  - LandingPage accepts props for data (myIdeas, collaborating, invitations, trash) — data fetching hooks will be wired in US-006
+  - IdeaCard is a separate US-004 story — LandingPage uses simple placeholder cards for now
+  - InvitationCard created but not used in LandingPage yet — will be wired when data fetching is integrated in US-006
+  - HeroSection's onSubmit prop is a placeholder for US-005 (idea creation flow)
+  - EmptyState component from M1 uses LucideIcon type for icon prop — import icons from lucide-react (Lightbulb, Users, Mail, Trash2)
+  - Router updated path from /ideas/:id to /idea/:id to match navigation pattern used in cards
+  - PageShell wraps Navbar + main content — LandingPage includes PageShell directly
+  - Section component is local to LandingPage — renders heading with count badge
+  - Count badge uses rounded-full bg-muted pill style
+  - vi.mock("react-router-dom") with useNavigate mock needed for testing card click navigation
+---
+
+## US-004: IdeaCard Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/landing/IdeaCard.tsx, frontend/src/lib/utils.ts, frontend/src/pages/LandingPage/index.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/idea-card.test.tsx, frontend/src/__tests__/landing-page.test.tsx
+- Tests: 23 Node tests PASS (10 IdeaCard + 8 landing page + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - IdeaCard uses inline style for state dot color (dynamic per state) rather than Tailwind classes
+  - State dot colors: open=#0284C7, in_review=#F59E0B, accepted=#16A34A, dropped=#9CA3AF, rejected=#F97316
+  - formatRelativeTime helper added to lib/utils.ts — simple logic: <1min="just now", <1hr="X minutes ago", <1day="X hours ago", else="X days ago"
+  - Three-dot menu uses stopPropagation on both onClick and onKeyDown to prevent card navigation
+  - DropdownMenuTrigger wraps a span (not button) with role="button" — avoids nested button issue inside card's button element
+  - Badge component already has state variants (open, in_review, accepted, dropped, rejected) from M1
+  - LandingPage invitations section must use InvitationCard (not IdeaCard) — invitations have different data shape
+  - InvitationCard renders "From {{name}}" via i18n, not raw inviter name — tests must match this format
+  - Docker test images copy files at build time — must rebuild node-tests after source changes
+  - i18n keys added under landing.ideaCard namespace: lastUpdated, delete, restore
+---
+
+## US-005: Idea Creation Flow
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/ideas.ts (new), frontend/src/hooks/use-create-idea.ts (new), frontend/src/components/landing/HeroSection.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/idea-creation-flow.test.tsx (new), frontend/src/__tests__/landing-page.test.tsx, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 29 Node tests PASS (6 idea creation + 10 IdeaCard + 8 landing page + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - HeroSection now self-contained — uses useCreateIdea hook internally instead of accepting onSubmit prop
+  - API layer created at frontend/src/api/ideas.ts — uses fetch with credentials: "include" for session auth
+  - useCreateIdea hook wraps TanStack Query useMutation with onSuccess redirect via useNavigate
+  - Textarea used instead of Input for hero section (allows multi-line, min-h-24)
+  - Enter key submits (Shift+Enter for newline) via onKeyDown with e.shiftKey check
+  - Validation error state managed locally (not via mutation) — cleared on typing
+  - Error state from mutation rendered inline with retry button (not a separate toast component)
+  - QueryClientProvider needed in test wrappers when components use TanStack Query hooks
+  - vi.stubGlobal("fetch", mockFetch) used to mock API calls in component tests
+  - i18n keys added: landing.hero.validationEmpty, landing.hero.errorCreating
+---
+
+## US-006: Idea Lists with TanStack Query
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/ideas.ts, frontend/src/hooks/use-my-ideas.ts (new), use-collaborating-ideas.ts (new), use-invitations.ts (new), use-trash.ts (new), use-delete-idea.ts (new), use-restore-idea.ts (new), use-create-idea.ts, frontend/src/components/landing/IdeaCardSkeleton.tsx (new), frontend/src/pages/LandingPage/index.tsx, frontend/src/app/providers.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/landing-page.test.tsx, frontend/src/__tests__/idea-creation-flow.test.tsx
+- Tests: 31 Node tests PASS (10 landing page + 10 IdeaCard + 6 idea creation + 4 dev login + 1 smoke). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - LandingPage no longer accepts props — it uses TanStack Query hooks internally for all 4 lists
+  - API response fields use snake_case (updated_at, deleted_at, idea_id) not camelCase — map accordingly in components
+  - react-toastify is in package.json but requires ToastContainer in providers.tsx to work
+  - ToastContainer added to Providers with position="bottom-right"
+  - Test mocking pattern for query hooks: use `vi.mock("@/hooks/use-xxx")` at module level, import mocked module, use `vi.mocked(hook).mockReturnValue()` per test
+  - Cast mock return values as `never` to bypass TanStack Query's complex UseQueryResult type in tests
+  - When LandingPage switches from prop-based to hook-based, ALL test files rendering LandingPage must mock the list hooks (including idea-creation-flow tests)
+  - useDeleteIdea/useRestoreIdea invalidate queryKey: ["ideas"] on success to refresh all idea lists
+  - useCreateIdea also invalidates ["ideas"] queries before navigating
+  - Undo toast uses react-toastify's toast() with JSX content containing an undo button; 5s autoClose
+  - docker-compose.yml is at infra/docker/docker-compose.yml — use that for service builds
+---
+
+## US-007: Search & Filter Bar
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/landing/FilterBar.tsx (new), frontend/src/hooks/use-ideas-filters.ts (new), frontend/src/hooks/use-my-ideas.ts, frontend/src/hooks/use-collaborating-ideas.ts, frontend/src/pages/LandingPage/index.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/filter-bar.test.tsx (new)
+- Tests: 44 Node tests PASS (13 filter-bar + 10 landing page + 10 IdeaCard + 6 idea creation + 4 dev login + 1 smoke), 36 Python tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - setSearchParams from useSearchParams creates a new function reference on every render — use a ref to avoid infinite re-render loops in useEffect dependencies
+  - useIdeasFilters hook uses refs (searchParamsRef, setSearchParamsRef) to break the setSearchParams → re-render → new setSearchParams → effect re-fires cycle
+  - userEvent.type triggers re-renders between keystrokes and waits for DOM to settle — this causes timeouts when combined with setSearchParams/MemoryRouter interactions
+  - Use fireEvent.change instead of userEvent.type for search input tests that involve URL params/debounce
+  - Test FilterBar as a controlled component (receiving props) for unit tests — avoids the useSearchParams/MemoryRouter timing issues
+  - Debounce effect (300ms) only depends on searchInput (not setSearchParams) — key to avoiding infinite loops
+  - Radix Select doesn't support empty string as value — use a sentinel value like "__all__" and map to "" in the handler
+  - FilterBar filters only apply to My Ideas and Collaborating lists — Invitations and Trash are unfiltered
+  - Ownership filter determines which lists to show: "my_ideas" → only My Ideas, "collaborating" → only Collaborating, "" → both
+  - i18n keys added under landing.filter namespace for search, state, ownership labels
+---
+
+## US-008: Ideas List Floating Window
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/landing/IdeaCardCompact.tsx (new), frontend/src/components/layout/IdeasListFloating.tsx (new), frontend/src/hooks/use-ideas-by-state.ts (new), frontend/src/components/layout/Navbar.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/ideas-list-floating.test.tsx (new)
+- Tests: 52 Node tests PASS (8 floating window + 13 filter-bar + 10 landing page + 10 IdeaCard + 6 idea creation + 4 dev login + 1 smoke), 36 Python tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - No Popover component from M1 — used custom click-outside + Escape handling with useRef/useEffect instead of Radix Popover
+  - IdeasListFloating uses absolute positioning (z-20) anchored relative to its parent wrapper in the Navbar
+  - IdeaCardCompact is minimal: state dot + title only (no timestamp, badge, or menu) — separate from full IdeaCard
+  - useIdeasByState hook uses fetchIdeas with state param — Closed tab maps to state=dropped (not "closed")
+  - Tabs component from M1 (Radix Tabs) works well for the tabbed interface
+  - useCallback on onClose handler prevents unnecessary re-renders of IdeasListFloating
+  - i18n keys added under ideasFloat namespace (separate from landing namespace)
+  - Tests mock useIdeasByState at module level and verify tab rendering, navigation, and close behaviors
+  - mousedown event (not click) used for click-outside detection to match standard popover behavior
+---

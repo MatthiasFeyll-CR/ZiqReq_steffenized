@@ -22,5 +22,72 @@
   },
   "dev": {
     "userSwitcher": "Entwickler-Benutzerwechsler"
+  },
+  "landing": {
+    "hero": {
+      "heading": "Neues Brainstorming starten",
+      "subtext": "Beschreiben Sie Ihre Idee und lassen Sie KI Ihnen bei der Verfeinerung helfen.",
+      "placeholder": "Beschreiben Sie Ihre Idee...",
+      "submit": "Starten",
+      "validationEmpty": "Bitte beschreiben Sie Ihre Idee vor dem Absenden.",
+      "errorCreating": "Idee konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
+    },
+    "lists": {
+      "myIdeas": "Meine Ideen",
+      "collaborating": "Zusammenarbeit",
+      "invitations": "Einladungen",
+      "trash": "Papierkorb"
+    },
+    "empty": {
+      "myIdeas": "Starten Sie Ihr erstes Brainstorming",
+      "collaborating": "Noch keine Zusammenarbeit",
+      "invitations": "Keine ausstehenden Einladungen",
+      "trash": "Papierkorb ist leer"
+    },
+    "untitled": "Unbenannte Idee",
+    "ideaCard": {
+      "lastUpdated": "Zuletzt aktualisiert {{time}}",
+      "delete": "Löschen",
+      "restore": "Wiederherstellen",
+      "deletedUndo": "Idee in den Papierkorb verschoben",
+      "undo": "Rückgängig"
+    },
+    "invitations": {
+      "from": "Von {{name}}",
+      "accept": "Annehmen",
+      "decline": "Ablehnen"
+    },
+    "filter": {
+      "searchPlaceholder": "Ideen nach Titel suchen...",
+      "clearSearch": "Suche löschen",
+      "statePlaceholder": "Status",
+      "stateAll": "Alle Status",
+      "stateOpen": "Offen",
+      "stateInReview": "In Prüfung",
+      "stateAccepted": "Akzeptiert",
+      "stateDropped": "Verworfen",
+      "stateRejected": "Abgelehnt",
+      "ownershipPlaceholder": "Zugehörigkeit",
+      "ownershipAll": "Alle Ideen",
+      "ownershipMyIdeas": "Meine Ideen",
+      "ownershipCollaborating": "Zusammenarbeit",
+      "clearAll": "Filter zurücksetzen"
+    }
+  },
+  "ideasFloat": {
+    "title": "Ideen",
+    "tabs": {
+      "active": "Aktiv",
+      "inReview": "In Prüfung",
+      "accepted": "Akzeptiert",
+      "closed": "Geschlossen"
+    },
+    "empty": "Keine {{state}} Ideen",
+    "stateLabels": {
+      "open": "aktiven",
+      "in_review": "in Prüfung befindlichen",
+      "accepted": "akzeptierten",
+      "dropped": "geschlossenen"
+    }
   }
 }

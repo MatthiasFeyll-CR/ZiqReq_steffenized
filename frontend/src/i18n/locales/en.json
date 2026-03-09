@@ -22,5 +22,72 @@
   },
   "dev": {
     "userSwitcher": "Dev User Switcher"
+  },
+  "landing": {
+    "hero": {
+      "heading": "Start a new brainstorm",
+      "subtext": "Describe your idea and let AI help you refine it.",
+      "placeholder": "Describe your idea...",
+      "submit": "Begin",
+      "validationEmpty": "Please describe your idea before submitting.",
+      "errorCreating": "Failed to create idea. Please try again."
+    },
+    "lists": {
+      "myIdeas": "My Ideas",
+      "collaborating": "Collaborating",
+      "invitations": "Invitations",
+      "trash": "Trash"
+    },
+    "empty": {
+      "myIdeas": "Start your first brainstorm",
+      "collaborating": "No collaborations yet",
+      "invitations": "No pending invitations",
+      "trash": "Trash is empty"
+    },
+    "untitled": "Untitled idea",
+    "ideaCard": {
+      "lastUpdated": "Last updated {{time}}",
+      "delete": "Delete",
+      "restore": "Restore",
+      "deletedUndo": "Idea moved to trash",
+      "undo": "Undo"
+    },
+    "invitations": {
+      "from": "From {{name}}",
+      "accept": "Accept",
+      "decline": "Decline"
+    },
+    "filter": {
+      "searchPlaceholder": "Search ideas by title...",
+      "clearSearch": "Clear search",
+      "statePlaceholder": "State",
+      "stateAll": "All states",
+      "stateOpen": "Open",
+      "stateInReview": "In Review",
+      "stateAccepted": "Accepted",
+      "stateDropped": "Dropped",
+      "stateRejected": "Rejected",
+      "ownershipPlaceholder": "Ownership",
+      "ownershipAll": "All ideas",
+      "ownershipMyIdeas": "My Ideas",
+      "ownershipCollaborating": "Collaborating",
+      "clearAll": "Clear filters"
+    }
+  },
+  "ideasFloat": {
+    "title": "Ideas",
+    "tabs": {
+      "active": "Active",
+      "inReview": "In Review",
+      "accepted": "Accepted",
+      "closed": "Closed"
+    },
+    "empty": "No {{state}} ideas",
+    "stateLabels": {
+      "open": "active",
+      "in_review": "in review",
+      "accepted": "accepted",
+      "dropped": "closed"
+    }
   }
 }

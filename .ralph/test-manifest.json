@@ -27,6 +27,70 @@
     "T-7.2.03": {
       "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
       "function": "test_roles_synced_from_ad_groups"
+    },
+    "API-IDEA.01": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_create_idea_with_first_message"
+    },
+    "API-IDEA.02": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_create_idea_empty_first_message"
+    },
+    "API-IDEA.03": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_create_idea_unauthenticated"
+    },
+    "API-IDEA.04": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_list_ideas"
+    },
+    "API-IDEA.05": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_filter_trash"
+    },
+    "API-IDEA.06": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_get_idea_as_owner"
+    },
+    "API-IDEA.07": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_get_idea_non_owner_denied"
+    },
+    "API-IDEA.08": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_get_idea_not_found"
+    },
+    "API-IDEA.11": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_soft_delete"
+    },
+    "API-IDEA.12": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_restore_from_trash"
+    },
+    "T-9.3.01": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_soft_delete_appears_in_trash"
+    },
+    "T-9.3.02": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_restore_clears_deleted_at"
+    },
+    "T-9.4.01": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_search_by_title"
+    },
+    "T-9.4.02": {
+      "file": "services/gateway/apps/ideas/tests/test_views.py",
+      "function": "test_filter_by_state"
+    },
+    "T-9.1.01": {
+      "file": "frontend/src/__tests__/landing-page.test.tsx",
+      "function": "T-9.1.01: Landing page renders all 4 lists"
+    },
+    "T-9.2.01": {
+      "file": "frontend/src/__tests__/idea-creation-flow.test.tsx",
+      "function": "T-9.2.01: Create idea from landing page"
     }
   }
 }
