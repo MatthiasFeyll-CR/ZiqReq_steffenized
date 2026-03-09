@@ -523,3 +523,34 @@ Started: 2026-03-09T17:27:54+0100
   - Deleted ideas (deleted_at not null) return 404 for chat endpoints
   - docker-compose.yml is at infra/docker/docker-compose.yml for service builds
 ---
+
+## US-002: User Reactions API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/models.py, services/gateway/apps/ideas/migrations/0002_userreaction.py, services/gateway/apps/chat/serializers.py, services/gateway/apps/chat/views.py, services/gateway/apps/chat/urls.py, services/gateway/apps/chat/tests/test_reactions.py, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 63 Python tests PASS (12 new reaction tests + 51 existing), 52 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - UserReaction model added to apps.ideas.models (same file as ChatMessage mirror model) with db_table="user_reactions"
+  - Needed a migration (0002_userreaction.py) for the test DB — without it, relation "user_reactions" does not exist
+  - Docker test images copy files at build time — must rebuild python-tests image after adding migration files
+  - Reaction URL nested under chat: chat/urls.py has path("/<str:message_id>/reactions", ...) which resolves to /api/ideas/:id/chat/:msgId/reactions
+  - UNIQUE(message_id, user_id) constraint enforces one reaction per user per message — application-level check before create avoids IntegrityError
+  - Validation order: auth → idea access → message exists → not AI message → not own message → valid reaction_type → not duplicate
+  - DELETE doesn't need message validation — just find reaction by message_id + user_id and delete
+  - .ralph/ dir is in .gitignore — use git add -f for .ralph/ files
+---
+
+## US-003: Workspace Page Route
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/pages/idea-workspace.tsx, frontend/src/app/router.tsx, frontend/src/api/ideas.ts, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json
+- Tests: 63 Python tests PASS, 52 Node tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - IdeaWorkspacePage replaces placeholder div in router — uses useParams to extract :id
+  - fetchIdea function added to api/ideas.ts with Idea interface matching GET /api/ideas/:id response
+  - Error object includes .status property for distinguishing 404/403 from generic errors
+  - document.title updated via useEffect on idea.title, reset to "ZiqReq" on unmount
+  - Loading state uses Skeleton components for header and two-panel layout preview
+  - i18n keys added under "workspace" namespace: notFound, noAccess, backToHome
+  - ruff check services/ fails with E902 — use individual dirs: services/gateway/ services/core/ services/ai/
+---
