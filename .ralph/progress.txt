@@ -620,3 +620,18 @@ Started: 2026-03-09T17:27:54+0100
   - EmptyState component accepts LucideIcon type — used Lightbulb icon for "Start brainstorming..." empty state
   - i18n fallback strings used (t("chat.emptyState", "Start brainstorming...")) — works without explicit i18n keys
 ---
+
+## US-008: ChatInput with Send Button
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/chat/ChatInput.tsx (new), frontend/src/api/chat.ts, frontend/src/components/chat/ChatMessageList.tsx, frontend/src/components/workspace/ChatPanel.tsx
+- Tests: tsc --noEmit PASS, ruff check PASS. Docker build has pre-existing nginx.conf issue (not related to this story).
+- Learnings for future iterations:
+  - ChatInput uses auto-grow textarea: rows=1, reset height to "auto" then set to scrollHeight on input
+  - sendChatMessage added to api/chat.ts with POST /api/ideas/:id/chat/
+  - ChatPanel manages newMessages state and passes appendedMessages to ChatMessageList for deduplication
+  - ChatMessageList merges fetched + appended messages using useMemo with Set-based dedup on message id
+  - Enter sends (prevented default), Shift+Enter allows newline via no preventDefault
+  - Send button uses Button variant="primary" size="icon" with ArrowRight icon, Loader2 spinner when sending
+  - Context indicator is a 20px circle placeholder (for M7)
+---
