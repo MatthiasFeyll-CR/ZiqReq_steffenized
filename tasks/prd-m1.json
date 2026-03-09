@@ -50,7 +50,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § users, notifications, monitoring_alert_configs\nFiles: services/gateway/apps/authentication/models.py, services/gateway/apps/notifications/models.py, services/gateway/apps/monitoring/models.py",
       "context": {
