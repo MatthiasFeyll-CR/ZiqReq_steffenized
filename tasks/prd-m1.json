@@ -109,7 +109,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § gRPC Services; docs/02-architecture/project-structure.md § proto/\nFiles: proto/common.proto, proto/core.proto, proto/ai.proto, proto/gateway.proto, proto/pdf.proto, proto/Makefile, services/*/grpc_clients/*.py, services/*/grpc_server/servicers/*.py\nGotchas: Stubs must return valid types (not None); use google.protobuf well-known types",
       "context": {
