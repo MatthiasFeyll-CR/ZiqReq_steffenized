@@ -39,6 +39,30 @@ class BoardNodeUpdateSerializer(serializers.Serializer):
         return value
 
 
+class BoardConnectionCreateSerializer(serializers.Serializer):
+    source_node_id = serializers.UUIDField()
+    target_node_id = serializers.UUIDField()
+    label = serializers.CharField(
+        max_length=500, required=False, allow_null=True, allow_blank=True
+    )
+
+
+class BoardConnectionUpdateSerializer(serializers.Serializer):
+    label = serializers.CharField(
+        max_length=500, required=False, allow_null=True, allow_blank=True
+    )
+
+
+class BoardConnectionResponseSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    idea_id = serializers.UUIDField()
+    source_node_id = serializers.UUIDField()
+    target_node_id = serializers.UUIDField()
+    label = serializers.CharField(allow_null=True)
+    created_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField()
+
+
 class BoardNodeResponseSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     idea_id = serializers.UUIDField()

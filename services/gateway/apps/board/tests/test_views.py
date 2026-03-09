@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.board.models import BoardNode
+from apps.board.models import BoardConnection, BoardNode
 from apps.ideas.models import Idea, IdeaCollaborator
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
@@ -357,3 +357,281 @@ class TestBoardNodesAPI(TestCase):
         assert data["node_type"] == "group"
         assert data["width"] == 400.0
         assert data["height"] == 300.0
+
+
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+class TestBoardConnectionsAPI(TestCase):
+    """Integration tests for the Board Connections API."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user1 = _create_user(USER_1_ID, "user1@test.local", "Test User1")
+        self.user2 = _create_user(USER_2_ID, "user2@test.local", "Test User2")
+        self.idea = Idea.objects.create(owner_id=self.user1.id, title="Test Idea")
+        self.client.post(
+            "/api/auth/dev-login",
+            {"user_id": str(self.user1.id)},
+            format="json",
+        )
+        self.node_a = BoardNode.objects.create(
+            idea_id=self.idea.id, node_type="box", title="Node A", created_by="user"
+        )
+        self.node_b = BoardNode.objects.create(
+            idea_id=self.idea.id, node_type="box", title="Node B", created_by="user"
+        )
+
+    def _login_as(self, user: User):
+        self.client.post(
+            "/api/auth/dev-login",
+            {"user_id": str(user.id)},
+            format="json",
+        )
+
+    def _conns_url(self, idea_id=None):
+        return f"/api/ideas/{idea_id or self.idea.id}/board/connections"
+
+    def _conn_url(self, conn_id, idea_id=None):
+        return f"/api/ideas/{idea_id or self.idea.id}/board/connections/{conn_id}"
+
+    # --- GET /api/ideas/:id/board/connections ---
+
+    def test_list_connections_returns_200(self):
+        """API-BOARD.08: GET returns all connections for an idea."""
+        BoardConnection.objects.create(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+        )
+        response = self.client.get(self._conns_url())
+        assert response.status_code == 200
+        data = response.json()
+        assert "connections" in data
+        assert len(data["connections"]) == 1
+
+    def test_list_connections_empty(self):
+        """GET returns empty list when no connections exist."""
+        response = self.client.get(self._conns_url())
+        data = response.json()
+        assert data["connections"] == []
+
+    def test_list_connections_unauthenticated_returns_401(self):
+        """GET without auth returns 401."""
+        client = APIClient()
+        response = client.get(self._conns_url())
+        assert response.status_code == 401
+
+    def test_list_connections_no_access_returns_403(self):
+        """GET by non-owner returns 403."""
+        self._login_as(self.user2)
+        response = self.client.get(self._conns_url())
+        assert response.status_code == 403
+
+    # --- POST /api/ideas/:id/board/connections ---
+
+    def test_create_connection_returns_201(self):
+        """API-BOARD.09: POST creates a connection."""
+        response = self.client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(self.node_a.id),
+                "target_node_id": str(self.node_b.id),
+                "label": "relates to",
+            },
+            format="json",
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["source_node_id"] == str(self.node_a.id)
+        assert data["target_node_id"] == str(self.node_b.id)
+        assert data["label"] == "relates to"
+        assert "id" in data
+        assert "created_at" in data
+
+    def test_create_connection_no_label(self):
+        """POST creates a connection without label."""
+        response = self.client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(self.node_a.id),
+                "target_node_id": str(self.node_b.id),
+            },
+            format="json",
+        )
+        assert response.status_code == 201
+        assert response.json()["label"] is None
+
+    def test_create_self_connection_returns_400(self):
+        """DB-CONN.02: POST with source == target returns 400 SELF_CONNECTION."""
+        response = self.client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(self.node_a.id),
+                "target_node_id": str(self.node_a.id),
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.json()["error"] == "SELF_CONNECTION"
+
+    def test_create_duplicate_connection_returns_409(self):
+        """DB-CONN.03: POST duplicate source-target returns 409."""
+        BoardConnection.objects.create(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+        )
+        response = self.client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(self.node_a.id),
+                "target_node_id": str(self.node_b.id),
+            },
+            format="json",
+        )
+        assert response.status_code == 409
+        assert response.json()["error"] == "DUPLICATE_CONNECTION"
+
+    def test_create_connection_nonexistent_source_returns_404(self):
+        """POST with nonexistent source node returns 404."""
+        response = self.client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(uuid.uuid4()),
+                "target_node_id": str(self.node_b.id),
+            },
+            format="json",
+        )
+        assert response.status_code == 404
+
+    def test_create_connection_nonexistent_target_returns_404(self):
+        """POST with nonexistent target node returns 404."""
+        response = self.client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(self.node_a.id),
+                "target_node_id": str(uuid.uuid4()),
+            },
+            format="json",
+        )
+        assert response.status_code == 404
+
+    def test_create_connection_unauthenticated_returns_401(self):
+        """POST without auth returns 401."""
+        client = APIClient()
+        response = client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(self.node_a.id),
+                "target_node_id": str(self.node_b.id),
+            },
+            format="json",
+        )
+        assert response.status_code == 401
+
+    def test_create_connection_persists(self):
+        """DB-CONN.01: POST creates a BoardConnection in the database."""
+        self.client.post(
+            self._conns_url(),
+            {
+                "source_node_id": str(self.node_a.id),
+                "target_node_id": str(self.node_b.id),
+            },
+            format="json",
+        )
+        assert BoardConnection.objects.filter(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+        ).exists()
+
+    # --- PATCH /api/ideas/:id/board/connections/:connId ---
+
+    def test_update_connection_label_returns_200(self):
+        """API-BOARD.10: PATCH updates connection label."""
+        conn = BoardConnection.objects.create(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+        )
+        response = self.client.patch(
+            self._conn_url(conn.id),
+            {"label": "updated label"},
+            format="json",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["label"] == "updated label"
+
+    def test_update_connection_clear_label(self):
+        """PATCH can set label to null."""
+        conn = BoardConnection.objects.create(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+            label="old",
+        )
+        response = self.client.patch(
+            self._conn_url(conn.id),
+            {"label": None},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.json()["label"] is None
+
+    def test_update_nonexistent_connection_returns_404(self):
+        """PATCH on nonexistent connection returns 404."""
+        fake_id = str(uuid.uuid4())
+        response = self.client.patch(
+            self._conn_url(fake_id),
+            {"label": "new"},
+            format="json",
+        )
+        assert response.status_code == 404
+
+    # --- DELETE /api/ideas/:id/board/connections/:connId ---
+
+    def test_delete_connection_returns_204(self):
+        """API-BOARD.11: DELETE removes connection."""
+        conn = BoardConnection.objects.create(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+        )
+        response = self.client.delete(self._conn_url(conn.id))
+        assert response.status_code == 204
+        assert not BoardConnection.objects.filter(id=conn.id).exists()
+
+    def test_delete_nonexistent_connection_returns_404(self):
+        """DELETE nonexistent connection returns 404."""
+        fake_id = str(uuid.uuid4())
+        response = self.client.delete(self._conn_url(fake_id))
+        assert response.status_code == 404
+
+    def test_delete_connection_unauthenticated_returns_401(self):
+        """DELETE without auth returns 401."""
+        conn = BoardConnection.objects.create(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+        )
+        client = APIClient()
+        response = client.delete(self._conn_url(conn.id))
+        assert response.status_code == 401
+
+    def test_cascade_delete_node_removes_connections(self):
+        """Deleting a node cascades to remove its connections."""
+        BoardConnection.objects.create(
+            idea_id=self.idea.id,
+            source_node=self.node_a,
+            target_node=self.node_b,
+        )
+        assert BoardConnection.objects.filter(idea_id=self.idea.id).count() == 1
+        self.node_a.delete()
+        assert BoardConnection.objects.filter(idea_id=self.idea.id).count() == 0
+
+    def test_collaborator_can_access_connections(self):
+        """Collaborator can list and create connections."""
+        IdeaCollaborator.objects.create(idea=self.idea, user_id=self.user2.id)
+        self._login_as(self.user2)
+        response = self.client.get(self._conns_url())
+        assert response.status_code == 200

@@ -28,3 +28,24 @@ class BoardNode(models.Model):
 
     def __str__(self) -> str:
         return f"BoardNode {self.node_type}: {self.title or self.id}"
+
+
+class BoardConnection(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    idea_id = models.UUIDField()
+    source_node = models.ForeignKey(
+        BoardNode, on_delete=models.CASCADE, related_name="outgoing_connections"
+    )
+    target_node = models.ForeignKey(
+        BoardNode, on_delete=models.CASCADE, related_name="incoming_connections"
+    )
+    label = models.CharField(max_length=500, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "board_connections"
+        unique_together = [("source_node", "target_node")]
+
+    def __str__(self) -> str:
+        return f"Connection {self.source_node_id} → {self.target_node_id}"
