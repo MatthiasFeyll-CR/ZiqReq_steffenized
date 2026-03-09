@@ -131,7 +131,7 @@ function IdeaWorkspaceContent({
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={allReadOnly} />
       <WorkspaceLayout
         chatPanel={
-          <ChatPanel locked={chatLocked} lockReason={lockReason} />
+          <ChatPanel idea={idea} locked={chatLocked} lockReason={lockReason} />
         }
         reviewVisible={reviewVisible}
       />

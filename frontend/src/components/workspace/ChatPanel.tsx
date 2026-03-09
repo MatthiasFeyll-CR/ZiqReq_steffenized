@@ -1,19 +1,17 @@
-import { useTranslation } from "react-i18next";
 import { LockOverlay } from "./LockOverlay";
+import { ChatMessageList } from "@/components/chat/ChatMessageList";
+import type { Idea } from "@/api/ideas";
 
 interface ChatPanelProps {
+  idea: Idea;
   locked: boolean;
   lockReason: string | null;
 }
 
-export function ChatPanel({ locked, lockReason }: ChatPanelProps) {
-  const { t } = useTranslation();
-
+export function ChatPanel({ idea, locked, lockReason }: ChatPanelProps) {
   return (
     <div className="relative flex flex-col flex-1" data-testid="chat-panel-inner">
-      <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        {t("workspace.chatPlaceholder", "Chat")}
-      </div>
+      <ChatMessageList idea={idea} />
       {locked && lockReason && <LockOverlay reason={lockReason} />}
     </div>
   );
