@@ -2,6 +2,184 @@ syntax = "proto3";
 
 package ziqreq.core;
 
+import "common.proto";
+
 service CoreService {
-  // Placeholder — methods defined during milestone implementation
+  rpc GetIdeaContext(IdeaContextRequest) returns (IdeaContextResponse);
+  rpc GetFullChatHistory(FullChatHistoryRequest) returns (FullChatHistoryResponse);
+  rpc PersistAiChatMessage(AiChatMessageRequest) returns (AiChatMessageResponse);
+  rpc PersistAiReaction(AiReactionRequest) returns (AiReactionResponse);
+  rpc UpdateIdeaTitle(UpdateTitleRequest) returns (UpdateTitleResponse);
+  rpc PersistBoardMutations(BoardMutationsRequest) returns (BoardMutationsResponse);
+  rpc UpdateBrdDraft(UpdateBrdDraftRequest) returns (UpdateBrdDraftResponse);
+  rpc UpdateIdeaKeywords(UpdateKeywordsRequest) returns (UpdateKeywordsResponse);
+  rpc GetIdeasByState(IdeasByStateRequest) returns (IdeasByStateResponse);
+  rpc GetUserStats(GetUserStatsRequest) returns (UserStatsResponse);
+  rpc GetRateLimitStatus(RateLimitRequest) returns (RateLimitResponse);
+}
+
+message IdeaContextRequest {
+  string idea_id = 1;
+  int32 recent_message_limit = 2;
+  bool include_board = 3;
+  bool include_brd_draft = 4;
+}
+
+message IdeaContextResponse {
+  IdeaMetadata metadata = 1;
+  repeated ChatMessage recent_messages = 2;
+  BoardState board = 3;
+  BrdDraftState brd_draft = 4;
+  repeated UserInfo active_users = 5;
+}
+
+message IdeaMetadata {
+  string idea_id = 1;
+  string title = 2;
+  bool title_manually_edited = 3;
+  string state = 4;
+  string agent_mode = 5;
+  string owner_display_name = 6;
+  string co_owner_display_name = 7;
+}
+
+message BoardState {
+  repeated ziqreq.common.BoardNode nodes = 1;
+  repeated ziqreq.common.BoardConnection connections = 2;
+}
+
+message BrdDraftState {
+  string idea_id = 1;
+  map<string, string> sections = 2;
+  map<string, bool> locked_sections = 3;
+  string updated_at = 4;
+}
+
+message UserInfo {
+  string id = 1;
+  string display_name = 2;
+  string role = 3;
+}
+
+message ChatMessage {
+  string id = 1;
+  string sender_type = 2;
+  string sender_display_name = 3;
+  string content = 4;
+  string message_type = 5;
+  string created_at = 6;
+  repeated ziqreq.common.Reaction reactions = 7;
+}
+
+message FullChatHistoryRequest {
+  string idea_id = 1;
+}
+
+message FullChatHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+message AiChatMessageRequest {
+  string idea_id = 1;
+  string content = 2;
+  string message_type = 3;
+  string language = 4;
+  string processing_id = 5;
+}
+
+message AiChatMessageResponse {
+  string message_id = 1;
+  string created_at = 2;
+}
+
+message AiReactionRequest {
+  string idea_id = 1;
+  string message_id = 2;
+  string reaction_type = 3;
+}
+
+message AiReactionResponse {
+  string reaction_id = 1;
+}
+
+message UpdateTitleRequest {
+  string idea_id = 1;
+  string new_title = 2;
+}
+
+message UpdateTitleResponse {
+  bool success = 1;
+}
+
+message BoardMutationsRequest {
+  string idea_id = 1;
+  repeated BoardMutation mutations = 2;
+}
+
+message BoardMutation {
+  string type = 1;
+  string node_id = 2;
+  string content = 3;
+  string node_type = 4;
+  double x_position = 5;
+  double y_position = 6;
+  string parent_id = 7;
+  string source_node_id = 8;
+  string target_node_id = 9;
+  string label = 10;
+}
+
+message BoardMutationsResponse {
+  bool success = 1;
+  int32 mutations_applied = 2;
+}
+
+message UpdateBrdDraftRequest {
+  string idea_id = 1;
+  map<string, string> sections = 2;
+  string readiness_evaluation_json = 3;
+}
+
+message UpdateBrdDraftResponse {
+  bool success = 1;
+}
+
+message UpdateKeywordsRequest {
+  string idea_id = 1;
+  repeated string keywords = 2;
+}
+
+message UpdateKeywordsResponse {
+  bool success = 1;
+}
+
+message IdeasByStateRequest {}
+
+message IdeasByStateResponse {
+  repeated StateCount counts = 1;
+}
+
+message StateCount {
+  string state = 1;
+  int32 count = 2;
+}
+
+message GetUserStatsRequest {
+  string user_id = 1;
+}
+
+message UserStatsResponse {
+  int32 idea_count = 1;
+  int32 review_count = 2;
+  int32 contribution_count = 3;
+}
+
+message RateLimitRequest {
+  string idea_id = 1;
+}
+
+message RateLimitResponse {
+  int32 current_count = 1;
+  int32 cap = 2;
+  bool is_locked = 3;
 }

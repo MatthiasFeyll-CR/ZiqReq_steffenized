@@ -3,5 +3,17 @@ syntax = "proto3";
 package ziqreq.pdf;
 
 service PdfService {
-  // Placeholder — methods defined during milestone implementation
+  rpc GeneratePdf(PdfGenerationRequest) returns (PdfGenerationResponse);
+}
+
+message PdfGenerationRequest {
+  string idea_id = 1;
+  string idea_title = 2;
+  map<string, string> sections = 3;
+  string generated_at = 4;
+}
+
+message PdfGenerationResponse {
+  bytes pdf_data = 1;
+  string filename = 2;
 }

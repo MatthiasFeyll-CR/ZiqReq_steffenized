@@ -3,5 +3,43 @@ syntax = "proto3";
 package ziqreq.gateway;
 
 service GatewayService {
-  // Placeholder — notification service callbacks
+  rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
+  rpc GetUserPreferences(UserPreferencesRequest) returns (UserPreferencesResponse);
+  rpc GetAlertRecipients(AlertRecipientsRequest) returns (AlertRecipientsResponse);
+}
+
+message CreateNotificationRequest {
+  string user_id = 1;
+  string event_type = 2;
+  string title = 3;
+  string body = 4;
+  string reference_id = 5;
+  string reference_type = 6;
+}
+
+message CreateNotificationResponse {
+  string notification_id = 1;
+}
+
+message UserPreferencesRequest {
+  string user_id = 1;
+}
+
+message UserPreferencesResponse {
+  string user_id = 1;
+  string email = 2;
+  string display_name = 3;
+  map<string, bool> email_notification_preferences = 4;
+}
+
+message AlertRecipientsRequest {}
+
+message AlertRecipientsResponse {
+  repeated AlertRecipient recipients = 1;
+}
+
+message AlertRecipient {
+  string user_id = 1;
+  string email = 2;
+  string display_name = 3;
 }
