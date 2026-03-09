@@ -173,3 +173,16 @@ Started: 2026-03-09T17:27:54+0100
   - Language toggle in UserDropdown calls i18n.changeLanguage() and persists to localStorage
   - Theme toggle was already wired in UserDropdown from US-008; now uses translation keys for labels
 ---
+## US-010: Common Components
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/common/ErrorBoundary.tsx, EmptyState.tsx, ErrorToast.tsx, ErrorLogModal.tsx, LoadingSpinner.tsx, SkipLink.tsx
+- Tests: No automated tests for this story (UI components only). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - ErrorBoundary is a class component (React error boundaries require getDerivedStateFromError lifecycle)
+  - EmptyState accepts a LucideIcon type for the icon prop — import type { LucideIcon } from "lucide-react"
+  - ErrorToast/ErrorLogModal are shell components — UI only, no backend wiring; full integration in later milestones
+  - LoadingSpinner uses motion-safe:animate-spin to respect prefers-reduced-motion (Tailwind v4 built-in modifier)
+  - SkipLink uses sr-only + focus:not-sr-only pattern for accessibility — becomes visible only on keyboard focus
+  - All components follow existing codebase patterns: cn() for class merging, design token classes (text-foreground, bg-surface, etc.)
+---
