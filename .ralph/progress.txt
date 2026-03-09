@@ -507,3 +507,19 @@ Started: 2026-03-09T17:27:54+0100
   - Tests mock useIdeasByState at module level and verify tab rendering, navigation, and close behaviors
   - mousedown event (not click) used for click-outside detection to match standard popover behavior
 ---
+
+## US-001: Chat Messages API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/chat/serializers.py, services/gateway/apps/chat/views.py, services/gateway/apps/chat/urls.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/chat/tests/__init__.py, services/gateway/apps/chat/tests/test_chat_messages.py, .ralph/prd.json
+- Tests: 51 Python tests PASS (15 new chat message tests + 36 existing), 52 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - ChatMessage model already exists in apps.ideas.models (gateway mirror) — chat views import from there, no separate model needed
+  - Chat URL route wired via ideas urls.py: path("<str:idea_id>/chat", include("apps.chat.urls")) — nested under /api/ideas/:id/
+  - Reused MiddlewareAuthentication from apps.ideas.authentication for DRF auth bridge
+  - Access check pattern: owner_id, co_owner_id, or IdeaCollaborator lookup — extracted to _check_access helper
+  - Pagination uses limit/offset (not page/page_size like ideas list) — matches spec for chat
+  - ChatMessage is immutable (append-only) — create only, no update/delete endpoints
+  - Deleted ideas (deleted_at not null) return 404 for chat endpoints
+  - docker-compose.yml is at infra/docker/docker-compose.yml for service builds
+---

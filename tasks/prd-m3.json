@@ -14,7 +14,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Files: services/gateway/apps/chat/views.py, serializers.py, urls.py\nGotchas: Mirror model pattern (managed=False, db_table=chat_messages). Immutable model (append-only).",
       "context": {
