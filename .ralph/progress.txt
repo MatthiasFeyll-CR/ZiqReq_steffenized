@@ -798,3 +798,16 @@ Started: 2026-03-09T17:27:54+0100
   - For semi-transparent backgrounds, color-mix(in srgb, var(--muted) 30%, transparent) works well with CSS variables
   - Pattern: memo + Handle top/bottom + data-testid consistent with BoxNode
 ---
+
+## US-006: FreeTextNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/FreeTextNode.tsx (new), frontend/src/components/board/BoardCanvas.tsx (updated nodeTypes)
+- Tests: tsc --noEmit PASS, ruff check PASS, docker compose build (gateway/core/ai) PASS
+- Learnings for future iterations:
+  - FreeTextNode uses only `body` (no title) — consistent with data model where free_text nodes have title NULL
+  - Click-to-edit pattern: useState for editing mode, textarea with auto-grow via scrollHeight
+  - Hover border uses Tailwind `group` + `hover:outline` utilities for dashed border on hover only
+  - handleChange auto-grow: just pass e.target directly to autoGrow, no type gymnastics needed
+  - NodeTypes key must match node_type from backend: 'free_text' (underscore, not camelCase)
+---
