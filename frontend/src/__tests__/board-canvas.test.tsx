@@ -5,6 +5,7 @@ import i18n from "@/i18n/config";
 // Mock @xyflow/react since jsdom lacks DOM measurement APIs
 vi.mock("@xyflow/react", () => {
   const BackgroundVariant = { Dots: "dots", Lines: "lines", Cross: "cross" };
+  const MarkerType = { Arrow: "arrow", ArrowClosed: "arrowclosed" };
   return {
     ReactFlow: ({ children, minZoom, maxZoom, ...props }: Record<string, unknown>) => (
       <div data-testid="react-flow" data-min-zoom={minZoom} data-max-zoom={maxZoom} {...props}>
@@ -15,10 +16,12 @@ vi.mock("@xyflow/react", () => {
       <div data-testid="rf-background" data-variant={variant} data-gap={gap} {...props} />
     ),
     BackgroundVariant,
+    MarkerType,
     MiniMap: (props: Record<string, unknown>) => <div data-testid="rf-minimap" {...props} />,
     Controls: (props: Record<string, unknown>) => <div data-testid="rf-controls" {...props} />,
     useNodesState: (init: unknown[]) => [init, vi.fn(), vi.fn()],
     useEdgesState: (init: unknown[]) => [init, vi.fn(), vi.fn()],
+    useReactFlow: () => ({ getViewport: vi.fn(() => ({ x: 0, y: 0, zoom: 1 })), fitView: vi.fn() }),
   };
 });
 
@@ -50,13 +53,19 @@ describe("T-3.3.01: Board canvas with dot grid background", () => {
 });
 
 describe("T-3.3.02: Minimap and zoom controls render", () => {
-  it("renders minimap placeholder", () => {
+  it("renders minimap bottom-right with correct dimensions", () => {
     render(<BoardCanvas />);
-    expect(screen.getByTestId("board-minimap")).toBeInTheDocument();
+    const minimap = screen.getByTestId("board-minimap");
+    expect(minimap).toBeInTheDocument();
+    expect(minimap.className).toContain("!bottom-2");
+    expect(minimap.className).toContain("!right-2");
   });
 
-  it("renders zoom controls placeholder", () => {
+  it("renders zoom controls bottom-left", () => {
     render(<BoardCanvas />);
-    expect(screen.getByTestId("board-zoom-controls")).toBeInTheDocument();
+    const controls = screen.getByTestId("board-zoom-controls");
+    expect(controls).toBeInTheDocument();
+    expect(controls.className).toContain("!bottom-2");
+    expect(controls.className).toContain("!left-2");
   });
 });
