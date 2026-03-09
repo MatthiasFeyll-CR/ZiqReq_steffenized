@@ -43,6 +43,11 @@
       "trash": "Papierkorb ist leer"
     },
     "untitled": "Unbenannte Idee",
+    "ideaCard": {
+      "lastUpdated": "Zuletzt aktualisiert {{time}}",
+      "delete": "Löschen",
+      "restore": "Wiederherstellen"
+    },
     "invitations": {
       "from": "Von {{name}}",
       "accept": "Annehmen",

@@ -112,7 +112,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     });
 
     expect(screen.getByText("Collab idea")).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
+    expect(screen.getByText("From Bob")).toBeInTheDocument();
   });
 
   it("clicking an idea card navigates to /idea/:uuid", async () => {

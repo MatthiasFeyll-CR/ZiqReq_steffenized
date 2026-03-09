@@ -1,9 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { Lightbulb, Users, Mail, Trash2 } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { EmptyState } from "@/components/common/EmptyState";
+import { IdeaCard } from "@/components/landing/IdeaCard";
+import type { IdeaState } from "@/components/landing/IdeaCard";
+import { InvitationCard } from "@/components/landing/InvitationCard";
 
 interface IdeaListItem {
   id: string;
@@ -46,6 +48,8 @@ export interface LandingPageProps {
   collaborating?: IdeaListItem[];
   invitations?: InvitationListItem[];
   trash?: IdeaListItem[];
+  onDeleteIdea?: (id: string) => void;
+  onRestoreIdea?: (id: string) => void;
 }
 
 export default function LandingPage({
@@ -53,9 +57,10 @@ export default function LandingPage({
   collaborating = [],
   invitations = [],
   trash = [],
+  onDeleteIdea,
+  onRestoreIdea,
 }: LandingPageProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   return (
     <PageShell>
@@ -72,15 +77,15 @@ export default function LandingPage({
             ) : (
               <div className="flex flex-col gap-2">
                 {myIdeas.map((idea) => (
-                  <button
+                  <IdeaCard
                     key={idea.id}
-                    className="w-full cursor-pointer rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-muted"
-                    onClick={() => navigate(`/idea/${idea.id}`)}
-                  >
-                    <p className="truncate font-medium text-foreground">
-                      {idea.title || t("landing.untitled")}
-                    </p>
-                  </button>
+                    id={idea.id}
+                    title={idea.title}
+                    state={idea.state as IdeaState}
+                    updatedAt={idea.updatedAt}
+                    deletedAt={idea.deletedAt}
+                    onDelete={onDeleteIdea}
+                  />
                 ))}
               </div>
             )}
@@ -98,15 +103,15 @@ export default function LandingPage({
             ) : (
               <div className="flex flex-col gap-2">
                 {collaborating.map((idea) => (
-                  <button
+                  <IdeaCard
                     key={idea.id}
-                    className="w-full cursor-pointer rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-muted"
-                    onClick={() => navigate(`/idea/${idea.id}`)}
-                  >
-                    <p className="truncate font-medium text-foreground">
-                      {idea.title || t("landing.untitled")}
-                    </p>
-                  </button>
+                    id={idea.id}
+                    title={idea.title}
+                    state={idea.state as IdeaState}
+                    updatedAt={idea.updatedAt}
+                    deletedAt={idea.deletedAt}
+                    onDelete={onDeleteIdea}
+                  />
                 ))}
               </div>
             )}
@@ -124,18 +129,14 @@ export default function LandingPage({
             ) : (
               <div className="flex flex-col gap-2">
                 {invitations.map((inv) => (
-                  <button
+                  <InvitationCard
                     key={inv.id}
-                    className="w-full cursor-pointer rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-muted"
-                    onClick={() => navigate(`/idea/${inv.ideaId}`)}
-                  >
-                    <p className="truncate font-medium text-foreground">
-                      {inv.ideaTitle}
-                    </p>
-                    <p className="text-sm text-text-secondary">
-                      {inv.inviterName}
-                    </p>
-                  </button>
+                    id={inv.id}
+                    ideaId={inv.ideaId}
+                    ideaTitle={inv.ideaTitle}
+                    inviterName={inv.inviterName}
+                    createdAt={inv.createdAt}
+                  />
                 ))}
               </div>
             )}
@@ -150,15 +151,15 @@ export default function LandingPage({
             ) : (
               <div className="flex flex-col gap-2">
                 {trash.map((idea) => (
-                  <button
+                  <IdeaCard
                     key={idea.id}
-                    className="w-full cursor-pointer rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-muted"
-                    onClick={() => navigate(`/idea/${idea.id}`)}
-                  >
-                    <p className="truncate font-medium text-foreground">
-                      {idea.title || t("landing.untitled")}
-                    </p>
-                  </button>
+                    id={idea.id}
+                    title={idea.title}
+                    state={idea.state as IdeaState}
+                    updatedAt={idea.updatedAt}
+                    deletedAt={idea.deletedAt}
+                    onRestore={onRestoreIdea}
+                  />
                 ))}
               </div>
             )}

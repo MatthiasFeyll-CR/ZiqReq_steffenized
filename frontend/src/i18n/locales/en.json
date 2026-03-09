@@ -43,6 +43,11 @@
       "trash": "Trash is empty"
     },
     "untitled": "Untitled idea",
+    "ideaCard": {
+      "lastUpdated": "Last updated {{time}}",
+      "delete": "Delete",
+      "restore": "Restore"
+    },
     "invitations": {
       "from": "From {{name}}",
       "accept": "Accept",
