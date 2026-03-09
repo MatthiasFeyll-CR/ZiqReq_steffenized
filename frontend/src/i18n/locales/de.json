@@ -22,5 +22,31 @@
   },
   "dev": {
     "userSwitcher": "Entwickler-Benutzerwechsler"
+  },
+  "landing": {
+    "hero": {
+      "heading": "Neues Brainstorming starten",
+      "subtext": "Beschreiben Sie Ihre Idee und lassen Sie KI Ihnen bei der Verfeinerung helfen.",
+      "placeholder": "Beschreiben Sie Ihre Idee...",
+      "submit": "Starten"
+    },
+    "lists": {
+      "myIdeas": "Meine Ideen",
+      "collaborating": "Zusammenarbeit",
+      "invitations": "Einladungen",
+      "trash": "Papierkorb"
+    },
+    "empty": {
+      "myIdeas": "Starten Sie Ihr erstes Brainstorming",
+      "collaborating": "Noch keine Zusammenarbeit",
+      "invitations": "Keine ausstehenden Einladungen",
+      "trash": "Papierkorb ist leer"
+    },
+    "untitled": "Unbenannte Idee",
+    "invitations": {
+      "from": "Von {{name}}",
+      "accept": "Annehmen",
+      "decline": "Ablehnen"
+    }
   }
 }

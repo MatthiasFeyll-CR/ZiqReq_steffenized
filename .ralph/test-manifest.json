@@ -85,8 +85,8 @@
       "function": "test_filter_by_state"
     },
     "T-9.1.01": {
-      "file": "services/gateway/apps/collaboration/tests/test_views.py",
-      "function": "test_list_pending_invitations"
+      "file": "frontend/src/__tests__/landing-page.test.tsx",
+      "function": "T-9.1.01: Landing page renders all 4 lists"
     }
   }
 }

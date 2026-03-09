@@ -383,3 +383,18 @@ Started: 2026-03-09T17:27:54+0100
   - docker-compose.yml for service builds is at infra/docker/docker-compose.yml
   - Migration line length issues: use module-level constants for choices lists to keep lines under 120 chars
 ---
+
+## US-002: Invitations List API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/collaboration/models.py, services/gateway/apps/collaboration/migrations/__init__.py, services/gateway/apps/collaboration/migrations/0001_initial.py, services/gateway/apps/collaboration/apps.py, services/gateway/apps/collaboration/views.py, services/gateway/apps/collaboration/urls.py, services/gateway/apps/collaboration/tests/__init__.py, services/gateway/apps/collaboration/tests/test_views.py, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 36 Python tests PASS (5 invitations + 17 ideas + 13 auth + 1 smoke), 5 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Gateway collaboration app needed its own models.py with CollaborationInvitation model (db_table="collaboration_invitations") since it can't import from core service
+  - Added label="gateway_collaboration" to CollaborationConfig to avoid potential migration table conflicts with core's collaboration app
+  - Reused MiddlewareAuthentication from apps.ideas.authentication — DRF auth bridge pattern works across gateway apps
+  - URL route was already wired in gateway/urls.py: path("api/invitations/", include("apps.collaboration.urls"))
+  - Serializer not needed — direct dict construction in view is simpler for read-only list endpoints
+  - Joins to ideas table (for idea_title) and users table (for inviter display_name) done via batch queries with ID sets to avoid N+1
+  - .ralph/ dir is in .gitignore — use git add -f for .ralph/ files
+---

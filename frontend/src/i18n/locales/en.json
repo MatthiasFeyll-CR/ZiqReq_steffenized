@@ -22,5 +22,31 @@
   },
   "dev": {
     "userSwitcher": "Dev User Switcher"
+  },
+  "landing": {
+    "hero": {
+      "heading": "Start a new brainstorm",
+      "subtext": "Describe your idea and let AI help you refine it.",
+      "placeholder": "Describe your idea...",
+      "submit": "Begin"
+    },
+    "lists": {
+      "myIdeas": "My Ideas",
+      "collaborating": "Collaborating",
+      "invitations": "Invitations",
+      "trash": "Trash"
+    },
+    "empty": {
+      "myIdeas": "Start your first brainstorm",
+      "collaborating": "No collaborations yet",
+      "invitations": "No pending invitations",
+      "trash": "Trash is empty"
+    },
+    "untitled": "Untitled idea",
+    "invitations": {
+      "from": "From {{name}}",
+      "accept": "Accept",
+      "decline": "Decline"
+    }
   }
 }
