@@ -69,7 +69,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § ideas through merge_requests (14 core tables)\nFiles: services/core/apps/ideas/models.py, services/core/apps/chat/models.py, services/core/apps/board/models.py, services/core/apps/brd/models.py, services/core/apps/review/models.py, services/core/apps/collaboration/models.py, services/core/apps/similarity/models.py",
       "context": {
