@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-BOARD.01", "API-BOARD.02", "API-BOARD.03", "API-BOARD.04", "API-BOARD.04b", "API-BOARD.04c", "API-BOARD.05", "API-BOARD.06", "DB-NODE.01", "DB-NODE.02", "DB-NODE.03", "DB-NODE.04"],
       "notes": "Architecture: docs/02-architecture/data-model.md § board_nodes, api-design.md § Board Endpoints\nDesign: Backend-only\nTesting: test-matrix.md § API-BOARD.01-06, DB-NODE.01-04\nFiles: services/gateway/apps/board/{models,views,serializers,urls,tests/test_views}.py\nGotchas: Mirror model pattern (db_table='board_nodes'), parent_id must be group node, MiddlewareAuthentication for auth",
       "context": {

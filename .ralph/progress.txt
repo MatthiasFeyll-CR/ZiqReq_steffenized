@@ -727,3 +727,20 @@ Started: 2026-03-09T17:27:54+0100
   - MentionDropdown uses onMouseDown (not onClick) to prevent textarea blur
   - Test data-testid pattern: mention-item-{id} for individual items, mention-dropdown for container
 ---
+
+## US-001: Board Nodes REST API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/board/models.py (new), services/gateway/apps/board/serializers.py, services/gateway/apps/board/views.py, services/gateway/apps/board/urls.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/board/migrations/0001_initial.py (new), services/gateway/apps/board/tests/__init__.py (new), services/gateway/apps/board/tests/test_views.py (new)
+- Tests: 25 board node tests pass, 88 total tests pass. Ruff clean, tsc clean, Docker build clean.
+- Learnings for future iterations:
+  - Gateway board models need `db_table = "board_nodes"` WITHOUT `managed = False` — tests need Django to create the table
+  - Migration needed for gateway board app — run makemigrations after creating models, then rebuild python-tests Docker image
+  - Board URLs wired under ideas: `path("<str:idea_id>/board/", include("apps.board.urls"))` in ideas/urls.py
+  - Board node views follow same pattern as chat: _require_auth, _get_idea_or_error, _check_access helpers
+  - parent_id validation: must be group node type, checked in both create and update
+  - Locked nodes return 403 with error code NODE_LOCKED on PATCH attempts
+  - Delete uses ON DELETE SET NULL for parent FK — children detached automatically by DB
+  - Test path in Docker container: `services/gateway/apps/board/` (not `apps/board/`)
+  - Auto-generated migrations may have long lines — need manual formatting to pass ruff E501
+---
