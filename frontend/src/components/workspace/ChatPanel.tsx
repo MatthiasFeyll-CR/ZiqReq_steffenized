@@ -23,6 +23,7 @@ export function ChatPanel({ idea, locked, lockReason }: ChatPanelProps) {
       <ChatMessageList idea={idea} appendedMessages={newMessages} />
       <ChatInput
         ideaId={idea.id}
+        idea={idea}
         onMessageSent={handleMessageSent}
         disabled={locked}
       />

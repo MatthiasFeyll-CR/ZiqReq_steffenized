@@ -1,22 +1,84 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { sendChatMessage, type ChatMessage } from "@/api/chat";
+import { MentionDropdown, type MentionItem } from "./MentionDropdown";
+import type { Idea } from "@/api/ideas";
 
 interface ChatInputProps {
   ideaId: string;
+  idea?: Idea;
   onMessageSent: (message: ChatMessage) => void;
   disabled?: boolean;
 }
 
-export function ChatInput({ ideaId, onMessageSent, disabled }: ChatInputProps) {
+export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputProps) {
   const { t } = useTranslation();
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mention state
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionAtPos, setMentionAtPos] = useState(-1);
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
 
   const canSend = value.trim().length > 0 && !sending && !disabled;
+
+  // Build mention items: @ai first, then collaborators alphabetically
+  const allMentionItems: MentionItem[] = useMemo(() => {
+    const aiItem: MentionItem = { id: "ai", display_name: "ai", isAi: true };
+    const collaborators: MentionItem[] = (idea?.collaborators ?? [])
+      .slice()
+      .sort((a, b) => a.display_name.localeCompare(b.display_name))
+      .map((c) => ({ id: c.user_id, display_name: c.display_name }));
+    return [aiItem, ...collaborators];
+  }, [idea?.collaborators]);
+
+  const filteredMentionItems = useMemo(() => {
+    if (!mentionQuery) return allMentionItems;
+    const q = mentionQuery.toLowerCase();
+    return allMentionItems.filter((item) =>
+      item.display_name.toLowerCase().includes(q),
+    );
+  }, [allMentionItems, mentionQuery]);
+
+  // Reset active index when filtered items change
+  useEffect(() => {
+    setMentionActiveIndex(0);
+  }, [filteredMentionItems.length]);
+
+  const closeMention = useCallback(() => {
+    setMentionOpen(false);
+    setMentionQuery("");
+    setMentionAtPos(-1);
+    setMentionActiveIndex(0);
+  }, []);
+
+  const insertMention = useCallback(
+    (item: MentionItem) => {
+      const el = textareaRef.current;
+      if (!el || mentionAtPos < 0) return;
+
+      const before = value.slice(0, mentionAtPos);
+      const after = value.slice(mentionAtPos + 1 + mentionQuery.length);
+      const mention = `@${item.display_name} `;
+      const newValue = before + mention + after;
+      setValue(newValue);
+      closeMention();
+
+      // Set cursor after inserted mention
+      requestAnimationFrame(() => {
+        const cursorPos = before.length + mention.length;
+        el.setSelectionRange(cursorPos, cursorPos);
+        el.focus();
+      });
+    },
+    [value, mentionAtPos, mentionQuery, closeMention],
+  );
 
   const resetHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -37,6 +99,7 @@ export function ChatInput({ ideaId, onMessageSent, disabled }: ChatInputProps) {
     const content = value.trim();
     if (!content || sending || disabled) return;
 
+    closeMention();
     setSending(true);
     try {
       const message = await sendChatMessage(ideaId, content);
@@ -49,10 +112,62 @@ export function ChatInput({ ideaId, onMessageSent, disabled }: ChatInputProps) {
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [value, sending, disabled, ideaId, onMessageSent, resetHeight]);
+  }, [value, sending, disabled, ideaId, onMessageSent, resetHeight, closeMention]);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
+      setValue(newValue);
+
+      const el = e.target;
+      const cursorPos = el.selectionStart;
+
+      // Check for @ trigger: find the last @ before cursor that starts a word
+      const textBeforeCursor = newValue.slice(0, cursorPos);
+      const atMatch = textBeforeCursor.match(/(^|[\s])@([^\s]*)$/);
+
+      if (atMatch) {
+        const atIndex = textBeforeCursor.lastIndexOf("@");
+        setMentionAtPos(atIndex);
+        setMentionQuery(atMatch[2] ?? "");
+        setMentionOpen(true);
+      } else {
+        if (mentionOpen) closeMention();
+      }
+    },
+    [mentionOpen, closeMention],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (mentionOpen && filteredMentionItems.length > 0) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setMentionActiveIndex((prev) =>
+            prev < filteredMentionItems.length - 1 ? prev + 1 : 0,
+          );
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setMentionActiveIndex((prev) =>
+            prev > 0 ? prev - 1 : filteredMentionItems.length - 1,
+          );
+          return;
+        }
+        if (e.key === "Enter") {
+          e.preventDefault();
+          const selected = filteredMentionItems[mentionActiveIndex];
+          if (selected) insertMention(selected);
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          closeMention();
+          return;
+        }
+      }
+
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         if (canSend) {
@@ -60,27 +175,63 @@ export function ChatInput({ ideaId, onMessageSent, disabled }: ChatInputProps) {
         }
       }
     },
-    [canSend, handleSend],
+    [
+      mentionOpen,
+      filteredMentionItems,
+      mentionActiveIndex,
+      insertMention,
+      closeMention,
+      canSend,
+      handleSend,
+    ],
   );
 
+  // Close mention on click outside
+  useEffect(() => {
+    if (!mentionOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        closeMention();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [mentionOpen, closeMention]);
+
+  // Calculate dropdown position
+  const dropdownPosition = useMemo(() => {
+    // Position above the input area
+    return { bottom: 4, left: 32 };
+  }, []);
+
   return (
-    <div className="border-t bg-card p-3 flex items-end gap-2" data-testid="chat-input">
+    <div ref={containerRef} className="relative border-t bg-card p-3 flex items-end gap-2" data-testid="chat-input">
       <div
         className="w-5 h-5 rounded-full border border-muted-foreground flex-shrink-0 mb-1.5"
         title={t("chat.contextPlaceholder", "Context tracking (M7)")}
       />
-      <textarea
-        ref={textareaRef}
-        className="flex-1 min-h-10 max-h-40 rounded-md border border-border bg-background px-3 py-2 text-base text-foreground placeholder:text-text-secondary resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        rows={1}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onInput={handleInput}
-        onKeyDown={handleKeyDown}
-        placeholder={t("chat.inputPlaceholder", "Type a message...")}
-        disabled={sending || disabled}
-        data-testid="chat-input-textarea"
-      />
+      <div className="relative flex-1">
+        {mentionOpen && (
+          <MentionDropdown
+            items={filteredMentionItems}
+            activeIndex={mentionActiveIndex}
+            onSelect={insertMention}
+            position={dropdownPosition}
+          />
+        )}
+        <textarea
+          ref={textareaRef}
+          className="w-full min-h-10 max-h-40 rounded-md border border-border bg-background px-3 py-2 text-base text-foreground placeholder:text-text-secondary resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          rows={1}
+          value={value}
+          onChange={handleChange}
+          onInput={handleInput}
+          onKeyDown={handleKeyDown}
+          placeholder={t("chat.inputPlaceholder", "Type a message...")}
+          disabled={sending || disabled}
+          data-testid="chat-input-textarea"
+        />
+      </div>
       <Button
         variant="primary"
         size="icon"
