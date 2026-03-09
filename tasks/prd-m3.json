@@ -33,7 +33,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-2.8.01", "T-2.8.02", "T-2.8.03", "T-2.8.04", "T-2.8.05"],
       "notes": "Files: services/gateway/apps/chat/views.py (AddReactionView, RemoveReactionView), serializers.py\nGotchas: Query chat_messages to validate sender_type and sender_id. UNIQUE(message_id, user_id).",
       "context": {

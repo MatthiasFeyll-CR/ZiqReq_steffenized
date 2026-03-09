@@ -6,9 +6,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.ideas.authentication import MiddlewareAuthentication
-from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator
+from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator, UserReaction
 
-from .serializers import ChatMessageCreateSerializer, ChatMessageResponseSerializer
+from .serializers import (
+    ChatMessageCreateSerializer,
+    ChatMessageResponseSerializer,
+    ReactionCreateSerializer,
+    ReactionResponseSerializer,
+)
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
@@ -131,3 +136,122 @@ def _list_messages(request: Request, idea_id: str) -> Response:
             "offset": offset,
         }
     )
+
+
+@api_view(["POST", "DELETE"])
+@authentication_classes([MiddlewareAuthentication])
+def message_reactions(
+    request: Request, idea_id: str, message_id: str
+) -> Response:
+    """Route /api/ideas/:id/chat/:msgId/reactions — POST adds, DELETE removes."""
+    if request.method == "POST":
+        return _add_reaction(request, idea_id, message_id)
+    return _remove_reaction(request, idea_id, message_id)
+
+
+def _add_reaction(
+    request: Request, idea_id: str, message_id: str
+) -> Response:
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    if not _check_access(user, idea):
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Validate message_id UUID
+    try:
+        uuid.UUID(message_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Message not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Fetch the target message and verify it belongs to this idea
+    try:
+        message = ChatMessage.objects.get(id=message_id, idea_id=idea.id)
+    except ChatMessage.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Message not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Cannot react to AI messages
+    if message.sender_type == "ai":
+        return Response(
+            {"error": "CANNOT_REACT_TO_AI", "message": "Cannot react to AI messages"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Cannot react to own messages
+    if message.sender_id == user.id:
+        return Response(
+            {"error": "CANNOT_REACT_TO_SELF", "message": "Cannot react to your own messages"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    serializer = ReactionCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check for duplicate reaction
+    if UserReaction.objects.filter(message_id=message.id, user_id=user.id).exists():
+        return Response(
+            {"error": "ALREADY_REACTED", "message": "You have already reacted to this message"},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    reaction = UserReaction.objects.create(
+        message_id=message.id,
+        user_id=user.id,
+        reaction_type=serializer.validated_data["reaction_type"],
+    )
+
+    response_serializer = ReactionResponseSerializer(reaction)
+    return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+def _remove_reaction(
+    request: Request, idea_id: str, message_id: str
+) -> Response:
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    if not _check_access(user, idea):
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Validate message_id UUID
+    try:
+        uuid.UUID(message_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Reaction not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        reaction = UserReaction.objects.get(message_id=message_id, user_id=user.id)
+    except UserReaction.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Reaction not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    reaction.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

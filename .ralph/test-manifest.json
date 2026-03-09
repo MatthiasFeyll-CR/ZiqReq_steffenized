@@ -91,6 +91,26 @@
     "T-9.2.01": {
       "file": "frontend/src/__tests__/idea-creation-flow.test.tsx",
       "function": "T-9.2.01: Create idea from landing page"
+    },
+    "T-2.8.01": {
+      "file": "services/gateway/apps/chat/tests/test_reactions.py",
+      "function": "test_react_to_other_user_message_returns_201"
+    },
+    "T-2.8.02": {
+      "file": "services/gateway/apps/chat/tests/test_reactions.py",
+      "function": "test_react_to_ai_message_returns_400"
+    },
+    "T-2.8.03": {
+      "file": "services/gateway/apps/chat/tests/test_reactions.py",
+      "function": "test_react_to_own_message_returns_400"
+    },
+    "T-2.8.04": {
+      "file": "services/gateway/apps/chat/tests/test_reactions.py",
+      "function": "test_duplicate_reaction_returns_409"
+    },
+    "T-2.8.05": {
+      "file": "services/gateway/apps/chat/tests/test_reactions.py",
+      "function": "test_remove_reaction_returns_204"
     }
   }
 }
