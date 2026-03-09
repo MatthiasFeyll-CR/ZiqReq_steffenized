@@ -12,6 +12,7 @@ ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "django.contrib.sessions",
     "rest_framework",
     "channels",
     "apps.authentication",
@@ -31,7 +32,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "apps.authentication.middleware.AuthenticationMiddleware",
     "middleware.error_handling.ErrorHandlingMiddleware",
 ]
 
@@ -71,3 +74,11 @@ PDF_GRPC_ADDRESS = os.environ.get("PDF_GRPC_ADDRESS", "localhost:50053")
 
 # Message broker
 BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@localhost:5672/")
+
+# Azure AD authentication
+AZURE_AD_TENANT_ID = os.environ.get("AZURE_AD_TENANT_ID", "")
+AZURE_AD_CLIENT_ID = os.environ.get("AZURE_AD_CLIENT_ID", "")
+AZURE_AD_ROLE_MAPPING: dict[str, str] = {}
+
+# Auth bypass for dev mode (must also have DEBUG=True)
+AUTH_BYPASS = os.environ.get("AUTH_BYPASS", "False").lower() == "true"

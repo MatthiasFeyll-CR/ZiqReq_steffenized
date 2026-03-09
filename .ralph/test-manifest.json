@@ -1,0 +1,32 @@
+{
+  "tests": {
+    "T-7.1.01": {
+      "file": "services/gateway/apps/authentication/tests/test_dev_bypass.py",
+      "function": "test_dev_users_endpoint_in_bypass_mode"
+    },
+    "T-7.1.02": {
+      "file": "services/gateway/apps/authentication/tests/test_dev_bypass.py",
+      "function": "test_dev_users_endpoint_404_in_production"
+    },
+    "T-7.1.03": {
+      "file": "services/gateway/apps/authentication/tests/test_dev_bypass.py",
+      "function": "test_dev_login_creates_session"
+    },
+    "T-7.1.04": {
+      "file": "frontend/src/__tests__/dev-login-flow.test.tsx",
+      "function": "user identity visible in navbar after selecting dev user"
+    },
+    "T-7.2.01": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_valid_token_validates_and_syncs"
+    },
+    "T-7.2.02": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_expired_token_returns_401"
+    },
+    "T-7.2.03": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_roles_synced_from_ad_groups"
+    }
+  }
+}

@@ -2,6 +2,92 @@ syntax = "proto3";
 
 package ziqreq.ai;
 
+import "google/protobuf/empty.proto";
+
 service AiService {
-  // Placeholder — methods defined during milestone implementation
+  rpc TriggerChatProcessing(ChatProcessingRequest) returns (ChatProcessingResponse);
+  rpc TriggerBrdGeneration(BrdGenerationRequest) returns (BrdGenerationResponse);
+  rpc TriggerContextReindex(ContextReindexRequest) returns (ContextReindexResponse);
+  rpc GetFacilitatorBucket(google.protobuf.Empty) returns (FacilitatorBucketResponse);
+  rpc UpdateFacilitatorBucket(UpdateFacilitatorBucketRequest) returns (FacilitatorBucketResponse);
+  rpc GetContextAgentBucket(google.protobuf.Empty) returns (ContextAgentBucketResponse);
+  rpc UpdateContextAgentBucket(UpdateContextAgentBucketRequest) returns (ContextAgentBucketResponse);
+  rpc GetAiMetrics(AiMetricsRequest) returns (AiMetricsResponse);
+}
+
+message ChatProcessingRequest {
+  string idea_id = 1;
+  string message_id = 2;
+}
+
+message ChatProcessingResponse {
+  string status = 1;
+  string processing_id = 2;
+}
+
+message BrdGenerationRequest {
+  string idea_id = 1;
+  string mode = 2;
+  repeated string sections_to_regenerate = 3;
+  string instruction = 4;
+  bool allow_information_gaps = 5;
+}
+
+message BrdGenerationResponse {
+  string status = 1;
+  string generation_id = 2;
+}
+
+message ContextReindexRequest {
+  string bucket_id = 1;
+}
+
+message ContextReindexResponse {
+  string status = 1;
+  int32 chunk_count = 2;
+}
+
+message FacilitatorBucketResponse {
+  string id = 1;
+  string content = 2;
+  string updated_by_id = 3;
+  string updated_at = 4;
+}
+
+message UpdateFacilitatorBucketRequest {
+  string content = 1;
+  string updated_by_id = 2;
+}
+
+message ContextAgentBucketResponse {
+  string id = 1;
+  string sections_json = 2;
+  string free_text = 3;
+  string updated_by_id = 4;
+  string updated_at = 5;
+}
+
+message UpdateContextAgentBucketRequest {
+  string sections_json = 1;
+  string free_text = 2;
+  string updated_by_id = 3;
+}
+
+message AiMetricsRequest {
+  string time_range = 1;
+}
+
+message AiMetricsResponse {
+  int64 processing_count = 1;
+  double success_rate = 2;
+  double latency_p50_ms = 3;
+  double latency_p95_ms = 4;
+  int64 total_input_tokens = 5;
+  int64 total_output_tokens = 6;
+  int64 delegation_count = 7;
+  int64 compression_count = 8;
+  int64 board_agent_count = 9;
+  int64 error_count = 10;
+  int64 abort_count = 11;
+  int64 extension_count = 12;
 }

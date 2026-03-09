@@ -1,198 +1,39 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m1-foundation",
-  "description": "Foundation & Auth — Database schema, seed data, Django models, authentication (Azure AD + dev bypass), gRPC stubs, UI primitives, layout components, theme system, i18n, and common components.",
+  "description": "Bugfix cycle 1 (post-escalation) for Milestone 1 — Foundation & Auth. Fixes 1 defect: test database lifecycle issue in conftest.py.",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Database Schema and pgvector Setup",
-      "description": "As a developer, I want all 22 database tables created with correct schemas, constraints, and indexes so that the application has a complete data foundation",
+      "id": "BF-001",
+      "title": "Fix: Test database dropped between test classes (DEF-001)",
+      "description": "Fix defect DEF-001 from QA report qa-m1-foundation.md. The root conftest.py must override pytest-django's django_db_setup fixture to reuse the Docker-provided ziqreq_test database instead of letting Django create/destroy test_ziqreq_test.",
       "acceptanceCriteria": [
-        "All 22 tables created per data-model.md with correct columns, types, FK constraints, CHECK constraints, and indexes",
-        "pgvector extension installed, vector columns functional with HNSW indexes",
+        "conftest.py contains a django_db_setup fixture (scope=session) that sets DATABASES.default.TEST.NAME to the existing DB name and runs migrate --run-syncdb",
+        "All 14 Python tests pass: 7 dev_bypass + 6 azure_ad + 1 smoke (zero errors)",
+        "docker compose -f docker-compose.test.yml run --rm python-tests pytest exits with code 0",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: docs/02-architecture/data-model.md § All 22 tables\nFiles: services/gateway/apps/authentication/migrations/0001_initial.py, services/gateway/apps/notifications/migrations/0001_initial.py, services/core/apps/ideas/migrations/0001_initial.py, services/core/apps/chat/migrations/0001_initial.py, services/core/apps/board/migrations/0001_initial.py, services/core/apps/brd/migrations/0001_initial.py, services/core/apps/review/migrations/0001_initial.py, services/core/apps/collaboration/migrations/0001_initial.py, services/core/apps/similarity/migrations/0001_initial.py, services/core/apps/admin_config/migrations/0001_initial.py, services/ai/apps/context/migrations/0001_initial.py, services/ai/apps/embedding/migrations/0001_initial.py\nGotchas: pgvector extension before vector columns; partial unique indexes via raw SQL; CHECK constraints at DB level",
-      "context": {
-        "data_model": ["users: id uuid PK (AD), email UNIQUE, roles[]", "ideas: state/visibility/agent_mode CHECK, owner_id FK", "22 tables total — see context.md"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-002",
-      "title": "Seed Data",
-      "description": "As a developer, I want seed data populated (admin parameters, singleton buckets, dev users) so that the application boots with required configuration",
-      "acceptanceCriteria": [
-        "Admin parameters seeded per data-model.md (application, infrastructure, AI)",
-        "Singleton buckets seeded (facilitator_context_bucket, context_agent_bucket)",
-        "Dev users seeded conditionally (DEBUG=True only)",
-        "Typecheck passes"
+      "passes": true,
+      "testIds": [
+        "T-7.1.01",
+        "T-7.1.02",
+        "T-7.1.03",
+        "T-7.2.01",
+        "T-7.2.02",
+        "T-7.2.03"
       ],
-      "priority": 2,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: docs/02-architecture/data-model.md § Seed Data\nFiles: services/core/apps/admin_config/migrations/0002_seed_parameters.py, services/ai/apps/context/migrations/0002_seed_buckets.py, services/gateway/apps/authentication/migrations/0002_seed_dev_users.py\nGotchas: Dev users conditional on DEBUG; singleton buckets enforce single row",
+      "notes": "Defect: DEF-001. File: conftest.py (project root, 8 lines). Expected: All 14 Python tests pass. Actual: 7 errors in test_dev_bypass.py — OperationalError: database \"test_ziqreq_test\" does not exist.\n\nSuggested fix: Replace conftest.py contents with:\n\n```python\n\"\"\"Root pytest config: collect_ignore_glob + django_db_setup override.\"\"\"\n\nimport pytest\n\ncollect_ignore_glob = [\n    \"services/*/apps/*/migrations/*\",\n    \"frontend/*\",\n    \"e2e/*\",\n    \"node_modules/*\",\n]\n\n\n@pytest.fixture(scope=\"session\")\ndef django_db_setup(django_test_environment, django_db_blocker):\n    \"\"\"Use pre-existing Docker DB with migrations, skip create/destroy cycle.\"\"\"\n    from django.conf import settings\n\n    settings.DATABASES[\"default\"][\"TEST\"] = {\"NAME\": settings.DATABASES[\"default\"][\"NAME\"]}\n    with django_db_blocker.unblock():\n        from django.core.management import call_command\n\n        call_command(\"migrate\", \"--run-syncdb\", verbosity=0)\n```\n\nThis tells Django the test database IS the real database (no test_ prefix), runs migrations on it, and does NOT create/destroy it. Django TestCase still wraps each test in a rolled-back transaction for isolation.\n\nDo NOT remove any existing collect_ignore_glob entries. Do NOT add @pytest.mark.django_db to TestCase subclasses (Django TestCase handles DB access natively).",
       "context": {
-        "data_model": ["admin_parameters: all defaults from § Seed Data", "buckets: 1 row each", "users: 4 dev users if DEBUG"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-003",
-      "title": "Gateway Django Models",
-      "description": "As a developer, I want Django models for gateway-owned tables (users, notifications, monitoring_alert_configs) so that the gateway service can query and manage its data",
-      "acceptanceCriteria": [
-        "User, Notification, MonitoringAlertConfig models per data-model.md",
-        "User model: uuid PK (not auto-generated), ArrayField roles, JSONField email_notification_preferences",
-        "Typecheck passes"
-      ],
-      "priority": 3,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: docs/02-architecture/data-model.md § users, notifications, monitoring_alert_configs\nFiles: services/gateway/apps/authentication/models.py, services/gateway/apps/notifications/models.py, services/gateway/apps/monitoring/models.py",
-      "context": {
-        "data_model": ["users: id uuid PK (no default), roles ArrayField, email_notification_preferences JSONField"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-004",
-      "title": "Core Django Models",
-      "description": "As a developer, I want Django models for core-owned tables (ideas, chat, board, BRD, review, collaboration, similarity tables) so that the core service can manage domain logic",
-      "acceptanceCriteria": [
-        "All 14 core-owned tables have Django models per data-model.md",
-        "Immutable models (ChatMessage, BrdVersion, ReviewTimelineEntry) override save() to prevent updates",
-        "Partial unique constraints (ReviewAssignment, MergeRequest) via Meta.constraints",
-        "Typecheck passes"
-      ],
-      "priority": 4,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: docs/02-architecture/data-model.md § ideas through merge_requests (14 core tables)\nFiles: services/core/apps/ideas/models.py, services/core/apps/chat/models.py, services/core/apps/board/models.py, services/core/apps/brd/models.py, services/core/apps/review/models.py, services/core/apps/collaboration/models.py, services/core/apps/similarity/models.py",
-      "context": {
-        "data_model": ["Idea: state CHECK (5 values)", "ChatMessage/BrdVersion/ReviewTimelineEntry: immutable", "BoardNode: self-referential parent_id"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-005",
-      "title": "Authentication Middleware and Dev Bypass",
-      "description": "As a developer, I want auth middleware (Azure AD validation + dev bypass mode) and auth endpoints so that users can authenticate and session management works",
-      "acceptanceCriteria": [
-        "POST /api/auth/validate validates Azure AD token, syncs user (upsert), syncs roles from AD groups",
-        "POST /api/auth/dev-switch switches dev user (double-gated: DEBUG AND AUTH_BYPASS)",
-        "Auth middleware validates bearer tokens (REST) and query parameter tokens (WebSocket)",
-        "All T-7.1.* and T-7.2.* tests pass",
-        "Typecheck passes"
-      ],
-      "priority": 5,
-      "passes": false,
-      "testIds": ["T-7.1.01", "T-7.1.02", "T-7.1.03", "T-7.1.04", "T-7.2.01", "T-7.2.02", "T-7.2.03"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § Authentication; docs/02-architecture/tech-stack.md § Authentication Flow\nTesting: docs/04-test-architecture/test-matrix.md § T-7.1.01–T-7.2.03\nFiles: services/gateway/apps/authentication/middleware.py, services/gateway/apps/authentication/views.py, services/gateway/apps/authentication/urls.py, services/gateway/apps/authentication/serializers.py\nGotchas: Double-gate dev bypass; cache JWKS keys 24h; upsert user sync",
-      "context": {
-        "api_endpoints": ["POST /api/auth/validate → 200 {user} / 401", "POST /api/auth/dev-switch → 200 / 404"],
-        "test_cases": ["T-7.1.01: dev endpoint available | T-7.1.02: 404 in prod | T-7.2.01: valid token | T-7.2.02: expired→401 | T-7.2.03: roles synced"]
-      }
-    },
-    {
-      "id": "US-006",
-      "title": "gRPC Service Definitions and Stubs",
-      "description": "As a developer, I want proto definitions for all gRPC services (gateway↔core, gateway↔ai, gateway↔pdf, gateway↔notification) and generated code so that services can communicate",
-      "acceptanceCriteria": [
-        "All proto files defined (common.proto, core.proto, ai.proto, gateway.proto, pdf.proto)",
-        "Python code generated from protos (grpcio-tools)",
-        "Stub servicers return valid placeholder responses",
-        "Proto compilation succeeds",
-        "Typecheck passes"
-      ],
-      "priority": 6,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: docs/02-architecture/api-design.md § gRPC Services; docs/02-architecture/project-structure.md § proto/\nFiles: proto/common.proto, proto/core.proto, proto/ai.proto, proto/gateway.proto, proto/pdf.proto, proto/Makefile, services/*/grpc_clients/*.py, services/*/grpc_server/servicers/*.py\nGotchas: Stubs must return valid types (not None); use google.protobuf well-known types",
-      "context": {
-        "api_endpoints": ["gRPC: CoreService, AiService, GatewayService, PdfService"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-007",
-      "title": "UI Primitive Components",
-      "description": "As a developer, I want all 16 shadcn/ui components customized with design tokens so that the UI has a consistent foundation",
-      "acceptanceCriteria": [
-        "All 16 components in frontend/src/components/ui/ (Button, Card, Input, Textarea, Select, Switch, Checkbox, Badge, Avatar, Tooltip, DropdownMenu, Dialog, Tabs, Skeleton, Toast, Sheet)",
-        "Button: 6 variants, 5 sizes | Badge: state+role variants | Avatar: 4 sizes, initials fallback | Toast: 4 semantic variants",
-        "All use CSS variables from design-system.md, render in light/dark mode",
-        "Typecheck passes"
-      ],
-      "priority": 7,
-      "passes": false,
-      "testIds": [],
-      "notes": "Design: docs/03-design/design-system.md; docs/03-design/component-specs.md § S1-S17\nFiles: frontend/src/components/ui/button.tsx (and 15 other files)\nGotchas: Copy-paste shadcn/ui (not npm); Button swaps teal→gold in dark mode; Badge colors match idea state palette",
-      "context": {
-        "components": ["Button: 6 variants, 5 sizes", "Badge: state (5) + role (3) variants", "Avatar: 4 sizes, initials", "Card, Input, Select, Switch, Checkbox, Tooltip, DropdownMenu, Dialog, Tabs, Skeleton, Toast, Sheet"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-008",
-      "title": "Layout Components",
-      "description": "As a developer, I want layout components (Navbar, UserDropdown, PageShell, AuthenticatedLayout, ConnectionIndicator, DevUserSwitcher) so that the app has a consistent navigation structure",
-      "acceptanceCriteria": [
-        "Navbar: CR logo, nav links (role-gated), active gold underline, mobile hamburger",
-        "UserDropdown: display name, email, language toggle, theme toggle, logout",
-        "ConnectionIndicator: placeholder (green dot + 'Online')",
-        "DevUserSwitcher: visible only in dev bypass mode",
-        "PageShell: Navbar (sticky) + content | AuthenticatedLayout: layout route with auth guard",
-        "Typecheck passes"
-      ],
-      "priority": 8,
-      "passes": false,
-      "testIds": [],
-      "notes": "Design: docs/03-design/design-system.md § Navbar; docs/03-design/page-layouts.md\nFiles: frontend/src/components/layout/Navbar.tsx, NavbarLink.tsx, UserDropdown.tsx, PageShell.tsx, AuthenticatedLayout.tsx, ConnectionIndicator.tsx, frontend/src/components/auth/DevUserSwitcher.tsx\nGotchas: Role-gated links via useAuth(); ConnectionIndicator is placeholder; AuthenticatedLayout redirects if not authenticated",
-      "context": {
-        "components": ["Navbar: 56px, role-gated links, gold underline", "UserDropdown: lang+theme toggles", "PageShell, AuthenticatedLayout, ConnectionIndicator, DevUserSwitcher"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-009",
-      "title": "Theme System and i18n Setup",
-      "description": "As a developer, I want CSS variable theming (light/dark) and react-i18next setup (German + English) so that users can switch theme and language",
-      "acceptanceCriteria": [
-        "CSS variables defined (:root light, .dark), theme toggle in UserDropdown, persisted in localStorage, respects prefers-color-scheme",
-        "react-i18next configured (de/en), language switcher in UserDropdown, persisted in localStorage",
-        "All M1 UI text has translation keys",
-        "Typecheck passes"
-      ],
-      "priority": 9,
-      "passes": false,
-      "testIds": [],
-      "notes": "Design: docs/03-design/design-system.md § Color Palette, Design Token Summary\nArchitecture: docs/02-architecture/tech-stack.md § Theming, User Preference Persistence\nFiles: frontend/src/app/globals.css, frontend/src/hooks/use-theme.ts, frontend/src/i18n/config.ts, frontend/src/i18n/locales/de.json, frontend/src/i18n/locales/en.json\nGotchas: Theme toggle adds/removes 'dark' class on <html>; default language 'de'",
-      "context": {
-        "components": ["globals.css: :root + .dark CSS vars", "use-theme.ts: localStorage + prefers-color-scheme", "i18n: de/en translation files"],
-        "test_cases": []
-      }
-    },
-    {
-      "id": "US-010",
-      "title": "Common Components",
-      "description": "As a developer, I want common cross-cutting components (ErrorBoundary, EmptyState, ErrorToast shell, ErrorLogModal shell, LoadingSpinner, SkipLink) so that the app has consistent error handling and accessibility",
-      "acceptanceCriteria": [
-        "ErrorBoundary catches errors, displays fallback | EmptyState: icon, message, optional action",
-        "ErrorToast/ErrorLogModal shells (UI only, no backend wiring)",
-        "LoadingSpinner respects prefers-reduced-motion | SkipLink: sr-only link to main content",
-        "Typecheck passes"
-      ],
-      "priority": 10,
-      "passes": false,
-      "testIds": [],
-      "notes": "Design: docs/03-design/component-specs.md § ErrorBoundary, EmptyState, LoadingSpinner, SkipLink\nFiles: frontend/src/components/common/ErrorBoundary.tsx, EmptyState.tsx, ErrorToast.tsx, ErrorLogModal.tsx, LoadingSpinner.tsx, SkipLink.tsx\nGotchas: ErrorToast/ErrorLogModal are shells; full wiring in later milestones",
-      "context": {
-        "components": ["ErrorBoundary: fallback UI", "EmptyState: icon+message", "ErrorToast/ErrorLogModal: shells", "LoadingSpinner: Lucide Loader2", "SkipLink: sr-only"],
-        "test_cases": []
+        "api_endpoints": [],
+        "test_cases": [
+          "T-7.1.01: dev endpoint available",
+          "T-7.1.02: 404 in prod",
+          "T-7.1.03: dev login session",
+          "T-7.2.01: valid token",
+          "T-7.2.02: expired→401",
+          "T-7.2.03: roles synced"
+        ]
       }
     }
   ]

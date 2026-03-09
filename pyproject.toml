@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "gateway.settings.test"
 pythonpath = [
     "services/gateway",
     "services/core",

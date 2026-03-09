@@ -1,10 +1,10 @@
-from django.db import models
-
 import uuid
+
+from django.db import models
 
 
 class Notification(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user_id = models.UUIDField()
     event_type = models.CharField(max_length=50)
     title = models.CharField(max_length=300)
@@ -17,3 +17,16 @@ class Notification(models.Model):
 
     class Meta:
         db_table = "notifications"
+        indexes = [
+            models.Index(
+                fields=["user_id", "is_read", "action_taken"],
+                name="idx_notif_user_unread",
+            ),
+            models.Index(
+                fields=["user_id", "-created_at"],
+                name="idx_notif_created",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.event_type}: {self.title}"

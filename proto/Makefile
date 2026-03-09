@@ -3,7 +3,7 @@
 PROTO_FILES := common.proto core.proto ai.proto gateway.proto pdf.proto
 
 all:
-	@echo "Use scripts/generate-proto.sh to compile proto files"
+	../scripts/generate-proto.sh
 
 clean:
-	@echo "Clean generated proto stubs"
+	rm -f *_pb2.py *_pb2_grpc.py *_pb2.pyi
