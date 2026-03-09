@@ -74,6 +74,11 @@
       "clearAll": "Clear filters"
     }
   },
+  "workspace": {
+    "notFound": "Idea not found",
+    "noAccess": "You don't have access to this idea",
+    "backToHome": "Back to home"
+  },
   "ideasFloat": {
     "title": "Ideas",
     "tabs": {

@@ -1,1 +1,1 @@
-export { default as IdeaWorkspace } from "./IdeaWorkspace";
+export { default as IdeaWorkspacePage } from "./IdeaWorkspace";

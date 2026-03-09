@@ -1,5 +1,31 @@
 import { env } from "@/config/env";
 
+export interface Idea {
+  id: string;
+  title: string;
+  state: "open" | "in_review" | "accepted" | "dropped" | "rejected";
+  agent_mode: "interactive" | "silent";
+  visibility: "private" | "collaborating";
+  owner_id: string;
+  co_owner_id: string | null;
+  created_at: string;
+  updated_at: string;
+  collaborators: Array<{ user_id: string; display_name: string }>;
+}
+
+export async function fetchIdea(id: string): Promise<Idea> {
+  const res = await fetch(`${env.apiBaseUrl}/ideas/${id}/`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 export interface CreateIdeaResponse {
   id: string;
   title: string;
