@@ -5,6 +5,18 @@ class IdeaCreateSerializer(serializers.Serializer):
     first_message = serializers.CharField(min_length=1)
 
 
+class IdeaPatchSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=500, required=False)
+    agent_mode = serializers.ChoiceField(
+        choices=["interactive", "silent"], required=False
+    )
+
+    def validate(self, attrs):  # type: ignore[override]
+        if not attrs:
+            raise serializers.ValidationError("At least one field must be provided.")
+        return attrs
+
+
 class IdeaDetailSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()

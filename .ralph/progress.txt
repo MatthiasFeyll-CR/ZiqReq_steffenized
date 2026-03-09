@@ -507,3 +507,223 @@ Started: 2026-03-09T17:27:54+0100
   - Tests mock useIdeasByState at module level and verify tab rendering, navigation, and close behaviors
   - mousedown event (not click) used for click-outside detection to match standard popover behavior
 ---
+
+## US-001: Chat Messages API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/chat/serializers.py, services/gateway/apps/chat/views.py, services/gateway/apps/chat/urls.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/chat/tests/__init__.py, services/gateway/apps/chat/tests/test_chat_messages.py, .ralph/prd.json
+- Tests: 51 Python tests PASS (15 new chat message tests + 36 existing), 52 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - ChatMessage model already exists in apps.ideas.models (gateway mirror) — chat views import from there, no separate model needed
+  - Chat URL route wired via ideas urls.py: path("<str:idea_id>/chat", include("apps.chat.urls")) — nested under /api/ideas/:id/
+  - Reused MiddlewareAuthentication from apps.ideas.authentication for DRF auth bridge
+  - Access check pattern: owner_id, co_owner_id, or IdeaCollaborator lookup — extracted to _check_access helper
+  - Pagination uses limit/offset (not page/page_size like ideas list) — matches spec for chat
+  - ChatMessage is immutable (append-only) — create only, no update/delete endpoints
+  - Deleted ideas (deleted_at not null) return 404 for chat endpoints
+  - docker-compose.yml is at infra/docker/docker-compose.yml for service builds
+---
+
+## US-002: User Reactions API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/models.py, services/gateway/apps/ideas/migrations/0002_userreaction.py, services/gateway/apps/chat/serializers.py, services/gateway/apps/chat/views.py, services/gateway/apps/chat/urls.py, services/gateway/apps/chat/tests/test_reactions.py, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 63 Python tests PASS (12 new reaction tests + 51 existing), 52 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - UserReaction model added to apps.ideas.models (same file as ChatMessage mirror model) with db_table="user_reactions"
+  - Needed a migration (0002_userreaction.py) for the test DB — without it, relation "user_reactions" does not exist
+  - Docker test images copy files at build time — must rebuild python-tests image after adding migration files
+  - Reaction URL nested under chat: chat/urls.py has path("/<str:message_id>/reactions", ...) which resolves to /api/ideas/:id/chat/:msgId/reactions
+  - UNIQUE(message_id, user_id) constraint enforces one reaction per user per message — application-level check before create avoids IntegrityError
+  - Validation order: auth → idea access → message exists → not AI message → not own message → valid reaction_type → not duplicate
+  - DELETE doesn't need message validation — just find reaction by message_id + user_id and delete
+  - .ralph/ dir is in .gitignore — use git add -f for .ralph/ files
+---
+
+## US-003: Workspace Page Route
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/pages/idea-workspace.tsx, frontend/src/app/router.tsx, frontend/src/api/ideas.ts, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json
+- Tests: 63 Python tests PASS, 52 Node tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - IdeaWorkspacePage replaces placeholder div in router — uses useParams to extract :id
+  - fetchIdea function added to api/ideas.ts with Idea interface matching GET /api/ideas/:id response
+  - Error object includes .status property for distinguishing 404/403 from generic errors
+  - document.title updated via useEffect on idea.title, reset to "ZiqReq" on unmount
+  - Loading state uses Skeleton components for header and two-panel layout preview
+  - i18n keys added under "workspace" namespace: notFound, noAccess, backToHome
+  - ruff check services/ fails with E902 — use individual dirs: services/gateway/ services/core/ services/ai/
+---
+
+## US-004: Two-Panel Layout with Draggable Divider
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/WorkspaceLayout.tsx (new), frontend/src/components/workspace/PanelDivider.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx
+- Tests: 63 Python tests PASS, 52 Node tests PASS. Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - WorkspaceLayout uses ratio (0-1) stored in localStorage (key: workspace-panel-split), not pixels
+  - PanelDivider uses 4px visual width with 4px padding on each side for 12px hit area
+  - Document-level mousemove/mouseup listeners attached only while dragging (isDragging state)
+  - clampRatio ensures min 280px chat and 320px board based on container width
+  - Double-click resets to 40/60 default with 200ms CSS transition
+  - Tabs component from M1 (Radix Tabs) with defaultValue="board" makes Board tab active by default
+  - WorkspaceLayout accepts optional chatPanel prop for future chat content injection
+  - PanelDivider uses bg-primary (gold) on hover/drag with shadow glow effect
+---
+
+## US-005: Workspace Header
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/serializers.py, frontend/src/api/ideas.ts, frontend/src/components/workspace/WorkspaceHeader.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx
+- Tests: Python 63 passed, Node 52 passed, tsc --noEmit clean, ruff clean
+- Learnings for future iterations:
+  - Added PATCH /api/ideas/:id endpoint supporting title and agent_mode updates
+  - IdeaPatchSerializer validates at least one field provided, agent_mode choices
+  - Backend sets title_manually_edited=true when title field is in PATCH request
+  - WorkspaceHeader uses optimistic updates with rollback on error for both title and agent_mode
+  - Title editing: click to enter edit mode, Enter saves, Escape cancels, blur saves
+  - Agent mode uses shadcn Select component with onValueChange
+  - Pre-existing Docker build failures (pdf service apt-get, frontend nginx.conf) unrelated to changes
+  - ideas_detail view now supports GET, PATCH, DELETE methods
+---
+
+## US-006: Section Visibility + Locking
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/useSectionVisibility.ts (new), frontend/src/components/workspace/LockOverlay.tsx (new), frontend/src/components/workspace/ChatPanel.tsx (new), frontend/src/components/workspace/WorkspaceLayout.tsx (modified), frontend/src/components/workspace/WorkspaceHeader.tsx (modified), frontend/src/pages/IdeaWorkspace/index.tsx (modified)
+- Tests: 63 Python passed, 52 Node passed, tsc --noEmit passed, ruff passed, docker build (gateway/core/ai) passed
+- Learnings for future iterations:
+  - useSectionVisibility hook derives all visibility/lock state from idea.state using M3 heuristic: has_been_submitted = state !== 'open'
+  - LockOverlay uses absolute positioning with bg-card/80 backdrop, Lock icon from lucide-react
+  - ChatPanel is a thin wrapper that shows LockOverlay when locked
+  - WorkspaceLayout accepts reviewVisible prop to conditionally render the Review tab trigger and content
+  - WorkspaceHeader accepts readOnly prop to disable title editing and agent mode dropdown in terminal states (accepted/dropped)
+  - IdeaWorkspaceContent extracted as inner component to allow calling useSectionVisibility hook (hooks can't be conditional)
+  - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
+---
+
+## US-007: Chat Message Display
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/chat.ts (new), frontend/src/components/chat/ChatMessageList.tsx (new), frontend/src/components/chat/UserMessageBubble.tsx (new), frontend/src/components/chat/AIMessageBubble.tsx (new), frontend/src/components/chat/DelegationMessage.tsx (new), frontend/src/components/workspace/ChatPanel.tsx (modified), frontend/src/pages/IdeaWorkspace/index.tsx (modified)
+- Tests: 63 Python passed, 52 Node passed, tsc --noEmit passed, ruff passed, docker build (gateway/core/ai) passed
+- Learnings for future iterations:
+  - Chat API client (api/chat.ts) follows same pattern as api/ideas.ts: fetch with credentials:"include", error handling
+  - ChatMessageList fetches messages on mount via fetchChatMessages(idea.id), displays loading spinner then messages or empty state
+  - Auto-scroll uses useRef on a div at bottom of message list + scrollIntoView in useEffect watching messages array
+  - First scroll (on load) uses behavior:"instant", subsequent scrolls (new messages) use behavior:"smooth" — tracked via prevMessageCountRef
+  - Multi-user detection: idea.collaborators.length > 0 — sender name shown below user bubbles for other users' messages only
+  - UserMessageBubble: right-aligned (items-end), bg-secondary text-secondary-foreground, rounded-tr-sm for chat bubble shape
+  - AIMessageBubble: left-aligned (items-start), bg-card border, rounded-tl-sm, Bot icon + "AI" label above bubble
+  - DelegationMessage: same as AI but opacity-60, italic text, lighter border (border-border/50)
+  - ChatPanel now requires idea prop — pass from IdeaWorkspaceContent where idea is guaranteed non-null
+  - EmptyState component accepts LucideIcon type — used Lightbulb icon for "Start brainstorming..." empty state
+  - i18n fallback strings used (t("chat.emptyState", "Start brainstorming...")) — works without explicit i18n keys
+---
+
+## US-008: ChatInput with Send Button
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/chat/ChatInput.tsx (new), frontend/src/api/chat.ts, frontend/src/components/chat/ChatMessageList.tsx, frontend/src/components/workspace/ChatPanel.tsx
+- Tests: tsc --noEmit PASS, ruff check PASS. Docker build has pre-existing nginx.conf issue (not related to this story).
+- Learnings for future iterations:
+  - ChatInput uses auto-grow textarea: rows=1, reset height to "auto" then set to scrollHeight on input
+  - sendChatMessage added to api/chat.ts with POST /api/ideas/:id/chat/
+  - ChatPanel manages newMessages state and passes appendedMessages to ChatMessageList for deduplication
+  - ChatMessageList merges fetched + appended messages using useMemo with Set-based dedup on message id
+  - Enter sends (prevented default), Shift+Enter allows newline via no preventDefault
+  - Send button uses Button variant="primary" size="icon" with ArrowRight icon, Loader2 spinner when sending
+  - Context indicator is a 20px circle placeholder (for M7)
+---
+
+## US-009: @Mention Dropdown
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/chat/MentionDropdown.tsx (new), frontend/src/components/chat/ChatInput.tsx (modified), frontend/src/components/workspace/ChatPanel.tsx (modified)
+- Tests: tsc --noEmit PASS, ruff check PASS. Docker build has pre-existing nginx.conf issue (not related to this story).
+- Learnings for future iterations:
+  - MentionDropdown is a presentational component; all state logic lives in ChatInput
+  - ChatInput now accepts optional `idea` prop for collaborator list access
+  - Regex `/(^|[\s])@([^\s]*)$/` detects @ trigger at word boundary before cursor
+  - Used `requestAnimationFrame` for `setSelectionRange` after React state update to ensure DOM is synced
+  - `onMouseDown` with `preventDefault` on dropdown items prevents textarea blur
+  - TypeScript strict mode requires explicit undefined checks on array index access (`filteredMentionItems[index]`)
+---
+
+## US-010: User Reactions UI
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/reactions.ts (new), frontend/src/components/chat/ReactionChips.tsx (new), frontend/src/components/chat/UserMessageBubble.tsx (modified), frontend/src/components/chat/ChatMessageList.tsx (modified)
+- Tests: 63 Python PASS, 52 Node PASS, tsc --noEmit PASS, ruff PASS, docker build (gateway/core/ai) PASS
+- Learnings for future iterations:
+  - ReactionChips uses optimistic updates with rollback on error
+  - react-toastify toast.error() for showing validation errors (400/409) from the reactions API
+  - UserMessageBubble now takes ideaId and isOwnMessage props to conditionally render ReactionChips
+  - Reactions are only shown on other users' messages (not own, not AI) per spec
+  - Switching reactions requires removing old reaction first then adding new one (UNIQUE constraint on message_id, user_id)
+  - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
+---
+
+## US-003: Workspace Page Route
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/__tests__/idea-workspace.test.tsx
+- Tests: 8 test files, 56 tests passed (node). 63 Python tests passed. tsc --noEmit PASS. ruff PASS. Docker build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - DEF-002 fix: useCallback must be called before any early returns to comply with rules-of-hooks
+  - Test pattern: mock heavy child components (WorkspaceLayout, WorkspaceHeader, ChatPanel) with vi.mock to isolate page-level behavior
+  - MemoryRouter with Routes/Route needed to provide useParams context in tests
+  - Docker compose build for frontend fails (pre-existing nginx.conf issue) — build gateway/core/ai individually
+---
+
+## US-004: Two-Panel Layout with Draggable Divider
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/workspace-layout.test.tsx (new)
+- Tests: 9/9 pass (workspace-layout.test.tsx), 65/65 total frontend tests pass, tsc clean, ruff clean
+- Learnings for future iterations:
+  - WorkspaceLayout and PanelDivider were already fully implemented in Phase 2; only tests were missing (QA DEF-001)
+  - jsdom has 0 container width so clampRatio always returns DEFAULT_RATIO — test localStorage persistence by checking style.width is truthy rather than a specific value
+  - Radix Tabs set data-state="active" on the default tab trigger — use that for asserting default tab
+  - fireEvent.mouseMove/mouseUp must be dispatched on `document` (not the divider element) since the drag handlers are registered on document
+---
+
+## US-005: Workspace Header
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/workspace-header.test.tsx (new)
+- Tests: 13 new tests all passing (T-1.6.01: 5 tests, T-1.6.02: 2 tests, T-1.6.03: 1 test, T-2.1.01: 3 tests, T-2.1.02: 2 tests). Full suite 78/78 passing.
+- Learnings for future iterations:
+  - WorkspaceHeader component was already fully implemented from Phase 2; only missing tests
+  - patchIdea frontend API and backend PATCH endpoint with title_manually_edited already existed
+  - Radix Select testing in jsdom requires polyfills: PointerEvent, ResizeObserver, hasPointerCapture, setPointerCapture, releasePointerCapture, scrollIntoView
+  - userEvent.setup() needed for Radix Select interaction tests (click trigger then click option)
+  - Tests must run from frontend/ directory for @ alias resolution to work
+  - Docker compose build has pre-existing nginx.conf issue unrelated to M3 changes
+---
+
+## US-006: Section Visibility + Locking
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/section-visibility.test.tsx (new), .ralph/prd.json
+- Tests: 14 new tests (T-1.2.01, T-1.2.02, T-1.2.03, T-1.4.01-05) all passing. 92 total frontend tests pass. tsc --noEmit PASS. ruff check PASS. Docker build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Implementation (useSectionVisibility hook, LockOverlay, ChatPanel integration) was already complete from Phase 2
+  - QA flagged only missing tests — the bugfix was adding 14 integration tests covering all state transitions
+  - Tests mock ChatMessageList and ChatInput to isolate section visibility behavior
+  - The Idea type from @/api/ideas uses snake_case (agent_mode, owner_id) matching backend API
+  - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
+---
+
+## US-009: @Mention Dropdown
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/mention-dropdown.test.tsx (new)
+- Tests: 11 new tests (T-2.9.01: 4 tests, T-2.9.02: 4 tests, T-2.9.03: 3 tests), all 103 frontend tests pass
+- Learnings for future iterations:
+  - MentionDropdown and ChatInput mention logic were already fully implemented in Phase 2
+  - QA only flagged missing tests, not implementation bugs
+  - fireEvent.change doesn't set selectionStart on textarea - use Object.defineProperty to set it before triggering change
+  - MentionDropdown uses onMouseDown (not onClick) to prevent textarea blur
+  - Test data-testid pattern: mention-item-{id} for individual items, mention-dropdown for container
+---

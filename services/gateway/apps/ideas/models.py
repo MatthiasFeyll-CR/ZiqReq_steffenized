@@ -78,3 +78,24 @@ class ChatMessage(models.Model):
 
     def __str__(self) -> str:
         return f"ChatMessage {self.id} ({self.sender_type})"
+
+
+class UserReaction(models.Model):
+    REACTION_TYPE_CHOICES = [
+        ("thumbs_up", "Thumbs Up"),
+        ("thumbs_down", "Thumbs Down"),
+        ("heart", "Heart"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    message_id = models.UUIDField()
+    user_id = models.UUIDField()
+    reaction_type = models.CharField(max_length=15, choices=REACTION_TYPE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "user_reactions"
+        unique_together = [("message_id", "user_id")]
+
+    def __str__(self) -> str:
+        return f"Reaction {self.reaction_type} by {self.user_id} on {self.message_id}"

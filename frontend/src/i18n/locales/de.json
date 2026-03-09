@@ -74,6 +74,11 @@
       "clearAll": "Filter zurücksetzen"
     }
   },
+  "workspace": {
+    "notFound": "Idee nicht gefunden",
+    "noAccess": "Sie haben keinen Zugriff auf diese Idee",
+    "backToHome": "Zurück zur Startseite"
+  },
   "ideasFloat": {
     "title": "Ideen",
     "tabs": {
