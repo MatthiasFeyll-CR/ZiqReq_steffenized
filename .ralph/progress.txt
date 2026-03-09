@@ -757,3 +757,17 @@ Started: 2026-03-09T17:27:54+0100
   - Gateway mirror model uses related_name="outgoing_connections"/"incoming_connections" to avoid clash with core model
   - Migration 0002_boardconnection adds unique_together constraint at DB level
 ---
+
+## US-003: React Flow Canvas Setup
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardCanvas.tsx (new), frontend/src/components/workspace/WorkspaceLayout.tsx, frontend/src/__tests__/board-canvas.test.tsx (new), frontend/src/__tests__/workspace-layout.test.tsx, frontend/src/__tests__/section-visibility.test.tsx
+- Tests: 4/4 board-canvas tests pass, 107/107 full suite pass, tsc clean, ruff clean, docker build OK
+- Learnings for future iterations:
+  - @xyflow/react v12 exports: ReactFlow, Background, BackgroundVariant, MiniMap, Controls, useNodesState, useEdgesState, useReactFlow
+  - React Flow requires ResizeObserver in jsdom — must mock BoardCanvas in any test that renders WorkspaceLayout or IdeaWorkspacePage
+  - vi.mock("@/components/board/BoardCanvas") pattern needed in workspace-layout.test.tsx and section-visibility.test.tsx
+  - BoardCanvas uses overflow-hidden (not overflow-auto) on TabsContent to let React Flow manage its own scroll/pan
+  - proOptions={{ hideAttribution: true }} removes React Flow watermark
+  - Background color uses var(--foreground) with opacity-20 style for dot grid visibility
+---
