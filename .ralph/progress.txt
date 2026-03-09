@@ -363,3 +363,23 @@ Started: 2026-03-09T17:27:54+0100
   - Previous bugfix cycles failed because they didn't rebuild the Docker image after changing test.py
   - Django 5.2's ConnectionHandler.configure_settings uses setdefault to add TEST defaults but won't override existing keys
 ---
+
+## US-001: Ideas REST API — CRUD Endpoints
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/models.py, services/gateway/apps/ideas/migrations/__init__.py, services/gateway/apps/ideas/migrations/0001_initial.py, services/gateway/apps/ideas/authentication.py, services/gateway/apps/ideas/serializers.py, services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/ideas/tests/__init__.py, services/gateway/apps/ideas/tests/test_views.py, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 31 Python tests PASS (17 ideas CRUD + 13 auth + 1 smoke), 5 Node tests PASS. Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Gateway ideas app (label=gateway_ideas) needs its own models for Idea, IdeaCollaborator, ChatMessage since it can't import from core service
+  - Models use db_table matching core's tables (ideas, idea_collaborators, chat_messages) — gateway manages tables in test; core manages in production
+  - MiddlewareAuthentication bridges middleware auth (request.user_obj) to DRF (request.user) via BaseAuthentication subclass
+  - _require_auth must check getattr(user, "id", None) not hasattr(user, "id") — AnonymousUser has id attribute but it's None
+  - In dev bypass mode, middleware passes through unauthenticated requests (user_obj=None) without returning 401 — views must handle this
+  - DRF api_view decorators should only be on top-level URL-routed functions; inner handlers called from routers should be plain functions
+  - Combined GET/POST or GET/DELETE at same URL uses a router function that dispatches by request.method
+  - Soft delete uses deleted_at timestamp (not hard delete); trash filter checks deleted_at__isnull=False
+  - Search by title uses title__icontains for case-insensitive partial match
+  - Collaborating filter joins IdeaCollaborator table; my_ideas filter checks owner_id
+  - docker-compose.yml for service builds is at infra/docker/docker-compose.yml
+  - Migration line length issues: use module-level constants for choices lists to keep lines under 120 chars
+---

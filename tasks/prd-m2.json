@@ -1,11 +1,11 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m2-landing",
-  "description": "Landing Page & Idea CRUD — Milestone 2. Implements the landing page with hero section, 4 ordered lists (My Ideas, Collaborating, Invitations, Trash), idea creation flow, search & filter, and floating ideas list. Provides full CRUD API for ideas with soft delete and restore.",
+  "description": "Landing Page & Idea CRUD \u2014 Milestone 2. Implements the landing page with hero section, 4 ordered lists (My Ideas, Collaborating, Invitations, Trash), idea creation flow, search & filter, and floating ideas list. Provides full CRUD API for ideas with soft delete and restore.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Ideas REST API — CRUD Endpoints",
+      "title": "Ideas REST API \u2014 CRUD Endpoints",
       "description": "As a user, I want to create, list, view, delete, and restore ideas via REST API so that the landing page and workspace can manage idea lifecycle.",
       "acceptanceCriteria": [
         "POST /api/ideas creates a new idea with first_message, returns 201 + idea object",
@@ -21,21 +21,36 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": ["API-IDEA.01", "API-IDEA.02", "API-IDEA.03", "API-IDEA.04", "API-IDEA.05", "API-IDEA.06", "API-IDEA.07", "API-IDEA.08", "API-IDEA.11", "API-IDEA.12", "T-9.3.01", "T-9.3.02", "T-9.4.01", "T-9.4.02"],
-      "notes": "Architecture: docs/02-architecture/data-model.md § ideas — id, title, state, visibility, owner_id, co_owner_id, deleted_at, created_at, updated_at. docs/02-architecture/data-model.md § idea_collaborators — join table for collaborating users. docs/02-architecture/api-design.md § POST /api/ideas, GET /api/ideas, GET /api/ideas/:id, DELETE /api/ideas/:id, POST /api/ideas/:id/restore — see request/response shapes, query params (filter, state, search, page, page_size), side effects (first_message creates ChatMessage, AI processing triggered).\nDesign: Not applicable (backend API only).\nTesting: docs/04-test-architecture/test-matrix.md § API-IDEA.01 (POST idea), API-IDEA.02 (empty first_message → 400), API-IDEA.03 (unauth → 401), API-IDEA.04 (GET list), API-IDEA.05 (filter=trash), API-IDEA.06 (GET by ID), API-IDEA.07 (non-owner → 403), API-IDEA.08 (not found → 404), API-IDEA.11 (soft delete), API-IDEA.12 (restore), T-9.3.01 (soft delete sets deleted_at), T-9.3.02 (restore clears deleted_at), T-9.4.01 (search by title), T-9.4.02 (filter by state) — all P1. Ralph must write these tests BEFORE implementing the endpoints (test-first). Each test includes: test ID, layer (Integration), description, input (HTTP request), expected output (status code + response shape or DB state).\nFiles: services/gateway/apps/ideas/views.py (ViewSet or APIView classes for all 5 endpoints), services/gateway/apps/ideas/serializers.py (IdeaSerializer, IdeaListSerializer with filters), services/gateway/apps/ideas/urls.py (router or urlpatterns), services/core/apps/ideas/services.py (business logic: create_idea, list_ideas, get_idea, soft_delete_idea, restore_idea), services/core/grpc_server/servicers/core_servicer.py (gRPC methods: CreateIdea, ListIdeas, GetIdea, SoftDeleteIdea, RestoreIdea), proto/core.proto (message definitions if not already present), services/gateway/apps/ideas/tests/test_views.py (API integration tests for all criteria).\nGotchas: Soft delete must SET deleted_at, not hard delete. Search by title uses ILIKE or icontains for case-insensitive partial match. Collaborating filter must join idea_collaborators table. Auth middleware already set up in M1 (request.user available). Use existing auth patterns from M1 (middleware ensures request.user is populated). Filter logic: my_ideas = owner_id = request.user.id, collaborating = idea_collaborators.user_id = request.user.id, trash = deleted_at IS NOT NULL.",
+      "passes": true,
+      "testIds": [
+        "API-IDEA.01",
+        "API-IDEA.02",
+        "API-IDEA.03",
+        "API-IDEA.04",
+        "API-IDEA.05",
+        "API-IDEA.06",
+        "API-IDEA.07",
+        "API-IDEA.08",
+        "API-IDEA.11",
+        "API-IDEA.12",
+        "T-9.3.01",
+        "T-9.3.02",
+        "T-9.4.01",
+        "T-9.4.02"
+      ],
+      "notes": "Architecture: docs/02-architecture/data-model.md \u00a7 ideas \u2014 id, title, state, visibility, owner_id, co_owner_id, deleted_at, created_at, updated_at. docs/02-architecture/data-model.md \u00a7 idea_collaborators \u2014 join table for collaborating users. docs/02-architecture/api-design.md \u00a7 POST /api/ideas, GET /api/ideas, GET /api/ideas/:id, DELETE /api/ideas/:id, POST /api/ideas/:id/restore \u2014 see request/response shapes, query params (filter, state, search, page, page_size), side effects (first_message creates ChatMessage, AI processing triggered).\nDesign: Not applicable (backend API only).\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 API-IDEA.01 (POST idea), API-IDEA.02 (empty first_message \u2192 400), API-IDEA.03 (unauth \u2192 401), API-IDEA.04 (GET list), API-IDEA.05 (filter=trash), API-IDEA.06 (GET by ID), API-IDEA.07 (non-owner \u2192 403), API-IDEA.08 (not found \u2192 404), API-IDEA.11 (soft delete), API-IDEA.12 (restore), T-9.3.01 (soft delete sets deleted_at), T-9.3.02 (restore clears deleted_at), T-9.4.01 (search by title), T-9.4.02 (filter by state) \u2014 all P1. Ralph must write these tests BEFORE implementing the endpoints (test-first). Each test includes: test ID, layer (Integration), description, input (HTTP request), expected output (status code + response shape or DB state).\nFiles: services/gateway/apps/ideas/views.py (ViewSet or APIView classes for all 5 endpoints), services/gateway/apps/ideas/serializers.py (IdeaSerializer, IdeaListSerializer with filters), services/gateway/apps/ideas/urls.py (router or urlpatterns), services/core/apps/ideas/services.py (business logic: create_idea, list_ideas, get_idea, soft_delete_idea, restore_idea), services/core/grpc_server/servicers/core_servicer.py (gRPC methods: CreateIdea, ListIdeas, GetIdea, SoftDeleteIdea, RestoreIdea), proto/core.proto (message definitions if not already present), services/gateway/apps/ideas/tests/test_views.py (API integration tests for all criteria).\nGotchas: Soft delete must SET deleted_at, not hard delete. Search by title uses ILIKE or icontains for case-insensitive partial match. Collaborating filter must join idea_collaborators table. Auth middleware already set up in M1 (request.user available). Use existing auth patterns from M1 (middleware ensures request.user is populated). Filter logic: my_ideas = owner_id = request.user.id, collaborating = idea_collaborators.user_id = request.user.id, trash = deleted_at IS NOT NULL.",
       "context": {
         "data_model": [
-          "ideas: id uuid PK, title varchar(500), state varchar(20) CHECK (open/in_review/accepted/dropped/rejected), visibility varchar(20), owner_id uuid FK→users, co_owner_id uuid FK→users (nullable), deleted_at timestamptz (nullable for soft delete), created_at, updated_at — see data-model.md § ideas",
-          "idea_collaborators: id uuid PK, idea_id uuid FK→ideas CASCADE, user_id uuid FK→users, joined_at timestamptz — UNIQUE (idea_id, user_id) — see data-model.md § idea_collaborators",
-          "chat_messages: id uuid PK, idea_id uuid FK→ideas CASCADE, sender_type varchar(10) CHECK (user/ai), sender_id uuid FK→users (nullable), content text, created_at — immutable — see data-model.md § chat_messages"
+          "ideas: id uuid PK, title varchar(500), state varchar(20) CHECK (open/in_review/accepted/dropped/rejected), visibility varchar(20), owner_id uuid FK\u2192users, co_owner_id uuid FK\u2192users (nullable), deleted_at timestamptz (nullable for soft delete), created_at, updated_at \u2014 see data-model.md \u00a7 ideas",
+          "idea_collaborators: id uuid PK, idea_id uuid FK\u2192ideas CASCADE, user_id uuid FK\u2192users, joined_at timestamptz \u2014 UNIQUE (idea_id, user_id) \u2014 see data-model.md \u00a7 idea_collaborators",
+          "chat_messages: id uuid PK, idea_id uuid FK\u2192ideas CASCADE, sender_type varchar(10) CHECK (user/ai), sender_id uuid FK\u2192users (nullable), content text, created_at \u2014 immutable \u2014 see data-model.md \u00a7 chat_messages"
         ],
         "api_endpoints": [
-          "POST /api/ideas — req: {first_message: string} → 201 {id, title, state, visibility, agent_mode, owner, co_owner, created_at} + side effect: first ChatMessage created, AI processing triggered — see api-design.md § POST /api/ideas",
-          "GET /api/ideas — query: filter (my_ideas/collaborating/invitations/trash), state (open/in_review/etc), search (title partial match), page, page_size → 200 {results: [{id, title, state, visibility, role, owner, collaborator_count, inviter_display_name, updated_at, deleted_at}], count, next, previous} — see api-design.md § GET /api/ideas",
-          "GET /api/ideas/:id — → 200 full idea object or 403 ACCESS_DENIED if non-owner/non-collaborator or 404 NOT_FOUND — see api-design.md § GET /api/ideas/:id",
-          "DELETE /api/ideas/:id — sets deleted_at → 200 {message} — owner/co-owner only — see api-design.md § DELETE /api/ideas/:id",
-          "POST /api/ideas/:id/restore — clears deleted_at → 200 {message} — owner/co-owner only — see api-design.md § POST /api/ideas/:id/restore"
+          "POST /api/ideas \u2014 req: {first_message: string} \u2192 201 {id, title, state, visibility, agent_mode, owner, co_owner, created_at} + side effect: first ChatMessage created, AI processing triggered \u2014 see api-design.md \u00a7 POST /api/ideas",
+          "GET /api/ideas \u2014 query: filter (my_ideas/collaborating/invitations/trash), state (open/in_review/etc), search (title partial match), page, page_size \u2192 200 {results: [{id, title, state, visibility, role, owner, collaborator_count, inviter_display_name, updated_at, deleted_at}], count, next, previous} \u2014 see api-design.md \u00a7 GET /api/ideas",
+          "GET /api/ideas/:id \u2014 \u2192 200 full idea object or 403 ACCESS_DENIED if non-owner/non-collaborator or 404 NOT_FOUND \u2014 see api-design.md \u00a7 GET /api/ideas/:id",
+          "DELETE /api/ideas/:id \u2014 sets deleted_at \u2192 200 {message} \u2014 owner/co-owner only \u2014 see api-design.md \u00a7 DELETE /api/ideas/:id",
+          "POST /api/ideas/:id/restore \u2014 clears deleted_at \u2192 200 {message} \u2014 owner/co-owner only \u2014 see api-design.md \u00a7 POST /api/ideas/:id/restore"
         ],
         "test_cases": [
           "API-IDEA.01 | Integration | Create idea with first message | POST /api/ideas {first_message: 'My idea'} | 201 + idea object with id, title='', state='open'",
@@ -54,10 +69,10 @@
           "T-9.4.02 | Integration | Filter by state | GET /api/ideas?state=open | only open ideas returned"
         ],
         "existing_code": [
-          "services/gateway/apps/authentication/middleware.py: AuthenticationMiddleware.process_request() — sets request.user from session (dev bypass) or Azure AD JWT",
-          "services/core/apps/ideas/models.py: Idea model — full schema already exists from M1",
-          "services/core/apps/chat/models.py: ChatMessage model — full schema already exists from M1",
-          "proto/core.proto: CoreService definition — stub servicer already exists, add CreateIdea, ListIdeas, GetIdea, SoftDeleteIdea, RestoreIdea RPC methods"
+          "services/gateway/apps/authentication/middleware.py: AuthenticationMiddleware.process_request() \u2014 sets request.user from session (dev bypass) or Azure AD JWT",
+          "services/core/apps/ideas/models.py: Idea model \u2014 full schema already exists from M1",
+          "services/core/apps/chat/models.py: ChatMessage model \u2014 full schema already exists from M1",
+          "proto/core.proto: CoreService definition \u2014 stub servicer already exists, add CreateIdea, ListIdeas, GetIdea, SoftDeleteIdea, RestoreIdea RPC methods"
         ]
       }
     },
@@ -75,23 +90,25 @@
       ],
       "priority": 2,
       "passes": false,
-      "testIds": ["T-9.1.01"],
-      "notes": "Architecture: docs/02-architecture/data-model.md § collaboration_invitations — id, idea_id, inviter_id, invitee_id, status CHECK (pending/accepted/declined/revoked), created_at, responded_at. docs/02-architecture/api-design.md § GET /api/invitations — returns array of pending invitations with inviter display_name.\nDesign: Not applicable (backend API only).\nTesting: docs/04-test-architecture/test-matrix.md § T-9.1.01 (Landing page renders all 4 lists including Invitations) — P1. The invitations list relies on this endpoint. Ralph must write an integration test for GET /api/invitations that verifies: authenticated request returns pending invitations with correct structure (id, idea_id, idea_title, inviter, created_at), only pending status, 401 for unauth.\nFiles: services/gateway/apps/collaboration/views.py (InvitationsListView or viewset), services/gateway/apps/collaboration/serializers.py (InvitationSerializer with nested inviter), services/gateway/apps/collaboration/urls.py (route for /api/invitations), services/core/apps/collaboration/services.py (list_pending_invitations business logic), services/core/grpc_server/servicers/core_servicer.py (ListPendingInvitations RPC), proto/core.proto (ListPendingInvitationsRequest, ListPendingInvitationsResponse messages), services/gateway/apps/collaboration/tests/test_views.py (integration tests).\nGotchas: Query must filter invitee_id = request.user.id AND status = 'pending'. Join ideas table to get idea_title. Join users table (via inviter_id) to get inviter display_name. Use existing auth middleware from M1.",
+      "testIds": [
+        "T-9.1.01"
+      ],
+      "notes": "Architecture: docs/02-architecture/data-model.md \u00a7 collaboration_invitations \u2014 id, idea_id, inviter_id, invitee_id, status CHECK (pending/accepted/declined/revoked), created_at, responded_at. docs/02-architecture/api-design.md \u00a7 GET /api/invitations \u2014 returns array of pending invitations with inviter display_name.\nDesign: Not applicable (backend API only).\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-9.1.01 (Landing page renders all 4 lists including Invitations) \u2014 P1. The invitations list relies on this endpoint. Ralph must write an integration test for GET /api/invitations that verifies: authenticated request returns pending invitations with correct structure (id, idea_id, idea_title, inviter, created_at), only pending status, 401 for unauth.\nFiles: services/gateway/apps/collaboration/views.py (InvitationsListView or viewset), services/gateway/apps/collaboration/serializers.py (InvitationSerializer with nested inviter), services/gateway/apps/collaboration/urls.py (route for /api/invitations), services/core/apps/collaboration/services.py (list_pending_invitations business logic), services/core/grpc_server/servicers/core_servicer.py (ListPendingInvitations RPC), proto/core.proto (ListPendingInvitationsRequest, ListPendingInvitationsResponse messages), services/gateway/apps/collaboration/tests/test_views.py (integration tests).\nGotchas: Query must filter invitee_id = request.user.id AND status = 'pending'. Join ideas table to get idea_title. Join users table (via inviter_id) to get inviter display_name. Use existing auth middleware from M1.",
       "context": {
         "data_model": [
-          "collaboration_invitations: id uuid PK, idea_id uuid FK→ideas CASCADE, inviter_id uuid FK→users, invitee_id uuid FK→users, status varchar(15) CHECK (pending/accepted/declined/revoked) DEFAULT 'pending', created_at, responded_at (nullable) — see data-model.md § collaboration_invitations",
-          "ideas: id uuid PK, title varchar(500) — see data-model.md § ideas",
-          "users: id uuid PK, display_name varchar(300) — see data-model.md § users (Gateway-owned table)"
+          "collaboration_invitations: id uuid PK, idea_id uuid FK\u2192ideas CASCADE, inviter_id uuid FK\u2192users, invitee_id uuid FK\u2192users, status varchar(15) CHECK (pending/accepted/declined/revoked) DEFAULT 'pending', created_at, responded_at (nullable) \u2014 see data-model.md \u00a7 collaboration_invitations",
+          "ideas: id uuid PK, title varchar(500) \u2014 see data-model.md \u00a7 ideas",
+          "users: id uuid PK, display_name varchar(300) \u2014 see data-model.md \u00a7 users (Gateway-owned table)"
         ],
         "api_endpoints": [
-          "GET /api/invitations — → 200 {invitations: [{id, idea_id, idea_title, inviter: {id, display_name}, created_at}]} — see api-design.md § GET /api/invitations"
+          "GET /api/invitations \u2014 \u2192 200 {invitations: [{id, idea_id, idea_title, inviter: {id, display_name}, created_at}]} \u2014 see api-design.md \u00a7 GET /api/invitations"
         ],
         "test_cases": [
-          "T-9.1.01 | Unit | Landing page renders all 4 lists | User with ideas in various states | My Ideas, Collaborating, Invitations, Trash lists rendered — invitations list requires GET /api/invitations to work"
+          "T-9.1.01 | Unit | Landing page renders all 4 lists | User with ideas in various states | My Ideas, Collaborating, Invitations, Trash lists rendered \u2014 invitations list requires GET /api/invitations to work"
         ],
         "existing_code": [
-          "services/core/apps/collaboration/models.py: CollaborationInvitation model — full schema already exists from M1",
-          "services/gateway/apps/authentication/middleware.py: AuthenticationMiddleware — provides request.user"
+          "services/core/apps/collaboration/models.py: CollaborationInvitation model \u2014 full schema already exists from M1",
+          "services/gateway/apps/authentication/middleware.py: AuthenticationMiddleware \u2014 provides request.user"
         ]
       }
     },
@@ -111,22 +128,24 @@
       ],
       "priority": 3,
       "passes": false,
-      "testIds": ["T-9.1.01"],
-      "notes": "Architecture: Not applicable (frontend page only).\nDesign: docs/03-design/page-layouts.md § S1 Landing Page — hero section (centered heading 'Start a new brainstorm', subtext, creation input with 'Begin' button), 4 ordered lists (My Ideas → Collaborating → Invitations → Trash), each with heading + count badge, responsive (desktop multi-column grid, mobile single column stack). docs/03-design/component-specs.md § 11.3 Empty States — messages for each empty list (no ideas: 'Start your first brainstorm', no collaborations: contextual, no invitations: contextual, empty trash: 'Trash is empty').\nTesting: docs/04-test-architecture/test-matrix.md § T-9.1.01 (Landing page renders all 4 lists) — P1 Unit test. Ralph must render LandingPage component with mocked API responses (ideas, invitations) and assert all 4 list sections are present.\nFiles: frontend/src/pages/LandingPage/index.tsx (main page component with hero + 4 lists), frontend/src/components/landing/HeroSection.tsx (creation input + submit button), frontend/src/components/landing/IdeaCard.tsx (see US-004), frontend/src/components/landing/InvitationCard.tsx (invitation with accept/decline buttons), frontend/src/components/common/EmptyState.tsx (already exists from M1), frontend/src/i18n/locales/de.json and en.json (translation keys for landing page).\nGotchas: Lists are fetched separately (4 separate API calls) — My Ideas (GET /api/ideas?filter=my_ideas), Collaborating (GET /api/ideas?filter=collaborating), Invitations (GET /api/invitations), Trash (GET /api/ideas?filter=trash). Use TanStack Query for data fetching (install @tanstack/react-query if not present). All sections visible even if empty (use EmptyState component from M1 for empty lists). Hero section is M2; idea creation flow is US-005.",
+      "testIds": [
+        "T-9.1.01"
+      ],
+      "notes": "Architecture: Not applicable (frontend page only).\nDesign: docs/03-design/page-layouts.md \u00a7 S1 Landing Page \u2014 hero section (centered heading 'Start a new brainstorm', subtext, creation input with 'Begin' button), 4 ordered lists (My Ideas \u2192 Collaborating \u2192 Invitations \u2192 Trash), each with heading + count badge, responsive (desktop multi-column grid, mobile single column stack). docs/03-design/component-specs.md \u00a7 11.3 Empty States \u2014 messages for each empty list (no ideas: 'Start your first brainstorm', no collaborations: contextual, no invitations: contextual, empty trash: 'Trash is empty').\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-9.1.01 (Landing page renders all 4 lists) \u2014 P1 Unit test. Ralph must render LandingPage component with mocked API responses (ideas, invitations) and assert all 4 list sections are present.\nFiles: frontend/src/pages/LandingPage/index.tsx (main page component with hero + 4 lists), frontend/src/components/landing/HeroSection.tsx (creation input + submit button), frontend/src/components/landing/IdeaCard.tsx (see US-004), frontend/src/components/landing/InvitationCard.tsx (invitation with accept/decline buttons), frontend/src/components/common/EmptyState.tsx (already exists from M1), frontend/src/i18n/locales/de.json and en.json (translation keys for landing page).\nGotchas: Lists are fetched separately (4 separate API calls) \u2014 My Ideas (GET /api/ideas?filter=my_ideas), Collaborating (GET /api/ideas?filter=collaborating), Invitations (GET /api/invitations), Trash (GET /api/ideas?filter=trash). Use TanStack Query for data fetching (install @tanstack/react-query if not present). All sections visible even if empty (use EmptyState component from M1 for empty lists). Hero section is M2; idea creation flow is US-005.",
       "context": {
         "components": [
-          "PageShell — Navbar + main content wrapper — already exists from M1, see layout/PageShell.tsx",
-          "EmptyState — icon + message + optional action — already exists from M1, see common/EmptyState.tsx",
-          "IdeaCard — see US-004 context",
-          "InvitationCard — gold left border, idea title, inviter name, accept/decline buttons — see component-inventory.md § InvitationCard"
+          "PageShell \u2014 Navbar + main content wrapper \u2014 already exists from M1, see layout/PageShell.tsx",
+          "EmptyState \u2014 icon + message + optional action \u2014 already exists from M1, see common/EmptyState.tsx",
+          "IdeaCard \u2014 see US-004 context",
+          "InvitationCard \u2014 gold left border, idea title, inviter name, accept/decline buttons \u2014 see component-inventory.md \u00a7 InvitationCard"
         ],
         "test_cases": [
           "T-9.1.01 | Unit | Landing page renders all 4 lists | User with ideas in various states | My Ideas, Collaborating, Invitations, Trash lists all rendered with section headings"
         ],
         "existing_code": [
-          "frontend/src/components/layout/PageShell.tsx: PageShell component — Navbar + children",
-          "frontend/src/components/common/EmptyState.tsx: EmptyState({icon, message, action}) — renders centered empty state with Lucide icon",
-          "frontend/src/hooks/use-auth.ts: useAuth() — provides {user, isAuthenticated, hasRole()} context"
+          "frontend/src/components/layout/PageShell.tsx: PageShell component \u2014 Navbar + children",
+          "frontend/src/components/common/EmptyState.tsx: EmptyState({icon, message, action}) \u2014 renders centered empty state with Lucide icon",
+          "frontend/src/hooks/use-auth.ts: useAuth() \u2014 provides {user, isAuthenticated, hasRole()} context"
         ]
       }
     },
@@ -147,21 +166,23 @@
       ],
       "priority": 4,
       "passes": false,
-      "testIds": ["T-9.1.01"],
-      "notes": "Architecture: Not applicable (frontend component only).\nDesign: docs/03-design/component-specs.md § 2.2 Idea Card — state dot (8px circle, idea state color), title (Gotham Medium text-base, single-line truncate), timestamp (Gotham Book text-sm text-muted-foreground), state badge (see § 3.1), three-dot menu (ghost icon button, dropdown: Delete / Restore), selected state (gold left border border-l-4 border-primary). docs/03-design/design-system.md § 2.5 Idea State Colors — Open: sky-600 (light) / sky-400 (dark), In Review: amber-500, Accepted: green-600 / green-500, Dropped: gray-400, Rejected: orange-500.\nTesting: docs/04-test-architecture/test-matrix.md § T-9.1.01 (Landing page renders all 4 lists with IdeaCard components) — P1. Ralph must write a unit test for IdeaCard that renders with mock idea data and asserts: state dot color matches state, title displays, timestamp formats correctly, badge visible, three-dot menu triggers dropdown.\nFiles: frontend/src/components/landing/IdeaCard.tsx (card component with all elements), frontend/src/components/ui/badge.tsx (already exists from M1 with state variants), frontend/src/components/ui/dropdown-menu.tsx (already exists from M1), frontend/src/lib/utils.ts (helper: formatRelativeTime(date) → 'X ago').\nGotchas: Three-dot menu must stop event propagation (e.preventDefault() or stopPropagation()) to prevent card click navigation. State dot uses inline style with dynamic color. Badge component from M1 already has state variants (open, in_review, accepted, dropped, rejected). Title uses 'line-clamp-1' or 'truncate' utility for ellipsis. Timestamp formatting uses a helper function (not built-in Intl.RelativeTimeFormat — too verbose; use simple logic: < 1 min = 'just now', < 1 hour = 'X minutes ago', < 1 day = 'X hours ago', else = 'X days ago').",
+      "testIds": [
+        "T-9.1.01"
+      ],
+      "notes": "Architecture: Not applicable (frontend component only).\nDesign: docs/03-design/component-specs.md \u00a7 2.2 Idea Card \u2014 state dot (8px circle, idea state color), title (Gotham Medium text-base, single-line truncate), timestamp (Gotham Book text-sm text-muted-foreground), state badge (see \u00a7 3.1), three-dot menu (ghost icon button, dropdown: Delete / Restore), selected state (gold left border border-l-4 border-primary). docs/03-design/design-system.md \u00a7 2.5 Idea State Colors \u2014 Open: sky-600 (light) / sky-400 (dark), In Review: amber-500, Accepted: green-600 / green-500, Dropped: gray-400, Rejected: orange-500.\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-9.1.01 (Landing page renders all 4 lists with IdeaCard components) \u2014 P1. Ralph must write a unit test for IdeaCard that renders with mock idea data and asserts: state dot color matches state, title displays, timestamp formats correctly, badge visible, three-dot menu triggers dropdown.\nFiles: frontend/src/components/landing/IdeaCard.tsx (card component with all elements), frontend/src/components/ui/badge.tsx (already exists from M1 with state variants), frontend/src/components/ui/dropdown-menu.tsx (already exists from M1), frontend/src/lib/utils.ts (helper: formatRelativeTime(date) \u2192 'X ago').\nGotchas: Three-dot menu must stop event propagation (e.preventDefault() or stopPropagation()) to prevent card click navigation. State dot uses inline style with dynamic color. Badge component from M1 already has state variants (open, in_review, accepted, dropped, rejected). Title uses 'line-clamp-1' or 'truncate' utility for ellipsis. Timestamp formatting uses a helper function (not built-in Intl.RelativeTimeFormat \u2014 too verbose; use simple logic: < 1 min = 'just now', < 1 hour = 'X minutes ago', < 1 day = 'X hours ago', else = 'X days ago').",
       "context": {
         "components": [
-          "Badge — 8 variants including 5 idea states (open, in_review, accepted, dropped, rejected) — already exists from M1, see ui/badge.tsx",
-          "DropdownMenu — Radix dropdown with brand styling — already exists from M1, see ui/dropdown-menu.tsx",
-          "Card — base card with border, radius, shadow — already exists from M1, see ui/card.tsx"
+          "Badge \u2014 8 variants including 5 idea states (open, in_review, accepted, dropped, rejected) \u2014 already exists from M1, see ui/badge.tsx",
+          "DropdownMenu \u2014 Radix dropdown with brand styling \u2014 already exists from M1, see ui/dropdown-menu.tsx",
+          "Card \u2014 base card with border, radius, shadow \u2014 already exists from M1, see ui/card.tsx"
         ],
         "test_cases": [
           "T-9.1.01 | Unit | Landing page renders all 4 lists | includes IdeaCard components displaying state dot, title, timestamp, badge"
         ],
         "existing_code": [
-          "frontend/src/components/ui/badge.tsx: Badge component — variant prop includes 'open', 'in_review', 'accepted', 'dropped', 'rejected' for state badges",
-          "frontend/src/components/ui/dropdown-menu.tsx: DropdownMenu, DropdownMenuTrigger, DropdownMenuItem — Radix primitives",
-          "frontend/src/components/ui/card.tsx: Card, CardHeader, CardContent — base card components"
+          "frontend/src/components/ui/badge.tsx: Badge component \u2014 variant prop includes 'open', 'in_review', 'accepted', 'dropped', 'rejected' for state badges",
+          "frontend/src/components/ui/dropdown-menu.tsx: DropdownMenu, DropdownMenuTrigger, DropdownMenuItem \u2014 Radix primitives",
+          "frontend/src/components/ui/card.tsx: Card, CardHeader, CardContent \u2014 base card components"
         ]
       }
     },
@@ -181,25 +202,28 @@
       ],
       "priority": 5,
       "passes": false,
-      "testIds": ["T-9.2.01", "API-IDEA.01"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § POST /api/ideas — req: {first_message: string} → 201 {id, ...} + side effects: first ChatMessage created, AI processing triggered.\nDesign: docs/03-design/page-layouts.md § S1.2 Landing Hero Section — centered heading 'Start a new brainstorm', subtext, creation input (large textarea, placeholder 'Describe your idea...'), primary button 'Begin'. docs/03-design/component-specs.md § 1.3 Button States — loading state with spinner, disabled when input empty.\nTesting: docs/04-test-architecture/test-matrix.md § T-9.2.01 (Create idea from landing page E2E test) — type message in hero, submit, verify redirect to workspace — P1. API-IDEA.01 (POST /api/ideas with first_message → 201) — P1 Integration test. Ralph must write both: E2E test using React Testing Library (render LandingPage, type in input, click submit, mock API response, assert navigation), and API integration test (verify POST endpoint returns 201).\nFiles: frontend/src/components/landing/HeroSection.tsx (input + submit button + error state + loading state), frontend/src/hooks/use-create-idea.ts (TanStack Query mutation for POST /api/ideas with onSuccess redirect), frontend/src/api/ideas.ts (createIdea(firstMessage) async function), frontend/src/i18n/locales/*.json (translation keys for hero section).\nGotchas: Use react-router-dom useNavigate() for redirect. TanStack Query mutation handles loading/error states. Empty input validation: disable button when input is empty (client-side), also show error toast if server returns 400. Textarea should be large (min-h-24) and auto-grow. Use Button component from M1 with loading prop (shows spinner). Error handling: use ErrorToast component from M1 with retry button that re-triggers mutation.",
+      "testIds": [
+        "T-9.2.01",
+        "API-IDEA.01"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 POST /api/ideas \u2014 req: {first_message: string} \u2192 201 {id, ...} + side effects: first ChatMessage created, AI processing triggered.\nDesign: docs/03-design/page-layouts.md \u00a7 S1.2 Landing Hero Section \u2014 centered heading 'Start a new brainstorm', subtext, creation input (large textarea, placeholder 'Describe your idea...'), primary button 'Begin'. docs/03-design/component-specs.md \u00a7 1.3 Button States \u2014 loading state with spinner, disabled when input empty.\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-9.2.01 (Create idea from landing page E2E test) \u2014 type message in hero, submit, verify redirect to workspace \u2014 P1. API-IDEA.01 (POST /api/ideas with first_message \u2192 201) \u2014 P1 Integration test. Ralph must write both: E2E test using React Testing Library (render LandingPage, type in input, click submit, mock API response, assert navigation), and API integration test (verify POST endpoint returns 201).\nFiles: frontend/src/components/landing/HeroSection.tsx (input + submit button + error state + loading state), frontend/src/hooks/use-create-idea.ts (TanStack Query mutation for POST /api/ideas with onSuccess redirect), frontend/src/api/ideas.ts (createIdea(firstMessage) async function), frontend/src/i18n/locales/*.json (translation keys for hero section).\nGotchas: Use react-router-dom useNavigate() for redirect. TanStack Query mutation handles loading/error states. Empty input validation: disable button when input is empty (client-side), also show error toast if server returns 400. Textarea should be large (min-h-24) and auto-grow. Use Button component from M1 with loading prop (shows spinner). Error handling: use ErrorToast component from M1 with retry button that re-triggers mutation.",
       "context": {
         "api_endpoints": [
-          "POST /api/ideas — req: {first_message: string} → 201 {id, title, state, visibility, agent_mode, owner, co_owner, created_at} + side effect: first ChatMessage created — see api-design.md § POST /api/ideas"
+          "POST /api/ideas \u2014 req: {first_message: string} \u2192 201 {id, title, state, visibility, agent_mode, owner, co_owner, created_at} + side effect: first ChatMessage created \u2014 see api-design.md \u00a7 POST /api/ideas"
         ],
         "components": [
-          "Button — loading state with spinner — already exists from M1, see ui/button.tsx",
-          "Textarea — auto-grow variant — already exists from M1, see ui/textarea.tsx",
-          "ErrorToast — persistent toast with retry button — already exists from M1, see common/ErrorToast.tsx"
+          "Button \u2014 loading state with spinner \u2014 already exists from M1, see ui/button.tsx",
+          "Textarea \u2014 auto-grow variant \u2014 already exists from M1, see ui/textarea.tsx",
+          "ErrorToast \u2014 persistent toast with retry button \u2014 already exists from M1, see common/ErrorToast.tsx"
         ],
         "test_cases": [
           "T-9.2.01 | E2E | Create idea from landing page | Type message in hero section, click submit | New idea created (API returns 201), redirected to /idea/:uuid",
           "API-IDEA.01 | Integration | Create idea with first message | POST /api/ideas {first_message: 'My idea'} | 201 + idea object with id"
         ],
         "existing_code": [
-          "frontend/src/components/ui/button.tsx: Button component — loading prop shows spinner, disabled when loading",
-          "frontend/src/components/ui/textarea.tsx: Textarea component — auto-grow variant available",
-          "frontend/src/components/common/ErrorToast.tsx: ErrorToast({message, onRetry}) — persistent error toast with retry button"
+          "frontend/src/components/ui/button.tsx: Button component \u2014 loading prop shows spinner, disabled when loading",
+          "frontend/src/components/ui/textarea.tsx: Textarea component \u2014 auto-grow variant available",
+          "frontend/src/components/common/ErrorToast.tsx: ErrorToast({message, onRetry}) \u2014 persistent error toast with retry button"
         ]
       }
     },
@@ -221,20 +245,24 @@
       ],
       "priority": 6,
       "passes": false,
-      "testIds": ["T-9.1.01", "T-9.3.01", "T-9.3.02"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/ideas — query params: filter (my_ideas/collaborating/trash), returns paginated results. docs/02-architecture/api-design.md § GET /api/invitations.\nDesign: docs/03-design/page-layouts.md § S1 Landing Page — 4 ordered lists with section headings, responsive grid (desktop: 2-column, mobile: single column). docs/03-design/component-specs.md § 11.2 Skeleton Loading — full card shape with 2 text lines. docs/03-design/component-specs.md § 11.1 Toast Notifications — undo toast for soft delete with countdown (5s auto-dismiss).\nTesting: docs/04-test-architecture/test-matrix.md § T-9.1.01 (all 4 lists render), T-9.3.01 (soft delete moves to trash), T-9.3.02 (restore clears deleted_at) — all P1. Ralph must write unit tests for: each list query hook (useMyIdeas, useCollaboratingIdeas, useInvitations, useTrash) mocked with test data, assert correct query key + endpoint called. Integration tests for soft delete and restore already covered in US-001.\nFiles: frontend/src/hooks/use-my-ideas.ts (useQuery for my_ideas), use-collaborating-ideas.ts, use-invitations.ts, use-trash.ts, frontend/src/api/ideas.ts (fetchIdeas, fetchInvitations async functions), frontend/src/components/landing/IdeasList.tsx (generic list component with loading/empty states), frontend/src/components/landing/InvitationCard.tsx (invitation card with accept/decline buttons — wired in M11, buttons render but not functional in M2).\nGotchas: TanStack Query queryClient.invalidateQueries() after mutation (create, delete, restore) to refresh all lists. Soft delete undo toast: use react-toastify with custom action button, 5s countdown, onClose triggers restore API call if undo clicked. Skeleton uses Skeleton component from M1. Empty states use EmptyState component from M1 with appropriate Lucide icons (Lightbulb, Users, Mail, Trash2).",
+      "testIds": [
+        "T-9.1.01",
+        "T-9.3.01",
+        "T-9.3.02"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 GET /api/ideas \u2014 query params: filter (my_ideas/collaborating/trash), returns paginated results. docs/02-architecture/api-design.md \u00a7 GET /api/invitations.\nDesign: docs/03-design/page-layouts.md \u00a7 S1 Landing Page \u2014 4 ordered lists with section headings, responsive grid (desktop: 2-column, mobile: single column). docs/03-design/component-specs.md \u00a7 11.2 Skeleton Loading \u2014 full card shape with 2 text lines. docs/03-design/component-specs.md \u00a7 11.1 Toast Notifications \u2014 undo toast for soft delete with countdown (5s auto-dismiss).\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-9.1.01 (all 4 lists render), T-9.3.01 (soft delete moves to trash), T-9.3.02 (restore clears deleted_at) \u2014 all P1. Ralph must write unit tests for: each list query hook (useMyIdeas, useCollaboratingIdeas, useInvitations, useTrash) mocked with test data, assert correct query key + endpoint called. Integration tests for soft delete and restore already covered in US-001.\nFiles: frontend/src/hooks/use-my-ideas.ts (useQuery for my_ideas), use-collaborating-ideas.ts, use-invitations.ts, use-trash.ts, frontend/src/api/ideas.ts (fetchIdeas, fetchInvitations async functions), frontend/src/components/landing/IdeasList.tsx (generic list component with loading/empty states), frontend/src/components/landing/InvitationCard.tsx (invitation card with accept/decline buttons \u2014 wired in M11, buttons render but not functional in M2).\nGotchas: TanStack Query queryClient.invalidateQueries() after mutation (create, delete, restore) to refresh all lists. Soft delete undo toast: use react-toastify with custom action button, 5s countdown, onClose triggers restore API call if undo clicked. Skeleton uses Skeleton component from M1. Empty states use EmptyState component from M1 with appropriate Lucide icons (Lightbulb, Users, Mail, Trash2).",
       "context": {
         "api_endpoints": [
-          "GET /api/ideas?filter=my_ideas — returns user's owned ideas",
-          "GET /api/ideas?filter=collaborating — returns ideas user collaborates on",
-          "GET /api/ideas?filter=trash — returns soft-deleted ideas (deleted_at IS NOT NULL)",
-          "GET /api/invitations — returns pending invitations for current user"
+          "GET /api/ideas?filter=my_ideas \u2014 returns user's owned ideas",
+          "GET /api/ideas?filter=collaborating \u2014 returns ideas user collaborates on",
+          "GET /api/ideas?filter=trash \u2014 returns soft-deleted ideas (deleted_at IS NOT NULL)",
+          "GET /api/invitations \u2014 returns pending invitations for current user"
         ],
         "components": [
-          "IdeaCard — see US-004 context",
-          "InvitationCard — gold left border, idea title, inviter name, accept/decline buttons (render but not wired in M2)",
-          "Skeleton — pulse animation skeleton loader — already exists from M1, see ui/skeleton.tsx",
-          "EmptyState — icon + message — already exists from M1, see common/EmptyState.tsx"
+          "IdeaCard \u2014 see US-004 context",
+          "InvitationCard \u2014 gold left border, idea title, inviter name, accept/decline buttons (render but not wired in M2)",
+          "Skeleton \u2014 pulse animation skeleton loader \u2014 already exists from M1, see ui/skeleton.tsx",
+          "EmptyState \u2014 icon + message \u2014 already exists from M1, see common/EmptyState.tsx"
         ],
         "test_cases": [
           "T-9.1.01 | Unit | Landing page renders all 4 lists | User with ideas in various states | All 4 lists render with appropriate data",
@@ -242,9 +270,9 @@
           "T-9.3.02 | Integration | Restore from trash | POST /api/ideas/:id/restore | deleted_at cleared, idea removed from trash list"
         ],
         "existing_code": [
-          "frontend/src/components/ui/skeleton.tsx: Skeleton component — animate-pulse placeholder",
-          "frontend/src/components/common/EmptyState.tsx: EmptyState({icon, message, action}) — renders empty state",
-          "frontend/src/components/ui/toast.tsx: Toast component (if exists) — or use react-toastify for undo toast with action button"
+          "frontend/src/components/ui/skeleton.tsx: Skeleton component \u2014 animate-pulse placeholder",
+          "frontend/src/components/common/EmptyState.tsx: EmptyState({icon, message, action}) \u2014 renders empty state",
+          "frontend/src/components/ui/toast.tsx: Toast component (if exists) \u2014 or use react-toastify for undo toast with action button"
         ]
       }
     },
@@ -265,26 +293,29 @@
       ],
       "priority": 7,
       "passes": false,
-      "testIds": ["T-9.4.01", "T-9.4.02"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/ideas — query params: search (title partial match), state (open/in_review/etc), filter (my_ideas/collaborating) — all optional.\nDesign: docs/03-design/component-inventory.md § FilterBar — search input + state dropdown + ownership dropdown. docs/03-design/component-specs.md § 4.6 Search Input — Lucide Search icon (left), clear button (X icon, appears when input has value), debounce 300ms.\nTesting: docs/04-test-architecture/test-matrix.md § T-9.4.01 (search by title works), T-9.4.02 (filter by state works) — both P1 Integration tests. Ralph must also write unit tests for FilterBar component: render with mock onChange handlers, type in search (use vi.useFakeTimers to test debounce), select state dropdown, select ownership dropdown, assert onChange called with correct values.\nFiles: frontend/src/components/landing/FilterBar.tsx (search input + 2 dropdowns + clear button), frontend/src/hooks/use-ideas-filters.ts (custom hook managing filter state + URL sync), frontend/src/api/ideas.ts (fetchIdeas with query params).\nGotchas: Search debounce uses useDebounce hook or lodash debounce. URL sync: use react-router-dom useSearchParams() to read/write query params (?search=X&state=Y&filter=Z). Clear button visible only when any filter active. State dropdown uses Select component from M1. Ownership filter affects which endpoint: All = no filter param, My Ideas = filter=my_ideas, Collaborating = filter=collaborating. Filters do NOT apply to Trash list (always shows all trash). Invitations list has no filters.",
+      "testIds": [
+        "T-9.4.01",
+        "T-9.4.02"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 GET /api/ideas \u2014 query params: search (title partial match), state (open/in_review/etc), filter (my_ideas/collaborating) \u2014 all optional.\nDesign: docs/03-design/component-inventory.md \u00a7 FilterBar \u2014 search input + state dropdown + ownership dropdown. docs/03-design/component-specs.md \u00a7 4.6 Search Input \u2014 Lucide Search icon (left), clear button (X icon, appears when input has value), debounce 300ms.\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-9.4.01 (search by title works), T-9.4.02 (filter by state works) \u2014 both P1 Integration tests. Ralph must also write unit tests for FilterBar component: render with mock onChange handlers, type in search (use vi.useFakeTimers to test debounce), select state dropdown, select ownership dropdown, assert onChange called with correct values.\nFiles: frontend/src/components/landing/FilterBar.tsx (search input + 2 dropdowns + clear button), frontend/src/hooks/use-ideas-filters.ts (custom hook managing filter state + URL sync), frontend/src/api/ideas.ts (fetchIdeas with query params).\nGotchas: Search debounce uses useDebounce hook or lodash debounce. URL sync: use react-router-dom useSearchParams() to read/write query params (?search=X&state=Y&filter=Z). Clear button visible only when any filter active. State dropdown uses Select component from M1. Ownership filter affects which endpoint: All = no filter param, My Ideas = filter=my_ideas, Collaborating = filter=collaborating. Filters do NOT apply to Trash list (always shows all trash). Invitations list has no filters.",
       "context": {
         "api_endpoints": [
-          "GET /api/ideas?search=keyword — partial match on title, case-insensitive",
-          "GET /api/ideas?state=open — filter by state",
-          "GET /api/ideas?filter=my_ideas — filter by ownership"
+          "GET /api/ideas?search=keyword \u2014 partial match on title, case-insensitive",
+          "GET /api/ideas?state=open \u2014 filter by state",
+          "GET /api/ideas?filter=my_ideas \u2014 filter by ownership"
         ],
         "components": [
-          "Input — Search variant with Lucide Search icon, clear button — see component-specs.md § 4.6",
-          "Select — Radix dropdown select — already exists from M1, see ui/select.tsx",
-          "Button — ghost variant for clear filters — already exists from M1, see ui/button.tsx"
+          "Input \u2014 Search variant with Lucide Search icon, clear button \u2014 see component-specs.md \u00a7 4.6",
+          "Select \u2014 Radix dropdown select \u2014 already exists from M1, see ui/select.tsx",
+          "Button \u2014 ghost variant for clear filters \u2014 already exists from M1, see ui/button.tsx"
         ],
         "test_cases": [
           "T-9.4.01 | Integration | Search by title works | GET /api/ideas?search=keyword | filtered results returned",
           "T-9.4.02 | Integration | Filter by state works | GET /api/ideas?state=open | only open ideas returned"
         ],
         "existing_code": [
-          "frontend/src/components/ui/input.tsx: Input component — base text input, can extend with icon slots",
-          "frontend/src/components/ui/select.tsx: Select, SelectTrigger, SelectContent, SelectItem — Radix select primitives"
+          "frontend/src/components/ui/input.tsx: Input component \u2014 base text input, can extend with icon slots",
+          "frontend/src/components/ui/select.tsx: Select, SelectTrigger, SelectContent, SelectItem \u2014 Radix select primitives"
         ]
       }
     },
@@ -307,24 +338,24 @@
       "priority": 8,
       "passes": false,
       "testIds": [],
-      "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/ideas — query param state filters ideas. Four queries: state=open, state=in_review, state=accepted, state=dropped (Closed tab = dropped ideas).\nDesign: docs/03-design/page-layouts.md § S10 Ideas List Floating Window — navbar button 'Ideas', floating panel (320px wide, shadow-lg, rounded-lg), tabbed interface (Active, In Review, Accepted, Closed), compact idea items (state dot + title, no timestamp or badge). docs/03-design/component-inventory.md § IdeasListFloating — listed as Layout component (navbar-anchored floating panel).\nTesting: No specific test IDs in test-matrix.md for this feature. Ralph must write unit tests: render IdeasListFloating component with mock data for each tab, assert tabs render, assert clicking idea navigates, assert window closes on Escape.\nFiles: frontend/src/components/layout/IdeasListFloating.tsx (floating window with tabs), frontend/src/components/layout/Navbar.tsx (add 'Ideas' button that toggles floating window), frontend/src/hooks/use-ideas-by-state.ts (TanStack Query hooks for each state filter), frontend/src/components/landing/IdeaCardCompact.tsx (minimal card: state dot + title only).\nGotchas: Floating window uses absolute positioning (z-index 20, below navbar which is z-40). Use Radix Popover or shadcn Popover component (not Dialog) for click-outside-to-close behavior. Tabs use Tabs component from M1. Each tab fetches independently (4 separate queries). Closed tab queries state=dropped (not state=closed, since 'dropped' is the actual enum value). Empty state uses EmptyState component from M1 with muted text only (no icon needed for compact empty state).",
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 GET /api/ideas \u2014 query param state filters ideas. Four queries: state=open, state=in_review, state=accepted, state=dropped (Closed tab = dropped ideas).\nDesign: docs/03-design/page-layouts.md \u00a7 S10 Ideas List Floating Window \u2014 navbar button 'Ideas', floating panel (320px wide, shadow-lg, rounded-lg), tabbed interface (Active, In Review, Accepted, Closed), compact idea items (state dot + title, no timestamp or badge). docs/03-design/component-inventory.md \u00a7 IdeasListFloating \u2014 listed as Layout component (navbar-anchored floating panel).\nTesting: No specific test IDs in test-matrix.md for this feature. Ralph must write unit tests: render IdeasListFloating component with mock data for each tab, assert tabs render, assert clicking idea navigates, assert window closes on Escape.\nFiles: frontend/src/components/layout/IdeasListFloating.tsx (floating window with tabs), frontend/src/components/layout/Navbar.tsx (add 'Ideas' button that toggles floating window), frontend/src/hooks/use-ideas-by-state.ts (TanStack Query hooks for each state filter), frontend/src/components/landing/IdeaCardCompact.tsx (minimal card: state dot + title only).\nGotchas: Floating window uses absolute positioning (z-index 20, below navbar which is z-40). Use Radix Popover or shadcn Popover component (not Dialog) for click-outside-to-close behavior. Tabs use Tabs component from M1. Each tab fetches independently (4 separate queries). Closed tab queries state=dropped (not state=closed, since 'dropped' is the actual enum value). Empty state uses EmptyState component from M1 with muted text only (no icon needed for compact empty state).",
       "context": {
         "api_endpoints": [
-          "GET /api/ideas?state=open — Active tab",
-          "GET /api/ideas?state=in_review — In Review tab",
-          "GET /api/ideas?state=accepted — Accepted tab",
-          "GET /api/ideas?state=dropped — Closed tab"
+          "GET /api/ideas?state=open \u2014 Active tab",
+          "GET /api/ideas?state=in_review \u2014 In Review tab",
+          "GET /api/ideas?state=accepted \u2014 Accepted tab",
+          "GET /api/ideas?state=dropped \u2014 Closed tab"
         ],
         "components": [
-          "Tabs — horizontal tabs with gold underline — already exists from M1, see ui/tabs.tsx",
-          "IdeaCard — full card used in landing page lists — see US-004",
-          "IdeaCardCompact — minimal version: state dot + title only, no timestamp/badge/menu",
-          "EmptyState — muted text for empty tabs — already exists from M1, see common/EmptyState.tsx"
+          "Tabs \u2014 horizontal tabs with gold underline \u2014 already exists from M1, see ui/tabs.tsx",
+          "IdeaCard \u2014 full card used in landing page lists \u2014 see US-004",
+          "IdeaCardCompact \u2014 minimal version: state dot + title only, no timestamp/badge/menu",
+          "EmptyState \u2014 muted text for empty tabs \u2014 already exists from M1, see common/EmptyState.tsx"
         ],
         "test_cases": [],
         "existing_code": [
-          "frontend/src/components/ui/tabs.tsx: Tabs, TabsList, TabsTrigger, TabsContent — Radix tabs primitives",
-          "frontend/src/components/layout/Navbar.tsx: Navbar component — add 'Ideas' button that toggles floating window"
+          "frontend/src/components/ui/tabs.tsx: Tabs, TabsList, TabsTrigger, TabsContent \u2014 Radix tabs primitives",
+          "frontend/src/components/layout/Navbar.tsx: Navbar component \u2014 add 'Ideas' button that toggles floating window"
         ]
       }
     }
