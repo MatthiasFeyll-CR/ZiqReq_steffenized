@@ -1,0 +1,311 @@
+{
+  "$schema": "pipeline-config-schema.json",
+  "version": "1.0",
+  "project": {
+    "name": "ZiqReq",
+    "description": "AI-powered brainstorming and idea management platform with real-time collaboration, BRD generation, and review workflows"
+  },
+  "paths": {
+    "docs_dir": "docs",
+    "tasks_dir": "tasks",
+    "scripts_dir": ".ralph",
+    "skills_dir": "~/.claude/skills",
+    "qa_dir": "docs/08-qa",
+    "reconciliation_dir": "docs/05-reconciliation",
+    "milestones_dir": "docs/05-milestones",
+    "archive_dir": ".ralph/archive"
+  },
+  "milestones": [
+    {
+      "id": 1,
+      "slug": "foundation",
+      "name": "Foundation & Auth",
+      "stories": 10,
+      "dependencies": []
+    },
+    {
+      "id": 2,
+      "slug": "landing",
+      "name": "Landing Page & Idea CRUD",
+      "stories": 8,
+      "dependencies": [
+        1
+      ]
+    },
+    {
+      "id": 3,
+      "slug": "workspace-chat",
+      "name": "Idea Workspace - Layout & Chat",
+      "stories": 10,
+      "dependencies": [
+        2
+      ]
+    },
+    {
+      "id": 4,
+      "slug": "board-core",
+      "name": "Digital Board - Core",
+      "stories": 9,
+      "dependencies": [
+        3
+      ]
+    },
+    {
+      "id": 5,
+      "slug": "board-advanced",
+      "name": "Board Interactions & Undo",
+      "stories": 8,
+      "dependencies": [
+        4
+      ]
+    },
+    {
+      "id": 6,
+      "slug": "websocket",
+      "name": "WebSocket & Real-Time",
+      "stories": 10,
+      "dependencies": [
+        3
+      ]
+    },
+    {
+      "id": 7,
+      "slug": "ai-chat",
+      "name": "AI Core - Chat Processing Pipeline",
+      "stories": 10,
+      "dependencies": [
+        5,
+        6
+      ]
+    },
+    {
+      "id": 8,
+      "slug": "ai-context",
+      "name": "AI Board Agent & Context",
+      "stories": 10,
+      "dependencies": [
+        7
+      ]
+    },
+    {
+      "id": 9,
+      "slug": "brd-pdf",
+      "name": "BRD & PDF Generation",
+      "stories": 9,
+      "dependencies": [
+        8
+      ]
+    },
+    {
+      "id": 10,
+      "slug": "review",
+      "name": "Review Workflow",
+      "stories": 10,
+      "dependencies": [
+        9
+      ]
+    },
+    {
+      "id": 11,
+      "slug": "collaboration",
+      "name": "Collaboration & Sharing",
+      "stories": 9,
+      "dependencies": [
+        6
+      ]
+    },
+    {
+      "id": 12,
+      "slug": "notifications",
+      "name": "Notification System",
+      "stories": 9,
+      "dependencies": [
+        6
+      ]
+    },
+    {
+      "id": 13,
+      "slug": "similarity",
+      "name": "Similarity Detection & Merge",
+      "stories": 10,
+      "dependencies": [
+        8,
+        12
+      ]
+    },
+    {
+      "id": 14,
+      "slug": "merge-advanced",
+      "name": "Merge Advanced & Manual",
+      "stories": 7,
+      "dependencies": [
+        13
+      ]
+    },
+    {
+      "id": 15,
+      "slug": "admin",
+      "name": "Admin Panel",
+      "stories": 10,
+      "dependencies": [
+        8
+      ]
+    },
+    {
+      "id": 16,
+      "slug": "polish",
+      "name": "Polish & Cross-Cutting",
+      "stories": 10,
+      "dependencies": [
+        10,
+        11,
+        12
+      ]
+    }
+  ],
+  "models": {
+    "ralph": "claude-opus-4-6",
+    "phase0": "claude-opus-4-6",
+    "prd_generation": "claude-sonnet-4-5",
+    "qa_review": "claude-opus-4-6",
+    "test_fix": "claude-sonnet-4-5",
+    "gate_fix": "claude-opus-4-6",
+    "reconciliation": "claude-sonnet-4-5"
+  },
+  "ralph": {
+    "tool": "claude",
+    "max_iterations_multiplier": 3,
+    "stuck_threshold": 3
+  },
+  "qa": {
+    "max_bugfix_cycles": 3
+  },
+  "gate_checks": {
+    "max_fix_cycles": 3,
+    "checks": [
+      {
+        "name": "Docker build",
+        "command": "docker compose build",
+        "condition": "command -v docker && test -f docker-compose.yml",
+        "required": true
+      },
+      {
+        "name": "Frontend typecheck",
+        "command": "cd frontend && npx tsc --noEmit",
+        "condition": "test -f frontend/tsconfig.json",
+        "required": true
+      },
+      {
+        "name": "Backend lint (Ruff)",
+        "command": "ruff check services/",
+        "condition": "test -d services && command -v ruff",
+        "required": true
+      },
+      {
+        "name": "Backend typecheck (mypy)",
+        "command": "mypy services/",
+        "condition": "test -d services && command -v mypy",
+        "required": false
+      },
+      {
+        "name": "Frontend lint (ESLint)",
+        "command": "cd frontend && npx eslint src/",
+        "condition": "test -f frontend/eslint.config.js",
+        "required": false
+      }
+    ]
+  },
+  "env_setup": {
+    "source_file": null,
+    "setup_function": null,
+    "description": "All environment configuration handled via .env file (ports, API keys, Azure credentials)."
+  },
+  "test_infrastructure": {
+    "compose_file": "docker-compose.test.yml",
+    "services": [
+      {
+        "name": "postgres",
+        "image": "pgvector/pgvector:pg16",
+        "port": 5432,
+        "environment": {
+          "POSTGRES_USER": "testuser",
+          "POSTGRES_PASSWORD": "testpass",
+          "POSTGRES_DB": "ziqreq_test"
+        },
+        "readiness": "pg_isready"
+      },
+      {
+        "name": "redis",
+        "image": "redis:7-alpine",
+        "port": 6379,
+        "readiness": "redis-cli ping"
+      },
+      {
+        "name": "rabbitmq",
+        "image": "rabbitmq:3-management-alpine",
+        "port": 5672,
+        "environment": {
+          "RABBITMQ_DEFAULT_USER": "testuser",
+          "RABBITMQ_DEFAULT_PASS": "testpass"
+        },
+        "readiness": "rabbitmq-diagnostics check_port_connectivity"
+      }
+    ],
+    "runtimes": [
+      {
+        "name": "python",
+        "base_image": "python:3.12-slim",
+        "source_dir": ".",
+        "workdir": "/app",
+        "dependency_files": [
+          "requirements.txt",
+          "requirements-dev.txt"
+        ],
+        "install_cmd": "pip install -r requirements-dev.txt",
+        "test_framework": "pytest",
+        "test_cmd": "pytest",
+        "ci_flags": "--ci"
+      },
+      {
+        "name": "node",
+        "base_image": "node:20-slim",
+        "source_dir": "frontend",
+        "workdir": "/app",
+        "dependency_files": [
+          "package.json",
+          "package-lock.json"
+        ],
+        "install_cmd": "npm ci",
+        "test_framework": "vitest",
+        "test_cmd": "npx vitest run",
+        "ci_flags": ""
+      }
+    ],
+    "databases": [
+      {
+        "service": "postgres",
+        "db_name": "ziqreq_test",
+        "user": "testuser",
+        "password": "testpass"
+      }
+    ],
+    "timeouts": {
+      "setup_seconds": 120,
+      "build_seconds": 300,
+      "test_seconds": 600
+    }
+  },
+  "scaffolding": {
+    "enabled": true,
+    "project_structure_doc": "docs/02-architecture/project-structure.md",
+    "tech_stack_doc": "docs/02-architecture/tech-stack.md",
+    "framework_boilerplate": true
+  },
+  "retry": {
+    "max_retries": 3,
+    "backoff_seconds": 30
+  },
+  "cost": {
+    "budget_usd": 750
+  }
+}

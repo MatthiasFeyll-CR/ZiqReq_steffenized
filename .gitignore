@@ -49,3 +49,4 @@ coverage.xml
 
 # Pipeline runtime state (written continuously by log/save_state)
 .ralph
+.vscode/
