@@ -87,6 +87,10 @@
     "T-9.1.01": {
       "file": "frontend/src/__tests__/landing-page.test.tsx",
       "function": "T-9.1.01: Landing page renders all 4 lists"
+    },
+    "T-9.2.01": {
+      "file": "frontend/src/__tests__/idea-creation-flow.test.tsx",
+      "function": "T-9.2.01: Create idea from landing page"
     }
   }
 }

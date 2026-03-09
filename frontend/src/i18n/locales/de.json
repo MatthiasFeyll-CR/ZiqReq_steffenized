@@ -28,7 +28,9 @@
       "heading": "Neues Brainstorming starten",
       "subtext": "Beschreiben Sie Ihre Idee und lassen Sie KI Ihnen bei der Verfeinerung helfen.",
       "placeholder": "Beschreiben Sie Ihre Idee...",
-      "submit": "Starten"
+      "submit": "Starten",
+      "validationEmpty": "Bitte beschreiben Sie Ihre Idee vor dem Absenden.",
+      "errorCreating": "Idee konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
     },
     "lists": {
       "myIdeas": "Meine Ideen",

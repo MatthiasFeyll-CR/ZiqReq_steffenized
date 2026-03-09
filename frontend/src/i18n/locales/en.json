@@ -28,7 +28,9 @@
       "heading": "Start a new brainstorm",
       "subtext": "Describe your idea and let AI help you refine it.",
       "placeholder": "Describe your idea...",
-      "submit": "Begin"
+      "submit": "Begin",
+      "validationEmpty": "Please describe your idea before submitting.",
+      "errorCreating": "Failed to create idea. Please try again."
     },
     "lists": {
       "myIdeas": "My Ideas",
