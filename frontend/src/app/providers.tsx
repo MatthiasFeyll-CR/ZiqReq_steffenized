@@ -5,6 +5,7 @@ import { store } from "../store";
 import { AuthContext } from "../hooks/use-auth";
 import { useAuthProvider } from "../hooks/use-auth-provider";
 import type { ReactNode } from "react";
+import "../i18n/config";
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
 import type { AuthUser } from "@/hooks/use-auth"
 import { apiClient } from "@/lib/api-client"
@@ -14,6 +15,7 @@ interface DevUser {
 
 export function DevUserSwitcher() {
   const { isDevBypass, user, setUser } = useAuth()
+  const { t } = useTranslation()
   const [devUsers, setDevUsers] = useState<DevUser[]>([])
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function DevUserSwitcher() {
   return (
     <div className="fixed bottom-4 left-4 z-50 rounded-lg border border-amber-500/50 bg-amber-50 p-3 shadow-lg dark:bg-amber-950/80">
       <p className="mb-2 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-        Dev User Switcher
+        {t("dev.userSwitcher")}
       </p>
       <div className="flex flex-col gap-1">
         {devUsers.map((du) => (

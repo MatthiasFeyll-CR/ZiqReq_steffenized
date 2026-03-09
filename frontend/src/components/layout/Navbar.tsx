@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Menu, X, Bell } from "lucide-react"
+import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
 import { NavbarLink } from "./NavbarLink"
 import { UserDropdown } from "./UserDropdown"
@@ -8,6 +9,7 @@ import { ConnectionIndicator } from "./ConnectionIndicator"
 export function Navbar() {
   const { user, hasRole } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { t } = useTranslation()
 
   return (
     <nav className="sticky top-0 z-40 flex h-14 items-center bg-[#002E3C] px-4 text-white dark:bg-[#0F1A2E]">
@@ -18,9 +20,9 @@ export function Navbar() {
 
       {/* Desktop nav links */}
       <div className="hidden md:flex md:items-center md:gap-1">
-        <NavbarLink to="/">Ideas</NavbarLink>
-        {hasRole("reviewer") && <NavbarLink to="/reviews">Reviews</NavbarLink>}
-        {hasRole("admin") && <NavbarLink to="/admin">Admin</NavbarLink>}
+        <NavbarLink to="/">{t("nav.ideas")}</NavbarLink>
+        {hasRole("reviewer") && <NavbarLink to="/reviews">{t("nav.reviews")}</NavbarLink>}
+        {hasRole("admin") && <NavbarLink to="/admin">{t("nav.admin")}</NavbarLink>}
       </div>
 
       {/* Spacer */}
@@ -31,7 +33,7 @@ export function Navbar() {
         <ConnectionIndicator />
         <button
           className="rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          aria-label="Notifications"
+          aria-label={t("nav.notifications")}
         >
           <Bell className="h-5 w-5" />
         </button>
@@ -41,7 +43,7 @@ export function Navbar() {
         <button
           className="rounded p-1 text-white/80 hover:bg-white/10 md:hidden"
           onClick={() => setMobileOpen((o) => !o)}
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-label={mobileOpen ? t("nav.closeMenu") : t("nav.openMenu")}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -51,12 +53,12 @@ export function Navbar() {
       {mobileOpen && (
         <div className="absolute left-0 top-14 z-50 w-full bg-[#002E3C] shadow-lg dark:bg-[#0F1A2E] md:hidden">
           <div className="flex flex-col py-2">
-            <MobileLink to="/" onClick={() => setMobileOpen(false)}>Ideas</MobileLink>
+            <MobileLink to="/" onClick={() => setMobileOpen(false)}>{t("nav.ideas")}</MobileLink>
             {hasRole("reviewer") && (
-              <MobileLink to="/reviews" onClick={() => setMobileOpen(false)}>Reviews</MobileLink>
+              <MobileLink to="/reviews" onClick={() => setMobileOpen(false)}>{t("nav.reviews")}</MobileLink>
             )}
             {hasRole("admin") && (
-              <MobileLink to="/admin" onClick={() => setMobileOpen(false)}>Admin</MobileLink>
+              <MobileLink to="/admin" onClick={() => setMobileOpen(false)}>{t("nav.admin")}</MobileLink>
             )}
           </div>
         </div>

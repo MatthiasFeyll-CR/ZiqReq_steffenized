@@ -1,0 +1,26 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "online": "Online"
+  },
+  "nav": {
+    "ideas": "Ideas",
+    "reviews": "Reviews",
+    "admin": "Admin",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "notifications": "Notifications"
+  },
+  "user": {
+    "menu": "User menu",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "language": "Language",
+    "logout": "Logout"
+  },
+  "dev": {
+    "userSwitcher": "Dev User Switcher"
+  }
+}
