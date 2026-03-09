@@ -18,9 +18,6 @@ if _db_url:
             "PASSWORD": _parsed.password or "testpass",
             "HOST": _parsed.hostname or "localhost",
             "PORT": str(_parsed.port or 5432),
-            "TEST": {
-                "NAME": _db_name,
-            },
         }
     }
 else:
