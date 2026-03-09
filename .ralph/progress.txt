@@ -103,3 +103,21 @@ Started: 2026-03-09T17:27:54+0100
   - RSA key generation in tests uses cryptography library (comes with pyjwt[crypto])
   - override_settings decorator used in tests to toggle DEBUG/AUTH_BYPASS per test
 ---
+
+## US-006: gRPC Service Definitions and Stubs
+- Status: PASS
+- Attempts: 1
+- Changes: proto/common.proto, proto/core.proto, proto/ai.proto, proto/gateway.proto, proto/pdf.proto, proto/Makefile, proto/__init__.py, proto/*_pb2.py, proto/*_pb2_grpc.py, proto/*_pb2.pyi, scripts/generate-proto.sh, services/core/grpc_server/server.py, services/core/grpc_server/servicers/core_servicer.py, services/gateway/grpc_server/server.py, services/gateway/grpc_server/servicers/gateway_servicer.py, services/ai/grpc_server/server.py, services/ai/grpc_server/servicers/processing_servicer.py, services/ai/grpc_server/servicers/context_servicer.py, services/pdf/grpc_server/server.py, services/pdf/grpc_server/servicers/pdf_servicer.py, services/gateway/grpc_clients/core_client.py, services/gateway/grpc_clients/ai_client.py, services/gateway/grpc_clients/pdf_client.py, services/gateway/grpc_clients/enrichment.py, services/ai/grpc_clients/core_client.py, services/notification/grpc_clients/gateway_client.py, services/notification/grpc_clients/core_client.py
+- Tests: No automated tests for this story (stubs only). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai/notification).
+- Learnings for future iterations:
+  - Proto files live in proto/ at project root; generated code also goes there
+  - generate-proto.sh compiles all .proto files with --python_out, --grpc_python_out, --pyi_out
+  - Docker build context for services does NOT include proto/ — servicers/clients must not import generated proto code at module level
+  - For M1, servicers return plain dicts as placeholders; actual proto message objects will be used when wiring in later milestones
+  - AI service has two servicer files: processing_servicer.py (chat, BRD, reindex, metrics) and context_servicer.py (bucket management)
+  - Port assignments: core=50051, ai=50052, pdf=50053, gateway=50054
+  - grpcio and grpcio-tools already in all service requirements.txt files
+  - ruff auto-fix (--fix) handles I001 import sorting in server.py files
+  - PDF Dockerfile build fails (pre-existing libgdk-pixbuf2.0-0 issue) — not a US-006 concern
+  - google/protobuf/empty.proto import only needed when using google.protobuf.Empty (ai.proto uses it for bucket getters)
+---
