@@ -338,3 +338,14 @@ Started: 2026-03-09T17:27:54+0100
   - Also remove unused `import pytest` after removing the decorator
   - django.test.TestCase already wraps each test in a transaction that rolls back — no need for pytest-django's django_db marker
 ---
+
+## US-005: Authentication Middleware and Dev Bypass (Bugfix Cycle 4)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — all tests already passing from previous bugfix cycles
+- Tests: 14 Python tests PASS (7 dev bypass + 6 Azure AD + 1 smoke), 5 Node tests PASS (4 dev login E2E + 1 smoke). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Previous bugfix cycles (2 and 3) already resolved the DEF-001 issue
+  - Key fixes were: removing TEST.NAME override in test.py, removing @pytest.mark.django_db from TestCase subclasses
+  - django.test.TestCase handles DB lifecycle natively — don't mix with pytest-django's django_db marker
+---

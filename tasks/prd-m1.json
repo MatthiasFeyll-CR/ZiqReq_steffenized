@@ -113,7 +113,7 @@
         "T-7.2.02",
         "T-7.2.03"
       ],
-      "notes": "ESCALATED after 3 bugfix cycles. DEF-001: test_ziqreq_test DB dropped between TestAzureADAuth and TestDevBypass classes. All 7 dev_bypass tests error. Application code is correct — the defect is in pytest-django test infrastructure (DB lifecycle conflict with multiple django.test.TestCase subclasses). Cycle 1: added TEST.NAME (wrong fix). Cycle 2: removed TEST block (insufficient). Cycle 3: removed @pytest.mark.django_db (insufficient). Human intervention required: override django_db_setup fixture in conftest.py, or convert TestCase classes to plain pytest functions with @pytest.mark.django_db.",
+      "notes": "DEF-001 (post-escalation): test_ziqreq_test DB dropped between TestAzureADAuth and TestDevBypass classes. All 7 dev_bypass tests error. Application code is correct. FIX: Override django_db_setup fixture in conftest.py to use pre-existing Docker DB (ziqreq_test) with migrations, bypassing create/destroy cycle. Add: settings.DATABASES['default']['TEST'] = {'NAME': settings.DATABASES['default']['NAME']} and call_command('migrate', '--run-syncdb', verbosity=0) inside django_db_blocker.unblock(). File: conftest.py (project root).",
       "context": {
         "api_endpoints": [
           "POST /api/auth/validate → 200 {user} / 401",
