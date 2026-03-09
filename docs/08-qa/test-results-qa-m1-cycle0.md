@@ -1,5 +1,5 @@
 # Test Results: pre-QA M1 cycle 0
-Date: 2026-03-09T18:28:56+0100
+Date: 2026-03-09T19:54:47+0100
 Command: docker compose -f docker-compose.test.yml run --rm python-tests pytest
 Exit code: 1
 Result: FAIL
@@ -1209,6 +1209,6 @@ ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypa
 ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypass::test_dev_switch_works
 ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypass::test_dev_users_endpoint_404_in_production
 ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypass::test_dev_users_endpoint_in_bypass_mode
-==================== 7 passed, 1 warning, 7 errors in 2.22s ====================
+==================== 7 passed, 1 warning, 7 errors in 2.12s ====================
 
 ```

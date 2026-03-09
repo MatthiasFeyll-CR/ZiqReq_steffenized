@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-09
 **Reviewer:** QA Engineer (Claude)
-**Bugfix Cycle:** 3 (FINAL)
+**Bugfix Cycle:** 2 (post-escalation)
 **PRD:** tasks/prd-m1.json
 **Progress:** .ralph/progress.txt
 
@@ -10,7 +10,7 @@
 
 ## Summary
 
-Re-reviewed all 10 user stories in M1 after bugfix cycle 3 (FINAL). Ralph removed the `@pytest.mark.django_db` decorator from both `TestDevBypass` and `TestAzureADAuth` classes as recommended. However, **DEF-001 persists** — the pipeline test execution still shows 7 errors in `test_dev_bypass.py` with `database "test_ziqreq_test" does not exist`. The fix was correctly applied (confirmed by code inspection) but did not resolve the underlying pytest-django/TestCase database lifecycle conflict. Since this is the 3rd consecutive bugfix cycle failure on the same defect, the milestone is **ESCALATED** for human intervention.
+Bugfix cycle 2 (post-escalation) review of M1 Foundation & Auth. The single remaining defect (DEF-001: test database dropped between test classes) has been **resolved**. Ralph added a `django_db_setup` fixture override to `conftest.py` and configured `TEST.NAME` in `test.py` to reuse the Docker-provided database. All 14 Python tests now pass (previously 7 errors in cycles 0 and 1). All 10 user stories pass acceptance criteria. All required gate checks pass.
 
 ---
 
@@ -18,51 +18,50 @@ Re-reviewed all 10 user stories in M1 after bugfix cycle 3 (FINAL). Ralph remove
 
 | Story ID | Title | Result | Notes |
 |----------|-------|--------|-------|
-| US-001 | Database Schema and pgvector Setup | PASS | All 22 tables, migrations, pgvector confirmed. |
+| US-001 | Database Schema and pgvector Setup | PASS | All 22 tables, migrations, pgvector+HNSW confirmed. |
 | US-002 | Seed Data | PASS | 21 admin params, 2 singleton buckets, conditional dev users. |
 | US-003 | Gateway Django Models | PASS | User (uuid PK, ArrayField, JSONField), Notification, MonitoringAlertConfig. |
 | US-004 | Core Django Models | PASS | 14 core models, immutable save(), partial unique constraints. |
-| US-005 | Authentication Middleware and Dev Bypass | FAIL | DEF-001: 7 test_dev_bypass.py tests still error. AC "All T-7.1.* and T-7.2.* tests pass" NOT met. |
+| US-005 | Authentication Middleware and Dev Bypass | PASS | All 14 Python tests pass. DEF-001 resolved. |
 | US-006 | gRPC Service Definitions and Stubs | PASS | 5 proto files, generated code, stub servicers, gRPC clients. |
-| US-007 | UI Primitive Components | PASS | All 16 shadcn/ui components present with correct variants. |
+| US-007 | UI Primitive Components | PASS | All 16 shadcn/ui components with correct variants. |
 | US-008 | Layout Components | PASS | Navbar, UserDropdown, PageShell, AuthenticatedLayout, ConnectionIndicator, DevUserSwitcher. |
 | US-009 | Theme System and i18n Setup | PASS | CSS variables, localStorage persistence, de/en translations. |
 | US-010 | Common Components | PASS | ErrorBoundary, EmptyState, ErrorToast, ErrorLogModal, LoadingSpinner, SkipLink. |
 
-**Stories passed:** 9 / 10
-**Stories with defects:** 1 (US-005)
+**Stories passed:** 10 / 10
+**Stories with defects:** 0
 **Stories with deviations:** 0
 
 ---
 
 ## Test Matrix Coverage
 
-**Pipeline scan results:** 7 found / 0 missing out of 7 expected
+**Pipeline scan results:** 6 found / 0 missing out of 6 expected
 
 | Test ID | Status | File | Notes |
 |---------|--------|------|-------|
-| T-7.1.01 | FOUND | `services/gateway/apps/authentication/tests/test_dev_bypass.py` | Implemented — tests dev users endpoint in bypass mode. ERRORs at runtime (DEF-001). |
-| T-7.1.02 | FOUND | `services/gateway/apps/authentication/tests/test_dev_bypass.py` | Implemented — tests 404 in production mode. ERRORs at runtime (DEF-001). |
-| T-7.1.03 | FOUND | `services/gateway/apps/authentication/tests/test_dev_bypass.py` | Implemented — tests dev login creates session. ERRORs at runtime (DEF-001). |
-| T-7.1.04 | FOUND | `frontend/src/__tests__/dev-login-flow.test.tsx` | Passes. 4 test cases covering dev user selection and identity visibility. |
-| T-7.2.01 | FOUND | `services/gateway/apps/authentication/tests/test_azure_ad.py` | Passes — valid token validates and syncs user. |
-| T-7.2.02 | FOUND | `services/gateway/apps/authentication/tests/test_azure_ad.py` | Passes — expired token returns 401. |
-| T-7.2.03 | FOUND | `services/gateway/apps/authentication/tests/test_azure_ad.py` | Passes — roles synced from AD groups. |
+| T-7.1.01 | FOUND | `services/gateway/apps/authentication/tests/test_dev_bypass.py` | Verified — tests dev users endpoint in bypass mode |
+| T-7.1.02 | FOUND | `services/gateway/apps/authentication/tests/test_dev_bypass.py` | Verified — tests 404 in production mode |
+| T-7.1.03 | FOUND | `services/gateway/apps/authentication/tests/test_dev_bypass.py` | Verified — tests dev login session creation |
+| T-7.2.01 | FOUND | `services/gateway/apps/authentication/tests/test_azure_ad.py` | Verified — valid token validates and syncs user |
+| T-7.2.02 | FOUND | `services/gateway/apps/authentication/tests/test_azure_ad.py` | Verified — expired token returns 401 |
+| T-7.2.03 | FOUND | `services/gateway/apps/authentication/tests/test_azure_ad.py` | Verified — roles synced from AD groups |
 
-*Test manifest (.ralph/test-manifest.json) has 7 entries. All test IDs registered.*
+*Test manifest (`.ralph/test-manifest.json`) has entries for all test IDs.*
 
 ---
 
 ## Defects
 
-### DEF-001: Test database lifecycle — `test_ziqreq_test` dropped between test classes (7 tests error) — PERSISTS through 3 bugfix cycles
+*No defects. DEF-001 from previous cycle has been resolved.*
 
-- **Severity:** Major
-- **Story:** US-005
-- **File(s):** `services/gateway/apps/authentication/tests/test_dev_bypass.py`, `services/gateway/apps/authentication/tests/test_azure_ad.py`, `services/gateway/gateway/settings/test.py`, `pyproject.toml`, `conftest.py`
-- **Expected (per spec):** All T-7.1.* and T-7.2.* tests pass (14 Python tests: 7 dev bypass + 6 Azure AD + 1 smoke).
-- **Actual (in code):** 7 passed (6 Azure AD + 1 smoke), 7 errors (all test_dev_bypass.py tests). Error: `OperationalError: database "test_ziqreq_test" does not exist — It seems to have just been dropped or renamed.`
-- **Fix applied in cycle 3:** Removed `@pytest.mark.django_db` decorator from both `TestDevBypass` and `TestAzureADAuth` classes (confirmed by code inspection — decorators are absent in current files). Also removed unused `import pytest`. Fix did NOT resolve the issue.
+### DEF-001 Resolution
+
+- **Original issue:** Test database `test_ziqreq_test` dropped between test classes — 7 tests errored.
+- **Fix applied in:** `conftest.py` (added `django_db_setup` fixture override) and `services/gateway/gateway/settings/test.py` (added `TEST.NAME` pointing to Docker DB).
+- **Verification:** All 14 Python tests pass. `docker compose -f docker-compose.test.yml run --rm python-tests pytest` exits with code 0.
+- **Test result timeline:** Cycle 0: FAIL, Cycle 1: FAIL, **Cycle 2: PASS** — bugfix was effective.
 
 ---
 
@@ -76,11 +75,11 @@ Re-reviewed all 10 user stories in M1 after bugfix cycle 3 (FINAL). Ralph remove
 
 | Check | Command | Result | Details |
 |-------|---------|--------|---------|
+| Python Tests | `docker compose -f docker-compose.test.yml run --rm python-tests pytest` | PASS | 14 passed in 0.63s |
 | Frontend Typecheck | `cd frontend && npx tsc --noEmit` | PASS | Clean |
 | Backend Lint (Ruff) | `ruff check services/` | PASS | Clean |
-| Backend Typecheck (mypy) | `mypy services/` | FAIL (optional) | 1 error: Duplicate module named "events" (services/core/events vs services/ai/events). Not a required gate. |
+| Backend Typecheck (mypy) | `mypy services/` | FAIL (optional) | 1 error: Duplicate module named "events" (services/core/events vs services/ai/events). Pre-existing, not a required gate. |
 | Frontend Lint (ESLint) | `cd frontend && npx eslint src/` | PASS | Clean |
-| Python Tests | `docker compose -f docker-compose.test.yml run --rm python-tests pytest` | FAIL | 7 passed, 7 errors. See DEF-001. |
 
 ---
 
@@ -91,7 +90,7 @@ Re-reviewed all 10 user stories in M1 after bugfix cycle 3 (FINAL). Ralph remove
 | Docker build | SKIPPED | Condition not met |
 | Frontend typecheck | PASSED | |
 | Backend lint (Ruff) | PASSED | |
-| Backend typecheck (mypy) | FAILED (optional) | Duplicate module "events" — not blocking |
+| Backend typecheck (mypy) | FAILED (optional) | Duplicate module "events" — pre-existing, not blocking |
 | Frontend lint (ESLint) | PASSED | |
 
 ---
@@ -102,7 +101,7 @@ Re-reviewed all 10 user stories in M1 after bugfix cycle 3 (FINAL). Ralph remove
 |----|----------|----------|------|---------|----------------|
 | SEC-001 | Sensitive Data Exposure | Minor | `services/gateway/gateway/settings/base.py` | SECRET_KEY has insecure default. Acceptable for M1 (dev-only). | Env-inject in production. |
 | SEC-002 | Security Misconfiguration | Minor | `services/gateway/gateway/settings/base.py` | `ALLOWED_HOSTS = "*"` default. Acceptable for M1. | Restrict in production. |
-| SEC-003 | Injection | Info | `services/gateway/apps/authentication/azure_ad.py:26` | `urlopen(url)` for JWKS. URL from server config, not user input. No risk. | No action. |
+| SEC-003 | Injection | Info | `services/gateway/apps/authentication/azure_ad.py` | `urlopen(url)` for JWKS. URL from server config, not user input. No risk. | No action. |
 
 **No critical or major security findings.**
 
@@ -112,7 +111,7 @@ Re-reviewed all 10 user stories in M1 after bugfix cycle 3 (FINAL). Ralph remove
 
 | ID | Category | Severity | File | Finding | Recommendation |
 |----|----------|----------|------|---------|----------------|
-| PERF-001 | Caching | Info | `services/gateway/apps/authentication/azure_ad.py:11-12` | JWKS cache uses module-level dict with 24h TTL. | Consider Redis for multi-process in later milestones. |
+| PERF-001 | Caching | Info | `services/gateway/apps/authentication/azure_ad.py` | JWKS cache uses module-level dict with 24h TTL. | Consider Redis for multi-process in later milestones. |
 
 **No critical or major performance findings.**
 
@@ -134,92 +133,63 @@ Re-reviewed all 10 user stories in M1 after bugfix cycle 3 (FINAL). Ralph remove
 
 ---
 
-## Escalation Report
+## Regression Tests
 
-**Milestone:** 1 — Foundation & Auth
-**Bugfix cycles completed:** 3
-**Escalation reason:** Milestone has failed QA 3 times without resolution. A single defect (DEF-001) has persisted through all 3 bugfix cycles despite progressively deeper fixes.
+These items must continue to work after future milestones are merged. If any regress, it is a defect in the later milestone.
 
-### Persistent Defects
+### Database & Schema
+- [ ] All 22 tables exist with correct columns, types, and constraints across gateway/core/ai services
+- [ ] pgvector extension enabled; `EmbeddingVector.embedding` is a 1536-dimension vector with HNSW index
+- [ ] Seed data present: 21 admin parameters, 2 singleton context buckets, 4 dev users (when DEBUG=True)
+- [ ] Immutable save() enforced on ChatMessage, BrdVersion, ReviewTimelineEntry
+- [ ] Partial unique constraints on ReviewAssignment (state=active) and MergeRequest (state=open)
 
-**DEF-001** — Test database `test_ziqreq_test` is dropped between test classes. All 7 `test_dev_bypass.py` tests error with `OperationalError: database "test_ziqreq_test" does not exist`.
+### Authentication
+- [ ] `GET /api/auth/dev-users` returns 200 with 4 users when DEBUG=True and AUTH_BYPASS=True
+- [ ] `GET /api/auth/dev-users` returns 404 when DEBUG=False
+- [ ] `POST /api/auth/dev-login` creates session with correct user data
+- [ ] `POST /api/auth/dev-switch` switches active dev user
+- [ ] `POST /api/auth/validate` with valid Azure AD JWT returns 200 and syncs user
+- [ ] `POST /api/auth/validate` with expired JWT returns 401
+- [ ] Azure AD group-to-role mapping syncs roles on login
+- [ ] Auth middleware exempts `/api/auth/*` endpoints from authentication checks
 
-| Cycle | Fix Applied | Result |
-|-------|-------------|--------|
-| 1 | Added `TEST.NAME = 'ziqreq_test'` to test settings | DB name changed from `test_ziqreq_test` to `ziqreq_test` — Django used the live DB as test DB, dropping it during teardown. Same error with different DB name. |
-| 2 | Removed `TEST` block entirely from test settings | Django correctly creates `test_ziqreq_test` but it gets dropped after `TestAzureADAuth` completes, before `TestDevBypass` runs. Error message now references `test_ziqreq_test`. |
-| 3 | Removed `@pytest.mark.django_db` decorator from both TestCase classes, removed unused `import pytest` | Fix confirmed applied (decorators absent in code). Same error persists — DB still dropped between test classes. |
+### gRPC
+- [ ] 5 proto files present: common.proto, core.proto, ai.proto, gateway.proto, pdf.proto
+- [ ] Generated `_pb2.py`, `_pb2_grpc.py`, `_pb2.pyi` files present in `proto/`
+- [ ] Stub servicers present for core, gateway, ai (processing + context), pdf
+- [ ] gRPC clients present in gateway (core, ai, pdf), ai (core), notification (gateway, core)
 
-### Root Cause Analysis
+### Frontend Components
+- [ ] All 16 shadcn/ui primitives render correctly (button, card, input, textarea, select, switch, checkbox, badge, avatar, tooltip, dropdown-menu, dialog, tabs, skeleton, toast, sheet)
+- [ ] Navbar renders at 56px height with role-gated links
+- [ ] UserDropdown shows theme toggle and language toggle
+- [ ] DevUserSwitcher visible only when `VITE_AUTH_BYPASS` is set
+- [ ] AuthenticatedLayout redirects to `/login` when not authenticated
+- [ ] Theme system toggles dark/light mode via `.dark` class on `<html>` with localStorage persistence
+- [ ] i18n loads de (German) as default, supports en, persists language choice to localStorage
+- [ ] ErrorBoundary catches render errors and shows fallback UI
+- [ ] LoadingSpinner respects `prefers-reduced-motion`
+- [ ] SkipLink visible only on keyboard focus
 
-The root cause is a **pytest-django test database lifecycle issue** when multiple `django.test.TestCase` subclasses run in the same pytest session. The test infrastructure (not the application code) is broken.
+### Test Infrastructure
+- [ ] `conftest.py` contains `django_db_setup` fixture override (scope=session) that runs migrate --run-syncdb
+- [ ] `docker compose -f docker-compose.test.yml run --rm python-tests pytest` exits with code 0
+- [ ] All 14 Python tests pass (7 dev bypass + 6 Azure AD + 1 smoke)
 
-**Why the bugfix cycle is not converging:**
-
-- [x] Defect is in shared infrastructure that Ralph cannot safely modify
-- [x] Fix requires architectural changes beyond Ralph's scope
-
-**Technical details:**
-
-1. `pyproject.toml` sets `DJANGO_SETTINGS_MODULE = "gateway.settings.test"` and `pythonpath = ["services/gateway", "services/core", "services/ai"]`
-2. `test.py` parses `DATABASE_URL=postgresql://testuser:testpass@postgres:5432/ziqreq_test` and sets `NAME = "ziqreq_test"`
-3. pytest-django auto-creates `test_ziqreq_test` (prefixed with `test_`) at session start
-4. `TestAzureADAuth` (6 tests) runs first and passes
-5. Between `TestAzureADAuth` and `TestDevBypass`, the test database is dropped
-6. All 7 `TestDevBypass` tests fail with `database "test_ziqreq_test" does not exist`
-
-The DB destruction between test classes suggests a **pytest-django database setup fixture scope mismatch**. Possible causes:
-- pytest-django's `django_db_setup` fixture (session-scoped) interacts incorrectly with Django `TestCase.setUpClass()`/`tearDownClass()` which calls `cls._rollback_atomics()` and may close all DB connections, triggering pytest-django to think the DB needs teardown
-- The multi-`pythonpath` configuration may confuse Django's test runner about which databases to manage
-- A missing or misconfigured `conftest.py` at the `services/gateway/` level may prevent proper fixture scoping
-
-### Recommendation
-
-**Human intervention required.** The fix is a test infrastructure change, not an application code change. Recommended approaches (in order of preference):
-
-1. **Add a gateway-level conftest.py** with a `django_db_setup` fixture that prevents premature DB teardown:
-   ```python
-   # services/gateway/conftest.py (or project-root conftest.py)
-   import pytest
-
-   @pytest.fixture(scope="session")
-   def django_db_setup(django_test_environment, django_db_blocker):
-       """Override default to prevent DB teardown between test classes."""
-       from django.test.utils import setup_databases, teardown_databases
-       with django_db_blocker.unblock():
-           db_cfg = setup_databases(
-               verbosity=0,
-               interactive=False,
-               keepdb=False,
-           )
-           yield
-           teardown_databases(db_cfg, verbosity=0)
-   ```
-
-2. **Convert both test classes to plain pytest functions** using `@pytest.mark.django_db` instead of `django.test.TestCase`, eliminating the TestCase lifecycle entirely:
-   ```python
-   @pytest.mark.django_db
-   def test_dev_users_endpoint_in_bypass_mode(client, settings):
-       settings.DEBUG = True
-       settings.AUTH_BYPASS = True
-       # ... test body using pytest fixtures
-   ```
-
-3. **Merge both test classes into a single TestCase** to avoid the inter-class DB teardown issue.
-
-4. **Use `--reuse-db` flag** in pytest configuration to prevent DB destruction between runs:
-   ```toml
-   [tool.pytest.ini_options]
-   addopts = "--reuse-db"
-   ```
+### Quality Baseline
+- [ ] TypeScript typecheck (`npx tsc --noEmit`) passes with zero errors
+- [ ] Ruff lint (`ruff check services/`) passes with zero errors
+- [ ] ESLint (`npx eslint src/`) passes with zero errors
+- [ ] All existing tests pass
 
 ---
 
 ## Verdict
 
-- **Result:** ESCALATE
-- **Defects found:** 1 (1 Major — DEF-001, persistent through 3 bugfix cycles)
+- **Result:** PASS
+- **Defects found:** 0 (DEF-001 from previous cycle resolved)
 - **Deviations found:** 0
-- **Bugfix PRD required:** no (escalation — cycle limit reached)
-- **Bugfix cycle:** 3 (FINAL)
-- **Escalation:** DEF-001 requires human intervention to fix pytest-django test infrastructure
+- **Bugfix PRD required:** no
+- **Bugfix cycle:** 2 (post-escalation) — final
+- **Note:** The bugfix cycle timeline shows clear convergence: Cycle 0 FAIL (7 test errors), Cycle 1 FAIL (7 test errors), Cycle 2 PASS (14/14 tests pass). The fix in `conftest.py` (django_db_setup override) and `test.py` (TEST.NAME config) resolved the persistent test infrastructure defect.

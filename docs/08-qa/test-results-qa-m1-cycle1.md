@@ -1,5 +1,5 @@
 # Test Results: pre-QA M1 cycle 1
-Date: 2026-03-09T18:55:57+0100
+Date: 2026-03-09T20:03:01+0100
 Command: docker compose -f docker-compose.test.yml run --rm python-tests pytest
 Exit code: 1
 Result: FAIL
@@ -51,9 +51,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -100,7 +100,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -135,9 +135,9 @@ The above exception was the direct cause of the following exception:
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -184,7 +184,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -219,9 +219,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -268,7 +268,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -303,9 +303,9 @@ The above exception was the direct cause of the following exception:
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -352,7 +352,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -387,9 +387,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -436,7 +436,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -471,9 +471,9 @@ The above exception was the direct cause of the following exception:
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -520,7 +520,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -555,9 +555,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -604,7 +604,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -639,9 +639,9 @@ The above exception was the direct cause of the following exception:
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -688,7 +688,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -723,9 +723,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -772,7 +772,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -807,9 +807,9 @@ The above exception was the direct cause of the following exception:
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -856,7 +856,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -891,9 +891,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -940,7 +940,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -975,9 +975,9 @@ The above exception was the direct cause of the following exception:
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -1024,7 +1024,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -1059,9 +1059,9 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -1108,7 +1108,7 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       psycopg2.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
@@ -1143,9 +1143,9 @@ The above exception was the direct cause of the following exception:
                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-dsn = 'dbname=ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
+dsn = 'dbname=test_ziqreq_test client_encoding=UTF8 user=testuser password=testpass host=postgres port=5432'
 connection_factory = None, cursor_factory = <class 'psycopg2.extensions.cursor'>
-kwargs = {'client_encoding': 'UTF8', 'dbname': 'ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
+kwargs = {'client_encoding': 'UTF8', 'dbname': 'test_ziqreq_test', 'host': 'postgres', 'password': 'testpass', ...}
 kwasync = {}
 
     def connect(dsn=None, connection_factory=None, cursor_factory=None, **kwargs):
@@ -1192,13 +1192,13 @@ kwasync = {}
         dsn = _ext.make_dsn(dsn, **kwargs)
 >       conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "ziqreq_test" does not exist
+E       django.db.utils.OperationalError: connection to server at "postgres" (10.10.8.3), port 5432 failed: FATAL:  database "test_ziqreq_test" does not exist
 E       DETAIL:  It seems to have just been dropped or renamed.
 
 /usr/local/lib/python3.12/site-packages/psycopg2/__init__.py:122: OperationalError
 =============================== warnings summary ===============================
 tests/test_smoke.py::test_smoke
-  /app:0: PytestWarning: Error when trying to teardown test databases: ProgrammingError('database "ziqreq_test" does not exist\n')
+  /app:0: PytestWarning: Error when trying to teardown test databases: ProgrammingError('database "test_ziqreq_test" does not exist\n')
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ============================
@@ -1209,6 +1209,6 @@ ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypa
 ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypass::test_dev_switch_works
 ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypass::test_dev_users_endpoint_404_in_production
 ERROR services/gateway/apps/authentication/tests/test_dev_bypass.py::TestDevBypass::test_dev_users_endpoint_in_bypass_mode
-==================== 7 passed, 1 warning, 7 errors in 1.95s ====================
+==================== 7 passed, 1 warning, 7 errors in 1.87s ====================
 
 ```
