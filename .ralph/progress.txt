@@ -58,3 +58,15 @@ Started: 2026-03-09T17:27:54+0100
   - ruff I001 (import sorting) auto-fixable with --fix in migration files
   - PDF docker build fails (pre-existing issue) — build gateway/core/ai individually
 ---
+
+## US-003: Gateway Django Models
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/notifications/models.py, services/gateway/apps/monitoring/models.py
+- Tests: No automated tests for this story (model-only). Gate checks: ruff PASS, tsc --noEmit PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - Gateway models (User, Notification, MonitoringAlertConfig) were largely created in US-001 schema story
+  - US-003 added __str__ methods to Notification and MonitoringAlertConfig for Django admin/debugging usability
+  - User model already had __str__ from US-001
+  - docker-compose.yml is at infra/docker/docker-compose.yml, not project root
+---
