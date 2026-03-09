@@ -227,8 +227,8 @@
 - **Query params:**
   | Param | Type | Description |
   |-------|------|-------------|
-  | before | uuid | Load messages before this message ID (cursor pagination) |
-  | limit | int | Number of messages (default: 50) |
+  | offset | int | Number of messages to skip (default: 0) |
+  | limit | int | Number of messages to return (default: 50, max: 100) |
 - **Response (200):**
   ```json
   {
@@ -249,7 +249,9 @@
         "created_at": "iso8601"
       }
     ],
-    "has_more": true
+    "total": 42,
+    "limit": 50,
+    "offset": 0
   }
   ```
 
