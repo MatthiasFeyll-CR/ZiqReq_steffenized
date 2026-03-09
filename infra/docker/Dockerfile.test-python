@@ -11,4 +11,6 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 
 COPY . .
 
+ENV PYTHONPATH="/app/services/gateway:/app/services/core:/app/services/ai:${PYTHONPATH}"
+
 CMD ["pytest"]
