@@ -714,3 +714,16 @@ Started: 2026-03-09T17:27:54+0100
   - The Idea type from @/api/ideas uses snake_case (agent_mode, owner_id) matching backend API
   - Pre-existing Docker build failures (frontend nginx.conf, pdf service) still present — build gateway/core/ai individually
 ---
+
+## US-009: @Mention Dropdown
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/mention-dropdown.test.tsx (new)
+- Tests: 11 new tests (T-2.9.01: 4 tests, T-2.9.02: 4 tests, T-2.9.03: 3 tests), all 103 frontend tests pass
+- Learnings for future iterations:
+  - MentionDropdown and ChatInput mention logic were already fully implemented in Phase 2
+  - QA only flagged missing tests, not implementation bugs
+  - fireEvent.change doesn't set selectionStart on textarea - use Object.defineProperty to set it before triggering change
+  - MentionDropdown uses onMouseDown (not onClick) to prevent textarea blur
+  - Test data-testid pattern: mention-item-{id} for individual items, mention-dropdown for container
+---
