@@ -811,3 +811,17 @@ Started: 2026-03-09T17:27:54+0100
   - handleChange auto-grow: just pass e.target directly to autoGrow, no type gymnastics needed
   - NodeTypes key must match node_type from backend: 'free_text' (underscore, not camelCase)
 ---
+
+## US-007: ConnectionEdge Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/ConnectionEdge.tsx (new), frontend/src/components/board/BoardCanvas.tsx, frontend/src/app/globals.css
+- Tests: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway)
+- Learnings for future iterations:
+  - React Flow custom edges use edgeTypes prop + defaultEdgeOptions for consistent styling
+  - MarkerType.ArrowClosed from @xyflow/react for arrowheads on target
+  - EdgeLabelRenderer required for HTML labels positioned on edges
+  - getSmoothStepPath returns [path, labelX, labelY] for positioning
+  - Hover stroke-width done via CSS on .react-flow__edge:hover .connection-edge
+  - Frontend Dockerfile build still fails (pre-existing nginx.conf issue)
+---
