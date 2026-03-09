@@ -838,3 +838,16 @@ Started: 2026-03-09T17:27:54+0100
   - Dividers between button groups use simple div with w-px h-5 bg-border
   - selectedCount derived from both nodes and edges selection state
 ---
+
+## US-009: Minimap and Zoom Controls
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/app/globals.css, frontend/src/__tests__/board-canvas.test.tsx
+- Tests: 107/107 passed (13 files), typecheck PASS, ruff PASS
+- Learnings for future iterations:
+  - MiniMap and Controls were already placed in BoardCanvas from US-003 as placeholders — US-009 added styling
+  - React Flow Controls buttons are styled via .react-flow__controls-button CSS class overrides with !important
+  - MiniMap node colors use .react-flow__minimap-node fill override
+  - The board-canvas test mock needed MarkerType and useReactFlow exports added for completeness (was missing from US-003 mock)
+  - Ghost button style for controls: transparent bg, border-none, hover with var(--accent)
+---
