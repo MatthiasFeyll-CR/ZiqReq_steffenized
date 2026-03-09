@@ -687,3 +687,17 @@ Started: 2026-03-09T17:27:54+0100
   - Radix Tabs set data-state="active" on the default tab trigger — use that for asserting default tab
   - fireEvent.mouseMove/mouseUp must be dispatched on `document` (not the divider element) since the drag handlers are registered on document
 ---
+
+## US-005: Workspace Header
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/workspace-header.test.tsx (new)
+- Tests: 13 new tests all passing (T-1.6.01: 5 tests, T-1.6.02: 2 tests, T-1.6.03: 1 test, T-2.1.01: 3 tests, T-2.1.02: 2 tests). Full suite 78/78 passing.
+- Learnings for future iterations:
+  - WorkspaceHeader component was already fully implemented from Phase 2; only missing tests
+  - patchIdea frontend API and backend PATCH endpoint with title_manually_edited already existed
+  - Radix Select testing in jsdom requires polyfills: PointerEvent, ResizeObserver, hasPointerCapture, setPointerCapture, releasePointerCapture, scrollIntoView
+  - userEvent.setup() needed for Radix Select interaction tests (click trigger then click option)
+  - Tests must run from frontend/ directory for @ alias resolution to work
+  - Docker compose build has pre-existing nginx.conf issue unrelated to M3 changes
+---
