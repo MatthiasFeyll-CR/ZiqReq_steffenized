@@ -220,3 +220,15 @@ Started: 2026-03-09T17:27:54+0100
   - US-003 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
   - All 3 gateway models confirmed correct: User (uuid PK, ArrayField roles, JSONField prefs), Notification, MonitoringAlertConfig
 ---
+
+## US-004: Core Django Models (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — QA confirmed PASS; re-verified gate checks
+- Tests: ruff PASS, tsc --noEmit PASS
+- Learnings for future iterations:
+  - US-004 was already passing QA — PRD was reset to passes:false for all stories in bugfix mode
+  - All 14 core models confirmed: Idea, IdeaCollaborator, ChatMessage, BoardNode, BrdDraft, BrdVersion, ReviewAssignment, ReviewTimelineEntry, CollaborationInvitation, IdeaKeywords, MergeRequest, AdminParameter, AiReaction, UserReaction
+  - Immutable save() overrides confirmed on ChatMessage, BrdVersion, ReviewTimelineEntry
+  - UniqueConstraint with condition confirmed on ReviewAssignment and MergeRequest
+---
