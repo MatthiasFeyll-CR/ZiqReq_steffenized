@@ -121,3 +121,20 @@ Started: 2026-03-09T17:27:54+0100
   - PDF Dockerfile build fails (pre-existing libgdk-pixbuf2.0-0 issue) — not a US-006 concern
   - google/protobuf/empty.proto import only needed when using google.protobuf.Empty (ai.proto uses it for bucket getters)
 ---
+## US-007: UI Primitive Components
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/package.json, frontend/package-lock.json, frontend/src/components/ui/button.tsx, card.tsx, input.tsx, textarea.tsx, select.tsx, switch.tsx, checkbox.tsx, badge.tsx, avatar.tsx, tooltip.tsx, dropdown-menu.tsx, dialog.tsx, tabs.tsx, skeleton.tsx, toast.tsx, sheet.tsx
+- Tests: No automated tests for this story (UI primitives only). Gate checks: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway/core/ai).
+- Learnings for future iterations:
+  - All 16 shadcn/ui components follow copy-paste pattern (not npm install)
+  - Radix UI packages needed: @radix-ui/react-checkbox, react-select, react-switch, react-tabs, react-tooltip, react-avatar (dialog, dropdown-menu, slot already existed)
+  - Button uses asChild pattern via @radix-ui/react-slot for polymorphic rendering
+  - Badge has 8 custom variants: 5 idea states (open, in_review, accepted, dropped, rejected) + 3 roles (user, reviewer, admin)
+  - Avatar has getInitials() helper and hashToHue() for deterministic background colors from user ID
+  - Toast is a custom component (not Radix Toast) with 4 semantic variants: success, error, warning, info
+  - Sheet reuses @radix-ui/react-dialog (same as Dialog) with slide-in animations per side
+  - Tailwind v4 uses @theme directive and CSS custom properties — components reference design token class names (bg-surface, text-foreground, etc.)
+  - Frontend Dockerfile build fails (pre-existing nginx.conf issue) — build gateway/core/ai individually
+  - docker-compose.yml is at infra/docker/docker-compose.yml, not project root
+---
