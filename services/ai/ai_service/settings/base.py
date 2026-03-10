@@ -54,6 +54,7 @@ ADMIN_PARAM_DEFAULTS: dict[str, str] = {
     "ai_processing_timeout": "60",
     "recent_message_count": "20",
     "context_compression_threshold": "60",
+    "debounce_timer": "3",
 }
 
 # Validate required Azure OpenAI env vars (warn at import time, skip in mock mode)
