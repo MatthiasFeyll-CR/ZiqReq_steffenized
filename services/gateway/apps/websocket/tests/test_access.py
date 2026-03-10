@@ -11,7 +11,6 @@ from django.test import TestCase
 
 from apps.authentication.models import User
 from apps.ideas.models import Idea, IdeaCollaborator
-from apps.websocket.consumers import IdeaConsumer
 
 
 class TestCheckIdeaAccess(TestCase):
@@ -44,7 +43,8 @@ class TestCheckIdeaAccess(TestCase):
 
     def _check(self, idea_id, user_id):
         """Call the sync function that _check_idea_access wraps."""
-        from apps.ideas.models import Idea as _Idea, IdeaCollaborator as _IC
+        from apps.ideas.models import Idea as _Idea
+        from apps.ideas.models import IdeaCollaborator as _IC
 
         idea = _Idea.objects.filter(id=idea_id, deleted_at__isnull=True).first()
         if idea is None:

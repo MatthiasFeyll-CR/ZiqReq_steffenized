@@ -5,10 +5,9 @@ Uses regular TestCase — no async, no TransactionTestCase.
 
 import uuid
 
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 from apps.authentication.models import User
-from apps.websocket.middleware import WebSocketAuthMiddleware
 
 
 class TestAuthenticateDev(TestCase):

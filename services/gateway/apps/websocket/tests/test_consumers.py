@@ -8,7 +8,7 @@ async worker-thread race condition that made the original tests flaky.
 
 import uuid
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from channels.layers import get_channel_layer
@@ -18,7 +18,6 @@ from channels.testing import WebsocketCommunicator
 from apps.websocket.consumers import IdeaConsumer, _presence_registry
 from apps.websocket.middleware import WebSocketAuthMiddleware
 from apps.websocket.routing import websocket_urlpatterns
-
 
 # ---------------------------------------------------------------------------
 # Helpers
