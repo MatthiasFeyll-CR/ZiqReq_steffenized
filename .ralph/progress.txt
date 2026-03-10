@@ -40,3 +40,19 @@ Started: 2026-03-10T03:55:44+0100
   - WebsocketCommunicator does NOT expose .instance attribute — can't directly inspect consumer state in tests
   - The docker compose build gate check has a pre-existing failure (frontend Dockerfile references nginx.conf that doesn't exist at that path)
 ---
+
+## US-002: Channel group management — subscribe_idea, unsubscribe_idea, group join/leave
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/consumers.py, services/gateway/apps/websocket/tests/test_consumers.py, .ralph/test-manifest.json
+- Tests: 16 consumer tests passed (6 from US-001 + 10 new). Full suite: 126 Python tests passed, 191 Node tests passed.
+- Learnings for future iterations:
+  - handle_subscribe_idea validates UUID format, checks access (owner/co_owner/collaborator via Idea + IdeaCollaborator models), then does group_add
+  - handle_unsubscribe_idea is a simple group_discard + remove from subscribed_groups set
+  - Channel group naming convention: "idea_{uuid}"
+  - Access check uses database_sync_to_async wrapper to query gateway's Idea and IdeaCollaborator models
+  - Successful subscribe/unsubscribe are silent (no response sent) — only errors send a response
+  - Duplicate subscribe is a no-op (checks subscribed_groups set first)
+  - Unsubscribe for non-subscribed group is also a no-op
+  - Running tests on individual file fails with content_type UniqueViolation — must run via full pytest (conftest handles persistent test DB)
+---
