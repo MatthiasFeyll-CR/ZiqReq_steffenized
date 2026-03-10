@@ -107,3 +107,16 @@ Started: 2026-03-09T17:27:54+0100
   - Toolbar tests can mock `@xyflow/react` minimally (just `useReactFlow` returning `fitView` and `screenToFlowPosition`) since toolbar doesn't use ReactFlow directly.
   - `disabled={!canUndo}` with default `canUndo = false` handles the empty-stack case cleanly.
 ---
+
+## US-007: Board item reference insertion to chat
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/chat/ChatInput.tsx, frontend/src/__tests__/chat-board-reference.test.tsx (new), .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 181 passed (23 test files), including 4 new chat board reference tests (T-3.8.01, T-3.8.02)
+- Learnings for future iterations:
+  - BoxNode already dispatches `CustomEvent('board:reference', { detail: '@board[nodeId]' })` from M4 — no changes needed on the board side.
+  - ChatInput has `textareaRef` for cursor manipulation. Use `selectionStart`/`selectionEnd` to insert at cursor and `requestAnimationFrame` + `setSelectionRange` to reposition cursor after React state update.
+  - `setValue` with functional update `(prev) => ...` ensures correct insertion even with stale closures in the event listener (empty deps array `[]`).
+  - Test pattern: use `act(() => { window.dispatchEvent(...) })` to trigger custom events in tests, then assert textarea value directly.
+  - T-3.8.01 tests already existed in box-node.test.tsx from M4 — just registered in test manifest.
+---
