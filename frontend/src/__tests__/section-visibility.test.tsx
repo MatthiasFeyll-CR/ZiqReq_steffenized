@@ -5,11 +5,16 @@ import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import i18n from "@/i18n/config";
 import { presenceReducer } from "@/store/presence-slice";
+import { websocketReducer } from "@/store/websocket-slice";
 import type { Idea } from "@/api/ideas";
 
 // Mock BoardCanvas to avoid React Flow's ResizeObserver dependency in jsdom
 vi.mock("@/components/board/BoardCanvas", () => ({
   BoardCanvas: () => <div data-testid="board-canvas">BoardCanvas</div>,
+}));
+
+vi.mock("@/app/providers", () => ({
+  useWsReconnect: () => vi.fn(),
 }));
 
 // Mock child components to isolate section visibility behavior
@@ -62,7 +67,12 @@ function makeIdea(state: Idea["state"]): Idea {
 
 function renderWorkspace(idea: Idea) {
   vi.mocked(fetchIdea).mockResolvedValue(idea);
-  const store = configureStore({ reducer: { presence: presenceReducer } });
+  const store = configureStore({
+    reducer: { presence: presenceReducer, websocket: websocketReducer },
+    preloadedState: {
+      websocket: { connectionState: "online" as const, reconnectCountdown: null },
+    },
+  });
   return render(
     <Provider store={store}>
       <MemoryRouter initialEntries={[`/idea/${idea.id}`]}>

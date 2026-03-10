@@ -114,9 +114,10 @@ function findParentGroup(
 
 interface BoardCanvasProps {
   ideaId?: string;
+  disabled?: boolean;
 }
 
-export function BoardCanvas({ ideaId }: BoardCanvasProps) {
+export function BoardCanvas({ ideaId, disabled }: BoardCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const dropTargetIdRef = useRef<string | null>(null);
@@ -389,7 +390,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
         );
         return {
           ...n,
-          draggable: !n.data?.is_locked,
+          draggable: !n.data?.is_locked && !disabled,
           data: {
             ...n.data,
             onToggleLock: handleToggleLock,
@@ -397,7 +398,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
           },
         };
       }),
-    [nodes, handleToggleLock, selections, user?.id],
+    [nodes, handleToggleLock, selections, user?.id, disabled],
   );
 
   useEffect(() => {
@@ -431,20 +432,23 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
         <ReactFlow
           nodes={processedNodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
-          onNodeDrag={onNodeDrag}
-          onNodeDragStop={onNodeDragStop}
+          onNodesChange={disabled ? undefined : onNodesChange}
+          onEdgesChange={disabled ? undefined : onEdgesChange}
+          onConnect={disabled ? undefined : onConnect}
+          onNodeClick={disabled ? undefined : onNodeClick}
+          onPaneClick={disabled ? undefined : onPaneClick}
+          onNodeDrag={disabled ? undefined : onNodeDrag}
+          onNodeDragStop={disabled ? undefined : onNodeDragStop}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
-          selectionOnDrag
+          selectionOnDrag={!disabled}
           selectionMode={SelectionMode.Partial}
-          selectionKeyCode="Control"
+          selectionKeyCode={disabled ? null : "Control"}
           deleteKeyCode={null}
+          nodesDraggable={!disabled}
+          nodesConnectable={!disabled}
+          elementsSelectable={!disabled}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
           fitView

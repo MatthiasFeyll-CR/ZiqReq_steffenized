@@ -19,9 +19,14 @@ const queryClient = new QueryClient({
 });
 
 type SendMessageFn = (msg: Record<string, unknown>) => void;
+type ReconnectFn = () => void;
 const WebSocketContext = createContext<SendMessageFn>(() => {});
+const ReconnectContext = createContext<ReconnectFn>(() => {});
 export function useWsSend(): SendMessageFn {
   return useContext(WebSocketContext);
+}
+export function useWsReconnect(): ReconnectFn {
+  return useContext(ReconnectContext);
 }
 
 function AuthProvider({ children }: { children: ReactNode }) {
@@ -30,10 +35,12 @@ function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 function WebSocketManager({ children }: { children: ReactNode }) {
-  const { sendMessage } = useWebSocket();
+  const { sendMessage, reconnectNow } = useWebSocket();
   return (
     <WebSocketContext.Provider value={sendMessage}>
-      {children}
+      <ReconnectContext.Provider value={reconnectNow}>
+        {children}
+      </ReconnectContext.Provider>
     </WebSocketContext.Provider>
   );
 }

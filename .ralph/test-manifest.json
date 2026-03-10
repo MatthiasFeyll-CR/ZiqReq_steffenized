@@ -263,6 +263,18 @@
     "T-3.5.03-fe": {
       "file": "frontend/src/__tests__/selections-slice.test.ts",
       "function": "removes user selection on null node_id (deselection)"
+    },
+    "T-6.2.01": {
+      "file": "frontend/src/__tests__/offline-banner.test.tsx",
+      "function": "renders banner when connection state is offline"
+    },
+    "T-6.5.01": {
+      "file": "frontend/src/__tests__/offline-banner.test.tsx",
+      "function": "Reconnect button is present and labeled"
+    },
+    "T-6.5.02": {
+      "file": "frontend/src/__tests__/offline-banner.test.tsx",
+      "function": "calls reconnectNow when Reconnect button is clicked"
     }
   }
 }

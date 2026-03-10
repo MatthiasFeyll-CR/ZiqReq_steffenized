@@ -185,5 +185,13 @@ export function useWebSocket() {
     }
   }, []);
 
-  return { wsRef, disconnect, sendMessage };
+  const reconnectNow = useCallback(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+    if (!isAuthenticated || !user) return;
+    clearTimers();
+    backoffRef.current = INITIAL_BACKOFF_MS;
+    connect(user.id);
+  }, [isAuthenticated, user, clearTimers, connect]);
+
+  return { wsRef, disconnect, sendMessage, reconnectNow };
 }
