@@ -70,3 +70,17 @@ Started: 2026-03-10T03:55:44+0100
   - Payload includes: id, sender_type, sender{id, display_name}, ai_agent, content, message_type, created_at — matching the WebSocket protocol spec
   - No RabbitMQ event publishing exists yet in the codebase — the "broker event" from the PRD is implemented directly via channel_layer.group_send instead
 ---
+
+## US-004: Board sync — broadcast board.node.updated / board.connection.updated after REST persistence
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/consumers.py, services/gateway/apps/board/views.py, services/gateway/apps/websocket/tests/test_consumers.py, .ralph/test-manifest.json
+- Tests: 5 new tests passed (test_board_update_broadcast_to_subscriber, test_board_update_not_received_by_unsubscribed, test_board_update_broadcast_via_view_helper, test_board_update_broadcast_node_delete, test_board_update_broadcast_source_ai). Full suite: 134 Python tests passed, 191 Node tests passed. Ruff clean. TSC clean.
+- Learnings for future iterations:
+  - `_broadcast_board_update` follows same pattern as `_broadcast_chat_message` — fire-and-forget with exception logging via `async_to_sync(channel_layer.group_send)()`
+  - Board broadcast payload batches changes: nodes_created, nodes_updated, nodes_deleted, connections_created, connections_updated, connections_deleted, source
+  - `source` field is "user" or "ai" — derived from `created_by` on node creation, hardcoded "user" on REST update/delete (only users trigger REST calls)
+  - Helper functions `_node_to_broadcast_dict` and `_connection_to_broadcast_dict` serialize model instances for broadcast payload
+  - Consumer `board_update` handler is a simple passthrough like `chat_message` — forwards group_send to WebSocket client
+  - All 6 board CRUD endpoints (create/update/delete for both nodes and connections) now broadcast after persistence
+---
