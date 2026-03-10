@@ -107,7 +107,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-2.10.01",
         "T-2.10.02"
@@ -133,7 +133,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: api-design.md \u00a7 ai.chat_response.ready\nAI: tools-and-functions.md \u00a7 S1\nFiles: facilitator/plugins.py (send_chat_message), events/publishers.py\nGotchas: [[Title]] validated. Event async. Gateway persists via Core gRPC. Placeholder return.",
       "context": {
