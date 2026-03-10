@@ -280,3 +280,13 @@ Started: 2026-03-10T03:55:44+0100
   - All subscribe/unsubscribe logic, access checks, and group management were already correct from Phase 2
   - Consumer code, test helpers (_setup_user_and_idea, _setup_owner_coowner_idea, etc.), and _subscribe_and_drain pattern all working correctly
 ---
+
+## US-003 (BUGFIX cycle 3): Chat message broadcast — on REST POST success, broadcast chat.message.created to idea group
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (passes: true)
+- Tests: 32/32 consumer tests passed (3 US-003 tests: test_chat_message_broadcast_to_subscriber, test_chat_message_broadcast_not_received_by_unsubscribed, test_chat_message_broadcast_via_view_helper). Ruff clean. TSC clean.
+- Learnings for future iterations:
+  - No code changes needed — the US-001 bugfix cycle 2 (conftest.py with django_db_setup keepdb + django_db_serialized_rollback) resolved DEF-002 for all backend stories
+  - Consumer chat_message handler, _broadcast_chat_message view helper, and all 3 chat broadcast tests were already correct
+---
