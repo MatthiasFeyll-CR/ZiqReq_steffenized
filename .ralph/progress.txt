@@ -95,3 +95,15 @@ Started: 2026-03-09T17:27:54+0100
   - BoardToolbar interface extended with optional undo/redo props (onUndo, onRedo, canUndo, canRedo, undoTopSource, redoTopSource) for US-006 to use.
   - Pure Redux reducer tests (board-undo.test.ts) don't need any component mocking — test the reducer function directly with `boardReducer(state, action)`.
 ---
+
+## US-006: Undo/redo buttons with context-aware labels
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardToolbar.tsx, frontend/src/__tests__/board-toolbar-undo.test.tsx (new), .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 177 passed (22 test files), including 8 new toolbar undo/redo tests (T-3.7.03)
+- Learnings for future iterations:
+  - BoardToolbar already had undo/redo props in interface from US-005 — just needed to destructure and wire up the buttons.
+  - Context-aware label pattern: `title={source === "ai" ? "Undo AI Action" : "Undo"}` — simple ternary on stack top source.
+  - Toolbar tests can mock `@xyflow/react` minimally (just `useReactFlow` returning `fitView` and `screenToFlowPosition`) since toolbar doesn't use ReactFlow directly.
+  - `disabled={!canUndo}` with default `canUndo = false` handles the empty-stack case cleanly.
+---
