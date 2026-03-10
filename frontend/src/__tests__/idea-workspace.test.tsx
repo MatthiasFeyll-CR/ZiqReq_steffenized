@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import { websocketReducer } from "@/store/websocket-slice";
 import i18n from "@/i18n/config";
 
 // Mock child components to isolate page-level behavior
@@ -14,6 +17,9 @@ vi.mock("@/components/workspace/WorkspaceHeader", () => ({
 }));
 vi.mock("@/components/workspace/ChatPanel", () => ({
   ChatPanel: () => <div data-testid="chat-panel">ChatPanel</div>,
+}));
+vi.mock("@/app/providers", () => ({
+  useWsReconnect: () => vi.fn(),
 }));
 
 // Mock fetchIdea
@@ -47,12 +53,20 @@ const MOCK_IDEA: Idea = {
 };
 
 function renderWorkspacePage(uuid: string) {
+  const store = configureStore({
+    reducer: { websocket: websocketReducer },
+    preloadedState: {
+      websocket: { connectionState: "online" as const, reconnectCountdown: null },
+    },
+  });
   return render(
-    <MemoryRouter initialEntries={[`/idea/${uuid}`]}>
-      <Routes>
-        <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
-      </Routes>
-    </MemoryRouter>,
+    <Provider store={store}>
+      <MemoryRouter initialEntries={[`/idea/${uuid}`]}>
+        <Routes>
+          <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
+        </Routes>
+      </MemoryRouter>
+    </Provider>,
   );
 }
 

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { AuthContext } from "@/hooks/use-auth";
 import type { AuthUser, AuthContextValue } from "@/hooks/use-auth";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
 import { Navbar } from "@/components/layout/Navbar";
+import { websocketReducer } from "@/store/websocket-slice";
 import { MemoryRouter } from "react-router-dom";
 import "@/i18n/config";
 
@@ -51,10 +54,16 @@ function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContext
 }
 
 function renderWithAuth(ui: React.ReactNode, authValue: AuthContextValue) {
+  const store = configureStore({
+    reducer: { websocket: websocketReducer },
+    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null } },
+  });
   return render(
-    <MemoryRouter>
-      {createElement(AuthContext.Provider, { value: authValue }, ui)}
-    </MemoryRouter>,
+    <Provider store={store}>
+      <MemoryRouter>
+        {createElement(AuthContext.Provider, { value: authValue }, ui)}
+      </MemoryRouter>
+    </Provider>,
   );
 }
 

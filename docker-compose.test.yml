@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: testuser
       POSTGRES_PASSWORD: testpass
       POSTGRES_DB: ziqreq_test
+    volumes:
+      - ./infra/docker/init-test-db.sql:/docker-entrypoint-initdb.d/20-init-test-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U testuser -d ziqreq_test"]
       interval: 5s

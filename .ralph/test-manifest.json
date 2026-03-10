@@ -163,6 +163,122 @@
     "T-3.4.02": {
       "file": "frontend/src/__tests__/ai-modified-indicator.test.tsx",
       "function": "clicking node with ai_modified_indicator=true calls PATCH with false"
+    },
+    "T-6.1.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_connection_valid_token"
+    },
+    "T-6.1.02": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_connection_invalid_token"
+    },
+    "T-6.1.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_error_on_unknown_message_type"
+    },
+    "T-6.1.04": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_subscribe_idea_as_owner"
+    },
+    "T-6.1.05": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_subscribe_idea_access_denied"
+    },
+    "T-6.1.06": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_unsubscribe_idea"
+    },
+    "T-6.4.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_chat_message_broadcast_to_subscriber"
+    },
+    "T-6.4.02": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_chat_message_broadcast_via_view_helper"
+    },
+    "T-6.4.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_to_subscriber"
+    },
+    "T-6.4.04": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_via_view_helper"
+    },
+    "T-3.6.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_node_delete"
+    },
+    "T-3.6.02": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_source_ai"
+    },
+    "T-3.5.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_selection_broadcast_excludes_sender"
+    },
+    "T-3.5.02": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_selection_not_subscribed_error"
+    },
+    "T-3.5.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_selection_deselect_null_node"
+    },
+    "T-6.1.07": {
+      "file": "frontend/src/__tests__/websocket-slice.test.ts",
+      "function": "sets connectionState to online"
+    },
+    "T-6.1.08": {
+      "file": "frontend/src/__tests__/use-websocket.test.ts",
+      "function": "connects to WebSocket when authenticated"
+    },
+    "LOOP-004": {
+      "file": "frontend/src/__tests__/use-websocket.test.ts",
+      "function": "backoff caps at 30 seconds"
+    },
+    "T-6.3.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_presence_broadcast_on_subscribe"
+    },
+    "T-6.3.02": {
+      "file": "frontend/src/__tests__/presence-indicators.test.tsx",
+      "function": "renders avatars for online users"
+    },
+    "T-6.3.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_presence_offline_on_unsubscribe"
+    },
+    "T-6.3.04": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_presence_update_client_message"
+    },
+    "T-3.5.01-fe": {
+      "file": "frontend/src/__tests__/selections-slice.test.ts",
+      "function": "adds a user selection for a node"
+    },
+    "T-3.5.02-fe": {
+      "file": "frontend/src/__tests__/user-selection-highlight.test.tsx",
+      "function": "renders colored border and name label when selectedBy is provided"
+    },
+    "T-3.5.03-fe": {
+      "file": "frontend/src/__tests__/selections-slice.test.ts",
+      "function": "removes user selection on null node_id (deselection)"
+    },
+    "T-6.2.01": {
+      "file": "frontend/src/__tests__/offline-banner.test.tsx",
+      "function": "renders banner when connection state is offline"
+    },
+    "T-6.5.01": {
+      "file": "frontend/src/__tests__/offline-banner.test.tsx",
+      "function": "Reconnect button is present and labeled"
+    },
+    "T-6.5.02": {
+      "file": "frontend/src/__tests__/offline-banner.test.tsx",
+      "function": "calls reconnectNow when Reconnect button is clicked"
+    },
+    "T-6.6.01": {
+      "file": "frontend/src/__tests__/connection-indicator.test.tsx",
+      "function": "shows green dot and 'Online' when connected"
     }
   }
 }

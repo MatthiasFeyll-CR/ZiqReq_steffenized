@@ -2,10 +2,13 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext } from "@/hooks/use-auth";
 import type { AuthContextValue } from "@/hooks/use-auth";
+import { websocketReducer } from "@/store/websocket-slice";
 import LandingPage from "@/pages/LandingPage";
 import i18n from "@/i18n/config";
 
@@ -78,16 +81,22 @@ function renderLandingPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  const store = configureStore({
+    reducer: { websocket: websocketReducer },
+    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null } },
+  });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        {createElement(
-          AuthContext.Provider,
-          { value: authValue },
-          <LandingPage />,
-        )}
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          {createElement(
+            AuthContext.Provider,
+            { value: authValue },
+            <LandingPage />,
+          )}
+        </MemoryRouter>
+      </QueryClientProvider>
+    </Provider>,
   );
 }
 

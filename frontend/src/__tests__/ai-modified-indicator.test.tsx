@@ -165,7 +165,16 @@ describe("T-3.4.02: Indicator clears on user selection (BoardCanvas)", () => {
       useSelector: (selector: (state: Record<string, unknown>) => unknown) =>
         selector({
           board: { undoStack: [], redoStack: [], selectedNodeIds: [] },
+          selections: { byIdea: {} },
         }),
+    }));
+
+    vi.doMock("@/app/providers", () => ({
+      useWsSend: () => vi.fn(),
+    }));
+
+    vi.doMock("@/hooks/use-auth", () => ({
+      useAuth: () => ({ user: { id: "test-user", display_name: "Test User" }, isAuthenticated: true }),
     }));
 
     vi.doMock("@xyflow/react", () => {

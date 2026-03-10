@@ -56,7 +56,10 @@ class TestDevBypass(TestCase):
         assert response.status_code == 200
         data = response.json()
         assert "users" in data
-        assert len(data["users"]) == 4
+        assert len(data["users"]) >= 4
+        emails = {u["email"] for u in data["users"]}
+        for dev_user in DEV_USERS:
+            assert dev_user["email"] in emails
 
     @override_settings(DEBUG=False, AUTH_BYPASS=False)
     def test_dev_users_endpoint_404_in_production(self):

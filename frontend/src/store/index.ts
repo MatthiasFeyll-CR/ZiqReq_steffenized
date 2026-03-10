@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { boardReducer } from "./board-slice";
 import { websocketReducer } from "./websocket-slice";
 import { presenceReducer } from "./presence-slice";
+import { selectionsReducer } from "./selections-slice";
 import { uiReducer } from "./ui-slice";
 import { rateLimitReducer } from "./rate-limit-slice";
 
@@ -10,6 +11,7 @@ export const store = configureStore({
     board: boardReducer,
     websocket: websocketReducer,
     presence: presenceReducer,
+    selections: selectionsReducer,
     ui: uiReducer,
     rateLimit: rateLimitReducer,
   },

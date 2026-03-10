@@ -10,6 +10,14 @@ vi.mock("@/api/board", () => ({
     mockUpdateBoardNode(ideaId, nodeId, updates),
 }));
 
+vi.mock("@/app/providers", () => ({
+  useWsSend: () => vi.fn(),
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({ user: { id: "test-user", display_name: "Test User" }, isAuthenticated: true }),
+}));
+
 const mockDispatch = vi.fn();
 vi.mock("react-redux", () => ({
   useDispatch: () => mockDispatch,
@@ -19,6 +27,9 @@ vi.mock("react-redux", () => ({
         undoStack: [],
         redoStack: [],
         selectedNodeIds: [],
+      },
+      selections: {
+        byIdea: {},
       },
     }),
 }));

@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
+import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
+import { useSelector } from "react-redux";
+import { selectIsOnline } from "@/store/websocket-slice";
 
 export default function IdeaWorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -125,16 +128,24 @@ function IdeaWorkspaceContent({
   onIdeaUpdate: (idea: Idea) => void;
 }) {
   const { reviewVisible, chatLocked, allReadOnly, lockReason } = useSectionVisibility(idea);
+  const isOnline = useSelector(selectIsOnline);
+
+  const effectiveChatLocked = chatLocked || !isOnline;
+  const effectiveLockReason = !isOnline
+    ? "You are currently offline. Chat is disabled."
+    : lockReason;
 
   return (
     <div className="flex flex-col h-full" data-testid="idea-workspace">
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={allReadOnly} />
+      <OfflineBanner />
       <WorkspaceLayout
         chatPanel={
-          <ChatPanel idea={idea} locked={chatLocked} lockReason={lockReason} />
+          <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} />
         }
         reviewVisible={reviewVisible}
         ideaId={idea.id}
+        disabled={!isOnline}
       />
     </div>
   );

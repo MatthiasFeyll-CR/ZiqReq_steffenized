@@ -1,5 +1,8 @@
+import logging
 import uuid
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
@@ -17,6 +20,8 @@ from .serializers import (
     BoardNodeResponseSerializer,
     BoardNodeUpdateSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _require_auth(request: Request):
@@ -71,6 +76,101 @@ def _access_denied_response() -> Response:
         {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
         status=status.HTTP_403_FORBIDDEN,
     )
+
+
+def _broadcast_board_update(
+    idea_id: str,
+    *,
+    nodes_created: list | None = None,
+    nodes_updated: list | None = None,
+    nodes_deleted: list | None = None,
+    connections_created: list | None = None,
+    connections_updated: list | None = None,
+    connections_deleted: list | None = None,
+    source: str = "user",
+) -> None:
+    """Broadcast a board_update event to the idea's WebSocket group."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"idea_{idea_id}"
+        payload = {
+            "nodes_created": nodes_created or [],
+            "nodes_updated": nodes_updated or [],
+            "nodes_deleted": nodes_deleted or [],
+            "connections_created": connections_created or [],
+            "connections_updated": connections_updated or [],
+            "connections_deleted": connections_deleted or [],
+            "source": source,
+        }
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "board_update",
+                "idea_id": str(idea_id),
+                "payload": payload,
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast board_update for idea %s", idea_id)
+
+
+def _broadcast_board_lock_change(
+    idea_id: str,
+    node_id: str,
+    is_locked: bool,
+    changed_by: dict,
+) -> None:
+    """Broadcast a board_lock_change event to the idea's WebSocket group."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"idea_{idea_id}"
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "board_lock_change",
+                "idea_id": str(idea_id),
+                "payload": {
+                    "node_id": str(node_id),
+                    "is_locked": is_locked,
+                    "changed_by": changed_by,
+                },
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast board_lock_change for idea %s", idea_id)
+
+
+def _node_to_broadcast_dict(node) -> dict:
+    """Serialize a BoardNode to a dict for WebSocket broadcast."""
+    return {
+        "id": str(node.id),
+        "node_type": node.node_type,
+        "title": node.title,
+        "body": node.body,
+        "position_x": node.position_x,
+        "position_y": node.position_y,
+        "width": node.width,
+        "height": node.height,
+        "parent_id": str(node.parent_id) if node.parent_id else None,
+        "is_locked": node.is_locked,
+        "created_by": node.created_by,
+    }
+
+
+def _connection_to_broadcast_dict(conn) -> dict:
+    """Serialize a BoardConnection to a dict for WebSocket broadcast."""
+    return {
+        "id": str(conn.id),
+        "source_node_id": str(conn.source_node_id),
+        "target_node_id": str(conn.target_node_id),
+        "label": conn.label,
+    }
 
 
 @api_view(["GET", "POST"])
@@ -147,6 +247,13 @@ def _create_node(request: Request, idea_id: str) -> Response:
     )
 
     response_serializer = BoardNodeResponseSerializer(node)
+
+    _broadcast_board_update(
+        idea.id,
+        nodes_created=[_node_to_broadcast_dict(node)],
+        source=node.created_by,
+    )
+
     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -228,6 +335,8 @@ def _update_node(request: Request, idea_id: str, node_id: str) -> Response:
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+    lock_changed = "is_locked" in data and data["is_locked"] != node.is_locked
+
     for field, value in data.items():
         if field == "parent_id":
             setattr(node, "parent_id", value)
@@ -237,6 +346,21 @@ def _update_node(request: Request, idea_id: str, node_id: str) -> Response:
     node.save()
 
     response_serializer = BoardNodeResponseSerializer(node)
+
+    _broadcast_board_update(
+        idea.id,
+        nodes_updated=[_node_to_broadcast_dict(node)],
+        source="user",
+    )
+
+    if lock_changed:
+        _broadcast_board_lock_change(
+            idea.id,
+            node.id,
+            node.is_locked,
+            {"id": str(user.id), "display_name": getattr(user, "display_name", "")},
+        )
+
     return Response(response_serializer.data)
 
 
@@ -256,7 +380,15 @@ def _delete_node(request: Request, idea_id: str, node_id: str) -> Response:
     if error:
         return error
 
+    deleted_node_id = str(node.id)
     node.delete()
+
+    _broadcast_board_update(
+        idea.id,
+        nodes_deleted=[deleted_node_id],
+        source="user",
+    )
+
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -349,6 +481,13 @@ def _create_connection(request: Request, idea_id: str) -> Response:
     )
 
     response_serializer = BoardConnectionResponseSerializer(connection)
+
+    _broadcast_board_update(
+        idea.id,
+        connections_created=[_connection_to_broadcast_dict(connection)],
+        source="user",
+    )
+
     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -414,6 +553,13 @@ def _update_connection(
     connection.save()
 
     response_serializer = BoardConnectionResponseSerializer(connection)
+
+    _broadcast_board_update(
+        idea.id,
+        connections_updated=[_connection_to_broadcast_dict(connection)],
+        source="user",
+    )
+
     return Response(response_serializer.data)
 
 
@@ -435,5 +581,13 @@ def _delete_connection(
     if error:
         return error
 
+    deleted_conn_id = str(connection.id)
     connection.delete()
+
+    _broadcast_board_update(
+        idea.id,
+        connections_deleted=[deleted_conn_id],
+        source="user",
+    )
+
     return Response(status=status.HTTP_204_NO_CONTENT)
