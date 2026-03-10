@@ -304,6 +304,10 @@
       "file": "services/ai/tests/test_facilitator.py",
       "function": "test_react_to_user_message"
     },
+    "T-2.7.02": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_react_duplicate_error"
+    },
     "T-2.15.01": {
       "file": "services/ai/tests/test_facilitator.py",
       "function": "test_delegate_to_context_agent"
