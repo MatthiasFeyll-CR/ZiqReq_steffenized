@@ -889,3 +889,26 @@ Started: 2026-03-09T17:27:54+0100
   - Same renderHelper pattern as box-node.test.tsx works for FreeTextNode with type "free_text"
   - Click on free-text-node container triggers editing state, switching from free-text-display to free-text-textarea
 ---
+
+## BF-002: Fix: Missing ConnectionEdge render test (T-3.2.05) and label editor test (T-3.2.06)
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/connection-edge.test.tsx (created)
+- Tests: 5 tests pass — T-3.2.05 (stroke gray, strokeWidth 1.5, selected styles), T-3.2.06 (span before dblclick, input after dblclick, Enter commits edit)
+- Learnings for future iterations:
+  - ConnectionEdge mock pattern: BaseEdge needs style destructured to data-attributes for assertion
+  - getSmoothStepPath mock returns [path, labelX, labelY] tuple
+  - EdgeLabelRenderer mock just wraps children in a div
+  - .ralph/ is gitignored — prd.json changes are local only
+---
+
+## BF-003: Fix: Missing BoardToolbar button actions test (T-3.3.03)
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/board-toolbar.test.tsx (created)
+- Tests: 4 passed (click Add Box calls onAddBox, click Fit View invokes fitView, delete disabled when selectedCount=0, delete enabled and calls onDeleteSelected when selectedCount=1). Full suite: 139 passed, 18 files.
+- Learnings for future iterations:
+  - BoardToolbar uses useReactFlow for fitView and screenToFlowPosition — mock with vi.mock at module level, define mock fns above the mock
+  - Clear mocks in beforeEach to avoid cross-test pollution
+  - Docker node-tests needs rebuild after adding new test files (no volume mount)
+---
