@@ -147,6 +147,14 @@
     "T-3.7.03": {
       "file": "frontend/src/__tests__/board-toolbar-undo.test.tsx",
       "function": "shows 'Undo AI Action' when undo stack top source is 'ai'"
+    },
+    "T-3.8.01": {
+      "file": "frontend/src/__tests__/box-node.test.tsx",
+      "function": "renders reference button with Pin icon"
+    },
+    "T-3.8.02": {
+      "file": "frontend/src/__tests__/chat-board-reference.test.tsx",
+      "function": "inserts @board[uuid] into empty textarea on board:reference event"
     }
   }
 }
