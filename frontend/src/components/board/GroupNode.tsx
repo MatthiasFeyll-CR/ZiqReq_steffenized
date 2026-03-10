@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 export interface GroupNodeData {
   title?: string;
   is_locked?: boolean;
+  ai_modified_indicator?: boolean;
   onToggleLock?: (nodeId: string, newLocked: boolean) => void;
   _dropTarget?: boolean;
   [key: string]: unknown;
@@ -14,7 +15,7 @@ export interface GroupNodeData {
 export type GroupNodeType = Node<GroupNodeData, "group">;
 
 function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
-  const { title, is_locked, onToggleLock, _dropTarget } = data;
+  const { title, is_locked, ai_modified_indicator, onToggleLock, _dropTarget } = data;
 
   const handleToggleLock = useCallback(() => {
     onToggleLock?.(id, !is_locked);
@@ -35,6 +36,13 @@ function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
       data-testid="group-node"
       data-drop-target={_dropTarget ? "true" : undefined}
     >
+      {ai_modified_indicator && (
+        <span
+          className="absolute -left-1 -top-1 z-10 h-2 w-2 rounded-full bg-amber-400 motion-safe:animate-pulse"
+          data-testid="ai-modified-dot"
+        />
+      )}
+
       <NodeResizer
         minWidth={200}
         minHeight={150}

@@ -321,6 +321,27 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
     [ideaId, setNodes, getAbsolutePosition, getNodeInfos, pushUndoAction, nodes],
   );
 
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      if (!node.data?.ai_modified_indicator) return;
+      // Clear indicator locally
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === node.id
+            ? { ...n, data: { ...n.data, ai_modified_indicator: false } }
+            : n,
+        ),
+      );
+      // Persist to backend
+      if (ideaId) {
+        updateBoardNode(ideaId, node.id, { ai_modified_indicator: false }).catch(() => {
+          // Will be retried on next interaction
+        });
+      }
+    },
+    [ideaId, setNodes],
+  );
+
   // Inject onToggleLock into node data and set draggable based on is_locked
   const processedNodes = useMemo(
     () =>
@@ -366,6 +387,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeClick={onNodeClick}
           onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 export interface FreeTextNodeData {
   body?: string;
   is_locked?: boolean;
+  ai_modified_indicator?: boolean;
   onToggleLock?: (nodeId: string, newLocked: boolean) => void;
   onBodyChange?: (nodeId: string, body: string) => void;
   [key: string]: unknown;
@@ -14,7 +15,7 @@ export interface FreeTextNodeData {
 export type FreeTextNodeType = Node<FreeTextNodeData, "free_text">;
 
 function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
-  const { body, is_locked, onToggleLock } = data;
+  const { body, is_locked, ai_modified_indicator, onToggleLock } = data;
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(body ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -73,6 +74,13 @@ function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
       data-testid="free-text-node"
       onClick={!editing ? handleClick : undefined}
     >
+      {ai_modified_indicator && (
+        <span
+          className="absolute -left-1 -top-1 z-10 h-2 w-2 rounded-full bg-amber-400 motion-safe:animate-pulse"
+          data-testid="ai-modified-dot"
+        />
+      )}
+
       <Handle type="target" position={Position.Top} className="!bg-border" />
 
       {editing ? (

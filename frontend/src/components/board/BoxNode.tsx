@@ -8,6 +8,7 @@ export interface BoxNodeData {
   body?: string;
   created_by?: "user" | "ai";
   is_locked?: boolean;
+  ai_modified_indicator?: boolean;
   nodeId?: string;
   onToggleLock?: (nodeId: string, newLocked: boolean) => void;
   [key: string]: unknown;
@@ -16,7 +17,7 @@ export interface BoxNodeData {
 export type BoxNodeType = Node<BoxNodeData, "box">;
 
 function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
-  const { title, body, created_by, is_locked, onToggleLock } = data;
+  const { title, body, created_by, is_locked, ai_modified_indicator, onToggleLock } = data;
 
   const handleReference = useCallback(() => {
     const nodeId = data.nodeId ?? id;
@@ -42,6 +43,13 @@ function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
       style={{ minWidth: 192, maxWidth: 320 }}
       data-testid="box-node"
     >
+      {ai_modified_indicator && (
+        <span
+          className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-amber-400 motion-safe:animate-pulse"
+          data-testid="ai-modified-dot"
+        />
+      )}
+
       <Handle type="target" position={Position.Top} className="!bg-border" />
 
       {/* Title bar */}
