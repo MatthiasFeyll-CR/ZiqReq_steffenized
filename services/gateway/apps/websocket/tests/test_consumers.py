@@ -8,6 +8,7 @@ from channels.testing import WebsocketCommunicator
 from django.test import override_settings
 
 from apps.authentication.models import User
+from apps.board.models import BoardNode
 from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator
 from apps.websocket.middleware import WebSocketAuthMiddleware
 from apps.websocket.routing import websocket_urlpatterns
@@ -478,5 +479,235 @@ async def test_chat_message_broadcast_via_view_helper():
     assert response["payload"]["sender_type"] == "user"
     assert response["payload"]["sender"]["id"] == str(user.id)
     assert response["payload"]["sender"]["display_name"] == user.display_name
+
+    await communicator.disconnect()
+
+
+# ---- US-004: Board sync broadcast tests ----
+
+
+@database_sync_to_async
+def _create_board_node(idea_id, **kwargs):
+    defaults = {
+        "idea_id": idea_id,
+        "node_type": "box",
+        "title": "Test Node",
+        "position_x": 100,
+        "position_y": 200,
+        "created_by": "user",
+    }
+    defaults.update(kwargs)
+    return BoardNode.objects.create(**defaults)
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_update_broadcast_to_subscriber():
+    """T-6.4.03: board_update group_send is forwarded to subscribed WebSocket client."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    # Subscribe to idea group
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await communicator.receive_nothing(timeout=0.5) is True
+
+    # Simulate a board_update group_send
+    channel_layer = get_channel_layer()
+    group_name = f"idea_{idea.id}"
+    payload = {
+        "nodes_created": [],
+        "nodes_updated": [{"id": str(uuid.uuid4()), "position_x": 150, "position_y": 250}],
+        "nodes_deleted": [],
+        "connections_created": [],
+        "connections_updated": [],
+        "connections_deleted": [],
+        "source": "user",
+    }
+    await channel_layer.group_send(
+        group_name,
+        {
+            "type": "board_update",
+            "idea_id": str(idea.id),
+            "payload": payload,
+        },
+    )
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "board_update"
+    assert response["idea_id"] == str(idea.id)
+    assert response["payload"]["nodes_updated"] == payload["nodes_updated"]
+    assert response["payload"]["source"] == "user"
+    assert response["payload"]["nodes_created"] == []
+    assert response["payload"]["nodes_deleted"] == []
+    assert response["payload"]["connections_created"] == []
+    assert response["payload"]["connections_updated"] == []
+    assert response["payload"]["connections_deleted"] == []
+
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_update_not_received_by_unsubscribed():
+    """T-6.4.03b: Unsubscribed clients do not receive board_update broadcasts."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    # Do NOT subscribe — send group message
+    channel_layer = get_channel_layer()
+    group_name = f"idea_{idea.id}"
+    await channel_layer.group_send(
+        group_name,
+        {
+            "type": "board_update",
+            "idea_id": str(idea.id),
+            "payload": {"nodes_updated": [{"id": "test"}], "source": "user"},
+        },
+    )
+
+    assert await communicator.receive_nothing(timeout=1) is True
+
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_update_broadcast_via_view_helper():
+    """T-6.4.04: _broadcast_board_update sends board_update with node data via view helper."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await communicator.receive_nothing(timeout=0.5) is True
+
+    @database_sync_to_async
+    def create_node_and_broadcast():
+        from apps.board.views import _broadcast_board_update, _node_to_broadcast_dict
+
+        node = BoardNode.objects.create(
+            idea_id=idea.id,
+            node_type="box",
+            title="Broadcast Test",
+            position_x=50,
+            position_y=75,
+            created_by="user",
+        )
+        _broadcast_board_update(
+            idea.id,
+            nodes_created=[_node_to_broadcast_dict(node)],
+            source=node.created_by,
+        )
+        return node
+
+    node = await create_node_and_broadcast()
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "board_update"
+    assert response["idea_id"] == str(idea.id)
+    assert len(response["payload"]["nodes_created"]) == 1
+    assert response["payload"]["nodes_created"][0]["id"] == str(node.id)
+    assert response["payload"]["nodes_created"][0]["title"] == "Broadcast Test"
+    assert response["payload"]["source"] == "user"
+
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_update_broadcast_node_delete():
+    """T-3.6.01: board_update with nodes_deleted broadcast."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await communicator.receive_nothing(timeout=0.5) is True
+
+    node = await _create_board_node(idea.id, title="To Delete")
+
+    @database_sync_to_async
+    def delete_and_broadcast(node_id):
+        from apps.board.views import _broadcast_board_update
+
+        _broadcast_board_update(
+            idea.id,
+            nodes_deleted=[str(node_id)],
+            source="user",
+        )
+
+    await delete_and_broadcast(node.id)
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "board_update"
+    assert response["idea_id"] == str(idea.id)
+    assert str(node.id) in response["payload"]["nodes_deleted"]
+    assert response["payload"]["source"] == "user"
+
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_update_broadcast_source_ai():
+    """T-3.6.02: board_update payload source is 'ai' when node created by AI."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await communicator.receive_nothing(timeout=0.5) is True
+
+    @database_sync_to_async
+    def create_ai_node_and_broadcast():
+        from apps.board.views import _broadcast_board_update, _node_to_broadcast_dict
+
+        node = BoardNode.objects.create(
+            idea_id=idea.id,
+            node_type="box",
+            title="AI Node",
+            position_x=0,
+            position_y=0,
+            created_by="ai",
+        )
+        _broadcast_board_update(
+            idea.id,
+            nodes_created=[_node_to_broadcast_dict(node)],
+            source="ai",
+        )
+        return node
+
+    await create_ai_node_and_broadcast()
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "board_update"
+    assert response["payload"]["source"] == "ai"
 
     await communicator.disconnect()

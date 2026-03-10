@@ -121,6 +121,14 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             "payload": event["payload"],
         })
 
+    async def board_update(self, event: dict) -> None:
+        """Forward board_update group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "board_update",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
     @database_sync_to_async
     def _check_idea_access(self, idea_id: str, user_id: str) -> bool:
         from apps.ideas.models import Idea, IdeaCollaborator

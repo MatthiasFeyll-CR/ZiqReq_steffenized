@@ -195,6 +195,22 @@
     "T-6.4.02": {
       "file": "services/gateway/apps/websocket/tests/test_consumers.py",
       "function": "test_chat_message_broadcast_via_view_helper"
+    },
+    "T-6.4.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_to_subscriber"
+    },
+    "T-6.4.04": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_via_view_helper"
+    },
+    "T-3.6.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_node_delete"
+    },
+    "T-3.6.02": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_update_broadcast_source_ai"
     }
   }
 }
