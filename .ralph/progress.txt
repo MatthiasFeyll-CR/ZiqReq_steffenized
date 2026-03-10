@@ -26,3 +26,14 @@
   - After closing all connections, also explicitly close `connection.connection` and set it to None to reset the default connection's thread-local state
   - First run after `docker compose down -v` may show transient failures from stale DB state; second run confirms stability
 ---
+
+## BF-001: Fix: DEF-004 — Remove unused imports and sort import blocks in WebSocket test files
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/tests/test_access.py, services/gateway/apps/websocket/tests/test_consumers.py, services/gateway/apps/websocket/tests/test_middleware.py
+- Tests: 156 Python tests passed (0 errors, 0 failures), ruff check clean, tsc clean
+- Learnings for future iterations:
+  - Ruff I001 (unsorted imports) auto-fix splits combined `from X import A, B` into separate lines when alphabetical order requires it — manual reordering of names on one line doesn't always satisfy ruff's isort rules
+  - `ruff check services/ --fix` is safe and reliable for F401 (unused imports) and I001 (import sorting) — prefer it over manual edits for these categories
+  - First test run after `docker compose up` may show transient DB errors (122 errors); second run passes clean — this is the known DB lifecycle issue from previous cycles
+---
