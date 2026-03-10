@@ -173,9 +173,27 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
   );
 
   const handleDeleteSelected = useCallback(() => {
-    setNodes((nds) => nds.filter((n) => !n.selected));
+    setNodes((nds) => nds.filter((n) => !n.selected || n.data?.is_locked));
     setEdges((eds) => eds.filter((e) => !e.selected));
   }, [setNodes, setEdges]);
+
+  const handleToggleLock = useCallback(
+    (nodeId: string, newLocked: boolean) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId
+            ? { ...n, data: { ...n.data, is_locked: newLocked } }
+            : n,
+        ),
+      );
+      if (ideaId) {
+        updateBoardNode(ideaId, nodeId, { is_locked: newLocked }).catch(() => {
+          // Will be retried on next toggle or sync
+        });
+      }
+    },
+    [ideaId, setNodes],
+  );
 
   const onNodeDrag = useCallback(
     (_event: React.MouseEvent, node: Node) => {
@@ -272,6 +290,17 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
     [ideaId, setNodes, getAbsolutePosition, getNodeInfos],
   );
 
+  // Inject onToggleLock into node data and set draggable based on is_locked
+  const processedNodes = useMemo(
+    () =>
+      nodes.map((n) => ({
+        ...n,
+        draggable: !n.data?.is_locked,
+        data: { ...n.data, onToggleLock: handleToggleLock },
+      })),
+    [nodes, handleToggleLock],
+  );
+
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
 
   return (
@@ -283,7 +312,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
       />
       <div className="flex-1 min-h-0">
         <ReactFlow
-          nodes={nodes}
+          nodes={processedNodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}

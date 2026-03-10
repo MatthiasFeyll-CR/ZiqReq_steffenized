@@ -1,8 +1,12 @@
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
+import { Lock, Unlock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export interface FreeTextNodeData {
   body?: string;
+  is_locked?: boolean;
+  onToggleLock?: (nodeId: string, newLocked: boolean) => void;
   onBodyChange?: (nodeId: string, body: string) => void;
   [key: string]: unknown;
 }
@@ -10,7 +14,7 @@ export interface FreeTextNodeData {
 export type FreeTextNodeType = Node<FreeTextNodeData, "free_text">;
 
 function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
-  const { body } = data;
+  const { body, is_locked, onToggleLock } = data;
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(body ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -31,9 +35,14 @@ function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
     el.style.height = `${el.scrollHeight}px`;
   }, []);
 
+  const handleToggleLock = useCallback(() => {
+    onToggleLock?.(id, !is_locked);
+  }, [id, is_locked, onToggleLock]);
+
   const handleClick = useCallback(() => {
+    if (is_locked) return;
     setEditing(true);
-  }, []);
+  }, [is_locked]);
 
   const handleBlur = useCallback(() => {
     setEditing(false);
@@ -82,6 +91,24 @@ function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
           {body || "\u00A0"}
         </div>
       )}
+
+      {/* Lock toggle button */}
+      <div className="absolute bottom-1 right-1">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="h-6 w-6"
+          onClick={handleToggleLock}
+          aria-label={is_locked ? "Unlock node" : "Lock node"}
+          data-testid="lock-toggle"
+        >
+          {is_locked ? (
+            <Lock className="h-3.5 w-3.5 text-muted-foreground" data-testid="lock-icon" />
+          ) : (
+            <Unlock className="h-3.5 w-3.5 text-muted-foreground" data-testid="unlock-icon" />
+          )}
+        </Button>
+      </div>
 
       <Handle type="source" position={Position.Bottom} className="!bg-border" />
     </div>

@@ -123,6 +123,10 @@
     "T-3.2.03": {
       "file": "frontend/src/__tests__/board-interactions.test.tsx",
       "function": "calls updateBoardNode with parent_id null when node dragged outside all groups"
+    },
+    "T-3.2.07": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "sets draggable=false on locked nodes passed to ReactFlow"
     }
   }
 }

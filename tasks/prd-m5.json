@@ -61,7 +61,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.2.07"],
       "notes": "Architecture: data-model.md § is_locked boolean\nDesign: component-specs.md § 6.1 Lock icon bottom-right\nTesting: test-matrix.md § T-3.2.07\nFiles: BoxNode.tsx, GroupNode.tsx, FreeTextNode.tsx (add toggle), api/board.ts\nGotchas: Lock icon already displays (M4). Add interactive button. Set draggable=false when locked.",
       "context": {

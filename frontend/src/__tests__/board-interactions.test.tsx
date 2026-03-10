@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import i18n from "@/i18n/config";
 
 const mockUpdateBoardNode = vi.fn<(ideaId: string, nodeId: string, updates: Record<string, unknown>) => Promise<unknown>>(
@@ -12,6 +12,7 @@ vi.mock("@/api/board", () => ({
 
 let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined;
 let capturedOnNodeDrag: ((...args: unknown[]) => void) | undefined;
+let capturedNodes: Array<Record<string, unknown>> | undefined;
 
 // Stateful mock for useNodesState so setNodes callback pattern works
 let mockNodesState: Record<string, unknown>[] = [];
@@ -30,9 +31,10 @@ vi.mock("@xyflow/react", () => {
   const BackgroundVariant = { Dots: "dots", Lines: "lines", Cross: "cross" };
   const MarkerType = { Arrow: "arrow", ArrowClosed: "arrowclosed" };
   return {
-    ReactFlow: ({ children, onNodeDragStop, onNodeDrag, ...props }: Record<string, unknown>) => {
+    ReactFlow: ({ children, onNodeDragStop, onNodeDrag, nodes, ...props }: Record<string, unknown>) => {
       capturedOnNodeDragStop = onNodeDragStop as typeof capturedOnNodeDragStop;
       capturedOnNodeDrag = onNodeDrag as typeof capturedOnNodeDrag;
+      capturedNodes = nodes as typeof capturedNodes;
       return (
         <div data-testid="react-flow" {...props}>
           {children as React.ReactNode}
@@ -49,6 +51,7 @@ vi.mock("@xyflow/react", () => {
     useReactFlow: () => ({
       getViewport: vi.fn(() => ({ x: 0, y: 0, zoom: 1 })),
       fitView: vi.fn(),
+      screenToFlowPosition: vi.fn((pos: { x: number; y: number }) => pos),
       getInternalNode: (id: string) => mockInternals[id] ?? undefined,
     }),
   };
@@ -65,6 +68,7 @@ beforeEach(() => {
   mockSetNodes.mockClear();
   capturedOnNodeDragStop = undefined;
   capturedOnNodeDrag = undefined;
+  capturedNodes = undefined;
   mockNodesState = [];
   mockInternals = {};
 });
@@ -426,5 +430,133 @@ describe("Group nesting: nested groups supported", () => {
       "box-1",
       expect.objectContaining({ parent_id: "inner-group" }),
     );
+  });
+});
+
+describe("T-3.2.07: Lock toggle prevents editing and dragging", () => {
+  it("sets draggable=false on locked nodes passed to ReactFlow", () => {
+    setupNodes([
+      {
+        id: "box-1",
+        type: "box",
+        position: { x: 0, y: 0 },
+        absPosition: { x: 0, y: 0 },
+        data: { title: "Locked Box", is_locked: true },
+      },
+      {
+        id: "box-2",
+        type: "box",
+        position: { x: 200, y: 0 },
+        absPosition: { x: 200, y: 0 },
+        data: { title: "Unlocked Box", is_locked: false },
+      },
+    ]);
+
+    render(<BoardCanvas ideaId="idea-123" />);
+
+    expect(capturedNodes).toBeDefined();
+    const lockedNode = capturedNodes!.find((n) => n.id === "box-1");
+    const unlockedNode = capturedNodes!.find((n) => n.id === "box-2");
+    expect(lockedNode?.draggable).toBe(false);
+    expect(unlockedNode?.draggable).toBe(true);
+  });
+
+  it("calls updateBoardNode with is_locked when lock is toggled", () => {
+    setupNodes([
+      {
+        id: "box-1",
+        type: "box",
+        position: { x: 0, y: 0 },
+        absPosition: { x: 0, y: 0 },
+        data: { title: "Test Box", is_locked: false },
+      },
+    ]);
+
+    render(<BoardCanvas ideaId="idea-123" />);
+
+    // The processedNodes inject onToggleLock into data — invoke it directly
+    expect(capturedNodes).toBeDefined();
+    const node = capturedNodes!.find((n) => n.id === "box-1");
+    const data = node?.data as { onToggleLock?: (nodeId: string, locked: boolean) => void };
+    expect(data?.onToggleLock).toBeInstanceOf(Function);
+
+    data!.onToggleLock!("box-1", true);
+
+    expect(mockUpdateBoardNode).toHaveBeenCalledWith("idea-123", "box-1", {
+      is_locked: true,
+    });
+  });
+
+  it("updates node data is_locked in state when toggled", () => {
+    setupNodes([
+      {
+        id: "box-1",
+        type: "box",
+        position: { x: 0, y: 0 },
+        absPosition: { x: 0, y: 0 },
+        data: { title: "Test Box", is_locked: false },
+      },
+    ]);
+
+    render(<BoardCanvas ideaId="idea-123" />);
+
+    const node = capturedNodes!.find((n) => n.id === "box-1");
+    const data = node?.data as { onToggleLock?: (nodeId: string, locked: boolean) => void };
+    data!.onToggleLock!("box-1", true);
+
+    const updatedNode = mockNodesState.find((n) => n.id === "box-1") as { data: { is_locked?: boolean } };
+    expect(updatedNode?.data.is_locked).toBe(true);
+  });
+
+  it("does not call updateBoardNode when ideaId is not provided", () => {
+    setupNodes([
+      {
+        id: "box-1",
+        type: "box",
+        position: { x: 0, y: 0 },
+        absPosition: { x: 0, y: 0 },
+        data: { title: "Test Box", is_locked: false },
+      },
+    ]);
+
+    render(<BoardCanvas />);
+
+    const node = capturedNodes!.find((n) => n.id === "box-1");
+    const data = node?.data as { onToggleLock?: (nodeId: string, locked: boolean) => void };
+    data!.onToggleLock!("box-1", true);
+
+    expect(mockUpdateBoardNode).not.toHaveBeenCalled();
+  });
+
+  it("locked nodes are not deleted by handleDeleteSelected", () => {
+    setupNodes([
+      {
+        id: "box-1",
+        type: "box",
+        position: { x: 0, y: 0 },
+        absPosition: { x: 0, y: 0 },
+        data: { title: "Locked Box", is_locked: true },
+      },
+      {
+        id: "box-2",
+        type: "box",
+        position: { x: 200, y: 0 },
+        absPosition: { x: 200, y: 0 },
+        data: { title: "Unlocked Box", is_locked: false },
+      },
+    ]);
+    // Mark both as selected
+    mockNodesState = mockNodesState.map((n) => ({ ...n, selected: true }));
+
+    render(<BoardCanvas ideaId="idea-123" />);
+
+    // Click the delete button
+    const deleteBtn = screen.getByTestId("toolbar-delete");
+    fireEvent.click(deleteBtn);
+
+    // Locked node should remain
+    expect(mockNodesState.find((n) => n.id === "box-1")).toBeDefined();
+    // Unlocked selected node should be deleted
+    expect(mockNodesState.find((n) => n.id === "box-2")).toBeUndefined();
   });
 });
