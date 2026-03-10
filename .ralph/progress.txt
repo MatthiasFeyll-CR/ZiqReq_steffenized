@@ -221,3 +221,25 @@ Started: 2026-03-10T03:55:44+0100
   - Consumer `chat_message` handler, `_broadcast_chat_message` view helper, and all 3 chat broadcast tests were already correct
   - Full-suite transient errors in Docker can occur due to DB connection contention — running consumer tests in isolation confirms they all pass
 ---
+
+## US-004 (BUGFIX): Board sync — broadcast board.node.updated / board.connection.updated after REST persistence
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (passes: true)
+- Tests: 142 Python tests passed (5/5 board_update tests passed), 244 Node tests passed. Ruff clean. TSC clean.
+- Learnings for future iterations:
+  - No code changes needed — the US-002 bugfix (consolidating DB setup into single @database_sync_to_async blocks) resolved DEF-001 for all backend stories
+  - All 5 board_update tests pass: broadcast_to_subscriber, not_received_by_unsubscribed, broadcast_via_view_helper, broadcast_node_delete, broadcast_source_ai
+  - Consumer `board_update` handler, `_broadcast_board_update` view helper, and serialization helpers were already correct
+---
+
+## US-005 (BUGFIX): Board awareness events — selection/deselection, lock state changes (WebSocket-only, no persistence)
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (passes: true)
+- Tests: 142 Python tests passed (4/4 board awareness tests passed), 244 Node tests passed. Ruff clean. TSC clean.
+- Learnings for future iterations:
+  - No code changes needed — the US-002 bugfix (consolidating DB setup into single @database_sync_to_async blocks) resolved DEF-001 for all backend stories
+  - All 4 board awareness tests pass: board_selection_broadcast_excludes_sender, board_selection_deselect_null_node, board_selection_not_subscribed_error, board_lock_change_broadcast
+  - Consumer `handle_board_selection` handler, `board_selection` group message handler (with sender exclusion), `board_lock_change` handler, and `_broadcast_board_lock_change` view helper were already correct
+---
