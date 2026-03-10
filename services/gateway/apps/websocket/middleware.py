@@ -56,9 +56,9 @@ class WebSocketAuthMiddleware:
 
         try:
             user_uuid = uuid.UUID(token)
-            return User.objects.filter(id=user_uuid).first()
-        except (ValueError, Exception):
+        except (ValueError, TypeError):
             return None
+        return User.objects.filter(id=user_uuid).first()
 
     @database_sync_to_async
     def _authenticate_azure(self, token: str):
