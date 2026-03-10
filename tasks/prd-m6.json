@@ -1,12 +1,12 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m6-websocket",
-  "description": "Bugfix cycle 3 for Milestone 6 — WebSocket & Real-Time. Fixes 1 critical defect: DEF-002 (auth_permission duplicate key IntegrityError in Docker PostgreSQL tests due to keepdb=True preventing serialized_rollback from working).",
+  "description": "Bugfix cycle 4 (post-escalation) for Milestone 6 \u2014 WebSocket & Real-Time. Fixes 1 critical defect: DEF-002 (auth_permission duplicate key IntegrityError caused by serialized_rollback deserializing into non-empty DB). Strategy: replace serialized_rollback with application-table-only TRUNCATE.",
   "userStories": [
     {
       "id": "BF-001",
-      "title": "Fix: DEF-002 — Remove keepdb=True from conftest.py so serialized_rollback works",
-      "description": "Fix defect DEF-002 from QA report qa-m6-websocket.md. The conftest.py's django_db_setup uses keepdb=True which skips Django's DB serialization step, making serialized_rollback ineffective and causing auth_permission duplicate key IntegrityError on 12 consumer tests.",
+      "title": "Fix: DEF-002 \u2014 Replace serialized_rollback with app-table TRUNCATE in conftest.py",
+      "description": "Fix defect DEF-002 from QA report qa-m6-websocket.md. The django_db_serialized_rollback fixture causes TransactionTestCase._fixture_setup to call deserialize_db_from_string() which INSERTs auth_permission rows into a non-empty DB, hitting duplicate key. Fix by removing serialized_rollback entirely and using a custom fixture that TRUNCATEs only application tables between tests.",
       "acceptanceCriteria": [
         "All 32 WebSocket consumer tests pass when run via: docker compose -f docker-compose.test.yml run --rm python-tests pytest",
         "Zero test ERRORs related to IntegrityError on auth_permission or django_content_type tables",
@@ -14,8 +14,38 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
-      "notes": "Defect: DEF-002. File: services/gateway/conftest.py. Expected: All 32 consumer tests pass. Actual: 12 ERROR with `IntegrityError: duplicate key value violates unique constraint auth_permission_pkey`.\n\nRoot cause: The `django_db_setup` fixture in conftest.py uses `keepdb=True`. With keepdb, `setup_databases()` skips test DB creation AND the serialization step that stores the initial DB state. When `TransactionTestCase._fixture_setup` runs with `serialized_rollback=True`, it calls `deserialize_db_from_string()` which tries to INSERT rows that already exist in the persistent DB.\n\nFix approach — do ONE of the following (Option A preferred):\n\nOption A (simplest): Remove the `django_db_setup` fixture override entirely from services/gateway/conftest.py. Keep only the `django_db_serialized_rollback` autouse fixture. Let pytest-django's default `django_db_setup` handle DB creation with proper serialization. The Docker postgres testuser has superuser permissions and can CREATE DATABASE.\n\nOption B (if Option A fails due to TEST.NAME conflict): Also update `services/gateway/gateway/settings/test.py` to remove the `TEST` dict from DATABASES, or change `TEST.NAME` to a different name like `test_ziqreq_test`. Currently `TEST.NAME = _db_name` which is `ziqreq_test` — same as the production DB name. pytest-django may need a different name to create the test DB.\n\nOption C (fallback): If removing django_db_setup causes issues, replace it with a version that does NOT use keepdb:\n```python\n@pytest.fixture(scope='session')\ndef django_db_setup(django_test_environment, django_db_blocker):\n    from django.test.utils import setup_databases, teardown_databases\n    with django_db_blocker.unblock():\n        db_cfg = setup_databases(verbosity=0, interactive=False, keepdb=False)\n    yield\n    with django_db_blocker.unblock():\n        teardown_databases(db_cfg, verbosity=0)\n```\n\nIMPORTANT: After making changes, rebuild the test container: `docker compose -f docker-compose.test.yml build python-tests` then run: `docker compose -f docker-compose.test.yml run --rm python-tests pytest`\n\nFiles: services/gateway/conftest.py (modify), services/gateway/gateway/settings/test.py (possibly modify TEST.NAME)"
+      "passes": false,
+      "notes": "Defect: DEF-002. File: services/gateway/conftest.py.\n\nExpected: All 32 consumer tests pass.\nActual: 11 ERROR with `IntegrityError: duplicate key value violates unique constraint auth_permission_pkey` during `deserialize_db_from_string()` in `TransactionTestCase._fixture_setup()`.\n\nRoot cause analysis (verified by reading Django 5.2.12 source):\n1. The `django_db_serialized_rollback` autouse fixture enables `serialized_rollback=True` on all TransactionTestCase tests.\n2. `_fixture_setup` calls `deserialize_db_from_string()` which does raw INSERT (obj.save() with raw=True \u2192 force INSERT with explicit PK).\n3. After non-transactional TestCase tests complete (they use atomic rollback, not flush), the DB still has auth_permission and django_content_type rows from migrations.\n4. The deserialization tries to INSERT these same rows \u2192 duplicate key error.\n5. The error is intermittent because it depends on test ordering \u2014 tests that run right after a flush from a prior TransactionTestCase teardown succeed (tables are empty), but tests that run after TestCase atomic rollback fail (tables are non-empty).\n\nFix approach \u2014 Replace serialized_rollback with application-table-only TRUNCATE:\n\n1. In `services/gateway/conftest.py`, REMOVE the `django_db_serialized_rollback` fixture entirely.\n\n2. KEEP the `django_db_setup` fixture as-is (keepdb=True + Docker init script is correct). But REMOVE the `_test_serialized_contents` assignment \u2014 it's no longer needed without serialized_rollback.\n\n3. ADD a new autouse fixture `_truncate_app_tables` that runs AFTER each transactional test and TRUNCATEs only application tables:\n\n```python\nimport pytest\nfrom django.db import connection\n\n_APP_TABLES = (\n    'users',\n    'ideas',\n    'idea_collaborators',\n    'chat_messages',\n    'user_reactions',\n    'board_nodes',\n    'board_connections',\n    'collaboration_invitations',\n    'notifications',\n    'monitoring_alert_configs',\n    'admin_parameters',\n)\n\n@pytest.fixture(scope='session')\ndef django_db_setup(django_test_environment, django_db_blocker):\n    from django.test.utils import setup_databases\n    with django_db_blocker.unblock():\n        setup_databases(verbosity=0, interactive=False, keepdb=True)\n    yield\n\n\n@pytest.fixture(autouse=True)\ndef _truncate_app_tables(request):\n    \"\"\"Clean application data after each transactional test.\n\n    Unlike serialized_rollback (which fails on PostgreSQL due to\n    auth_permission duplicate key during deserialization), this fixture\n    only TRUNCATEs application tables \u2014 leaving Django system tables\n    (auth_permission, django_content_type, django_migrations) untouched.\n    \"\"\"\n    yield\n    marker = request.node.get_closest_marker('django_db')\n    if marker and marker.kwargs.get('transaction'):\n        with connection.cursor() as cursor:\n            tables = ', '.join(f'\"{t}\"' for t in _APP_TABLES)\n            cursor.execute(f'TRUNCATE {tables} RESTART IDENTITY CASCADE')\n```\n\nWhy this works:\n- Django system tables (auth_permission, django_content_type, auth_group, django_migrations) are NEVER touched \u2014 no duplicate key possible.\n- Application tables (users, ideas, etc.) are TRUNCATEd with CASCADE after each test \u2014 clean isolation.\n- No deserialize_db_from_string() call \u2014 the problematic code path is completely bypassed.\n- RESTART IDENTITY resets auto-increment sequences for clean PKs.\n- keepdb=True still works \u2014 Docker manages DB lifecycle.\n\nIMPORTANT: After making changes, rebuild the test container: `docker compose -f docker-compose.test.yml build python-tests` then run: `docker compose -f docker-compose.test.yml run --rm python-tests pytest`\n\nFiles: services/gateway/conftest.py (rewrite)",
+      "bugfixHistory": {
+        "failureCategory": "TEST_INFRASTRUCTURE",
+        "categoryDetail": "DB_FIXTURE_COLLISION",
+        "guidanceNote": "\u26a0 INFRASTRUCTURE FAILURE \u2014 This is NOT an application code issue. The errors stem from test framework configuration.\n\nRoot cause pattern (DB_FIXTURE_COLLISION): Django fixtures (content_type, auth_permission) have duplicate key violations. This happens when TransactionTestCase with serialized_rollback=True conflicts with fixtures. Use @pytest.mark.django_db(transaction=True) or consolidate fixture loading.\n\nFOCUS ON: conftest.py, test settings, docker-compose files, fixture loading order.\nDO NOT: Modify application code, test assertions, or business logic.\n\n\u2500\u2500 PREVIOUS CYCLE ANALYSIS \u2500\u2500\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: TEST_INFRASTRUCTURE/DB_FIXTURE_COLLISION (passed=131, failed=0, errors=11)\n  Evidence: E               psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint \"aut\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-10T13:01:22+0100",
+            "failure_category": "TEST_INFRASTRUCTURE",
+            "category_detail": "DB_FIXTURE_COLLISION",
+            "category_evidence": "E               psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint \"auth_permission_pkey\"",
+            "test_results": {
+              "passed": 131,
+              "failed": 0,
+              "errors": 11,
+              "total": 142
+            },
+            "error_patterns": [
+              {
+                "exception_class": "django.db.utils.IntegrityError",
+                "message": "duplicate key value violates unique constraint \"auth_permission_pkey\"",
+                "count": 11,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 6 \u2014 WebSocket & Real-Time\n**Date:** 2026-03-10\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** Post-escalation human fix (cycle 4)\n**PRD:** `tasks/prd-m6.json`\n**Progress:** `.ralph/progress.txt` (not available \u2014 human-driven fix)\n---\n## Summary\nThis is a **post-escalation review** after human intervention on the test infrastructure. The human fix (commit `1b3e5dc`) introduced `keepdb=True` with manual `serialize_db_to_string()` and a Docker init script (`init-test-db"
+          }
+        ]
+      }
     }
   ]
 }

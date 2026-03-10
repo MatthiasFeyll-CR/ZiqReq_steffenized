@@ -6,13 +6,13 @@ Fixes the async TransactionTestCase + PostgreSQL + Docker lifecycle issue:
    (infra/docker/init-test-db.sql) so we never rely on Django's fragile
    CREATE/DROP DATABASE dance that breaks under async fixture finalization.
 
-2. ``django_db_setup`` uses ``keepdb=True`` to skip DB creation/destruction,
-   then **manually serializes** the DB state so ``serialized_rollback`` has
-   data to restore from (``keepdb=True`` normally skips this step).
+2. ``django_db_setup`` uses ``keepdb=True`` to skip DB creation/destruction
+   and disconnects ``create_contenttypes`` / ``create_permissions`` from
+   ``post_migrate`` to prevent duplicate-key IntegrityErrors (DEF-002).
 
 3. Teardown is intentionally skipped — Docker manages the DB lifecycle.
 
-See docs/08-qa/qa-m6-websocket.md for the 3-cycle bugfix history.
+See docs/08-qa/qa-m6-websocket.md for the bugfix history.
 """
 
 import pytest
@@ -20,21 +20,31 @@ import pytest
 
 @pytest.fixture(scope="session")
 def django_db_setup(django_test_environment, django_db_blocker):
-    """Create test DB with keepdb + manual serialization.
+    """Create test DB with keepdb=True, silencing post_migrate handlers.
 
+    * Disconnects ``create_contenttypes`` and ``create_permissions`` from
+      the ``post_migrate`` signal **before** running migrations.  On
+      PostgreSQL with Django 5.2 and ``keepdb=True``, these handlers use
+      ``bulk_create`` without ``ignore_conflicts``, causing duplicate-key
+      IntegrityErrors when content-type / permission rows already exist
+      in the persistent test DB (DEF-002).
     * ``keepdb=True`` connects to the pre-existing ``test_ziqreq_test``
       database (created by Docker init script) and runs any outstanding
-      migrations.  It never issues CREATE/DROP DATABASE, side-stepping
-      the OperationalError that killed cycle 3.
-    * After migrations, we manually call ``serialize_db_to_string()`` and
-      store the result on ``connection._test_serialized_contents``.  This
-      is the attribute that Django's ``TransactionTestCase._fixture_teardown``
-      checks when ``serialized_rollback=True``; without it the rollback is
-      a no-op (the bug in cycle 1–2).
+      migrations.  It never issues CREATE/DROP DATABASE.
+    * The signal handlers stay disconnected for the entire test session so
+      that ``TransactionTestCase._fixture_teardown`` (flush →
+      ``emit_post_migrate_signal``) also doesn't trigger them.
     * We intentionally skip ``teardown_databases`` — Docker is ephemeral.
     """
-    from django.db import connections
+    from django.contrib.auth.management import create_permissions
+    from django.contrib.contenttypes.management import create_contenttypes
+    from django.db.models.signals import post_migrate
     from django.test.utils import setup_databases
+
+    post_migrate.disconnect(create_contenttypes)
+    post_migrate.disconnect(
+        dispatch_uid="django.contrib.auth.management.create_permissions",
+    )
 
     with django_db_blocker.unblock():
         setup_databases(
@@ -42,27 +52,12 @@ def django_db_setup(django_test_environment, django_db_blocker):
             interactive=False,
             keepdb=True,
         )
-        # keepdb=True skips the serialization step.  Do it ourselves so
-        # serialized_rollback can flush-then-restore after each
-        # TransactionTestCase.
-        for alias in connections:
-            conn = connections[alias]
-            if conn.vendor != "dummy":
-                conn._test_serialized_contents = (
-                    conn.creation.serialize_db_to_string()
-                )
 
     yield
     # No teardown — Docker manages the DB lifecycle.
-
-
-@pytest.fixture(autouse=True)
-def django_db_serialized_rollback():
-    """Enable serialized_rollback for all transactional tests.
-
-    When pytest-django sees this fixture name in fixturenames, it sets
-    serialized_rollback=True on TransactionTestCase. This causes Django
-    to restore the serialized DB state after each test instead of flushing
-    and re-inserting, preventing duplicate key IntegrityError on
-    auth_permission and django_content_type tables.
-    """
+    # Reconnect handlers for completeness (session is ending anyway).
+    post_migrate.connect(create_contenttypes)
+    post_migrate.connect(
+        create_permissions,
+        dispatch_uid="django.contrib.auth.management.create_permissions",
+    )

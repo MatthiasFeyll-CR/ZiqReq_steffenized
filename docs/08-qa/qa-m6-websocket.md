@@ -2,29 +2,35 @@
 
 **Date:** 2026-03-10
 **Reviewer:** QA Engineer (Claude)
-**Bugfix Cycle:** 3 (FINAL — ESCALATION)
+**Bugfix Cycle:** Post-escalation human fix (cycle 4)
 **PRD:** `tasks/prd-m6.json`
-**Progress:** `.ralph/progress.txt`
+**Progress:** `.ralph/progress.txt` (not available — human-driven fix)
 
 ---
 
 ## Summary
 
-Milestone 6 implements the WebSocket real-time layer: Django Channels consumer with token auth, channel group management, chat/board broadcasting, board awareness events, presence tracking, frontend connection manager with exponential backoff, offline banner, and connection indicator. All 10 user stories' **application code is correct**. However, 5 backend consumer tests FAIL and 12 ERROR due to test infrastructure issues with async `TransactionTestCase` + `serialized_rollback` + PostgreSQL in Docker. Three bugfix cycles have each changed the error type without resolving the underlying issue. This is an ESCALATION.
+This is a **post-escalation review** after human intervention on the test infrastructure. The human fix (commit `1b3e5dc`) introduced `keepdb=True` with manual `serialize_db_to_string()` and a Docker init script (`init-test-db.sql`) to pre-create the `test_ziqreq_test` database. This eliminated the 5 FAILs from cycle 3 and reduced ERRORs from 12 to 11. All 10 user stories' **application code remains correct**. The remaining 11 ERRORs are caused by `IntegrityError: auth_permission_pkey` during `deserialize_db_from_string()` — the serialized_rollback deserialization tries to INSERT auth_permission rows into a non-empty DB. Verdict: **FAIL** with a targeted bugfix PRD.
 
 ---
 
 ## Bugfix Cycle Progress Assessment
 
-| Metric | Cycle 0 | Cycle 1 | Cycle 2 | Cycle 3 | Delta (2->3) |
-|--------|---------|---------|---------|---------|---------------|
-| Tests FAIL | 7 | 3 | 0 | 5 | +5 (regressed) |
-| Tests ERROR | 15 | 10 | 12 | 12 | 0 (unchanged) |
-| Tests PASS | 120 | 129 | 130 | 137 | +7 (improved) |
-| Total affected | 22 | 13 | 12 | 17 | +5 (regressed) |
-| Root cause | FK constraint (multi-connection) | Content type dup key (teardown) | auth_permission dup key (keepdb) | DB "test_ziqreq_test" does not exist | New error class |
+| Metric | Cycle 0 | Cycle 1 | Cycle 2 | Cycle 3 | Human Fix | Delta (3->HF) |
+|--------|---------|---------|---------|---------|-----------|----------------|
+| Tests FAIL | 7 | 3 | 0 | 5 | 0 | -5 (fixed) |
+| Tests ERROR | 15 | 10 | 12 | 12 | 11 | -1 (improved) |
+| Tests PASS | 120 | 129 | 130 | 125 | 131 | +6 (improved) |
+| Total affected | 22 | 13 | 12 | 17 | 11 | -6 (improved) |
+| Root cause | FK constraint | Content type dup key | auth_permission dup key (keepdb) | DB does not exist | auth_permission dup key (deserialization) | Same class as cycle 2 |
 
-**Assessment:** Cycle 3 removed `keepdb=True` and the `TEST` dict from settings, allowing pytest-django's default to create `test_ziqreq_test`. This changed the error from `IntegrityError: auth_permission_pkey` to `OperationalError: database "test_ziqreq_test" does not exist`. The fix **regressed** — 5 new FAIL tests appeared alongside the persistent 12 ERRORs. The bugfix cycle is not converging; each fix shifts the error to a different failure mode in the same test infrastructure layer.
+**Assessment:** The human fix stabilized the DB lifecycle (no more "database does not exist" errors) and eliminated all FAILs. The remaining 11 ERRORs are the same `auth_permission_pkey` IntegrityError from cycle 2 — `deserialize_db_from_string()` tries to INSERT auth_permission rows that already exist in the DB. The fix is converging but needs one more targeted change: **bypass serialized_rollback entirely and use application-table-only TRUNCATE between tests**.
+
+### Root Cause of Remaining 11 ERRORs
+
+Django's `TransactionTestCase._fixture_setup` with `serialized_rollback=True` calls `deserialize_db_from_string()` which does raw `INSERT INTO auth_permission (id, ...) VALUES (1, ...)`. After the previous test's `_fixture_teardown` calls `flush` with `inhibit_post_migrate=True`, the tables should be empty. However, for tests that run after non-transactional TestCase tests (which use atomic rollback, not flush), the DB still has auth_permission rows from migrations. The deserialization hits duplicate keys.
+
+The fix: **Remove `serialized_rollback` entirely. Use a custom fixture that TRUNCATEs only application tables between tests, leaving Django system tables (auth_permission, django_content_type, django_migrations) untouched.**
 
 ---
 
@@ -32,19 +38,19 @@ Milestone 6 implements the WebSocket real-time layer: Django Channels consumer w
 
 | Story ID | Title | Result | Notes |
 |----------|-------|--------|-------|
-| US-001 | Django Channels WebSocket consumer | FAIL | Code correct; test_error_on_unknown_message_type + test_error_on_missing_message_type ERROR (DEF-002) |
-| US-002 | Channel group management | FAIL | Code correct; test_subscribe_idea_as_owner ERROR, test_subscribe_idea_access_denied FAIL (DEF-002) |
-| US-003 | Chat message broadcast | FAIL | Code correct; test_chat_message_broadcast_to_subscriber ERROR, test_chat_message_broadcast_via_view_helper FAIL+ERROR (DEF-002) |
-| US-004 | Board sync broadcast | FAIL | Code correct; test_board_update_broadcast_to_subscriber/not_received/source_ai ERROR, test_board_update_broadcast_source_ai FAIL (DEF-002) |
-| US-005 | Board awareness events | FAIL | Code correct; test_board_selection_broadcast_excludes_sender/deselect_null_node ERROR (DEF-002) |
+| US-001 | Django Channels WebSocket consumer | FAIL | Code correct; test_error_on_missing_message_type ERROR (DEF-002) |
+| US-002 | Channel group management | FAIL | Code correct; test_subscribe_idea_as_owner/collaborator/nonexistent/invalid_uuid ERROR (DEF-002) |
+| US-003 | Chat message broadcast | PASS | All chat broadcast tests pass in this run |
+| US-004 | Board sync broadcast | FAIL | Code correct; test_board_update_not_received_by_unsubscribed/node_delete ERROR (DEF-002) |
+| US-005 | Board awareness events | FAIL | Code correct; test_board_selection_deselect_null_node/lock_change ERROR (DEF-002) |
 | US-006 | Frontend WebSocket connection manager | PASS | All frontend tests pass |
-| US-007 | Presence tracking | FAIL | Code correct; test_presence_multi_tab_dedup/update_client_message ERROR, test_presence_offline_on_unsubscribe/update_client_message FAIL (DEF-002) |
+| US-007 | Presence tracking | FAIL | Code correct; test_presence_offline_on_unsubscribe ERROR (DEF-002) |
 | US-008 | User selection highlights on board | PASS | Frontend components + Redux slice verified |
 | US-009 | Offline banner + behavior | PASS | DEV-001 logged |
 | US-010 | Connection state indicator | PASS | DEV-002 logged |
 
-**Stories passed:** 4 / 10
-**Stories with defects:** 6 (all trace to DEF-002 — test infrastructure, not application code)
+**Stories passed:** 5 / 10 (improved from 4/10 in cycle 3)
+**Stories with defects:** 5 (all trace to DEF-002 — test infrastructure, not application code)
 **Stories with deviations:** 2
 
 ---
@@ -57,34 +63,34 @@ All 26 test implementations verified in cycle 2 remain present and unchanged. Th
 
 | Test ID | Status | File | Notes |
 |---------|--------|------|-------|
-| T-6.1.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_connection_valid_token — passes when DB available |
-| T-6.1.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_connection_invalid_token + variants |
-| T-6.1.03 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_error_on_unknown_message_type + missing type — ERROR (DEF-002) |
-| T-6.1.04 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | owner/co-owner/collaborator subscribe tests — some ERROR (DEF-002) |
-| T-6.1.05 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | access denied + nonexistent + missing/invalid UUID |
-| T-6.1.06 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | unsubscribe + not-subscribed + disconnect cleanup |
-| T-6.1.07 | FOUND | `frontend/src/__tests__/websocket-slice.test.ts` | connection state management |
-| T-6.1.08 | FOUND | `frontend/src/__tests__/use-websocket.test.ts` | hook lifecycle tests |
-| LOOP-004 | FOUND | `frontend/src/__tests__/use-websocket.test.ts` | backoff cap + timer cleanup on unmount |
-| T-6.2.01 | FOUND | `frontend/src/__tests__/offline-banner.test.tsx` | banner appears on disconnect |
-| T-6.3.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_broadcast_on_subscribe |
-| T-6.3.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_multi_tab_dedup — ERROR (DEF-002) |
-| T-6.3.03 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_offline_on_unsubscribe — FAIL (DEF-002) |
-| T-6.3.04 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_update_client_message — FAIL+ERROR (DEF-002) |
-| T-6.4.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | chat_message broadcast to subscriber — ERROR (DEF-002) |
-| T-6.4.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | chat_message via view helper — FAIL+ERROR (DEF-002) |
-| T-6.4.03 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update broadcast to subscriber — ERROR (DEF-002) |
-| T-6.4.04 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update via view helper |
-| T-3.5.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_selection excludes sender — ERROR (DEF-002) |
-| T-3.5.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_selection not subscribed error |
+| T-6.1.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_connection_valid_token — PASS |
+| T-6.1.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_connection_invalid_token + variants — PASS |
+| T-6.1.03 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_error_on_unknown_message_type PASS, test_error_on_missing_message_type ERROR (DEF-002) |
+| T-6.1.04 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | owner subscribe ERROR, co-owner PASS, collaborator ERROR (DEF-002) |
+| T-6.1.05 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | access denied PASS, nonexistent ERROR, invalid UUID ERROR (DEF-002) |
+| T-6.1.06 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | unsubscribe PASS, not-subscribed ERROR, disconnect cleanup PASS (DEF-002) |
+| T-6.1.07 | FOUND | `frontend/src/__tests__/websocket-slice.test.ts` | PASS |
+| T-6.1.08 | FOUND | `frontend/src/__tests__/use-websocket.test.ts` | PASS |
+| LOOP-004 | FOUND | `frontend/src/__tests__/use-websocket.test.ts` | PASS |
+| T-6.2.01 | FOUND | `frontend/src/__tests__/offline-banner.test.tsx` | PASS |
+| T-6.3.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_broadcast_on_subscribe — PASS |
+| T-6.3.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_multi_tab_dedup — PASS |
+| T-6.3.03 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_offline_on_unsubscribe — ERROR (DEF-002) |
+| T-6.3.04 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | test_presence_update_client_message — PASS |
+| T-6.4.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | chat_message broadcast to subscriber — PASS |
+| T-6.4.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | chat_message via view helper — PASS |
+| T-6.4.03 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update broadcast to subscriber — PASS |
+| T-6.4.04 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update via view helper — PASS |
+| T-3.5.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_selection excludes sender — PASS |
+| T-3.5.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_selection not subscribed error — PASS |
 | T-3.5.03 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_selection deselect null node — ERROR (DEF-002) |
-| T-3.6.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update nodes_deleted broadcast |
-| T-3.6.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update source=ai — FAIL (DEF-002) |
-| T-6.5.01 | FOUND | `frontend/src/__tests__/offline-banner.test.tsx` | chat locked when offline |
-| T-6.5.02 | FOUND | `frontend/src/__tests__/offline-banner.test.tsx` | reconnect button |
-| T-6.6.01 | FOUND | `frontend/src/__tests__/connection-indicator.test.tsx` | online/offline indicator states |
+| T-3.6.01 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update nodes_deleted — ERROR (DEF-002) |
+| T-3.6.02 | FOUND | `services/gateway/apps/websocket/tests/test_consumers.py` | board_update source=ai — PASS |
+| T-6.5.01 | FOUND | `frontend/src/__tests__/offline-banner.test.tsx` | PASS |
+| T-6.5.02 | FOUND | `frontend/src/__tests__/offline-banner.test.tsx` | PASS |
+| T-6.6.01 | FOUND | `frontend/src/__tests__/connection-indicator.test.tsx` | PASS |
 
-*All 26 test matrix entries are implemented. Failures are test infrastructure, not missing tests.*
+*All 26 test matrix entries are implemented. 11 of 32 backend consumer tests ERROR due to test infrastructure (DEF-002), not missing or incorrect test code.*
 
 ---
 
@@ -95,31 +101,27 @@ All 26 test implementations verified in cycle 2 remain present and unchanged. Th
 - **Status:** RESOLVED
 - **Fix applied:** Ralph consolidated DB setup into single `@database_sync_to_async` blocks
 
-### DEF-002: Backend consumer tests fail due to PostgreSQL test DB lifecycle issues in Docker
+### DEF-002: Backend consumer tests ERROR due to serialized_rollback deserialization conflict
 
 - **Severity:** Critical
-- **Stories:** US-001, US-002, US-003, US-004, US-005, US-007
-- **File(s):** `services/gateway/conftest.py`, `services/gateway/gateway/settings/test.py`, `docker-compose.test.yml`
+- **Stories:** US-001, US-002, US-004, US-005, US-007
+- **File(s):** `services/gateway/conftest.py`
 - **Expected (per spec):** All 32 backend consumer tests pass when run via `docker compose -f docker-compose.test.yml run --rm python-tests pytest`
-- **Actual (in code):** 5 tests FAIL + 12 tests ERROR. The error is `django.db.utils.OperationalError: connection to server at "postgres" ... FATAL: database "test_ziqreq_test" does not exist`. Test teardown also warns `ProgrammingError('database "test_ziqreq_test" does not exist')`.
+- **Actual (in code):** 11 tests ERROR at setup. `IntegrityError: duplicate key value violates unique constraint "auth_permission_pkey"` in `deserialize_db_from_string()` called from `TransactionTestCase._fixture_setup()`.
 - **Cycle history:**
-  - Cycle 0: FK constraint violations from multi-connection async DB setup → Fixed by consolidating DB helpers
-  - Cycle 1: `django_content_type` duplicate key during TransactionTestCase teardown → Added gateway conftest with `keepdb=True` + `serialized_rollback`
-  - Cycle 2: `auth_permission_pkey` duplicate key because `keepdb=True` skips DB serialization → Identified that keepdb must be removed
-  - Cycle 3: Removed `keepdb=True` and `TEST` dict from settings → `test_ziqreq_test` DB disappears mid-run, causing OperationalError (REGRESSED: +5 FAILs)
-- **Failed tests (5 FAIL):**
-  - `test_subscribe_idea_access_denied` (US-002)
-  - `test_chat_message_broadcast_via_view_helper` (US-003)
-  - `test_board_update_broadcast_source_ai` (US-004)
+  - Cycle 0: FK constraint violations → Fixed by consolidating DB helpers
+  - Cycle 1: `django_content_type_pkey` during flush → Added keepdb + serialized_rollback
+  - Cycle 2: `auth_permission_pkey` because keepdb skips serialization → Identified keepdb issue
+  - Cycle 3: Removed keepdb → `test_ziqreq_test` DB disappears mid-run → ESCALATED
+  - Human fix: Restored keepdb + manual serialization + Docker init script → Eliminated FAILs, 11 ERRORs remain
+- **Error tests (11 ERROR at setup):**
+  - `test_error_on_missing_message_type` (US-001)
+  - `test_subscribe_idea_as_owner`, `test_subscribe_idea_as_collaborator`, `test_subscribe_idea_nonexistent`, `test_subscribe_idea_invalid_uuid` (US-002)
+  - `test_unsubscribe_idea_not_subscribed` (US-002)
+  - `test_board_update_not_received_by_unsubscribed`, `test_board_update_broadcast_node_delete` (US-004)
+  - `test_board_selection_deselect_null_node`, `test_board_lock_change_broadcast` (US-005)
   - `test_presence_offline_on_unsubscribe` (US-007)
-  - `test_presence_update_client_message` (US-007)
-- **Error tests (12 ERROR at setup):**
-  - `test_error_on_unknown_message_type`, `test_error_on_missing_message_type` (US-001)
-  - `test_subscribe_idea_as_owner` (US-002)
-  - `test_chat_message_broadcast_to_subscriber`, `test_chat_message_broadcast_via_view_helper` (US-003)
-  - `test_board_update_broadcast_to_subscriber`, `test_board_update_not_received_by_unsubscribed`, `test_board_update_broadcast_source_ai` (US-004)
-  - `test_board_selection_broadcast_excludes_sender`, `test_board_selection_deselect_null_node` (US-005)
-  - `test_presence_multi_tab_dedup`, `test_presence_update_client_message` (US-007)
+- **Suggested Fix:** Remove `serialized_rollback` entirely. Replace the `django_db_serialized_rollback` autouse fixture with a custom fixture that TRUNCATEs only application tables (not Django system tables like `auth_permission`, `django_content_type`, `django_migrations`) between TransactionTestCase tests. This avoids the problematic `deserialize_db_from_string()` code path while still providing clean test isolation. See bugfix PRD for implementation details.
 
 ---
 
@@ -151,10 +153,10 @@ All 26 test implementations verified in cycle 2 remain present and unchanged. Th
 |-------|---------|--------|---------|
 | Frontend TypeScript | `cd frontend && npx tsc --noEmit` | PASS | Clean |
 | Backend Lint (Ruff) | `ruff check services/` | PASS | Clean |
-| Backend Tests (pytest) | `docker compose -f ... python-tests pytest` | FAIL | 137 passed, 5 failed, 12 errors |
+| Backend Tests (pytest) | `docker compose -f ... python-tests pytest` | FAIL | 131 passed, 0 failed, 11 errors |
 | Frontend Tests (vitest) | `docker compose -f ... node-tests npx vitest run` | PASS | All node tests pass |
 | Backend mypy (optional) | `mypy services/` | FAIL (optional) | Pre-existing: duplicate module "events" — not M6-related |
-| Frontend ESLint (optional) | `cd frontend && npx eslint src/` | FAIL (optional) | Pre-existing: 2 unused-var in test files — not M6-related |
+| Frontend ESLint (optional) | `cd frontend && npx eslint src/` | FAIL (optional) | Pre-existing: 2 unused-var in test files, 1 warning in FreeTextNode.tsx — not M6-related |
 
 ### Gate Check Results
 
@@ -206,60 +208,6 @@ All 26 test implementations verified in cycle 2 remain present and unchanged. Th
 
 ---
 
-## Escalation Report
-
-**Milestone:** 6 — WebSocket & Real-Time
-**Bugfix cycles completed:** 3
-**Escalation reason:** Milestone has failed QA 3 times without resolution. Each bugfix cycle shifts the error to a different failure mode in the same test infrastructure layer without converging on a fix.
-
-### Persistent Defects
-
-**DEF-002** has survived all 3 bugfix cycles, mutating each time:
-
-| Cycle | Error | Fix Applied | Result |
-|-------|-------|-------------|--------|
-| 0 | `IntegrityError: FK constraint` on multi-connection async DB setup | Consolidated DB helpers into single `@database_sync_to_async` blocks | Reduced from 22 to 13 affected |
-| 1 | `IntegrityError: django_content_type_pkey` during TransactionTestCase teardown flush | Added `conftest.py` with `keepdb=True` + `django_db_serialized_rollback` | Changed error type, 12 affected |
-| 2 | `IntegrityError: auth_permission_pkey` because `keepdb=True` skips serialization | Removed `keepdb=True`, removed `TEST` dict from settings | REGRESSED to 17 affected (5 FAIL + 12 ERROR) |
-| 3 (current) | `OperationalError: database "test_ziqreq_test" does not exist` mid-run | — | **ESCALATION** |
-
-### Root Cause Analysis
-
-The fundamental issue is the interaction between five layers that Ralph cannot safely untangle through iterative bugfixes:
-
-1. **pytest-asyncio async mode** — Consumer tests use `@pytest.mark.asyncio` + `@pytest.mark.django_db(transaction=True)`, requiring `TransactionTestCase`. The root `pyproject.toml` does not set `asyncio_mode`; the gateway `pyproject.toml` sets `asyncio_mode = "auto"`. When running from the Docker container root, it's unclear which config takes precedence.
-
-2. **Django TransactionTestCase + serialized_rollback** — `serialized_rollback=True` (via the `django_db_serialized_rollback` fixture) is meant to restore DB state from a serialized snapshot instead of flushing. This requires the snapshot to exist (created during `setup_databases` with `keepdb=False`). But the deserialization process itself can fail on PostgreSQL due to auto-increment PKs that conflict with existing rows.
-
-3. **pytest-django DB lifecycle** — Without `keepdb=True`, pytest-django creates `test_ziqreq_test` at session start and destroys it at session end. During the run, `TransactionTestCase` teardown should only flush data, not drop the DB. The `database "test_ziqreq_test" does not exist` error suggests the DB is being dropped or the connection is being redirected mid-run — possibly by `TransactionTestCase._fixture_teardown` when `serialized_rollback` encounters an error.
-
-4. **Docker PostgreSQL** — The test DB `ziqreq_test` is the main DB in Docker (`POSTGRES_DB: ziqreq_test`). Django creates `test_ziqreq_test` as a separate DB. If `serialized_rollback` fails and Django falls back to `DESTROY DATABASE`, it could drop `test_ziqreq_test` during teardown of early tests, leaving subsequent tests unable to connect.
-
-5. **Async DB connection management** — Django Channels' `database_sync_to_async` creates DB connections in async contexts. These connections may reference `test_ziqreq_test` but get a stale reference if the DB is recreated or the connection pool is invalidated.
-
-**Why the cycle is not converging:**
-- [x] Defect fix introduces new defects (whack-a-mole) — Each fix changes the error type
-- [x] Defect is in shared infrastructure that Ralph cannot safely modify — The test DB lifecycle is controlled by pytest-django internals, Django's `TransactionTestCase`, and Docker compose
-- [ ] Spec is contradictory or impossible to satisfy
-- [x] Fix requires architectural changes beyond Ralph's scope — Needs restructuring of test infrastructure (see Recommendation)
-- [x] Test environment differs from expected environment — Docker PostgreSQL + async + TransactionTestCase is an uncommon and fragile combination
-
-### Recommendation
-
-**Human intervention required.** The application code for all 10 user stories is correct and complete. The defect is entirely in the test infrastructure for async Django Channels tests running against PostgreSQL in Docker. Specific recommended approaches (in priority order):
-
-1. **Switch consumer tests to use `InMemoryChannelLayer` + mock DB** — Instead of hitting real PostgreSQL, mock the DB access in consumer tests. The consumer logic itself doesn't require a real DB for most tests; only the `_check_idea_access` and `_broadcast_*` helpers need it. This sidesteps the TransactionTestCase/PostgreSQL interaction entirely.
-
-2. **Use `pytest-django` `--reuse-db` flag** with a pre-populated test database — Create the test DB once with a Docker init script, then use `--reuse-db` to skip creation/destruction. This avoids the `setup_databases`/`teardown_databases` lifecycle that's causing issues.
-
-3. **Isolate consumer tests into a separate pytest run** — Run consumer tests in their own pytest invocation with different settings (e.g., SQLite in-memory, or a dedicated PostgreSQL test DB with `keepdb=True` and no `serialized_rollback`). Other tests run normally. This prevents interaction between sync and async test teardown.
-
-4. **Pin pytest-django and pytest-asyncio versions** and investigate the specific version combination that works — The interaction between `pytest-asyncio 0.26.0`, `pytest-django 4.12.0`, and `Django 5.2.12` may have specific bugs. Check issue trackers for known incompatibilities.
-
-5. **Replace `TransactionTestCase` with `TestCase` where possible** — Tests that don't actually need transaction-level isolation (most consumer tests only need `database_sync_to_async` for setup, not for transactional behavior) could potentially use `@pytest.mark.django_db` without `transaction=True`, though this may require changes to how `WebsocketCommunicator` works with the ASGI app.
-
----
-
 ## Regression Tests
 
 These items must continue to work after future milestones are merged:
@@ -301,10 +249,10 @@ These items must continue to work after future milestones are merged:
 
 ## Verdict
 
-- **Result:** ESCALATE
-- **Defects found:** 1 active (DEF-002 — Critical: test infrastructure failure across 3 bugfix cycles), 1 resolved (DEF-001)
+- **Result:** FAIL
+- **Defects found:** 1 active (DEF-002 — Critical: 11 test ERRORs from serialized_rollback deserialization conflict), 1 resolved (DEF-001)
 - **Deviations found:** 2 (DEV-001, DEV-002 — both minor, non-blocking)
-- **Bugfix PRD required:** NO (escalation — cycle limit reached)
-- **Bugfix cycle:** 3 (FINAL)
+- **Bugfix PRD required:** YES
+- **Bugfix cycle:** Post-escalation human fix (cycle 4)
 
-**Application code is correct.** All 10 user stories are fully implemented and functionally sound. The sole blocking issue is the test infrastructure for async Django Channels consumer tests running against PostgreSQL in Docker. Human intervention is required to restructure the test setup (see Escalation Report > Recommendation).
+**Application code is correct.** All 10 user stories are fully implemented and functionally sound. The human fix resolved 6 of 17 affected tests (from cycle 3). The remaining 11 ERRORs have a clear root cause: `serialized_rollback`'s `deserialize_db_from_string()` inserts into non-empty tables. The bugfix PRD below targets this specific mechanism.
