@@ -211,6 +211,18 @@
     "T-3.6.02": {
       "file": "services/gateway/apps/websocket/tests/test_consumers.py",
       "function": "test_board_update_broadcast_source_ai"
+    },
+    "T-3.5.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_selection_broadcast_excludes_sender"
+    },
+    "T-3.5.02": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_selection_not_subscribed_error"
+    },
+    "T-3.5.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_board_selection_deselect_null_node"
     }
   }
 }

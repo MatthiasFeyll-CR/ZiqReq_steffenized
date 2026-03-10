@@ -711,3 +711,158 @@ async def test_board_update_broadcast_source_ai():
     assert response["payload"]["source"] == "ai"
 
     await communicator.disconnect()
+
+
+# ---- US-005: Board awareness events tests ----
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_selection_broadcast_excludes_sender():
+    """T-3.5.01: board_selection from client is broadcast to other subscribers, not sender."""
+    owner = await _create_user(display_name="Owner")
+    other = await _create_user(display_name="Other")
+    idea = await _create_idea(owner_id=owner.id)
+    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    app = _make_application()
+
+    # Two clients subscribe
+    comm_sender = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
+    comm_receiver = WebsocketCommunicator(app, f"/ws/?token={other.id}")
+
+    connected1, _ = await comm_sender.connect()
+    connected2, _ = await comm_receiver.connect()
+    assert connected1 and connected2
+
+    await comm_sender.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await comm_sender.receive_nothing(timeout=0.5) is True
+    await comm_receiver.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await comm_receiver.receive_nothing(timeout=0.5) is True
+
+    # Sender selects a node
+    node_id = str(uuid.uuid4())
+    await comm_sender.send_json_to({
+        "type": "board_selection",
+        "idea_id": str(idea.id),
+        "payload": {"node_id": node_id},
+    })
+
+    # Receiver should get the selection event
+    response = await comm_receiver.receive_json_from(timeout=2)
+    assert response["type"] == "board_selection"
+    assert response["idea_id"] == str(idea.id)
+    assert response["payload"]["node_id"] == node_id
+    assert response["payload"]["user"]["id"] == str(owner.id)
+    assert response["payload"]["user"]["display_name"] == "Owner"
+
+    # Sender should NOT receive the echo
+    assert await comm_sender.receive_nothing(timeout=0.5) is True
+
+    await comm_sender.disconnect()
+    await comm_receiver.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_selection_deselect_null_node():
+    """T-3.5.03: board_selection with node_id=null broadcasts deselection."""
+    owner = await _create_user(display_name="Owner")
+    other = await _create_user(display_name="Other")
+    idea = await _create_idea(owner_id=owner.id)
+    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    app = _make_application()
+
+    comm_sender = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
+    comm_receiver = WebsocketCommunicator(app, f"/ws/?token={other.id}")
+
+    connected1, _ = await comm_sender.connect()
+    connected2, _ = await comm_receiver.connect()
+    assert connected1 and connected2
+
+    await comm_sender.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await comm_sender.receive_nothing(timeout=0.5) is True
+    await comm_receiver.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await comm_receiver.receive_nothing(timeout=0.5) is True
+
+    # Send deselection (node_id = null)
+    await comm_sender.send_json_to({
+        "type": "board_selection",
+        "idea_id": str(idea.id),
+        "payload": {"node_id": None},
+    })
+
+    response = await comm_receiver.receive_json_from(timeout=2)
+    assert response["type"] == "board_selection"
+    assert response["payload"]["node_id"] is None
+    assert response["payload"]["user"]["id"] == str(owner.id)
+
+    await comm_sender.disconnect()
+    await comm_receiver.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_selection_not_subscribed_error():
+    """T-3.5.02: board_selection fails if not subscribed to idea."""
+    user = await _create_user()
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    await communicator.send_json_to({
+        "type": "board_selection",
+        "idea_id": str(uuid.uuid4()),
+        "payload": {"node_id": str(uuid.uuid4())},
+    })
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "error"
+    assert "Not subscribed" in response["payload"]["message"]
+
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_board_lock_change_broadcast():
+    """T-3.5.03b: board_lock_change broadcast via view helper when lock toggled."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await communicator.receive_nothing(timeout=0.5) is True
+
+    node = await _create_board_node(idea.id, title="Lock Test", is_locked=False)
+
+    @database_sync_to_async
+    def broadcast_lock_change():
+        from apps.board.views import _broadcast_board_lock_change
+
+        _broadcast_board_lock_change(
+            idea.id,
+            node.id,
+            True,
+            {"id": str(user.id), "display_name": user.display_name},
+        )
+
+    await broadcast_lock_change()
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "board_lock_change"
+    assert response["idea_id"] == str(idea.id)
+    assert response["payload"]["node_id"] == str(node.id)
+    assert response["payload"]["is_locked"] is True
+    assert response["payload"]["changed_by"]["id"] == str(user.id)
+
+    await communicator.disconnect()

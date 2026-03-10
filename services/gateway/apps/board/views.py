@@ -117,6 +117,35 @@ def _broadcast_board_update(
         logger.exception("Failed to broadcast board_update for idea %s", idea_id)
 
 
+def _broadcast_board_lock_change(
+    idea_id: str,
+    node_id: str,
+    is_locked: bool,
+    changed_by: dict,
+) -> None:
+    """Broadcast a board_lock_change event to the idea's WebSocket group."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"idea_{idea_id}"
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "board_lock_change",
+                "idea_id": str(idea_id),
+                "payload": {
+                    "node_id": str(node_id),
+                    "is_locked": is_locked,
+                    "changed_by": changed_by,
+                },
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast board_lock_change for idea %s", idea_id)
+
+
 def _node_to_broadcast_dict(node) -> dict:
     """Serialize a BoardNode to a dict for WebSocket broadcast."""
     return {
@@ -306,6 +335,8 @@ def _update_node(request: Request, idea_id: str, node_id: str) -> Response:
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+    lock_changed = "is_locked" in data and data["is_locked"] != node.is_locked
+
     for field, value in data.items():
         if field == "parent_id":
             setattr(node, "parent_id", value)
@@ -321,6 +352,14 @@ def _update_node(request: Request, idea_id: str, node_id: str) -> Response:
         nodes_updated=[_node_to_broadcast_dict(node)],
         source="user",
     )
+
+    if lock_changed:
+        _broadcast_board_lock_change(
+            idea.id,
+            node.id,
+            node.is_locked,
+            {"id": str(user.id), "display_name": getattr(user, "display_name", "")},
+        )
 
     return Response(response_serializer.data)
 
