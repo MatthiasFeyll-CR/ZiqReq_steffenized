@@ -98,3 +98,22 @@ Started: 2026-03-10T03:55:44+0100
   - `_broadcast_board_lock_change` follows same fire-and-forget pattern as `_broadcast_board_update` and `_broadcast_chat_message`
   - The user info in selection payload is populated server-side from `self.user_id` / `self.user_display_name` (not trusted from client)
 ---
+
+## US-006: Frontend WebSocket connection manager — connect on auth, reconnect with exponential backoff, session-level
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/store/websocket-slice.ts, frontend/src/hooks/use-websocket.ts (new), frontend/src/app/providers.tsx, frontend/src/__tests__/websocket-slice.test.ts (new), frontend/src/__tests__/use-websocket.test.ts (new), .ralph/test-manifest.json
+- Tests: 16 new tests passed (8 websocket-slice, 8 use-websocket hook). Full suite: 138 Python tests passed, 207 Node tests passed. TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - `websocket-slice.ts` stores `connectionState` ('online'|'offline') and `reconnectCountdown` (seconds until next retry or null)
+  - `useWebSocket` hook manages the WebSocket lifecycle: connects when `isAuthenticated && user`, disconnects on logout/unmount
+  - Token for WebSocket is `user.id` (in dev bypass mode, backend treats token as user UUID directly)
+  - `WebSocketManager` component in `providers.tsx` calls `useWebSocket()` — mounted inside AuthProvider so auth context is available
+  - Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (capped) — backoff resets to 1s on successful open
+  - `intentionalCloseRef` prevents reconnection when user explicitly disconnects (logout) vs unexpected close
+  - Cleanup on unmount: clears both reconnect timeout and countdown interval timers (LOOP-004 safety)
+  - `env.wsBaseUrl` from `VITE_WS_BASE_URL` (default `/ws`) — hook builds full ws:// URL from window.location for relative paths
+  - react-redux v9 requires `children` as a prop in Provider, not as third createElement argument
+  - MockWebSocket class in tests uses `vi.stubGlobal("WebSocket", MockWebSocket)` for clean test isolation
+  - To test escalating backoff, simulate close without open (open resets backoff to initial value)
+---
