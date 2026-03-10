@@ -5,6 +5,7 @@ import {
   setConnectionState,
   setReconnectCountdown,
 } from "@/store/websocket-slice";
+import { updatePresence } from "@/store/presence-slice";
 import { env } from "@/config/env";
 
 const INITIAL_BACKOFF_MS = 1000;
@@ -101,6 +102,23 @@ export function useWebSocket() {
         dispatch(setConnectionState("online"));
       };
 
+      ws.onmessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "presence_update" && data.idea_id && data.payload) {
+            dispatch(
+              updatePresence({
+                idea_id: data.idea_id,
+                user: data.payload.user,
+                state: data.payload.state,
+              }),
+            );
+          }
+        } catch {
+          // Ignore non-JSON messages
+        }
+      };
+
       ws.onclose = () => {
         wsRef.current = null;
         dispatch(setConnectionState("offline"));
@@ -147,5 +165,11 @@ export function useWebSocket() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user?.id]);
 
-  return { wsRef, disconnect };
+  const sendMessage = useCallback((msg: Record<string, unknown>) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(msg));
+    }
+  }, []);
+
+  return { wsRef, disconnect, sendMessage };
 }

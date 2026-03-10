@@ -235,6 +235,22 @@
     "LOOP-004": {
       "file": "frontend/src/__tests__/use-websocket.test.ts",
       "function": "backoff caps at 30 seconds"
+    },
+    "T-6.3.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_presence_broadcast_on_subscribe"
+    },
+    "T-6.3.02": {
+      "file": "frontend/src/__tests__/presence-indicators.test.tsx",
+      "function": "renders avatars for online users"
+    },
+    "T-6.3.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_presence_offline_on_unsubscribe"
+    },
+    "T-6.3.04": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_presence_update_client_message"
     }
   }
 }

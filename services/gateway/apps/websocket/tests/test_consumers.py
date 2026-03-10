@@ -10,12 +10,29 @@ from django.test import override_settings
 from apps.authentication.models import User
 from apps.board.models import BoardNode
 from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator
+from apps.websocket.consumers import _presence_registry
 from apps.websocket.middleware import WebSocketAuthMiddleware
 from apps.websocket.routing import websocket_urlpatterns
 
 
+@pytest.fixture(autouse=True)
+def _clear_presence_registry():
+    """Clear the global presence registry before each test."""
+    _presence_registry.clear()
+    yield
+    _presence_registry.clear()
+
+
 def _make_application():
     return WebSocketAuthMiddleware(URLRouter(websocket_urlpatterns))
+
+
+async def _subscribe_and_drain(communicator, idea_id: str) -> None:
+    """Subscribe to idea and drain the resulting presence_update message."""
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": idea_id})
+    # Drain the presence_update broadcast
+    resp = await communicator.receive_json_from(timeout=2)
+    assert resp["type"] == "presence_update"
 
 
 @database_sync_to_async
@@ -156,9 +173,7 @@ async def test_subscribe_idea_as_owner():
     connected, _ = await communicator.connect()
     assert connected is True
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    # No error response expected — successful subscribe is silent
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     await communicator.disconnect()
 
@@ -177,8 +192,7 @@ async def test_subscribe_idea_as_co_owner():
     connected, _ = await communicator.connect()
     assert connected is True
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     await communicator.disconnect()
 
@@ -198,8 +212,7 @@ async def test_subscribe_idea_as_collaborator():
     connected, _ = await communicator.connect()
     assert connected is True
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     await communicator.disconnect()
 
@@ -301,12 +314,13 @@ async def test_unsubscribe_idea():
     assert connected is True
 
     # Subscribe first
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
-    # Unsubscribe
+    # Unsubscribe — will broadcast offline presence to self (only member)
     await communicator.send_json_to({"type": "unsubscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    resp = await communicator.receive_json_from(timeout=2)
+    assert resp["type"] == "presence_update"
+    assert resp["payload"]["state"] == "offline"
 
     await communicator.disconnect()
 
@@ -344,10 +358,8 @@ async def test_disconnect_cleans_up_groups():
     assert connected is True
 
     # Subscribe to two ideas
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea1.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea2.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea1.id))
+    await _subscribe_and_drain(communicator, str(idea2.id))
 
     # Disconnect should clean up without errors
     await communicator.disconnect()
@@ -370,8 +382,7 @@ async def test_chat_message_broadcast_to_subscriber():
     assert connected is True
 
     # Subscribe to idea group
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     # Simulate a group_send (as the chat view would do)
     channel_layer = get_channel_layer()
@@ -452,8 +463,7 @@ async def test_chat_message_broadcast_via_view_helper():
     assert connected is True
 
     # Subscribe to idea group
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     # Create a chat message in DB and broadcast via the view helper
     @database_sync_to_async
@@ -514,8 +524,7 @@ async def test_board_update_broadcast_to_subscriber():
     assert connected is True
 
     # Subscribe to idea group
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     # Simulate a board_update group_send
     channel_layer = get_channel_layer()
@@ -595,8 +604,7 @@ async def test_board_update_broadcast_via_view_helper():
     connected, _ = await communicator.connect()
     assert connected is True
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     @database_sync_to_async
     def create_node_and_broadcast():
@@ -643,8 +651,7 @@ async def test_board_update_broadcast_node_delete():
     connected, _ = await communicator.connect()
     assert connected is True
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     node = await _create_board_node(idea.id, title="To Delete")
 
@@ -682,8 +689,7 @@ async def test_board_update_broadcast_source_ai():
     connected, _ = await communicator.connect()
     assert connected is True
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     @database_sync_to_async
     def create_ai_node_and_broadcast():
@@ -735,10 +741,10 @@ async def test_board_selection_broadcast_excludes_sender():
     connected2, _ = await comm_receiver.connect()
     assert connected1 and connected2
 
-    await comm_sender.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await comm_sender.receive_nothing(timeout=0.5) is True
-    await comm_receiver.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await comm_receiver.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(comm_sender, str(idea.id))
+    await _subscribe_and_drain(comm_receiver, str(idea.id))
+    # Drain cross-presence: sender gets receiver's online
+    await comm_sender.receive_json_from(timeout=2)
 
     # Sender selects a node
     node_id = str(uuid.uuid4())
@@ -781,10 +787,10 @@ async def test_board_selection_deselect_null_node():
     connected2, _ = await comm_receiver.connect()
     assert connected1 and connected2
 
-    await comm_sender.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await comm_sender.receive_nothing(timeout=0.5) is True
-    await comm_receiver.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await comm_receiver.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(comm_sender, str(idea.id))
+    await _subscribe_and_drain(comm_receiver, str(idea.id))
+    # Drain cross-presence: sender gets receiver's online
+    await comm_sender.receive_json_from(timeout=2)
 
     # Send deselection (node_id = null)
     await comm_sender.send_json_to({
@@ -840,8 +846,7 @@ async def test_board_lock_change_broadcast():
     connected, _ = await communicator.connect()
     assert connected is True
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
-    assert await communicator.receive_nothing(timeout=0.5) is True
+    await _subscribe_and_drain(communicator, str(idea.id))
 
     node = await _create_board_node(idea.id, title="Lock Test", is_locked=False)
 
@@ -866,3 +871,183 @@ async def test_board_lock_change_broadcast():
     assert response["payload"]["changed_by"]["id"] == str(user.id)
 
     await communicator.disconnect()
+
+
+# ---- US-007: Presence tracking tests ----
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_presence_broadcast_on_subscribe():
+    """T-6.3.01: Subscribe to idea broadcasts presence_update 'online' to all subscribers."""
+    owner = await _create_user(display_name="Owner")
+    other = await _create_user(display_name="Other")
+    idea = await _create_idea(owner_id=owner.id)
+    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    app = _make_application()
+
+    # First user subscribes
+    comm1 = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
+    connected1, _ = await comm1.connect()
+    assert connected1
+    await comm1.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    # Owner gets their own presence broadcast
+    resp1 = await comm1.receive_json_from(timeout=2)
+    assert resp1["type"] == "presence_update"
+    assert resp1["payload"]["user"]["id"] == str(owner.id)
+    assert resp1["payload"]["state"] == "online"
+
+    # Second user subscribes
+    comm2 = WebsocketCommunicator(app, f"/ws/?token={other.id}")
+    connected2, _ = await comm2.connect()
+    assert connected2
+    await comm2.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+
+    # Both users should receive the other's presence
+    resp_other = await comm1.receive_json_from(timeout=2)
+    assert resp_other["type"] == "presence_update"
+    assert resp_other["payload"]["user"]["id"] == str(other.id)
+    assert resp_other["payload"]["state"] == "online"
+
+    resp_self = await comm2.receive_json_from(timeout=2)
+    assert resp_self["type"] == "presence_update"
+    assert resp_self["payload"]["user"]["id"] == str(other.id)
+    assert resp_self["payload"]["state"] == "online"
+
+    await comm1.disconnect()
+    await comm2.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_presence_multi_tab_dedup():
+    """T-6.3.02: Same user in 2 tabs shows single presence, offline only after both disconnect."""
+    user = await _create_user(display_name="MultiTab User")
+    other = await _create_user(display_name="Observer")
+    idea = await _create_idea(owner_id=user.id)
+    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    app = _make_application()
+
+    # Observer subscribes
+    comm_observer = WebsocketCommunicator(app, f"/ws/?token={other.id}")
+    connected_obs, _ = await comm_observer.connect()
+    assert connected_obs
+    await comm_observer.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    # Receive observer's own presence
+    resp = await comm_observer.receive_json_from(timeout=2)
+    assert resp["payload"]["user"]["id"] == str(other.id)
+
+    # Tab 1 subscribes — observer gets online
+    comm_tab1 = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+    connected1, _ = await comm_tab1.connect()
+    assert connected1
+    await comm_tab1.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    resp_online = await comm_observer.receive_json_from(timeout=2)
+    assert resp_online["payload"]["user"]["id"] == str(user.id)
+    assert resp_online["payload"]["state"] == "online"
+    # Drain tab1's own presence message
+    await comm_tab1.receive_json_from(timeout=2)
+
+    # Tab 2 subscribes — should NOT generate another online event (already present)
+    comm_tab2 = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+    connected2, _ = await comm_tab2.connect()
+    assert connected2
+    await comm_tab2.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    # Tab2 is the same user — presence_registry already has them, so no new online broadcast
+    assert await comm_observer.receive_nothing(timeout=1) is True
+
+    # Tab 1 disconnects — user still has tab 2, so no offline broadcast
+    await comm_tab1.disconnect()
+    assert await comm_observer.receive_nothing(timeout=1) is True
+
+    # Tab 2 disconnects — last tab, should broadcast offline
+    await comm_tab2.disconnect()
+    resp_offline = await comm_observer.receive_json_from(timeout=2)
+    assert resp_offline["type"] == "presence_update"
+    assert resp_offline["payload"]["user"]["id"] == str(user.id)
+    assert resp_offline["payload"]["state"] == "offline"
+
+    await comm_observer.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_presence_offline_on_unsubscribe():
+    """T-6.3.03: Unsubscribe broadcasts offline presence for user."""
+    owner = await _create_user(display_name="Owner")
+    other = await _create_user(display_name="Observer")
+    idea = await _create_idea(owner_id=owner.id)
+    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    app = _make_application()
+
+    comm_owner = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
+    comm_other = WebsocketCommunicator(app, f"/ws/?token={other.id}")
+
+    connected1, _ = await comm_owner.connect()
+    connected2, _ = await comm_other.connect()
+    assert connected1 and connected2
+
+    # Both subscribe
+    await comm_owner.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    await comm_owner.receive_json_from(timeout=2)  # own presence
+
+    await comm_other.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    # Drain presence messages: other's own + owner receives other's
+    await comm_other.receive_json_from(timeout=2)
+    await comm_owner.receive_json_from(timeout=2)
+
+    # Owner unsubscribes
+    await comm_owner.send_json_to({"type": "unsubscribe_idea", "idea_id": str(idea.id)})
+
+    # Observer should receive offline presence
+    resp = await comm_other.receive_json_from(timeout=2)
+    assert resp["type"] == "presence_update"
+    assert resp["payload"]["user"]["id"] == str(owner.id)
+    assert resp["payload"]["state"] == "offline"
+
+    await comm_owner.disconnect()
+    await comm_other.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_presence_update_client_message():
+    """T-6.3.04: Client presence_update message broadcasts to idea group."""
+    owner = await _create_user(display_name="Owner")
+    other = await _create_user(display_name="Observer")
+    idea = await _create_idea(owner_id=owner.id)
+    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    app = _make_application()
+
+    comm_sender = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
+    comm_receiver = WebsocketCommunicator(app, f"/ws/?token={other.id}")
+
+    connected1, _ = await comm_sender.connect()
+    connected2, _ = await comm_receiver.connect()
+    assert connected1 and connected2
+
+    await comm_sender.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    await comm_sender.receive_json_from(timeout=2)  # own presence
+
+    await comm_receiver.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    await comm_receiver.receive_json_from(timeout=2)  # own presence
+    await comm_sender.receive_json_from(timeout=2)  # other's presence
+
+    # Send presence_update from client
+    await comm_sender.send_json_to({
+        "type": "presence_update",
+        "payload": {"state": "active", "idea_id": str(idea.id)},
+    })
+
+    # Receiver should get presence_update with state=online (active maps to online)
+    resp = await comm_receiver.receive_json_from(timeout=2)
+    assert resp["type"] == "presence_update"
+    assert resp["payload"]["user"]["id"] == str(owner.id)
+    assert resp["payload"]["state"] == "online"
+
+    await comm_sender.disconnect()
+    await comm_receiver.disconnect()

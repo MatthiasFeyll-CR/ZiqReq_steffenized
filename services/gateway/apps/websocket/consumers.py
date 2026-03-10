@@ -1,10 +1,15 @@
 import logging
 import uuid
+from collections import defaultdict
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 logger = logging.getLogger(__name__)
+
+# Server-side presence registry: group_name -> {user_id: set(channel_names)}
+# Used for multi-tab dedup: a user appears once in presence even if connected from multiple tabs.
+_presence_registry: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
 
 
 class IdeaConsumer(AsyncJsonWebsocketConsumer):
@@ -29,14 +34,16 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         logger.info("WebSocket connected: user=%s connection=%s", self.user_id, self.connection_id)
 
     async def disconnect(self, close_code):
+        user_id = getattr(self, "user_id", "unknown")
+        connection_id = getattr(self, "connection_id", "unknown")
+
         for group_name in list(getattr(self, "subscribed_groups", set())):
             try:
+                await self._remove_presence(group_name)
                 await self.channel_layer.group_discard(group_name, self.channel_name)
             except Exception:
                 logger.exception("Error leaving group %s on disconnect", group_name)
 
-        user_id = getattr(self, "user_id", "unknown")
-        connection_id = getattr(self, "connection_id", "unknown")
         logger.info("WebSocket disconnected: user=%s connection=%s code=%s", user_id, connection_id, close_code)
 
     async def receive_json(self, content, **kwargs):
@@ -88,6 +95,10 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
 
         await self.channel_layer.group_add(group_name, self.channel_name)
         self.subscribed_groups.add(group_name)
+
+        # Add to presence registry and broadcast if this is the user's first tab on this idea
+        await self._add_presence(group_name)
+
         logger.info(
             "User %s subscribed to %s (connection=%s)",
             self.user_id, group_name, self.connection_id,
@@ -104,12 +115,99 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         if group_name not in self.subscribed_groups:
             return
 
+        await self._remove_presence(group_name)
         await self.channel_layer.group_discard(group_name, self.channel_name)
         self.subscribed_groups.discard(group_name)
         logger.info(
             "User %s unsubscribed from %s (connection=%s)",
             self.user_id, group_name, self.connection_id,
         )
+
+    # ---- Presence tracking ----
+
+    async def handle_presence_update(self, content: dict) -> None:
+        """Handle client presence_update (e.g. state='active')."""
+        payload = content.get("payload", {})
+        idea_id = payload.get("idea_id")
+        if not idea_id:
+            await self.send_json({"type": "error", "payload": {"message": "Missing idea_id in payload"}})
+            return
+
+        group_name = f"idea_{idea_id}"
+        if group_name not in self.subscribed_groups:
+            await self.send_json({"type": "error", "payload": {"message": "Not subscribed to idea"}})
+            return
+
+        state = payload.get("state", "active")
+        # Broadcast presence update to idea group
+        await self.channel_layer.group_send(
+            group_name,
+            {
+                "type": "presence_update",
+                "idea_id": idea_id,
+                "payload": {
+                    "user": {
+                        "id": self.user_id,
+                        "display_name": self.user_display_name,
+                    },
+                    "state": "online" if state == "active" else state,
+                },
+            },
+        )
+
+    async def _add_presence(self, group_name: str) -> None:
+        """Add this channel to presence registry and broadcast online if first tab."""
+        registry = _presence_registry[group_name]
+        was_present = len(registry.get(self.user_id, set())) > 0
+        registry[self.user_id].add(self.channel_name)
+
+        if not was_present:
+            idea_id = group_name.removeprefix("idea_")
+            await self.channel_layer.group_send(
+                group_name,
+                {
+                    "type": "presence_update",
+                    "idea_id": idea_id,
+                    "payload": {
+                        "user": {
+                            "id": self.user_id,
+                            "display_name": self.user_display_name,
+                        },
+                        "state": "online",
+                    },
+                },
+            )
+
+    async def _remove_presence(self, group_name: str) -> None:
+        """Remove this channel from presence registry and broadcast offline if last tab."""
+        registry = _presence_registry[group_name]
+        channels = registry.get(self.user_id, set())
+        channels.discard(self.channel_name)
+
+        if not channels:
+            # Last tab for this user — remove from registry and broadcast offline
+            registry.pop(self.user_id, None)
+            if not registry:
+                _presence_registry.pop(group_name, None)
+
+            idea_id = group_name.removeprefix("idea_")
+            try:
+                await self.channel_layer.group_send(
+                    group_name,
+                    {
+                        "type": "presence_update",
+                        "idea_id": idea_id,
+                        "payload": {
+                            "user": {
+                                "id": self.user_id,
+                                "display_name": self.user_display_name,
+                            },
+                            "state": "offline",
+                        },
+                    },
+                )
+            except Exception:
+                logger.exception("Error broadcasting offline presence for user=%s group=%s", self.user_id, group_name)
 
     # ---- Board awareness (ephemeral, no persistence) ----
 
@@ -174,6 +272,14 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward board_lock_change group_send to the WebSocket client."""
         await self.send_json({
             "type": "board_lock_change",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
+    async def presence_update(self, event: dict) -> None:
+        """Forward presence_update group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "presence_update",
             "idea_id": event["idea_id"],
             "payload": event["payload"],
         })

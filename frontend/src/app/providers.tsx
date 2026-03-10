@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider as ReduxProvider } from "react-redux";
-import { createElement } from "react";
+import { createContext, createElement, useContext } from "react";
 import { ToastContainer } from "react-toastify";
 import { store } from "../store";
 import { AuthContext } from "../hooks/use-auth";
@@ -18,14 +18,24 @@ const queryClient = new QueryClient({
   },
 });
 
+type SendMessageFn = (msg: Record<string, unknown>) => void;
+const WebSocketContext = createContext<SendMessageFn>(() => {});
+export function useWsSend(): SendMessageFn {
+  return useContext(WebSocketContext);
+}
+
 function AuthProvider({ children }: { children: ReactNode }) {
   const auth = useAuthProvider();
   return createElement(AuthContext.Provider, { value: auth }, children);
 }
 
 function WebSocketManager({ children }: { children: ReactNode }) {
-  useWebSocket();
-  return <>{children}</>;
+  const { sendMessage } = useWebSocket();
+  return (
+    <WebSocketContext.Provider value={sendMessage}>
+      {children}
+    </WebSocketContext.Provider>
+  );
 }
 
 export function Providers({ children }: { children: ReactNode }) {

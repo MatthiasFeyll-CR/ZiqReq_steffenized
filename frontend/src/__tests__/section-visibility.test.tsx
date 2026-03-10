@@ -1,7 +1,10 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import i18n from "@/i18n/config";
+import { presenceReducer } from "@/store/presence-slice";
 import type { Idea } from "@/api/ideas";
 
 // Mock BoardCanvas to avoid React Flow's ResizeObserver dependency in jsdom
@@ -59,12 +62,15 @@ function makeIdea(state: Idea["state"]): Idea {
 
 function renderWorkspace(idea: Idea) {
   vi.mocked(fetchIdea).mockResolvedValue(idea);
+  const store = configureStore({ reducer: { presence: presenceReducer } });
   return render(
-    <MemoryRouter initialEntries={[`/idea/${idea.id}`]}>
-      <Routes>
-        <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
-      </Routes>
-    </MemoryRouter>,
+    <Provider store={store}>
+      <MemoryRouter initialEntries={[`/idea/${idea.id}`]}>
+        <Routes>
+          <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
+        </Routes>
+      </MemoryRouter>
+    </Provider>,
   );
 }
 

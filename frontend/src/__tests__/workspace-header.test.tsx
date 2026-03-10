@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import i18n from "@/i18n/config";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
+import { presenceReducer } from "@/store/presence-slice";
 import type { Idea } from "@/api/ideas";
 
 // Mock patchIdea
@@ -55,16 +58,19 @@ const MOCK_IDEA: Idea = {
 
 function renderHeader(props: Partial<{ idea: Idea; onIdeaUpdate: (idea: Idea) => void; readOnly: boolean }> = {}) {
   const onIdeaUpdate = props.onIdeaUpdate ?? vi.fn();
+  const store = configureStore({ reducer: { presence: presenceReducer } });
   return {
     onIdeaUpdate,
     ...render(
-      <MemoryRouter>
-        <WorkspaceHeader
-          idea={props.idea ?? MOCK_IDEA}
-          onIdeaUpdate={onIdeaUpdate}
-          readOnly={props.readOnly ?? false}
-        />
-      </MemoryRouter>,
+      <Provider store={store}>
+        <MemoryRouter>
+          <WorkspaceHeader
+            idea={props.idea ?? MOCK_IDEA}
+            onIdeaUpdate={onIdeaUpdate}
+            readOnly={props.readOnly ?? false}
+          />
+        </MemoryRouter>
+      </Provider>,
     ),
   };
 }

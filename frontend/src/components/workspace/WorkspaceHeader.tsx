@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { patchIdea, type Idea } from "@/api/ideas";
+import { PresenceIndicators } from "./PresenceIndicators";
 
 interface WorkspaceHeaderProps {
   idea: Idea;
@@ -136,13 +137,8 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
         </SelectContent>
       </Select>
 
-      {/* Presence placeholder */}
-      <div
-        className="shrink-0 flex items-center gap-1 text-muted-foreground text-sm"
-        data-testid="presence-placeholder"
-      >
-        <div className="h-6 w-6 rounded-full bg-muted" />
-      </div>
+      {/* Presence indicators */}
+      <PresenceIndicators ideaId={idea.id} />
     </div>
   );
 }
