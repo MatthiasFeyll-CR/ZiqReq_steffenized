@@ -52,3 +52,19 @@ Started: 2026-03-09T17:27:54+0100
   - Docker test container copies files at build time — must `docker compose -f docker-compose.test.yml down && up -d --build` after changing test files.
   - Mock `useNodesState` must be stateful (using a module-level variable + callback-aware mockSetNodes) for tests that verify state mutations via setNodes callbacks.
 ---
+
+## US-003: Node lock toggle
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoxNode.tsx, frontend/src/components/board/GroupNode.tsx, frontend/src/components/board/FreeTextNode.tsx, frontend/src/components/board/BoardCanvas.tsx, frontend/src/__tests__/board-interactions.test.tsx, frontend/src/__tests__/box-node.test.tsx, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 159 passed (19 test files), including 10 new tests (T-3.2.07 lock toggle tests across BoardCanvas and BoxNode)
+- Learnings for future iterations:
+  - Lock toggle pattern: Each node component accepts `onToggleLock?: (nodeId: string, newLocked: boolean) => void` in its data interface. BoardCanvas injects this callback via `processedNodes` useMemo that maps over nodes before passing to ReactFlow.
+  - `processedNodes` pattern: Use `useMemo` to derive nodes with injected callbacks and computed props (`draggable: !is_locked`) before passing to ReactFlow. This keeps node components pure and BoardCanvas as the single source of truth for lock state management.
+  - Lock + delete protection: `handleDeleteSelected` filters out nodes with `data.is_locked` to prevent locked nodes from being deleted.
+  - FreeTextNode edit prevention: When `is_locked` is true, `handleClick` returns early to prevent entering edit mode.
+  - GroupNode resize prevention: `NodeResizer` has `isVisible` prop — set to `!is_locked` to hide resize handles on locked groups.
+  - ReactFlow mock needs `screenToFlowPosition` for tests that render BoardToolbar (used in handleAddBox).
+  - Capture `nodes` prop from ReactFlow mock to verify `draggable` and injected data props in tests.
+  - `.ralph` directory is gitignored — use `git add -f` for files under it.
+---
