@@ -307,6 +307,10 @@
     "T-2.15.01": {
       "file": "services/ai/tests/test_facilitator.py",
       "function": "test_delegate_to_context_agent"
+    },
+    "T-2.10.03": {
+      "file": "services/ai/tests/test_pipeline.py",
+      "function": "test_abort_flag_causes_early_exit"
     }
   }
 }
