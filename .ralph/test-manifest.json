@@ -175,6 +175,18 @@
     "T-6.1.03": {
       "file": "services/gateway/apps/websocket/tests/test_consumers.py",
       "function": "test_error_on_unknown_message_type"
+    },
+    "T-6.1.04": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_subscribe_idea_as_owner"
+    },
+    "T-6.1.05": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_subscribe_idea_access_denied"
+    },
+    "T-6.1.06": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_unsubscribe_idea"
     }
   }
 }

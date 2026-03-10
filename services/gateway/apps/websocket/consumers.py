@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 logger = logging.getLogger(__name__)
@@ -57,3 +58,74 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             except Exception:
                 pass
             await self.close(code=4500)
+
+    # ---- Channel group management (subscribe/unsubscribe) ----
+
+    async def handle_subscribe_idea(self, content: dict) -> None:
+        idea_id = content.get("idea_id")
+        if not idea_id:
+            await self.send_json({"type": "error", "payload": {"message": "Missing idea_id"}})
+            return
+
+        try:
+            uuid.UUID(idea_id)
+        except (ValueError, AttributeError):
+            await self.send_json({"type": "error", "payload": {"message": "Invalid idea_id format"}})
+            return
+
+        group_name = f"idea_{idea_id}"
+
+        if group_name in self.subscribed_groups:
+            return
+
+        has_access = await self._check_idea_access(idea_id, self.user_id)
+        if not has_access:
+            await self.send_json({
+                "type": "error",
+                "payload": {"message": "Access denied to idea"},
+            })
+            return
+
+        await self.channel_layer.group_add(group_name, self.channel_name)
+        self.subscribed_groups.add(group_name)
+        logger.info(
+            "User %s subscribed to %s (connection=%s)",
+            self.user_id, group_name, self.connection_id,
+        )
+
+    async def handle_unsubscribe_idea(self, content: dict) -> None:
+        idea_id = content.get("idea_id")
+        if not idea_id:
+            await self.send_json({"type": "error", "payload": {"message": "Missing idea_id"}})
+            return
+
+        group_name = f"idea_{idea_id}"
+
+        if group_name not in self.subscribed_groups:
+            return
+
+        await self.channel_layer.group_discard(group_name, self.channel_name)
+        self.subscribed_groups.discard(group_name)
+        logger.info(
+            "User %s unsubscribed from %s (connection=%s)",
+            self.user_id, group_name, self.connection_id,
+        )
+
+    @database_sync_to_async
+    def _check_idea_access(self, idea_id: str, user_id: str) -> bool:
+        from apps.ideas.models import Idea, IdeaCollaborator
+
+        try:
+            idea = Idea.objects.filter(id=idea_id, deleted_at__isnull=True).first()
+            if idea is None:
+                return False
+
+            if str(idea.owner_id) == user_id:
+                return True
+            if idea.co_owner_id and str(idea.co_owner_id) == user_id:
+                return True
+
+            return IdeaCollaborator.objects.filter(idea_id=idea_id, user_id=user_id).exists()
+        except Exception:
+            logger.exception("Error checking idea access for user=%s idea=%s", user_id, idea_id)
+            return False
