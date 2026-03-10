@@ -35,8 +35,8 @@ async def _subscribe_and_drain(communicator, idea_id: str) -> None:
     assert resp["type"] == "presence_update"
 
 
-@database_sync_to_async
-def _create_user(**kwargs):
+def _make_user(**kwargs):
+    """Create a User (synchronous, call inside @database_sync_to_async)."""
     defaults = {
         "id": uuid.uuid4(),
         "email": f"test-{uuid.uuid4().hex[:8]}@ziqreq.local",
@@ -50,19 +50,59 @@ def _create_user(**kwargs):
 
 
 @database_sync_to_async
-def _create_idea(owner_id, **kwargs):
-    defaults = {
-        "id": uuid.uuid4(),
-        "title": "Test Idea",
-        "owner_id": owner_id,
-    }
-    defaults.update(kwargs)
-    return Idea.objects.create(**defaults)
+def _create_user(**kwargs):
+    return _make_user(**kwargs)
 
 
 @database_sync_to_async
-def _add_collaborator(idea_id, user_id):
-    return IdeaCollaborator.objects.create(idea_id=idea_id, user_id=user_id)
+def _setup_user_and_idea(user_kwargs=None, idea_kwargs=None):
+    """Create user + idea in a single DB connection to avoid FK issues in Docker PostgreSQL."""
+    user = _make_user(**(user_kwargs or {}))
+    idea_defaults = {"id": uuid.uuid4(), "title": "Test Idea", "owner_id": user.id}
+    if idea_kwargs:
+        idea_defaults.update(idea_kwargs)
+    idea = Idea.objects.create(**idea_defaults)
+    return user, idea
+
+
+@database_sync_to_async
+def _setup_owner_coowner_idea(owner_kwargs=None, coowner_kwargs=None):
+    """Create owner + co-owner + idea in a single DB connection."""
+    owner = _make_user(**(owner_kwargs or {}))
+    co_owner = _make_user(**(coowner_kwargs or {}))
+    idea = Idea.objects.create(
+        id=uuid.uuid4(), title="Test Idea", owner_id=owner.id, co_owner_id=co_owner.id
+    )
+    return owner, co_owner, idea
+
+
+@database_sync_to_async
+def _setup_owner_collaborator_idea(owner_kwargs=None, collab_kwargs=None):
+    """Create owner + collaborator + idea + IdeaCollaborator in a single DB connection."""
+    owner = _make_user(**(owner_kwargs or {}))
+    collaborator = _make_user(**(collab_kwargs or {}))
+    idea = Idea.objects.create(id=uuid.uuid4(), title="Test Idea", owner_id=owner.id)
+    IdeaCollaborator.objects.create(idea_id=idea.id, user_id=collaborator.id)
+    return owner, collaborator, idea
+
+
+@database_sync_to_async
+def _setup_user_idea_node(user_kwargs=None, node_kwargs=None):
+    """Create user + idea + board node in a single DB connection."""
+    user = _make_user(**(user_kwargs or {}))
+    idea = Idea.objects.create(id=uuid.uuid4(), title="Test Idea", owner_id=user.id)
+    node_defaults = {
+        "idea_id": idea.id,
+        "node_type": "box",
+        "title": "Test Node",
+        "position_x": 100,
+        "position_y": 200,
+        "created_by": "user",
+    }
+    if node_kwargs:
+        node_defaults.update(node_kwargs)
+    node = BoardNode.objects.create(**node_defaults)
+    return user, idea, node
 
 
 @pytest.mark.asyncio
@@ -165,8 +205,7 @@ async def test_error_on_missing_message_type():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_subscribe_idea_as_owner():
     """T-6.1.04: Owner can subscribe to idea group."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -183,9 +222,10 @@ async def test_subscribe_idea_as_owner():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_subscribe_idea_as_co_owner():
     """T-6.1.04b: Co-owner can subscribe to idea group."""
-    owner = await _create_user(display_name="Owner")
-    co_owner = await _create_user(display_name="CoOwner")
-    idea = await _create_idea(owner_id=owner.id, co_owner_id=co_owner.id)
+    owner, co_owner, idea = await _setup_owner_coowner_idea(
+        owner_kwargs={"display_name": "Owner"},
+        coowner_kwargs={"display_name": "CoOwner"},
+    )
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={co_owner.id}")
 
@@ -202,10 +242,10 @@ async def test_subscribe_idea_as_co_owner():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_subscribe_idea_as_collaborator():
     """T-6.1.04c: Collaborator can subscribe to idea group."""
-    owner = await _create_user(display_name="Owner")
-    collaborator = await _create_user(display_name="Collaborator")
-    idea = await _create_idea(owner_id=owner.id)
-    await _add_collaborator(idea_id=idea.id, user_id=collaborator.id)
+    owner, collaborator, idea = await _setup_owner_collaborator_idea(
+        owner_kwargs={"display_name": "Owner"},
+        collab_kwargs={"display_name": "Collaborator"},
+    )
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={collaborator.id}")
 
@@ -222,9 +262,8 @@ async def test_subscribe_idea_as_collaborator():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_subscribe_idea_access_denied():
     """T-6.1.05: Non-member cannot subscribe to idea group."""
-    owner = await _create_user(display_name="Owner")
     stranger = await _create_user(display_name="Stranger")
-    idea = await _create_idea(owner_id=owner.id)
+    owner, idea = await _setup_user_and_idea(user_kwargs={"display_name": "Owner"})
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={stranger.id}")
 
@@ -305,8 +344,7 @@ async def test_subscribe_idea_invalid_uuid():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_unsubscribe_idea():
     """T-6.1.06: Unsubscribe removes consumer from idea group."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -348,9 +386,15 @@ async def test_unsubscribe_idea_not_subscribed():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_disconnect_cleans_up_groups():
     """T-6.1.06c: Disconnect automatically unsubscribes from all groups."""
-    user = await _create_user()
-    idea1 = await _create_idea(owner_id=user.id, title="Idea 1")
-    idea2 = await _create_idea(owner_id=user.id, title="Idea 2")
+
+    @database_sync_to_async
+    def _setup():
+        user = _make_user()
+        idea1 = Idea.objects.create(id=uuid.uuid4(), title="Idea 1", owner_id=user.id)
+        idea2 = Idea.objects.create(id=uuid.uuid4(), title="Idea 2", owner_id=user.id)
+        return user, idea1, idea2
+
+    user, idea1, idea2 = await _setup()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -373,8 +417,7 @@ async def test_disconnect_cleans_up_groups():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_chat_message_broadcast_to_subscriber():
     """T-6.4.01: chat_message group_send is forwarded to subscribed WebSocket client."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -424,8 +467,7 @@ async def test_chat_message_broadcast_to_subscriber():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_chat_message_broadcast_not_received_by_unsubscribed():
     """T-6.4.01b: Unsubscribed clients do not receive chat_message broadcasts."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -454,8 +496,7 @@ async def test_chat_message_broadcast_not_received_by_unsubscribed():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_chat_message_broadcast_via_view_helper():
     """T-6.4.02: _broadcast_chat_message sends chat_message to idea group after REST POST."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -496,27 +537,12 @@ async def test_chat_message_broadcast_via_view_helper():
 # ---- US-004: Board sync broadcast tests ----
 
 
-@database_sync_to_async
-def _create_board_node(idea_id, **kwargs):
-    defaults = {
-        "idea_id": idea_id,
-        "node_type": "box",
-        "title": "Test Node",
-        "position_x": 100,
-        "position_y": 200,
-        "created_by": "user",
-    }
-    defaults.update(kwargs)
-    return BoardNode.objects.create(**defaults)
-
-
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_update_broadcast_to_subscriber():
     """T-6.4.03: board_update group_send is forwarded to subscribed WebSocket client."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -566,8 +592,7 @@ async def test_board_update_broadcast_to_subscriber():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_update_not_received_by_unsubscribed():
     """T-6.4.03b: Unsubscribed clients do not receive board_update broadcasts."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -596,8 +621,7 @@ async def test_board_update_not_received_by_unsubscribed():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_update_broadcast_via_view_helper():
     """T-6.4.04: _broadcast_board_update sends board_update with node data via view helper."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -643,8 +667,7 @@ async def test_board_update_broadcast_via_view_helper():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_update_broadcast_node_delete():
     """T-3.6.01: board_update with nodes_deleted broadcast."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea, node = await _setup_user_idea_node(node_kwargs={"title": "To Delete"})
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -652,8 +675,6 @@ async def test_board_update_broadcast_node_delete():
     assert connected is True
 
     await _subscribe_and_drain(communicator, str(idea.id))
-
-    node = await _create_board_node(idea.id, title="To Delete")
 
     @database_sync_to_async
     def delete_and_broadcast(node_id):
@@ -681,8 +702,7 @@ async def test_board_update_broadcast_node_delete():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_update_broadcast_source_ai():
     """T-3.6.02: board_update payload source is 'ai' when node created by AI."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea = await _setup_user_and_idea()
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -727,10 +747,10 @@ async def test_board_update_broadcast_source_ai():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_selection_broadcast_excludes_sender():
     """T-3.5.01: board_selection from client is broadcast to other subscribers, not sender."""
-    owner = await _create_user(display_name="Owner")
-    other = await _create_user(display_name="Other")
-    idea = await _create_idea(owner_id=owner.id)
-    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    owner, other, idea = await _setup_owner_collaborator_idea(
+        owner_kwargs={"display_name": "Owner"},
+        collab_kwargs={"display_name": "Other"},
+    )
     app = _make_application()
 
     # Two clients subscribe
@@ -774,10 +794,10 @@ async def test_board_selection_broadcast_excludes_sender():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_selection_deselect_null_node():
     """T-3.5.03: board_selection with node_id=null broadcasts deselection."""
-    owner = await _create_user(display_name="Owner")
-    other = await _create_user(display_name="Other")
-    idea = await _create_idea(owner_id=owner.id)
-    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    owner, other, idea = await _setup_owner_collaborator_idea(
+        owner_kwargs={"display_name": "Owner"},
+        collab_kwargs={"display_name": "Other"},
+    )
     app = _make_application()
 
     comm_sender = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
@@ -838,8 +858,9 @@ async def test_board_selection_not_subscribed_error():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_board_lock_change_broadcast():
     """T-3.5.03b: board_lock_change broadcast via view helper when lock toggled."""
-    user = await _create_user()
-    idea = await _create_idea(owner_id=user.id)
+    user, idea, node = await _setup_user_idea_node(
+        node_kwargs={"title": "Lock Test", "is_locked": False},
+    )
     app = _make_application()
     communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
 
@@ -847,8 +868,6 @@ async def test_board_lock_change_broadcast():
     assert connected is True
 
     await _subscribe_and_drain(communicator, str(idea.id))
-
-    node = await _create_board_node(idea.id, title="Lock Test", is_locked=False)
 
     @database_sync_to_async
     def broadcast_lock_change():
@@ -881,10 +900,10 @@ async def test_board_lock_change_broadcast():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_presence_broadcast_on_subscribe():
     """T-6.3.01: Subscribe to idea broadcasts presence_update 'online' to all subscribers."""
-    owner = await _create_user(display_name="Owner")
-    other = await _create_user(display_name="Other")
-    idea = await _create_idea(owner_id=owner.id)
-    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    owner, other, idea = await _setup_owner_collaborator_idea(
+        owner_kwargs={"display_name": "Owner"},
+        collab_kwargs={"display_name": "Other"},
+    )
     app = _make_application()
 
     # First user subscribes
@@ -924,10 +943,10 @@ async def test_presence_broadcast_on_subscribe():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_presence_multi_tab_dedup():
     """T-6.3.02: Same user in 2 tabs shows single presence, offline only after both disconnect."""
-    user = await _create_user(display_name="MultiTab User")
-    other = await _create_user(display_name="Observer")
-    idea = await _create_idea(owner_id=user.id)
-    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    user, other, idea = await _setup_owner_collaborator_idea(
+        owner_kwargs={"display_name": "MultiTab User"},
+        collab_kwargs={"display_name": "Observer"},
+    )
     app = _make_application()
 
     # Observer subscribes
@@ -977,10 +996,10 @@ async def test_presence_multi_tab_dedup():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_presence_offline_on_unsubscribe():
     """T-6.3.03: Unsubscribe broadcasts offline presence for user."""
-    owner = await _create_user(display_name="Owner")
-    other = await _create_user(display_name="Observer")
-    idea = await _create_idea(owner_id=owner.id)
-    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    owner, other, idea = await _setup_owner_collaborator_idea(
+        owner_kwargs={"display_name": "Owner"},
+        collab_kwargs={"display_name": "Observer"},
+    )
     app = _make_application()
 
     comm_owner = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
@@ -1017,10 +1036,10 @@ async def test_presence_offline_on_unsubscribe():
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 async def test_presence_update_client_message():
     """T-6.3.04: Client presence_update message broadcasts to idea group."""
-    owner = await _create_user(display_name="Owner")
-    other = await _create_user(display_name="Observer")
-    idea = await _create_idea(owner_id=owner.id)
-    await _add_collaborator(idea_id=idea.id, user_id=other.id)
+    owner, other, idea = await _setup_owner_collaborator_idea(
+        owner_kwargs={"display_name": "Owner"},
+        collab_kwargs={"display_name": "Observer"},
+    )
     app = _make_application()
 
     comm_sender = WebsocketCommunicator(app, f"/ws/?token={owner.id}")
