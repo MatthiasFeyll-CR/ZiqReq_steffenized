@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -14,6 +14,7 @@ import {
   type Edge,
   type NodeTypes,
   type EdgeTypes,
+  SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { BoxNode } from "./BoxNode";
@@ -301,6 +302,18 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
     [nodes, handleToggleLock],
   );
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        const tag = (e.target as HTMLElement)?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA") return;
+        handleDeleteSelected();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleDeleteSelected]);
+
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
 
   return (
@@ -322,6 +335,10 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
+          selectionOnDrag
+          selectionMode={SelectionMode.Partial}
+          selectionKeyCode="Control"
+          deleteKeyCode={null}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
           fitView

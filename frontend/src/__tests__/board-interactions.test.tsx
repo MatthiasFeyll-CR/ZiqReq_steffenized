@@ -30,7 +30,9 @@ let mockInternals: Record<string, { internals: { positionAbsolute: { x: number; 
 vi.mock("@xyflow/react", () => {
   const BackgroundVariant = { Dots: "dots", Lines: "lines", Cross: "cross" };
   const MarkerType = { Arrow: "arrow", ArrowClosed: "arrowclosed" };
+  const SelectionMode = { Partial: "partial", Full: "full" };
   return {
+    SelectionMode,
     ReactFlow: ({ children, onNodeDragStop, onNodeDrag, nodes, ...props }: Record<string, unknown>) => {
       capturedOnNodeDragStop = onNodeDragStop as typeof capturedOnNodeDragStop;
       capturedOnNodeDrag = onNodeDrag as typeof capturedOnNodeDrag;

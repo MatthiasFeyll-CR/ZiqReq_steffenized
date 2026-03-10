@@ -68,3 +68,15 @@ Started: 2026-03-09T17:27:54+0100
   - Capture `nodes` prop from ReactFlow mock to verify `draggable` and injected data props in tests.
   - `.ralph` directory is gitignored — use `git add -f` for files under it.
 ---
+
+## US-004: Multi-select with selection box
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardCanvas.tsx, frontend/src/__tests__/board-canvas.test.tsx, frontend/src/__tests__/board-interactions.test.tsx, .ralph/prd.json
+- Tests: 159 passed (19 test files), all pre-existing tests still green
+- Learnings for future iterations:
+  - React Flow multi-select: `selectionOnDrag` + `selectionKeyCode="Control"` + `selectionMode={SelectionMode.Partial}` enables Ctrl+drag selection box
+  - `SelectionMode` must be imported from `@xyflow/react` and added to test mocks (like `BackgroundVariant` and `MarkerType`)
+  - `deleteKeyCode={null}` disables React Flow's built-in delete to use custom `handleDeleteSelected` that respects locked nodes
+  - Added keyboard listener for Delete/Backspace keys that calls `handleDeleteSelected`, with input/textarea guard to prevent deleting while editing text
+---

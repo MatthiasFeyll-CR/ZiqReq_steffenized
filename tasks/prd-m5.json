@@ -82,7 +82,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: React Flow built-in\nDesign: component-specs.md § 6.5 Toolbar\nFiles: BoardCanvas.tsx (enable selectionOnDrag prop)\nGotchas: Set selectionMode='partial', selectionKeyCode='Control'. Delete handler exists.",
       "context": {

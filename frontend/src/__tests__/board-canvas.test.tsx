@@ -6,7 +6,9 @@ import i18n from "@/i18n/config";
 vi.mock("@xyflow/react", () => {
   const BackgroundVariant = { Dots: "dots", Lines: "lines", Cross: "cross" };
   const MarkerType = { Arrow: "arrow", ArrowClosed: "arrowclosed" };
+  const SelectionMode = { Partial: "partial", Full: "full" };
   return {
+    SelectionMode,
     ReactFlow: ({ children, minZoom, maxZoom, ...props }: Record<string, unknown>) => (
       <div data-testid="react-flow" data-min-zoom={minZoom} data-max-zoom={maxZoom} {...props}>
         {children as React.ReactNode}
