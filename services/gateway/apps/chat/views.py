@@ -1,5 +1,8 @@
+import logging
 import uuid
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
@@ -14,6 +17,8 @@ from .serializers import (
     ReactionCreateSerializer,
     ReactionResponseSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
@@ -66,6 +71,38 @@ def _check_access(user, idea) -> bool:
     ).exists()
 
 
+def _broadcast_chat_message(message: ChatMessage, sender_user) -> None:
+    """Broadcast a chat_message event to the idea's WebSocket group."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"idea_{message.idea_id}"
+        payload = {
+            "id": str(message.id),
+            "sender_type": message.sender_type,
+            "sender": {
+                "id": str(sender_user.id),
+                "display_name": getattr(sender_user, "display_name", ""),
+            },
+            "ai_agent": message.ai_agent,
+            "content": message.content,
+            "message_type": message.message_type,
+            "created_at": message.created_at.isoformat(),
+        }
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "chat_message",
+                "idea_id": str(message.idea_id),
+                "payload": payload,
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast chat message %s", message.id)
+
+
 @api_view(["GET", "POST"])
 @authentication_classes([MiddlewareAuthentication])
 def chat_messages(request: Request, idea_id: str) -> Response:
@@ -102,6 +139,10 @@ def _create_message(request: Request, idea_id: str) -> Response:
     )
 
     response_serializer = ChatMessageResponseSerializer(message)
+
+    # Broadcast chat.message.created to WebSocket subscribers
+    _broadcast_chat_message(message, user)
+
     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 

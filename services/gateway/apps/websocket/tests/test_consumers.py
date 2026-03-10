@@ -2,12 +2,13 @@ import uuid
 
 import pytest
 from channels.db import database_sync_to_async
+from channels.layers import get_channel_layer
 from channels.routing import URLRouter
 from channels.testing import WebsocketCommunicator
 from django.test import override_settings
 
 from apps.authentication.models import User
-from apps.ideas.models import Idea, IdeaCollaborator
+from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator
 from apps.websocket.middleware import WebSocketAuthMiddleware
 from apps.websocket.routing import websocket_urlpatterns
 
@@ -348,4 +349,134 @@ async def test_disconnect_cleans_up_groups():
     assert await communicator.receive_nothing(timeout=0.5) is True
 
     # Disconnect should clean up without errors
+    await communicator.disconnect()
+
+
+# ---- US-003: Chat message broadcast tests ----
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_chat_message_broadcast_to_subscriber():
+    """T-6.4.01: chat_message group_send is forwarded to subscribed WebSocket client."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    # Subscribe to idea group
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await communicator.receive_nothing(timeout=0.5) is True
+
+    # Simulate a group_send (as the chat view would do)
+    channel_layer = get_channel_layer()
+    group_name = f"idea_{idea.id}"
+    payload = {
+        "id": str(uuid.uuid4()),
+        "sender_type": "user",
+        "sender": {"id": str(user.id), "display_name": user.display_name},
+        "ai_agent": None,
+        "content": "Hello from broadcast",
+        "message_type": "regular",
+        "created_at": "2026-03-10T12:00:00+00:00",
+    }
+    await channel_layer.group_send(
+        group_name,
+        {
+            "type": "chat_message",
+            "idea_id": str(idea.id),
+            "payload": payload,
+        },
+    )
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "chat_message"
+    assert response["idea_id"] == str(idea.id)
+    assert response["payload"]["content"] == "Hello from broadcast"
+    assert response["payload"]["sender_type"] == "user"
+    assert response["payload"]["sender"]["id"] == str(user.id)
+    assert response["payload"]["sender"]["display_name"] == user.display_name
+    assert response["payload"]["ai_agent"] is None
+    assert response["payload"]["message_type"] == "regular"
+    assert response["payload"]["created_at"] == "2026-03-10T12:00:00+00:00"
+
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_chat_message_broadcast_not_received_by_unsubscribed():
+    """T-6.4.01b: Unsubscribed clients do not receive chat_message broadcasts."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    # Do NOT subscribe — send group message
+    channel_layer = get_channel_layer()
+    group_name = f"idea_{idea.id}"
+    await channel_layer.group_send(
+        group_name,
+        {
+            "type": "chat_message",
+            "idea_id": str(idea.id),
+            "payload": {"content": "should not arrive"},
+        },
+    )
+
+    assert await communicator.receive_nothing(timeout=1) is True
+
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+async def test_chat_message_broadcast_via_view_helper():
+    """T-6.4.02: _broadcast_chat_message sends chat_message to idea group after REST POST."""
+    user = await _create_user()
+    idea = await _create_idea(owner_id=user.id)
+    app = _make_application()
+    communicator = WebsocketCommunicator(app, f"/ws/?token={user.id}")
+
+    connected, _ = await communicator.connect()
+    assert connected is True
+
+    # Subscribe to idea group
+    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": str(idea.id)})
+    assert await communicator.receive_nothing(timeout=0.5) is True
+
+    # Create a chat message in DB and broadcast via the view helper
+    @database_sync_to_async
+    def create_and_broadcast():
+        from apps.chat.views import _broadcast_chat_message
+
+        message = ChatMessage.objects.create(
+            idea_id=idea.id,
+            sender_type="user",
+            sender_id=user.id,
+            content="Integration test message",
+        )
+        _broadcast_chat_message(message, user)
+        return message
+
+    message = await create_and_broadcast()
+
+    response = await communicator.receive_json_from(timeout=2)
+    assert response["type"] == "chat_message"
+    assert response["idea_id"] == str(idea.id)
+    assert response["payload"]["id"] == str(message.id)
+    assert response["payload"]["content"] == "Integration test message"
+    assert response["payload"]["sender_type"] == "user"
+    assert response["payload"]["sender"]["id"] == str(user.id)
+    assert response["payload"]["sender"]["display_name"] == user.display_name
+
     await communicator.disconnect()

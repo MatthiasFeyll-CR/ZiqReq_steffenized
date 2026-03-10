@@ -111,6 +111,16 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             self.user_id, group_name, self.connection_id,
         )
 
+    # ---- Group message handlers (forwarded to WebSocket clients) ----
+
+    async def chat_message(self, event: dict) -> None:
+        """Forward chat.message.created group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "chat_message",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
     @database_sync_to_async
     def _check_idea_access(self, idea_id: str, user_id: str) -> bool:
         from apps.ideas.models import Idea, IdeaCollaborator
