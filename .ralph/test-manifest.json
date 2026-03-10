@@ -279,6 +279,34 @@
     "T-6.6.01": {
       "file": "frontend/src/__tests__/connection-indicator.test.tsx",
       "function": "shows green dot and 'Online' when connected"
+    },
+    "T-2.1.03": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_silent_mode_no_ai_mention"
+    },
+    "T-2.1.04": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_silent_mode_with_ai_mention"
+    },
+    "T-2.3.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_update_title_publishes_event"
+    },
+    "T-2.3.02": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_update_title_rejected_when_manually_edited"
+    },
+    "T-2.4.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_react_to_user_message"
+    },
+    "T-2.7.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_react_to_user_message"
+    },
+    "T-2.15.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_delegate_to_context_agent"
     }
   }
 }
