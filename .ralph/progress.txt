@@ -169,3 +169,17 @@ Started: 2026-03-10T03:55:44+0100
   - Adding `useSelector` to IdeaWorkspaceContent broke `idea-workspace.test.tsx` and `section-visibility.test.tsx` — both needed Redux Provider wrapping with `websocketReducer` and `useWsReconnect` mock
   - Tests that render IdeaWorkspacePage must preload websocket state as "online" (default is "offline") to preserve existing section-visibility behavior
 ---
+
+## US-010: Connection state indicator — navbar green/red dot + Online/Offline label
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/layout/ConnectionIndicator.tsx, frontend/src/__tests__/connection-indicator.test.tsx (new), frontend/src/__tests__/dev-login-flow.test.tsx, frontend/src/__tests__/landing-page.test.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, .ralph/test-manifest.json
+- Tests: 4 new tests passed (shows green dot Online, shows red dot Offline, transition-colors duration-200, hidden sm:inline). Full suite: 142 Python tests passed, 234 Node tests passed. TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - ConnectionIndicator reads `selectConnectionState` from websocket-slice Redux store — green dot + "Online" or red dot + "Offline"
+  - Added `common.offline` translation key to en.json and de.json (was missing, only `common.online` existed)
+  - `transition-colors duration-200` on the dot provides the 200ms crossfade when state changes
+  - Label uses `hidden sm:inline` so only the dot shows on small screens
+  - Adding `useSelector` to ConnectionIndicator broke tests that render Navbar without Redux Provider — `dev-login-flow.test.tsx` and `landing-page.test.tsx` both needed wrapping with `Provider` + `configureStore` with websocketReducer
+  - Pattern: any component using `useSelector` that's rendered inside Navbar will break tests that render pages with Navbar but without Redux Provider
+---
