@@ -10,6 +10,19 @@ vi.mock("@/api/board", () => ({
     mockUpdateBoardNode(ideaId, nodeId, updates),
 }));
 
+const mockDispatch = vi.fn();
+vi.mock("react-redux", () => ({
+  useDispatch: () => mockDispatch,
+  useSelector: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      board: {
+        undoStack: [],
+        redoStack: [],
+        selectedNodeIds: [],
+      },
+    }),
+}));
+
 let capturedOnNodeDragStop: ((...args: unknown[]) => void) | undefined;
 let capturedOnNodeDrag: ((...args: unknown[]) => void) | undefined;
 let capturedNodes: Array<Record<string, unknown>> | undefined;
@@ -68,6 +81,7 @@ beforeAll(async () => {
 beforeEach(() => {
   mockUpdateBoardNode.mockClear();
   mockSetNodes.mockClear();
+  mockDispatch.mockClear();
   capturedOnNodeDragStop = undefined;
   capturedOnNodeDrag = undefined;
   capturedNodes = undefined;

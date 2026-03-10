@@ -6,6 +6,12 @@ interface BoardToolbarProps {
   selectedCount: number;
   onAddBox: (position: { x: number; y: number }) => void;
   onDeleteSelected: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  undoTopSource?: "user" | "ai";
+  redoTopSource?: "user" | "ai";
 }
 
 export function BoardToolbar({

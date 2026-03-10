@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import i18n from "@/i18n/config";
 
+vi.mock("react-redux", () => ({
+  useDispatch: () => vi.fn(),
+  useSelector: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      board: {
+        undoStack: [],
+        redoStack: [],
+        selectedNodeIds: [],
+      },
+    }),
+}));
+
 // Mock @xyflow/react since jsdom lacks DOM measurement APIs
 vi.mock("@xyflow/react", () => {
   const BackgroundVariant = { Dots: "dots", Lines: "lines", Cross: "cross" };

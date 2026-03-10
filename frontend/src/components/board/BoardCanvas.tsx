@@ -23,6 +23,7 @@ import { FreeTextNode } from "./FreeTextNode";
 import { ConnectionEdge } from "./ConnectionEdge";
 import { BoardToolbar } from "./BoardToolbar";
 import { updateBoardNode } from "@/api/board";
+import { useBoardUndo } from "@/hooks/use-board-undo";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
@@ -115,6 +116,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const dropTargetIdRef = useRef<string | null>(null);
   const { getInternalNode } = useReactFlow();
+  const { push: pushUndoAction, handleUndo, handleRedo, canUndo, canRedo, undoTop, redoTop } = useBoardUndo(ideaId);
 
   const getNodeInfos = useCallback((): NodeInfo[] => {
     return nodes.map((n) => {
@@ -180,6 +182,13 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
 
   const handleToggleLock = useCallback(
     (nodeId: string, newLocked: boolean) => {
+      pushUndoAction({
+        type: "toggle_lock",
+        nodeId,
+        data: { is_locked: newLocked },
+        previousState: { is_locked: !newLocked },
+        source: "user",
+      });
       setNodes((nds) =>
         nds.map((n) =>
           n.id === nodeId
@@ -193,7 +202,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
         });
       }
     },
-    [ideaId, setNodes],
+    [ideaId, setNodes, pushUndoAction],
   );
 
   const onNodeDrag = useCallback(
@@ -256,6 +265,14 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
           relY = abs.y - targetGroup.absY;
         }
 
+        pushUndoAction({
+          type: "move",
+          nodeId: node.id,
+          data: { position_x: relX, position_y: relY, parent_id: newParentId },
+          previousState: { position_x: node.position.x, position_y: node.position.y, parent_id: oldParentId },
+          source: "user",
+        });
+
         // Update node in React Flow state
         setNodes((nds) =>
           nds.map((n) =>
@@ -279,6 +296,19 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
           // Will be retried on next drag or sync
         });
       } else {
+        // Save previous position before it's updated
+        const prevNode = nodes.find((n) => n.id === node.id);
+        const prevX = prevNode?.position.x ?? 0;
+        const prevY = prevNode?.position.y ?? 0;
+
+        pushUndoAction({
+          type: "move",
+          nodeId: node.id,
+          data: { position_x: node.position.x, position_y: node.position.y },
+          previousState: { position_x: prevX, position_y: prevY },
+          source: "user",
+        });
+
         // Just persist position (same as US-001)
         updateBoardNode(ideaId, node.id, {
           position_x: node.position.x,
@@ -288,7 +318,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
         });
       }
     },
-    [ideaId, setNodes, getAbsolutePosition, getNodeInfos],
+    [ideaId, setNodes, getAbsolutePosition, getNodeInfos, pushUndoAction, nodes],
   );
 
   // Inject onToggleLock into node data and set draggable based on is_locked
@@ -322,6 +352,12 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
         selectedCount={selectedCount}
         onAddBox={handleAddBox}
         onDeleteSelected={handleDeleteSelected}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        undoTopSource={undoTop?.source}
+        redoTopSource={redoTop?.source}
       />
       <div className="flex-1 min-h-0">
         <ReactFlow
