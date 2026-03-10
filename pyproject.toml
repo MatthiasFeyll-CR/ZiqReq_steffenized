@@ -1,5 +1,6 @@
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "gateway.settings.test"
+asyncio_mode = "auto"
 pythonpath = [
     "services/gateway",
     "services/core",
