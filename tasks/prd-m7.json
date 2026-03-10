@@ -17,7 +17,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: tech-stack.md § AI Orchestration, project-structure.md § AI Service\nAI: agent-architecture.md § S1, model-config.md § S6-S8\nFiles: ai_service/settings/base.py, agents/base.py, kernel/{sk_factory,model_router,token_tracker}.py, requirements.txt\nGotchas: SK async only. Azure auth with API key. Router reads admin params at runtime. Handle missing token metadata.",
       "context": {
