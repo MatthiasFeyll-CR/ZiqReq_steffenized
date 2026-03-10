@@ -254,3 +254,29 @@ Started: 2026-03-10T03:55:44+0100
   - All 4 presence tests pass: presence_broadcast_on_subscribe, presence_multi_tab_dedup, presence_offline_on_unsubscribe, presence_update_client_message
   - Server-side presence registry, multi-tab dedup, PresenceIndicators component, and Redux presence-slice were already correct
 ---
+
+## US-001 (BUGFIX cycle 2): Django Channels WebSocket consumer — connect, token auth, disconnect, error handling
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/conftest.py (new), services/gateway/pyproject.toml
+- Tests: 142 Python tests passed (32/32 consumer tests passed, 0 errors). TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - Root cause of DEF-002: @pytest.mark.django_db(transaction=True) on PostgreSQL causes TransactionTestCase._fixture_teardown to flush all tables then re-insert django_content_type rows, which races with other async tests causing duplicate key IntegrityError
+  - Fix: created services/gateway/conftest.py with two fixtures:
+    1. `django_db_setup` (session-scoped) — calls setup_databases(keepdb=True) to use persistent test DB
+    2. `django_db_serialized_rollback` (autouse) — pytest-django auto-detects this fixture name and sets serialized_rollback=True on TransactionTestCase, which inhibits post_migrate signal during flush, preventing content type re-insertion
+  - Added asyncio_mode='auto' to services/gateway/pyproject.toml [tool.pytest.ini_options] — changes from Mode.STRICT to Mode.AUTO for gateway tests
+  - The root pyproject.toml still has Mode.STRICT but gateway's pyproject.toml takes precedence when running from that directory
+  - This fix resolves DEF-002 for ALL backend stories (US-001 through US-007) — all 32 consumer tests pass with no teardown errors
+---
+
+## US-002 (BUGFIX cycle 3): Channel group management — subscribe_idea, unsubscribe_idea, group join/leave
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (passes: true)
+- Tests: 32/32 consumer tests passed (10 US-002 tests: subscribe_idea_as_owner, subscribe_idea_as_co_owner, subscribe_idea_as_collaborator, subscribe_idea_access_denied, subscribe_idea_nonexistent, subscribe_idea_missing_idea_id, subscribe_idea_invalid_uuid, unsubscribe_idea, unsubscribe_idea_not_subscribed, disconnect_cleans_up_groups). Ruff clean. TSC clean.
+- Learnings for future iterations:
+  - No code changes needed — the US-001 bugfix cycle 2 (conftest.py with django_db_setup keepdb + django_db_serialized_rollback) resolved DEF-002 for all backend stories
+  - All subscribe/unsubscribe logic, access checks, and group management were already correct from Phase 2
+  - Consumer code, test helpers (_setup_user_and_idea, _setup_owner_coowner_idea, etc.), and _subscribe_and_drain pattern all working correctly
+---
