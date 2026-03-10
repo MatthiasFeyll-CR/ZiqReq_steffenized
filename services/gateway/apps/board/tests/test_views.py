@@ -249,6 +249,42 @@ class TestBoardNodesAPI(TestCase):
         assert response.status_code == 403
         assert response.json()["error"] == "NODE_LOCKED"
 
+    def test_unlock_locked_node_returns_200(self):
+        """BF-001: PATCH {is_locked: false} on a locked node returns 200 and unlocks."""
+        node = BoardNode.objects.create(
+            idea_id=self.idea.id,
+            node_type="box",
+            title="Locked",
+            is_locked=True,
+            created_by="user",
+        )
+        response = self.client.patch(
+            self._node_url(node.id),
+            {"is_locked": False},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.json()["is_locked"] is False
+        node.refresh_from_db()
+        assert node.is_locked is False
+
+    def test_lock_toggle_with_other_fields_on_locked_node_returns_403(self):
+        """BF-001: PATCH {is_locked: true, title: 'new'} on locked node returns 403."""
+        node = BoardNode.objects.create(
+            idea_id=self.idea.id,
+            node_type="box",
+            title="Locked",
+            is_locked=True,
+            created_by="user",
+        )
+        response = self.client.patch(
+            self._node_url(node.id),
+            {"is_locked": True, "title": "new"},
+            format="json",
+        )
+        assert response.status_code == 403
+        assert response.json()["error"] == "NODE_LOCKED"
+
     def test_update_nonexistent_node_returns_404(self):
         """PATCH on nonexistent node returns 404."""
         fake_id = str(uuid.uuid4())
