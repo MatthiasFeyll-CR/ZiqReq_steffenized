@@ -61,3 +61,28 @@ def django_db_setup(django_test_environment, django_db_blocker):
         create_permissions,
         dispatch_uid="django.contrib.auth.management.create_permissions",
     )
+
+
+@pytest.fixture(autouse=True)
+def _close_db_connections():
+    """Close all DB connections before and after each test when safe to do so.
+
+    Prevents stale thread-local connections from carrying over between
+    async TransactionTestCase tests that each get their own event loop.
+    Without this, @database_sync_to_async calls in the WebSocket
+    middleware may use a connection that sees a different DB state
+    than the test's data-creation calls (DEF-003).
+
+    Skips closing when the default connection is inside an atomic block
+    (i.e., regular TestCase tests that wrap each test in a transaction).
+    """
+    from django.db import connection, connections
+
+    if not connection.in_atomic_block:
+        connections.close_all()
+    yield
+    if not connection.in_atomic_block:
+        connections.close_all()
+        if connection.connection is not None:
+            connection.connection.close()
+            connection.connection = None
