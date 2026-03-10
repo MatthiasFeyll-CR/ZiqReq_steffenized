@@ -56,3 +56,17 @@ Started: 2026-03-10T03:55:44+0100
   - Unsubscribe for non-subscribed group is also a no-op
   - Running tests on individual file fails with content_type UniqueViolation — must run via full pytest (conftest handles persistent test DB)
 ---
+
+## US-003: Chat message broadcast — on REST POST success, broadcast chat.message.created to idea group
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/consumers.py, services/gateway/apps/chat/views.py, services/gateway/apps/websocket/tests/test_consumers.py, .ralph/test-manifest.json
+- Tests: 3 new tests passed (test_chat_message_broadcast_to_subscriber, test_chat_message_broadcast_not_received_by_unsubscribed, test_chat_message_broadcast_via_view_helper). Full suite: 128 Python tests passed, 191 Node tests passed. Ruff clean. TSC clean.
+- Learnings for future iterations:
+  - Broadcasting from a sync Django REST view uses `async_to_sync(channel_layer.group_send)()` pattern (from asgiref)
+  - `get_channel_layer()` returns the configured channel layer (InMemoryChannelLayer in tests, Redis in prod)
+  - Consumer group message handlers (e.g. `chat_message`) are called by channel layer's group_send — the `type` field maps to method name (dots become underscores)
+  - The `_broadcast_chat_message` helper is a fire-and-forget with exception logging — broadcast failure doesn't break the REST response
+  - Payload includes: id, sender_type, sender{id, display_name}, ai_agent, content, message_type, created_at — matching the WebSocket protocol spec
+  - No RabbitMQ event publishing exists yet in the codebase — the "broker event" from the PRD is implemented directly via channel_layer.group_send instead
+---
