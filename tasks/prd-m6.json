@@ -1,25 +1,24 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m6-websocket",
-  "description": "Bugfix cycle 5 for Milestone 6 \u2014 WebSocket & Real-Time. Fixes 1 critical defect: DEF-003 (8 WebSocket consumer tests fail with connection/access assertion errors due to stale DB connections between async TransactionTestCase tests). Strategy: add explicit database connection cleanup between tests.",
+  "description": "Bugfix cycle 6 for Milestone 6 \u2014 WebSocket & Real-Time. Fixes 1 minor defect: DEF-004 (Ruff lint gate check fails with 6 auto-fixable errors: unused imports and unsorted import blocks in WebSocket test files).",
   "userStories": [
     {
       "id": "BF-001",
-      "title": "Fix: DEF-003 \u2014 Add DB connection cleanup fixture to conftest.py",
-      "description": "Fix defect DEF-003 from QA report qa-m6-websocket.md. After BF-001 resolved DEF-002 (IntegrityErrors), 8 WebSocket consumer tests now fail with assertion errors: connections rejected (connected=False) and subscribe returning errors (Access denied). Root cause: stale thread-local database connections between async TransactionTestCase tests with per-test event loops. Fix by adding explicit database connection cleanup between tests.",
+      "title": "Fix: DEF-004 \u2014 Remove unused imports and sort import blocks in WebSocket test files",
+      "description": "Fix defect DEF-004 from QA report qa-m6-websocket.md. The Ruff lint gate check (required) fails with 6 errors: 4 unused imports (F401) and 2 unsorted import blocks (I001) across 3 WebSocket test files.",
       "acceptanceCriteria": [
-        "All 32 WebSocket consumer tests pass when run via: docker compose -f docker-compose.test.yml run --rm python-tests pytest",
-        "All other existing tests (non-WebSocket) continue to pass",
-        "Zero IntegrityError regressions (DEF-002 stays fixed)",
+        "ruff check services/ exits with 0 errors",
+        "All 156 tests still pass when run via: docker compose -f docker-compose.test.yml run --rm python-tests pytest",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Defect: DEF-003. File: services/gateway/conftest.py.\n\nExpected: All 32 consumer tests pass.\nActual: 8 tests FAIL with assertion errors.\n\nFailing tests (3 patterns):\n\nPattern A \u2014 Connection rejected (connected=False):\n  - test_connection_valid_token (L118)\n  - test_subscribe_idea_access_denied (L271)\n  - test_chat_message_broadcast_via_view_helper (L504)\n  - test_presence_broadcast_on_subscribe (L923, 2nd connection)\n\nPattern B \u2014 Subscribe returns error instead of presence_update:\n  - test_unsubscribe_idea (L355 via _subscribe_and_drain)\n  - test_disconnect_cleans_up_groups (L406, 2nd subscribe)\n  - test_chat_message_broadcast_to_subscriber (L428 via _subscribe_and_drain)\n\nPattern C \u2014 KeyError 'user' (Pattern B at assertion level):\n  - test_presence_multi_tab_dedup (L959)\n\nRoot cause: Order-dependent DB connection lifecycle issue. Identical patterns pass in some tests but fail in others. The set of affected tests CHANGED between cycles (tests that ERRORed in cycle 4 now PASS; tests that PASSed in cycle 4 now FAIL). This indicates stale DB connections from TransactionTestCase flush + per-test event loop teardown.\n\nKey evidence:\n- test_subscribe_idea_as_owner (pos 7) PASSES \u2014 creates user+idea, connects, subscribes\n- test_connection_valid_token (pos 1) FAILS \u2014 creates user, connects \u2192 rejected\n- test_error_on_unknown_message_type (pos 5) PASSES \u2014 creates user, connects \u2192 accepted\n- asyncio mode: function-scoped event loops\n- @database_sync_to_async uses thread_sensitive=True (ASGIRef main thread)\n\nFix approach \u2014 Add DB connection cleanup between tests:\n\n1. In `services/gateway/conftest.py`, ADD an autouse fixture that closes all database connections after each test:\n\n```python\n@pytest.fixture(autouse=True)\ndef _close_db_connections():\n    \"\"\"Close all DB connections before and after each test.\n\n    Prevents stale thread-local connections from carrying over between\n    async TransactionTestCase tests that each get their own event loop.\n    Without this, @database_sync_to_async calls in the WebSocket\n    middleware may use a connection that sees a different DB state\n    than the test's data-creation calls.\n    \"\"\"\n    from django.db import connections\n    connections.close_all()\n    yield\n    connections.close_all()\n```\n\n2. KEEP the existing `django_db_setup` fixture EXACTLY as-is. The post_migrate signal disconnect is correct and must not be reverted.\n\n3. DO NOT modify application code (consumers.py, middleware.py). The application code is correct.\n\n4. DO NOT modify test code (test_consumers.py). The test assertions are correct.\n\n5. If connections.close_all() alone does not fix it, try additionally closing the ASGI thread's connection explicitly:\n\n```python\n@pytest.fixture(autouse=True)\ndef _close_db_connections():\n    from django.db import connections\n    connections.close_all()\n    yield\n    connections.close_all()\n    # Also reset the default connection's thread-local state\n    from django.db import connection\n    if connection.connection is not None:\n        connection.connection.close()\n        connection.connection = None\n```\n\nIMPORTANT: Do NOT revert the post_migrate signal disconnect from the previous fix. DEF-002 (IntegrityError) is resolved and must stay resolved.\n\nIMPORTANT: After making changes, rebuild the test container: `docker compose -f docker-compose.test.yml build python-tests` then run: `docker compose -f docker-compose.test.yml run --rm python-tests pytest`\n\nFiles: services/gateway/conftest.py (add fixture only \u2014 do not remove existing code)",
+      "notes": "Defect: DEF-004. Severity: Minor.\n\nThe following 6 Ruff errors must be fixed:\n\n1. services/gateway/apps/websocket/tests/test_access.py:14 \u2014 F401: Remove unused import `IdeaConsumer` from `from apps.websocket.consumers import IdeaConsumer`\n2. services/gateway/apps/websocket/tests/test_access.py:47 \u2014 I001: Sort the inline import block `from apps.ideas.models import Idea as _Idea, IdeaCollaborator as _IC`\n3. services/gateway/apps/websocket/tests/test_consumers.py:9-20 \u2014 I001: Sort the import block (ruff will fix ordering)\n4. services/gateway/apps/websocket/tests/test_consumers.py:11 \u2014 F401: Remove unused `AsyncMock` from `from unittest.mock import AsyncMock, patch`\n5. services/gateway/apps/websocket/tests/test_middleware.py:8 \u2014 F401: Remove unused `override_settings` from `from django.test import TestCase, override_settings`\n6. services/gateway/apps/websocket/tests/test_middleware.py:11 \u2014 F401: Remove unused `WebSocketAuthMiddleware` from `from apps.websocket.middleware import WebSocketAuthMiddleware`\n\nFix approach: Run `ruff check services/ --fix` to auto-fix all 6 errors. Alternatively, make the 6 manual edits listed above.\n\nIMPORTANT: Do NOT modify any application code (consumers.py, middleware.py, conftest.py). Only test files need lint fixes.\nIMPORTANT: After fixing, verify all tests still pass: `docker compose -f docker-compose.test.yml run --rm python-tests pytest`",
       "bugfixHistory": {
-        "failureCategory": "APPLICATION",
-        "categoryDetail": "TEST_ASSERTION",
-        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n\u2500\u2500 PREVIOUS CYCLE ANALYSIS \u2500\u2500\n\nThis is bugfix attempt #3. 2 previous attempt(s) FAILED.\n\nCycle 0: TEST_INFRASTRUCTURE/DB_FIXTURE_COLLISION (passed=131, failed=0, errors=11)\n  Evidence: E               psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint \"aut\nCycle 1: APPLICATION/TEST_ASSERTION (passed=134, failed=8, errors=0)\n  Evidence: AssertionError\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "failureCategory": "TEST_INFRASTRUCTURE",
+        "categoryDetail": "DB_LIFECYCLE",
+        "guidanceNote": "\u26a0 INFRASTRUCTURE FAILURE \u2014 This is NOT an application code issue. The errors stem from test framework configuration.\n\nRoot cause pattern (DB_LIFECYCLE): The test database is being dropped or not created between test classes. Check conftest.py for database_sync_to_async, TransactionTestCase usage, and pytest-django settings. Ensure each test class gets a fresh or properly persisted database.\n\nFOCUS ON: conftest.py, test settings, docker-compose files, fixture loading order.\nDO NOT: Modify application code, test assertions, or business logic.\n\n\u2500\u2500 PREVIOUS CYCLE ANALYSIS \u2500\u2500\n\nThis is bugfix attempt #4. 3 previous attempt(s) FAILED.\n\nCycle 0: TEST_INFRASTRUCTURE/DB_FIXTURE_COLLISION (passed=131, failed=0, errors=11)\n  Evidence: E               psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint \"aut\nCycle 1: APPLICATION/TEST_ASSERTION (passed=134, failed=8, errors=0)\n  Evidence: AssertionError\nCycle 0: TEST_INFRASTRUCTURE/DB_LIFECYCLE (passed=156, failed=0, errors=0)\n  Evidence: /app:0: PytestWarning: Error when trying to teardown test databases: ProgrammingError('database \"ziq\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
         "testDigest": "",
         "previousCycles": [
           {
@@ -71,6 +70,21 @@
               }
             ],
             "qa_summary_excerpt": "# QA Report: Milestone 6 \u2014 WebSocket & Real-Time\n**Date:** 2026-03-10\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** 5 (post BF-001 fix for DEF-002)\n**PRD:** `tasks/prd-m6.json`\n**Progress:** `.ralph/progress.txt`\n---\n## Summary\nBugfix cycle 5 review of Milestone 6. BF-001 successfully **eliminated DEF-002** \u2014 zero IntegrityErrors (was 11 ERRORs in cycle 4). However, **8 new assertion failures** appeared in WebSocket consumer tests. These are a different class of failure: connection reject"
+          },
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-10T23:39:13+0100",
+            "failure_category": "TEST_INFRASTRUCTURE",
+            "category_detail": "DB_LIFECYCLE",
+            "category_evidence": "/app:0: PytestWarning: Error when trying to teardown test databases: ProgrammingError('database \"ziqreq_test\" does not exist\\n')",
+            "test_results": {
+              "passed": 156,
+              "failed": 0,
+              "errors": 0,
+              "total": 156
+            },
+            "error_patterns": [],
+            "qa_summary_excerpt": "# QA Report: Milestone 6 \u2014 WebSocket & Real-Time\n**Date:** 2026-03-10\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** 6 (post BF-001 fix for DEF-003)\n**PRD:** `tasks/prd-m6.json`\n**Progress:** `.ralph/progress.txt`\n---\n## Summary\nBugfix cycle 6 review of Milestone 6 (WebSocket & Real-Time). BF-001 successfully **resolved DEF-003** \u2014 all 156 tests pass (was 134 passed, 8 failed in cycle 5). The DB connection cleanup fixture in `conftest.py` eliminated the order-dependent async test failures."
           }
         ]
       }
