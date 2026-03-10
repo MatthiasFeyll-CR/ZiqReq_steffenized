@@ -49,5 +49,5 @@ coverage.xml
 .ruff_cache/
 
 # Pipeline runtime state (written continuously by log/save_state)
-.ralph
+.ralph/
 .vscode/
