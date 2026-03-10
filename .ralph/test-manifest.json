@@ -251,6 +251,18 @@
     "T-6.3.04": {
       "file": "services/gateway/apps/websocket/tests/test_consumers.py",
       "function": "test_presence_update_client_message"
+    },
+    "T-3.5.01-fe": {
+      "file": "frontend/src/__tests__/selections-slice.test.ts",
+      "function": "adds a user selection for a node"
+    },
+    "T-3.5.02-fe": {
+      "file": "frontend/src/__tests__/user-selection-highlight.test.tsx",
+      "function": "renders colored border and name label when selectedBy is provided"
+    },
+    "T-3.5.03-fe": {
+      "file": "frontend/src/__tests__/selections-slice.test.ts",
+      "function": "removes user selection on null node_id (deselection)"
     }
   }
 }

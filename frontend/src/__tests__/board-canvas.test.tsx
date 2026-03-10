@@ -11,7 +11,18 @@ vi.mock("react-redux", () => ({
         redoStack: [],
         selectedNodeIds: [],
       },
+      selections: {
+        byIdea: {},
+      },
     }),
+}));
+
+vi.mock("@/app/providers", () => ({
+  useWsSend: () => vi.fn(),
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({ user: { id: "test-user", display_name: "Test User" }, isAuthenticated: true }),
 }));
 
 // Mock @xyflow/react since jsdom lacks DOM measurement APIs

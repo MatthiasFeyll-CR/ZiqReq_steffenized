@@ -2,6 +2,7 @@ import { memo, useCallback } from "react";
 import { Handle, Position, NodeResizer, type NodeProps, type Node } from "@xyflow/react";
 import { Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getUserColor } from "@/store/selections-slice";
 
 export interface GroupNodeData {
   title?: string;
@@ -15,11 +16,14 @@ export interface GroupNodeData {
 export type GroupNodeType = Node<GroupNodeData, "group">;
 
 function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
-  const { title, is_locked, ai_modified_indicator, onToggleLock, _dropTarget } = data;
+  const { title, is_locked, ai_modified_indicator, onToggleLock, _dropTarget, _selectedBy } = data;
+  const selectedBy = _selectedBy as { user_id: string; display_name: string } | null;
 
   const handleToggleLock = useCallback(() => {
     onToggleLock?.(id, !is_locked);
   }, [id, is_locked, onToggleLock]);
+
+  const selectionColor = selectedBy ? getUserColor(selectedBy.user_id) : null;
 
   return (
     <div
@@ -27,7 +31,9 @@ function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
       style={{
         border: _dropTarget
           ? "2px solid var(--primary)"
-          : "2px dashed var(--border-strong)",
+          : selectedBy
+            ? `2px solid ${selectionColor}`
+            : "2px dashed var(--border-strong)",
         backgroundColor: _dropTarget
           ? "color-mix(in srgb, var(--primary) 10%, transparent)"
           : "color-mix(in srgb, var(--muted) 30%, transparent)",
@@ -36,6 +42,15 @@ function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
       data-testid="group-node"
       data-drop-target={_dropTarget ? "true" : undefined}
     >
+      {selectedBy && selectionColor && (
+        <div
+          className="absolute -top-5 left-0 z-10 whitespace-nowrap rounded px-1 py-0.5 text-[10px] font-medium leading-none text-white"
+          style={{ backgroundColor: selectionColor }}
+          data-testid="selection-user-label"
+        >
+          {selectedBy.display_name}
+        </div>
+      )}
       {ai_modified_indicator && (
         <span
           className="absolute -left-1 -top-1 z-10 h-2 w-2 rounded-full bg-amber-400 motion-safe:animate-pulse"

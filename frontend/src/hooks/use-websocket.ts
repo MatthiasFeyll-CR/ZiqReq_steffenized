@@ -6,6 +6,7 @@ import {
   setReconnectCountdown,
 } from "@/store/websocket-slice";
 import { updatePresence } from "@/store/presence-slice";
+import { updateSelection } from "@/store/selections-slice";
 import { env } from "@/config/env";
 
 const INITIAL_BACKOFF_MS = 1000;
@@ -111,6 +112,19 @@ export function useWebSocket() {
                 idea_id: data.idea_id,
                 user: data.payload.user,
                 state: data.payload.state,
+              }),
+            );
+          } else if (
+            data.type === "board_selection" &&
+            data.idea_id &&
+            data.payload
+          ) {
+            dispatch(
+              updateSelection({
+                idea_id: data.idea_id,
+                user_id: data.payload.user.id,
+                display_name: data.payload.user.display_name,
+                node_id: data.payload.node_id,
               }),
             );
           }

@@ -223,7 +223,7 @@
         "Verify in browser: open idea in 2 tabs with different dev users, see 2 avatars; open same user in 2 tabs, see 1 avatar"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-6.3.01",
         "T-6.3.02",
@@ -264,7 +264,7 @@
         "Verify in browser: open idea in 2 tabs with different dev users, select a node in tab 1, see colored border + name in tab 2"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-3.5.01",
         "T-3.5.02",

@@ -2,6 +2,7 @@ import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserSelectionHighlight } from "./UserSelectionHighlight";
 
 export interface FreeTextNodeData {
   body?: string;
@@ -15,7 +16,8 @@ export interface FreeTextNodeData {
 export type FreeTextNodeType = Node<FreeTextNodeData, "free_text">;
 
 function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
-  const { body, is_locked, ai_modified_indicator, onToggleLock } = data;
+  const { body, is_locked, ai_modified_indicator, onToggleLock, _selectedBy } = data;
+  const selectedBy = _selectedBy as { user_id: string; display_name: string } | null;
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(body ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -68,6 +70,7 @@ function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
   );
 
   return (
+    <UserSelectionHighlight selectedBy={selectedBy}>
     <div
       className="group relative rounded bg-transparent text-sm text-foreground hover:outline hover:outline-1 hover:outline-dashed hover:outline-border"
       style={{ minWidth: 80 }}
@@ -120,6 +123,7 @@ function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
 
       <Handle type="source" position={Position.Bottom} className="!bg-border" />
     </div>
+    </UserSelectionHighlight>
   );
 }
 

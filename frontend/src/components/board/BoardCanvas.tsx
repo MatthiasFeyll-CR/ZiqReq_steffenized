@@ -17,6 +17,7 @@ import {
   SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useSelector } from "react-redux";
 import { BoxNode } from "./BoxNode";
 import { GroupNode } from "./GroupNode";
 import { FreeTextNode } from "./FreeTextNode";
@@ -24,6 +25,10 @@ import { ConnectionEdge } from "./ConnectionEdge";
 import { BoardToolbar } from "./BoardToolbar";
 import { updateBoardNode } from "@/api/board";
 import { useBoardUndo } from "@/hooks/use-board-undo";
+import { useWsSend } from "@/app/providers";
+import { useAuth } from "@/hooks/use-auth";
+import { selectIdeaSelections } from "@/store/selections-slice";
+import type { RootState } from "@/store";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
@@ -117,6 +122,12 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
   const dropTargetIdRef = useRef<string | null>(null);
   const { getInternalNode } = useReactFlow();
   const { push: pushUndoAction, handleUndo, handleRedo, canUndo, canRedo, undoTop, redoTop } = useBoardUndo(ideaId);
+  const wsSend = useWsSend();
+  const { user } = useAuth();
+  const selections = useSelector((state: RootState) =>
+    ideaId ? selectIdeaSelections(ideaId)(state) : [],
+  );
+  const selectedNodeRef = useRef<string | null>(null);
 
   const getNodeInfos = useCallback((): NodeInfo[] => {
     return nodes.map((n) => {
@@ -323,6 +334,19 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
 
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
+      // Send selection event via WebSocket
+      if (ideaId && user) {
+        selectedNodeRef.current = node.id;
+        wsSend({
+          type: "board_selection",
+          idea_id: ideaId,
+          payload: {
+            node_id: node.id,
+            user: { id: user.id, display_name: user.display_name },
+          },
+        });
+      }
+
       if (!node.data?.ai_modified_indicator) return;
       // Clear indicator locally
       setNodes((nds) =>
@@ -339,18 +363,41 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
         });
       }
     },
-    [ideaId, setNodes],
+    [ideaId, setNodes, wsSend, user],
   );
 
-  // Inject onToggleLock into node data and set draggable based on is_locked
+  const onPaneClick = useCallback(() => {
+    if (ideaId && user && selectedNodeRef.current !== null) {
+      selectedNodeRef.current = null;
+      wsSend({
+        type: "board_selection",
+        idea_id: ideaId,
+        payload: {
+          node_id: null,
+          user: { id: user.id, display_name: user.display_name },
+        },
+      });
+    }
+  }, [ideaId, wsSend, user]);
+
+  // Inject onToggleLock, selection info into node data and set draggable based on is_locked
   const processedNodes = useMemo(
     () =>
-      nodes.map((n) => ({
-        ...n,
-        draggable: !n.data?.is_locked,
-        data: { ...n.data, onToggleLock: handleToggleLock },
-      })),
-    [nodes, handleToggleLock],
+      nodes.map((n) => {
+        const sel = selections.find(
+          (s) => s.node_id === n.id && s.user_id !== user?.id,
+        );
+        return {
+          ...n,
+          draggable: !n.data?.is_locked,
+          data: {
+            ...n.data,
+            onToggleLock: handleToggleLock,
+            _selectedBy: sel ?? null,
+          },
+        };
+      }),
+    [nodes, handleToggleLock, selections, user?.id],
   );
 
   useEffect(() => {
@@ -388,6 +435,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
           onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
