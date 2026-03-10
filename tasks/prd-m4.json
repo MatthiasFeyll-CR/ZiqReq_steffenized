@@ -41,7 +41,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-BOARD.08", "API-BOARD.09", "API-BOARD.10", "API-BOARD.11", "DB-CONN.01", "DB-CONN.02", "DB-CONN.03"],
       "notes": "Architecture: data-model.md § board_connections, api-design.md § Board Endpoints\nDesign: Backend-only\nTesting: test-matrix.md § API-BOARD.08-11, DB-CONN.01-03\nFiles: services/gateway/apps/board/{models,views,serializers,urls,tests/test_views}.py\nGotchas: unique_together(source,target) returns 409, CASCADE delete, no self-connections",
       "context": {
@@ -62,7 +62,7 @@
         "Verify in browser"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.3.01", "T-3.3.02"],
       "notes": "Architecture: project-structure.md § frontend/src/components/board/\nDesign: component-specs.md § 6.6 Board Canvas\nTesting: test-matrix.md § T-3.3.01-02\nFiles: frontend/src/components/board/BoardCanvas.tsx, components/workspace/WorkspaceLayout.tsx\nGotchas: npm package is '@xyflow/react', Board tab exists in WorkspaceLayout from M3",
       "context": {
@@ -86,9 +86,9 @@
         "Verify in browser"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.1.01", "T-3.2.08", "T-3.8.01", "T-3.8.02"],
-      "notes": "Architecture: data-model.md § board_nodes\nDesign: component-specs.md § 6.1 Box Node\nTesting: test-matrix.md § T-3.1.01, T-3.2.08, T-3.8.01-02\nFiles: frontend/src/components/board/BoxNode.tsx, BoardCanvas.tsx\nGotchas: React Flow nodeTypes prop, reference button → ChatInput shared state",
+      "notes": "QA FAIL: Missing frontend unit tests T-3.1.01 (BoxNode render), T-3.2.08 (AI badge), T-3.8.01 (reference button visibility), T-3.8.02 (reference button @board[uuid] insertion). Implementation is correct but tests not written. Create frontend/src/__tests__/box-node.test.tsx with tests for: (1) BoxNode renders title+body, (2) AI badge shows when created_by='ai', (3) reference button visible, (4) click reference dispatches CustomEvent board:reference with @board[uuid]. Mock @xyflow/react same pattern as board-canvas.test.tsx.",
       "context": {
         "data_model": ["board_nodes: node_type='box', title(500), body, created_by, is_locked"],
         "components": ["BoxNode: custom React Flow node"],
@@ -109,9 +109,9 @@
         "Verify in browser"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.1.02", "T-3.1.04", "T-3.2.02", "T-3.2.03"],
-      "notes": "Architecture: data-model.md § board_nodes\nDesign: component-specs.md § 6.2 Group Node\nTesting: test-matrix.md § T-3.1.02/04, T-3.2.02-03\nFiles: frontend/src/components/board/GroupNode.tsx, BoardCanvas.tsx\nGotchas: ResizeControl for resize, parent-child via parent_id, drag in/out deferred to M5",
+      "notes": "QA FAIL: Missing frontend unit tests T-3.1.02 (GroupNode renders as container), T-3.1.04 (nested groups), T-3.2.02 (drag into group), T-3.2.03 (drag out of group). Create frontend/src/__tests__/group-node.test.tsx. For T-3.1.02: render GroupNode with title, verify dashed container and label badge. For T-3.1.04: render group with nested child. For T-3.2.02/03: verify parent_id prop mechanism (note: full drag-in/out is deferred to M5, test the data model). Mock @xyflow/react with NodeResizer stub.",
       "context": {
         "data_model": ["board_nodes: node_type='group', width, height, parent_id FK self SET NULL"],
         "components": ["GroupNode: dashed container, resizable"]
@@ -131,7 +131,7 @@
       "priority": 6,
       "passes": false,
       "testIds": ["T-3.1.03", "T-3.2.04"],
-      "notes": "Architecture: data-model.md § board_nodes\nDesign: component-specs.md § 6.3 Free Text Node\nTesting: test-matrix.md § T-3.1.03, T-3.2.04\nFiles: frontend/src/components/board/FreeTextNode.tsx, BoardCanvas.tsx\nGotchas: No title for free_text (only body), hover border CSS",
+      "notes": "QA FAIL: Missing frontend unit tests T-3.1.03 (FreeTextNode renders without card border) and T-3.2.04 (click opens content editor). Create frontend/src/__tests__/free-text-node.test.tsx. For T-3.1.03: render FreeTextNode with body, verify transparent bg and no border. For T-3.2.04: click on node, verify textarea edit mode appears. Mock @xyflow/react Handle component.",
       "context": {
         "data_model": ["board_nodes: node_type='free_text', body (title NULL)"],
         "components": ["FreeTextNode: transparent, click-to-edit textarea"],
@@ -153,7 +153,7 @@
       "priority": 7,
       "passes": false,
       "testIds": ["T-3.2.05", "T-3.2.06"],
-      "notes": "Architecture: data-model.md § board_connections\nDesign: component-specs.md § 6.4 Connections\nTesting: test-matrix.md § T-3.2.05-06\nFiles: frontend/src/components/board/ConnectionEdge.tsx, BoardCanvas.tsx\nGotchas: React Flow edgeTypes prop, label edit via double-click",
+      "notes": "QA FAIL: Missing frontend unit tests T-3.2.05 (connection renders as edge) and T-3.2.06 (double-click opens label editor). Create frontend/src/__tests__/connection-edge.test.tsx. For T-3.2.05: render ConnectionEdge with required props, verify SVG path rendered. For T-3.2.06: simulate double-click on label area, verify input field appears. Mock @xyflow/react BaseEdge, getSmoothStepPath, EdgeLabelRenderer.",
       "context": {
         "data_model": ["board_connections: label(500)"],
         "components": ["ConnectionEdge: smoothstep, arrowhead, label editor"]
@@ -175,7 +175,7 @@
       "priority": 8,
       "passes": false,
       "testIds": ["T-3.3.03"],
-      "notes": "Design: component-specs.md § 6.5 Board Toolbar\nTesting: test-matrix.md § T-3.3.03\nFiles: frontend/src/components/board/BoardToolbar.tsx, BoardCanvas.tsx\nGotchas: Add Box uses getViewport(), Undo/Redo deferred to M5",
+      "notes": "QA FAIL: Missing frontend unit test T-3.3.03 (toolbar buttons trigger correct actions). Create frontend/src/__tests__/board-toolbar.test.tsx. Render BoardToolbar with mock callbacks, click Add Box/Delete/Fit View buttons, verify onAddBox/onDeleteSelected callbacks called and fitView invoked. Mock @xyflow/react useReactFlow with screenToFlowPosition and fitView stubs.",
       "context": {
         "components": ["BoardToolbar: Add Box, Delete, Fit View"],
         "existing_code": ["ui/button.tsx:Button ghost"]
@@ -194,7 +194,7 @@
         "Verify in browser"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.3.01", "T-3.3.02"],
       "notes": "Design: component-specs.md § 6.6 Board Canvas\nTesting: test-matrix.md § T-3.3.01-02\nFiles: frontend/src/components/board/BoardCanvas.tsx\nGotchas: React Flow MiniMap and Controls built-in, style via className",
       "context": {
