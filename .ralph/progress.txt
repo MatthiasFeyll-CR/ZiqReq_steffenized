@@ -153,3 +153,19 @@ Started: 2026-03-10T03:55:44+0100
   - Adding `useSelector`, `useWsSend`, `useAuth` to BoardCanvas broke existing tests (board-interactions, board-canvas, ai-modified-indicator) — needed to add `selections: { byIdea: {} }` to mock Redux state and mock `useWsSend`/`useAuth`
   - The `ai-modified-indicator` test uses `vi.doMock` + `vi.resetModules` pattern — mock additions must use `vi.doMock` (not `vi.mock`) to match
 ---
+
+## US-009: Offline banner + behavior — 'Currently offline' with countdown, chat/board locked, reconnect button
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/common/OfflineBanner.tsx (new), frontend/src/hooks/use-websocket.ts, frontend/src/app/providers.tsx, frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/components/workspace/WorkspaceLayout.tsx, frontend/src/components/board/BoardCanvas.tsx, frontend/src/__tests__/offline-banner.test.tsx (new), frontend/src/__tests__/idea-workspace.test.tsx, frontend/src/__tests__/section-visibility.test.tsx, .ralph/test-manifest.json
+- Tests: 6 new tests passed (renders banner when offline, hides when online, shows countdown, shows generic reconnecting text, calls reconnectNow on click, reconnect button present). Full suite: 142 Python tests passed, 240 Node tests passed. TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - `OfflineBanner` uses framer-motion `AnimatePresence` + `motion.div` for slide-down animation on mount/unmount
+  - `reconnectNow` function added to `useWebSocket` hook — clears timers, resets backoff, and calls `connect()` immediately
+  - `useWsReconnect` context/hook exported from providers.tsx alongside `useWsSend` — gives components access to manual reconnect
+  - IdeaWorkspaceContent now uses `useSelector(selectIsOnline)` to derive `effectiveChatLocked` and `effectiveLockReason` when offline
+  - `WorkspaceLayout` accepts `disabled` prop, passes it to `BoardCanvas`
+  - `BoardCanvas` disabled mode: sets `nodesDraggable=false`, `nodesConnectable=false`, `elementsSelectable=false`, and nullifies all interaction callbacks (onNodesChange, onNodeClick, onNodeDrag, etc.)
+  - Adding `useSelector` to IdeaWorkspaceContent broke `idea-workspace.test.tsx` and `section-visibility.test.tsx` — both needed Redux Provider wrapping with `websocketReducer` and `useWsReconnect` mock
+  - Tests that render IdeaWorkspacePage must preload websocket state as "online" (default is "offline") to preserve existing section-visibility behavior
+---
