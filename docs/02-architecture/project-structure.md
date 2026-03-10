@@ -67,13 +67,13 @@ class Idea(models.Model):
     # ... identical schema ...
 
     class Meta:
-        db_table = "ideas"  # Points to Core's table (no migration)
+        db_table = "ideas"  # Points to Core's table. Gateway creates migrations for test DB compatibility.
 ```
 
 **Rules:**
-1. **Core owns migration authority** — only Core creates/modifies migrations for the table
-2. **Gateway's mirror model has no migrations** — Gateway's app label (e.g., `gateway_ideas`) distinguishes it from Core's app
-3. **Schemas must stay synchronized** — if Core changes the schema, Gateway's mirror must be updated manually
+1. **Core owns migration authority** — only Core creates/modifies migrations for the table schema
+2. **Gateway creates migrations for its mirror model** — required for Django test database to create tables. Gateway's migrations define the same schema as Core but with a different app label (e.g., `gateway_board` vs `core_board`). Both point to the same physical table via `db_table`.
+3. **Schemas must stay synchronized** — if Core changes the schema, Gateway's mirror model AND migrations must be updated manually
 4. **Both models access the same physical table** — no data duplication
 5. **Gateway uses its mirror for REST API only** — DRF serializers, list queries, CRUD operations
 6. **Core uses its model for business logic** — gRPC servicers, Celery tasks, admin operations
@@ -88,13 +88,17 @@ class Idea(models.Model):
 - Cross-service transactions (use gRPC + distributed transaction patterns)
 - Gateway-owned tables (no mirroring needed — Gateway owns both model and migration)
 
-**Tables with mirror models (as of M2):**
+**Tables with mirror models (as of M4):**
 - `ideas` (Core-owned, Gateway mirrors for `/api/ideas` endpoints)
 - `idea_collaborators` (Core-owned, Gateway mirrors for join queries in idea lists)
-- `chat_messages` (Core-owned, Gateway mirrors for first message creation in POST `/api/ideas`)
+- `chat_messages` (Core-owned, Gateway mirrors for `/api/ideas/:id/chat` endpoints)
 - `collaboration_invitations` (Core-owned, Gateway mirrors for `/api/invitations` endpoints)
+- `board_nodes` (Core-owned, Gateway mirrors for `/api/ideas/:id/board/nodes` endpoints)
+- `board_connections` (Core-owned, Gateway mirrors for `/api/ideas/:id/board/connections` endpoints)
 
-**Future milestones:** Expect Gateway mirror models for `board_nodes`, `board_connections` (M3), `review_assignments`, `review_timeline_entries` (M10), and potentially others as more REST endpoints are exposed.
+**Future milestones:** Expect Gateway mirror models for `review_assignments`, `review_timeline_entries` (M10), and potentially others as more REST endpoints are exposed.
+
+**Note on `managed=False` pattern:** The `managed=False` Meta option is used for read-only mirror models where Gateway never runs tests against the table (e.g., `admin_parameters` in Gateway's admin app). For REST API mirror models where Gateway test suites query/mutate the table, migrations are required for Django test database creation.
 
 ### Communication Patterns
 
