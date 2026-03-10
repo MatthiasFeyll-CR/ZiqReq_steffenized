@@ -878,3 +878,14 @@ Started: 2026-03-09T17:27:54+0100
   - Docker image rebuild required (docker compose -f docker-compose.test.yml build node-tests) for new test files to be picked up
   - Follow same renderHelper pattern as box-node.test.tsx: pass NodeProps shape with all required fields
 ---
+
+## BF-001: Fix: Missing FreeTextNode render test (T-3.1.03) and click-to-edit test (T-3.2.04)
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/free-text-node.test.tsx (created)
+- Tests: 5 passed (T-3.1.03: 3 tests for transparent bg, no border, body visible; T-3.2.04: 2 tests for display mode before click, textarea after click)
+- Learnings for future iterations:
+  - FreeTextNode has hover:outline-border class which contains "border" substring — check individual classes with split() instead of toContain on full className string
+  - Same renderHelper pattern as box-node.test.tsx works for FreeTextNode with type "free_text"
+  - Click on free-text-node container triggers editing state, switching from free-text-display to free-text-textarea
+---
