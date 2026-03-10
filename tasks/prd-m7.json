@@ -1,0 +1,209 @@
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m7-ai-chat",
+  "description": "AI Core - Chat Processing Pipeline: SK base, Facilitator agent, pipeline orchestrator, debounce, AI tools, event consumers, frontend indicators.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "AI Service Django Setup - Semantic Kernel Base",
+      "description": "As a developer, I want AI service with SK base (BaseAgent, kernel factory, model router, token tracker) for unified Azure OpenAI integration.",
+      "acceptanceCriteria": [
+        "Django boots, SK SDK installed, BaseAgent abstract class with async process()",
+        "Kernel factory creates SK Kernel with Azure OpenAI",
+        "Model router routes to deployments (default/cheap/escalated)",
+        "Token tracker logs input/output tokens",
+        "Environment vars validated: AZURE_OPENAI_ENDPOINT, API_KEY, API_VERSION, deployments",
+        "Admin params seeded: default_ai_model, escalated_ai_model, ai_processing_timeout, recent_message_count, context_compression_threshold",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: tech-stack.md § AI Orchestration, project-structure.md § AI Service\nAI: agent-architecture.md § S1, model-config.md § S6-S8\nFiles: ai_service/settings/base.py, agents/base.py, kernel/{sk_factory,model_router,token_tracker}.py, requirements.txt\nGotchas: SK async only. Azure auth with API key. Router reads admin params at runtime. Handle missing token metadata.",
+      "context": {
+        "data_model": ["admin_parameters: key PK, value, data_type"],
+        "ai_specs": ["SK + Azure OpenAI, 3 tiers, BaseAgent async, model router"]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "Facilitator Agent Implementation",
+      "description": "As the system, I want Facilitator with XML prompt and 6 tools (send_chat_message, react_to_message, update_title, 2 delegation, request_board_changes) for brainstorming.",
+      "acceptanceCriteria": [
+        "FacilitatorAgent extends BaseAgent, system prompt from prompt.py",
+        "FacilitatorPlugin with 6 @kernel_function methods",
+        "Tools publish events: ai.chat_response.ready, ai.reaction.ready, ai.title.updated, ai.delegation.started",
+        "Delegation tools return delegation_id/queued (non-blocking)",
+        "request_board_changes returns accepted (Board Agent stub in M7)",
+        "SK config: max_auto_invoke_attempts=3, function_choice_behavior=auto",
+        "Mocked Azure OpenAI for tests (fixture files)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "testIds": ["T-2.1.03", "T-2.1.04", "T-2.3.01", "T-2.3.02", "T-2.4.01", "T-2.7.01", "T-2.15.01"],
+      "notes": "Architecture: api-design.md § gRPC TriggerChatProcessing\nAI: agent-architecture.md § S3.1, system-prompts.md § S1, tools-and-functions.md § Facilitator, model-config.md § S2\nTesting: test-matrix.md § T-2.1.03/04, T-2.3.01/02, T-2.4.01, T-2.7.01, T-2.15.01. Test-first with mocked Azure.\nFiles: facilitator/{agent,prompt,plugins}.py, fixtures/facilitator_response.json\nGotchas: Prompt ~2800 tokens. Async plugins, gRPC to Core. Events via broker. Delegation immediate. Board Agent stub. Fixture mocks.",
+      "context": {
+        "data_model": ["chat_messages: sender_type, ai_agent, content, message_type", "ai_reactions: message_id FK UNIQUE, reaction_type", "ideas: title, title_manually_edited"],
+        "ai_specs": ["6 tools, SK function calling, temp=0.7, events: ai.chat_response.ready, ai.reaction.ready, ai.title.updated"]
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "Chat Processing Pipeline Orchestrator",
+      "description": "As the system, I want 7-step pipeline (load, assemble, Facilitator, delegation, Board Agent, complete, cleanup) for end-to-end AI processing.",
+      "acceptanceCriteria": [
+        "ChatProcessingPipeline async execute(): 1) Load via GetIdeaContext gRPC, 2) Assemble context, 3) Facilitator, 4) If delegation → agent → re-Facilitator, 5) If board changes → Board Agent (stub logs 'not available'), 6) Publish ai.processing.complete, 7) Cleanup version/abort flag",
+        "Version tracking detects stale (version mismatch = abort)",
+        "Abort flag at step boundaries, exits early without persisting",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "testIds": ["T-2.10.03"],
+      "notes": "Architecture: api-design.md § gRPC TriggerChatProcessing, GetIdeaContext\nAI: agent-architecture.md § S4.1 (7 steps), § S12 (version), system-prompts.md § second pass\nTesting: test-matrix.md § T-2.10.03. Test: trigger, send mid-processing, verify abort.\nRuntime Safety: runtime-safety.md § STATE-004\nFiles: processing/{pipeline,context_assembler}.py, grpc_clients/core_client.py\nGotchas: Version checked before steps. Abort at boundaries. Delegation async. Board stub. gRPC 10s timeout. Context: summary + recent 20 + board + bucket.",
+      "context": {
+        "data_model": ["chat_messages: recent 20", "chat_context_summaries: summary_text", "facilitator_context_bucket: content"],
+        "ai_specs": ["7 steps, version tracking, abort at boundaries, delegation continuation"]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "Debouncer Implementation",
+      "description": "As the system, I want debouncer waiting debounce_timer after last message before pipeline, resetting on new message, batching rapid-fire messages.",
+      "acceptanceCriteria": [
+        "Debouncer with start(), reset(), cancel()",
+        "Reads debounce_timer admin param (default 3s)",
+        "start() → countdown → triggers pipeline on expiry",
+        "reset() → cancels, starts new countdown",
+        "State: idle → debouncing → processing",
+        "Publishes ai.processing {state: debouncing}",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "testIds": ["T-2.10.01", "T-2.10.02"],
+      "notes": "Architecture: data-model.md § admin_parameters (debounce_timer 3s)\nAI: agent-architecture.md § S4.1, model-config.md § S7\nTesting: test-matrix.md § T-2.10.01/02. Test-first: mock time, verify expiry; two messages → one execution.\nRuntime Safety: runtime-safety.md § STATE-004, LEAK-005\nFiles: processing/debouncer.py\nGotchas: asyncio.sleep. Per-idea state dict. Cleanup on unmount. Runtime param read. Publish WebSocket events.",
+      "context": {
+        "data_model": ["admin_parameters: debounce_timer 3s"],
+        "ai_specs": ["Debounce configurable 3s, state transitions, event: ai.processing {state: debouncing}"]
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "send_chat_message Tool",
+      "description": "As Facilitator, I want send_chat_message publishing ai.chat_response.ready so Gateway persists and broadcasts.",
+      "acceptanceCriteria": [
+        "Publishes ai.chat_response.ready: idea_id, content, message_type, sender_type=ai, ai_agent=facilitator",
+        "[[Item Title]] validated against board, invalid → plain text",
+        "Returns message_id, created_at (None at call, Gateway fills)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: api-design.md § ai.chat_response.ready\nAI: tools-and-functions.md § S1\nFiles: facilitator/plugins.py (send_chat_message), events/publishers.py\nGotchas: [[Title]] validated. Event async. Gateway persists via Core gRPC. Placeholder return.",
+      "context": {
+        "data_model": ["chat_messages: sender_type=ai, ai_agent, content, message_type"],
+        "ai_specs": ["send_chat_message: content, message_type, event: ai.chat_response.ready, board refs validated"]
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "react_to_message Tool",
+      "description": "As Facilitator, I want react_to_message publishing ai.reaction.ready to place reactions on user messages.",
+      "acceptanceCriteria": [
+        "Publishes ai.reaction.ready: idea_id, message_id, reaction_type",
+        "Validates target sender_type=user (not AI), error if AI message or duplicate",
+        "Returns success: true",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "testIds": ["T-2.7.01", "T-2.7.02"],
+      "notes": "Architecture: api-design.md § ai.reaction.ready, data-model.md § ai_reactions UNIQUE\nAI: tools-and-functions.md § S2\nTesting: test-matrix.md § T-2.7.01/02. Test-first: mock call, verify event; test UNIQUE.\nFiles: facilitator/plugins.py (react_to_message), events/publishers.py\nGotchas: Validation via Core gRPC. UNIQUE at DB. Error format from tools-and-functions.md.",
+      "context": {
+        "data_model": ["ai_reactions: message_id FK UNIQUE, reaction_type", "chat_messages: sender_type"],
+        "ai_specs": ["react_to_message: message_id, reaction_type, event: ai.reaction.ready, validation: user only"]
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "update_title Tool",
+      "description": "As Facilitator, I want update_title publishing ai.title.updated to generate/update title, respecting title_manually_edited.",
+      "acceptanceCriteria": [
+        "Publishes ai.title.updated: idea_id, title (truncated to 60 chars)",
+        "Validates title_manually_edited=false, error if true",
+        "Truncates > 60 chars, returns truncated",
+        "Returns success: true, title",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "testIds": ["T-2.3.01", "T-2.3.02", "T-2.3.03"],
+      "notes": "Architecture: api-design.md § ai.title.updated, data-model.md § ideas\nAI: tools-and-functions.md § S3\nDesign: component-specs.md § S5.4 (animation)\nTesting: test-matrix.md § T-2.3.01/02/03. Test-first: mock call, verify event; test flag reject; test animation.\nFiles: facilitator/plugins.py (update_title), events/publishers.py\nGotchas: Truncation before event. Flag check via Core gRPC. Browser tab update (frontend). Animation framer-motion.",
+      "context": {
+        "data_model": ["ideas: title varchar(500), title_manually_edited boolean"],
+        "ai_specs": ["update_title: title maxLength 60, event: ai.title.updated, validation: title_manually_edited=false"]
+      }
+    },
+    {
+      "id": "US-008",
+      "title": "AI Event Consumers in Gateway",
+      "description": "As Gateway, I want consumers for ai.chat_response.ready, ai.reaction.ready, ai.title.updated persisting via Core gRPC and broadcasting via WebSocket.",
+      "acceptanceCriteria": [
+        "AIEventConsumer subscribes: ai.chat_response.ready → Core CreateChatMessage + broadcast chat_message, ai.reaction.ready → CreateAIReaction + broadcast ai_reaction, ai.title.updated → UpdateIdeaTitle + broadcast title_update",
+        "Broadcasts include full entity data",
+        "Error: 3 retries (1s, 2s, 4s), then DLQ",
+        "Idempotency: event_id tracking",
+        "Runs as background process",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "testIds": ["T-2.7.02"],
+      "notes": "Architecture: api-design.md § Events, tech-stack.md § Error Handling\nTesting: test-matrix.md § T-2.7.02. Test-first: mock event, verify gRPC, WebSocket, DB.\nRuntime Safety: runtime-safety.md § LOOP-003\nFiles: gateway/events/consumers.py, gateway/grpc_clients/core_client.py\nGotchas: Background process. Channels layer. Idempotency: Redis/DB. Retry: 1s, 2s, 4s. DLQ. gRPC 10s timeout. Channel group: idea-{idea_id}.",
+      "context": {
+        "api_endpoints": ["gRPC CreateChatMessage, CreateAIReaction, UpdateIdeaTitle"]
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "AI Processing Indicator (Frontend)",
+      "description": "As a user, I want indicator in chat when AI processing so I know message received.",
+      "acceptanceCriteria": [
+        "Indicator below last message: 'AI is processing...' with animated dots",
+        "Visible on WebSocket ai.processing {state: started}, hidden on {state: completed/failed}",
+        "Animation respects prefers-reduced-motion",
+        "Styled per component-specs.md § S5.4",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "testIds": ["T-2.12.01", "T-2.12.02"],
+      "notes": "Design: component-specs.md § S5.4\nTesting: test-matrix.md § T-2.12.01/02. Test-first: mock {state: started} → visible; {state: completed} → hidden.\nFiles: frontend/src/components/chat/AIProcessingIndicator.tsx, hooks/useWebSocket.ts\nGotchas: Position centered. Sequential fade animation. prefers-reduced-motion. WebSocket event: {type: ai_processing, payload: {idea_id, state}}.",
+      "context": {
+        "components": ["AIProcessingIndicator — text-sm, muted-foreground, animated dots, centered"]
+      }
+    },
+    {
+      "id": "US-010",
+      "title": "Rate Limit Integration",
+      "description": "As the system, I want rate limit (chat_message_cap) locking chat after N messages until AI completes.",
+      "acceptanceCriteria": [
+        "Backend: 429 when counter >= chat_message_cap, increments per message, resets on ai.processing.complete",
+        "Frontend: input disabled when limited (overlay: 'Chat locked'), WebSocket rate_limit shows toast, unlocks on ai.processing.complete",
+        "Reads chat_message_cap admin param (default 5)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "testIds": ["T-2.11.01", "T-2.11.02", "T-2.11.03"],
+      "notes": "Architecture: data-model.md § admin_parameters (chat_message_cap 5), api-design.md § POST 429\nDesign: component-specs.md § S5.8\nTesting: test-matrix.md § T-2.11.01/02/03. Test-first: send cap → 429; reset on complete; toast on event.\nFiles: gateway/apps/chat/views.py, frontend/src/components/chat/ChatInput.tsx, hooks/useRateLimit.ts\nGotchas: Counter: Redis (idea_id, 1hr TTL) or in-memory. Reset in consumer. Overlay: bg-card/80, lock icon. WebSocket: {type: rate_limit}. Toast: react-toastify.",
+      "context": {
+        "data_model": ["admin_parameters: chat_message_cap 5"],
+        "api_endpoints": ["POST /api/ideas/{id}/chat/messages — 429 when >= cap"]
+      }
+    }
+  ]
+}
