@@ -38,7 +38,7 @@
 4. **[Frontend]** Multi-select — Ctrl+drag for selection box, batch delete
 5. **[Frontend]** Undo/redo system — Redux Toolkit action history stack, bounded to 100 entries
 6. **[Frontend]** Context-aware undo labels — "Undo AI Action" / "Redo AI Action" for AI-sourced entries
-7. **[Frontend]** Board item reference action — Pin button on nodes, inserts [[Title]] reference into chat input
+7. **[Frontend]** Board item reference action — Reference button on nodes dispatches event, inserts @board[nodeId] reference into chat input
 8. **[Frontend]** AI modification indicators — gold dot with pulse animation, AI badge on created_by='ai' nodes, clear on user selection
 
 ## Per-Story Complexity Assessment
@@ -67,7 +67,7 @@
 - [ ] Ctrl+drag creates selection box for multi-select
 - [ ] Undo/redo works for all board actions (node CRUD, content, connections, position)
 - [ ] Undo button shows "Undo AI Action" for AI-sourced entries
-- [ ] Pin button on nodes inserts [[Title]] reference into chat input
+- [ ] Reference button on nodes inserts @board[nodeId] reference into chat input
 - [ ] AI-created nodes show robot badge
 - [ ] AI-modified nodes show gold pulsing dot, cleared on user selection
 - [ ] TypeScript typecheck passes
