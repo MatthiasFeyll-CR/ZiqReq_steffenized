@@ -243,3 +243,14 @@ Started: 2026-03-10T03:55:44+0100
   - All 4 board awareness tests pass: board_selection_broadcast_excludes_sender, board_selection_deselect_null_node, board_selection_not_subscribed_error, board_lock_change_broadcast
   - Consumer `handle_board_selection` handler, `board_selection` group message handler (with sender exclusion), `board_lock_change` handler, and `_broadcast_board_lock_change` view helper were already correct
 ---
+
+## US-007 (BUGFIX): Presence tracking — online/idle/offline states, stacked avatars in workspace header, multi-tab dedup
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (passes: true)
+- Tests: 142 Python tests passed (4/4 presence tests passed: test_presence_broadcast_on_subscribe, test_presence_multi_tab_dedup, test_presence_offline_on_unsubscribe, test_presence_update_client_message). TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - No code changes needed — the US-002 bugfix (consolidating DB setup into single @database_sync_to_async blocks) resolved DEF-001 for all backend stories including US-007
+  - All 4 presence tests pass: presence_broadcast_on_subscribe, presence_multi_tab_dedup, presence_offline_on_unsubscribe, presence_update_client_message
+  - Server-side presence registry, multi-tab dedup, PresenceIndicators component, and Redux presence-slice were already correct
+---
