@@ -15,7 +15,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.2.01"],
       "notes": "Architecture: api-design.md § PATCH nodes/:nodeId — position_x, position_y\nDesign: component-specs.md § 6.1-6.3 — all nodes draggable\nTesting: test-matrix.md § T-3.2.01\nFiles: BoardCanvas.tsx (onNodeDragStop), api/board.ts (PATCH fn)\nGotchas: Send PATCH only on drag END, not during. WebSocket broadcast server-side.",
       "context": {

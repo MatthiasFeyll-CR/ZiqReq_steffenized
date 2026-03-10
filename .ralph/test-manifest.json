@@ -111,6 +111,10 @@
     "T-2.8.05": {
       "file": "services/gateway/apps/chat/tests/test_reactions.py",
       "function": "test_remove_reaction_returns_204"
+    },
+    "T-3.2.01": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "calls updateBoardNode with new position on drag end"
     }
   }
 }

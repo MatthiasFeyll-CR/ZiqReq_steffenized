@@ -40,9 +40,10 @@ function saveRatio(ratio: number) {
 interface WorkspaceLayoutProps {
   chatPanel?: React.ReactNode;
   reviewVisible?: boolean;
+  ideaId?: string;
 }
 
-export function WorkspaceLayout({ chatPanel, reviewVisible = true }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId }: WorkspaceLayoutProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(loadRatio);
@@ -120,7 +121,7 @@ export function WorkspaceLayout({ chatPanel, reviewVisible = true }: WorkspaceLa
             )}
           </TabsList>
           <TabsContent value="board" className="flex-1 overflow-hidden" data-testid="board-content">
-            <BoardCanvas />
+            <BoardCanvas ideaId={ideaId} />
           </TabsContent>
           {reviewVisible && (
             <TabsContent value="review" className="flex-1 overflow-auto" data-testid="review-content">

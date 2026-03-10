@@ -20,6 +20,7 @@ import { GroupNode } from "./GroupNode";
 import { FreeTextNode } from "./FreeTextNode";
 import { ConnectionEdge } from "./ConnectionEdge";
 import { BoardToolbar } from "./BoardToolbar";
+import { updateBoardNode } from "@/api/board";
 
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 2;
@@ -43,7 +44,11 @@ const defaultEdgeOptions = {
 const defaultNodes: Node[] = [];
 const defaultEdges: Edge[] = [];
 
-export function BoardCanvas() {
+interface BoardCanvasProps {
+  ideaId?: string;
+}
+
+export function BoardCanvas({ ideaId }: BoardCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
 
@@ -82,6 +87,19 @@ export function BoardCanvas() {
     setEdges((eds) => eds.filter((e) => !e.selected));
   }, [setNodes, setEdges]);
 
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      if (!ideaId) return;
+      updateBoardNode(ideaId, node.id, {
+        position_x: node.position.x,
+        position_y: node.position.y,
+      }).catch(() => {
+        // Position will be retried on next drag or sync
+      });
+    },
+    [ideaId],
+  );
+
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
 
   return (
@@ -98,6 +116,7 @@ export function BoardCanvas() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}

@@ -22,3 +22,17 @@ Started: 2026-03-09T17:27:54+0100
 
 <!-- Ralph records any spec deviations or implementation decisions -->
 <!-- that the Spec Reconciler should review. -->
+
+## US-001: Drag to move nodes with position persistence
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/board.ts (new), frontend/src/components/board/BoardCanvas.tsx, frontend/src/components/workspace/WorkspaceLayout.tsx, frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/__tests__/board-interactions.test.tsx (new), .ralph/test-manifest.json
+- Tests: 142 passed (19 test files), including 3 new T-3.2.01 tests
+- Learnings for future iterations:
+  - API pattern uses fetch (not axios) with `env.apiBaseUrl` from `@/config/env` — match ideas.ts pattern
+  - @xyflow/react does not export `NodeDragHandler` type; use inline `(_event: React.MouseEvent, node: Node) => void`
+  - BoardCanvas had no props — added `ideaId?: string` prop, threaded through WorkspaceLayout from IdeaWorkspacePage
+  - `onNodeDragStop` fires only on drag end (not during), correct for PATCH-on-end requirement
+  - Docker build gate (`docker compose build`) fails on pre-existing nginx.conf issue — not related to source changes
+  - vi.fn() needs explicit generic for typed mock params: `vi.fn<(a: string, b: string, c: Record<string, unknown>) => Promise<unknown>>()`
+---

@@ -134,6 +134,7 @@ function IdeaWorkspaceContent({
           <ChatPanel idea={idea} locked={chatLocked} lockReason={lockReason} />
         }
         reviewVisible={reviewVisible}
+        ideaId={idea.id}
       />
     </div>
   );
