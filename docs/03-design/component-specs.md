@@ -744,13 +744,14 @@ See `page-layouts.md` Section 11. Component-level spec:
 
 | State | Dot | Label | Color |
 |-------|-----|-------|-------|
-| Online | 8px circle | "Online" | `var(--success)` |
-| Offline | 8px circle | "Offline" | `var(--destructive)` |
+| Online | 8px circle | "Online" | `var(--success)` / Tailwind `green-500` |
+| Offline | 8px circle | "Offline" | `var(--destructive)` / Tailwind `red-500` |
 
 - Font: Gotham Book, `text-xs`
 - Dot + label side by side, `gap-1.5`
 - Label hidden on small screens (dot only)
 - Transition: dot color crossfade `200ms`
+- **Implementation note:** Uses Tailwind semantic color tokens (`green-500`, `red-500`) which map to equivalent values as the CSS variables
 
 ---
 

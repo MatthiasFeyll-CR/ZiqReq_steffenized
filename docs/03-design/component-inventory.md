@@ -159,7 +159,7 @@ These are base-level components used across the entire application. Must be impl
 |-----------|------|--------------|---------|-------|
 | ErrorBoundary | Common | All pages | Yes | React error boundary with fallback UI |
 | EmptyState | Common | Landing, Review, Admin, Notifications | Yes | Icon + message + optional action |
-| OfflineBanner | Common | Workspace | No | Red banner with countdown + reconnect (FA-6) |
+| OfflineBanner | Common | Workspace | No | Amber/yellow warning banner with countdown + reconnect (FA-6) |
 | MergeRequestBanner | Common | Workspace | No | Warning banner with accept/decline (FA-5) |
 | ErrorToast | Common | All pages | Yes | Persistent toast with Show Logs + Retry (FA-14) |
 | ErrorLogModal | Common | All pages | Yes | Monospace error details + copy button |

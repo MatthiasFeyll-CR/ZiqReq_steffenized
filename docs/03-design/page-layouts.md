@@ -1138,7 +1138,7 @@ Banners appear between the workspace header and the panel content. They push con
 +=========================================================================+
 ```
 
-- `bg-error-bg`, `border border-error`, `rounded-md`, `p-3`
+- `bg-warning-bg`, `border border-warning`, `rounded-md`, `p-3`
 - Countdown updates in real-time
 - Reconnect button: primary style, triggers immediate reconnection
 - On reconnection: banner fades out, state syncs
