@@ -39,3 +39,22 @@ Started: 2026-03-11T00:07:22+0100
   - Admin params already seeded in Core service migration 0002_seed_parameters.py
   - settings/base.py ADMIN_PARAM_DEFAULTS dict provides offline fallbacks for admin params
 ---
+
+## US-002: Facilitator Agent Implementation
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/agents/facilitator/agent.py, services/ai/agents/facilitator/prompt.py, services/ai/agents/facilitator/plugins.py, services/ai/events/publishers.py, services/ai/fixtures/facilitator_response.json, services/ai/tests/test_facilitator.py, .ralph/test-manifest.json, requirements-dev.txt
+- Tests: 178 Python tests passed (22 new), 244 Node tests passed, ruff clean, tsc clean, Docker build OK
+- Learnings for future iterations:
+  - FacilitatorPlugin uses @kernel_function decorator for SK function registration — each tool is async
+  - Event publisher uses in-memory list for M7 (events/publishers.py) — clear_published_events() in test fixtures
+  - System prompt template uses Python str.format() not Handlebars — {{variable}} from spec becomes {variable}
+  - Prompt is ~2800 tokens as specced; build_system_prompt() renders all conditional sections
+  - Delegation tools are non-blocking: return delegation_id + "queued" immediately
+  - request_board_changes stores instructions on plugin.board_instructions for pipeline to consume
+  - Board ref validation: _validate_board_refs() strips [[Title]] brackets for invalid refs
+  - Test container needed semantic-kernel + openai in requirements-dev.txt (not just AI service's requirements.txt)
+  - BASE_DIR in tests points to gateway root, not AI service — mock mode tests need settings.BASE_DIR override
+  - FacilitatorAgent._execute() uses service.get_chat_message_contents() with FunctionChoiceBehavior.Auto
+  - SK config: max_auto_invoke_attempts=3, temperature=0.7, max_tokens=1000, frequency_penalty=0.3
+---
