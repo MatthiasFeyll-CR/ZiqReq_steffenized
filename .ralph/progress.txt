@@ -136,3 +136,20 @@ Started: 2026-03-10T03:55:44+0100
   - Adding PresenceIndicators to WorkspaceHeader required updating existing workspace-header and section-visibility tests to wrap renders in Redux Provider
   - The `_presence_registry` is cleared between tests via `autouse=True` pytest fixture
 ---
+
+## US-008: User selection highlights on board — colored borders with username when another user selects a node
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/store/selections-slice.ts (new), frontend/src/store/index.ts, frontend/src/hooks/use-websocket.ts, frontend/src/components/board/BoardCanvas.tsx, frontend/src/components/board/BoxNode.tsx, frontend/src/components/board/GroupNode.tsx, frontend/src/components/board/FreeTextNode.tsx, frontend/src/components/board/UserSelectionHighlight.tsx (new), frontend/src/__tests__/selections-slice.test.ts (new), frontend/src/__tests__/user-selection-highlight.test.tsx (new), frontend/src/__tests__/board-interactions.test.tsx, frontend/src/__tests__/board-canvas.test.tsx, frontend/src/__tests__/ai-modified-indicator.test.tsx, .ralph/test-manifest.json
+- Tests: 16 new tests passed (13 selections-slice, 3 user-selection-highlight). Full suite: 142 Python tests passed, 234 Node tests passed. TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - `selections-slice.ts` tracks `byIdea: Record<string, UserSelection[]>` where UserSelection has user_id, display_name, node_id
+  - `getUserColor(userId)` provides deterministic color assignment using a hash of the user ID modulo 8 predefined colors
+  - `UserSelectionHighlight` component wraps node content with a colored box-shadow border + name label positioned above the node
+  - BoxNode and FreeTextNode use the wrapper component; GroupNode handles selection inline (since it already has dynamic border styling for drop targets)
+  - BoardCanvas reads selections from Redux via `useSelector`, filters out own user's selections, and passes `_selectedBy` through node data
+  - `onNodeClick` sends `board_selection` with the node_id; `onPaneClick` sends deselection (node_id=null) using a `selectedNodeRef` to track current selection
+  - `useWebSocket` hook dispatches `updateSelection` for incoming `board_selection` messages (alongside existing `updatePresence` for `presence_update`)
+  - Adding `useSelector`, `useWsSend`, `useAuth` to BoardCanvas broke existing tests (board-interactions, board-canvas, ai-modified-indicator) — needed to add `selections: { byIdea: {} }` to mock Redux state and mock `useWsSend`/`useAuth`
+  - The `ai-modified-indicator` test uses `vi.doMock` + `vi.resetModules` pattern — mock additions must use `vi.doMock` (not `vi.mock`) to match
+---
