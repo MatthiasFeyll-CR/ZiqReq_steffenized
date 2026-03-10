@@ -183,3 +183,16 @@ Started: 2026-03-10T03:55:44+0100
   - Adding `useSelector` to ConnectionIndicator broke tests that render Navbar without Redux Provider — `dev-login-flow.test.tsx` and `landing-page.test.tsx` both needed wrapping with `Provider` + `configureStore` with websocketReducer
   - Pattern: any component using `useSelector` that's rendered inside Navbar will break tests that render pages with Navbar but without Redux Provider
 ---
+
+## US-001 (BUGFIX): Django Channels WebSocket consumer — connect, token auth, disconnect, error handling
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/connection-indicator.test.tsx, frontend/src/__tests__/idea-creation-flow.test.tsx, frontend/src/__tests__/filter-bar.test.tsx, tasks/prd-m6.json
+- Tests: 142 Python tests passed, 244 Node tests passed. TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - Consumer code was correct — only test fixes were needed
+  - connection-indicator.test.tsx was missing i18n initialization (`beforeAll(async () => { await i18n.changeLanguage("en") })`) causing `t()` to return raw keys
+  - idea-creation-flow.test.tsx and filter-bar.test.tsx were missing Redux Provider wrapping since ConnectionIndicator in Navbar uses `useSelector`
+  - Pattern confirmed: any test rendering a page with Navbar must wrap in `<Provider store={store}>` with at minimum `{ websocket: websocketReducer }` reducer
+  - Docker test containers (node-tests) copy code at build time — must `docker compose -f docker-compose.test.yml build node-tests` after code changes
+---

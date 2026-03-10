@@ -1,9 +1,14 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { websocketReducer } from "@/store/websocket-slice";
 import { ConnectionIndicator } from "@/components/layout/ConnectionIndicator";
+import i18n from "@/i18n/config";
+
+beforeAll(async () => {
+  await i18n.changeLanguage("en");
+});
 
 function createStore(connectionState: "online" | "offline") {
   return configureStore({

@@ -4,6 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import { websocketReducer } from "@/store/websocket-slice";
 import { AuthContext } from "@/hooks/use-auth";
 import type { AuthContextValue } from "@/hooks/use-auth";
 import LandingPage from "@/pages/LandingPage";
@@ -79,16 +82,24 @@ function renderLandingPage() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  const store = configureStore({
+    reducer: { websocket: websocketReducer },
+    preloadedState: {
+      websocket: { connectionState: "online" as const, reconnectCountdown: null },
+    },
+  });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        {createElement(
-          AuthContext.Provider,
-          { value: authValue },
-          <LandingPage />,
-        )}
-      </MemoryRouter>
-    </QueryClientProvider>,
+    <Provider store={store}>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          {createElement(
+            AuthContext.Provider,
+            { value: authValue },
+            <LandingPage />,
+          )}
+        </MemoryRouter>
+      </QueryClientProvider>
+    </Provider>,
   );
 }
 
