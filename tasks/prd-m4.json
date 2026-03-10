@@ -1,205 +1,48 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m4-board-core",
-  "description": "Digital Board Core — REST APIs for board nodes and connections, React Flow canvas with basic node types (Box, Group, Free Text), connections, toolbar, and minimap.",
+  "description": "Bugfix cycle 2 for Milestone 4 — Board Core. Fixes 5 defects (missing frontend unit tests) found in QA review cycle 1.",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Board Nodes REST API",
-      "description": "As a developer, I want REST endpoints for board node CRUD operations so that the frontend can create, read, update, and delete board nodes with proper validation.",
+      "id": "BF-001",
+      "title": "Fix: Missing FreeTextNode render test (T-3.1.03) and click-to-edit test (T-3.2.04)",
+      "description": "Fix defects DEF-001 and DEF-002 from QA report qa-m4-board-core.md. Create FreeTextNode unit tests.",
       "acceptanceCriteria": [
-        "GET /api/ideas/:id/board/nodes returns all nodes for an idea",
-        "POST /api/ideas/:id/board/nodes creates a new node with node_type validation",
-        "PATCH /api/ideas/:id/board/nodes/:nodeId updates node content and position",
-        "DELETE /api/ideas/:id/board/nodes/:nodeId deletes node and detaches children",
-        "Validation: parent_id must reference a group-type node if set",
-        "Validation: title max 500 chars, body max 5000 chars",
-        "Locked nodes (is_locked=true) return 403 on update attempts",
+        "Test T-3.1.03: FreeTextNode renders with transparent bg, no border, body text visible",
+        "Test T-3.2.04: Click on FreeTextNode enters edit mode showing textarea (data-testid='free-text-textarea')",
+        "Test verifies display mode (data-testid='free-text-display') before click",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": ["API-BOARD.01", "API-BOARD.02", "API-BOARD.03", "API-BOARD.04", "API-BOARD.04b", "API-BOARD.04c", "API-BOARD.05", "API-BOARD.06", "DB-NODE.01", "DB-NODE.02", "DB-NODE.03", "DB-NODE.04"],
-      "notes": "Architecture: docs/02-architecture/data-model.md § board_nodes, api-design.md § Board Endpoints\nDesign: Backend-only\nTesting: test-matrix.md § API-BOARD.01-06, DB-NODE.01-04\nFiles: services/gateway/apps/board/{models,views,serializers,urls,tests/test_views}.py\nGotchas: Mirror model pattern (db_table='board_nodes'), parent_id must be group node, MiddlewareAuthentication for auth",
-      "context": {
-        "data_model": ["board_nodes: id uuid PK, idea_id, node_type varchar(15), title(500), body text, position_x/y float, width/height, parent_id FK self SET NULL, is_locked bool"],
-        "api_endpoints": ["GET /api/ideas/:id/board/nodes → 200", "POST .../nodes → 201", "PATCH .../nodes/:id → 200", "DELETE → 204"],
-        "existing_code": ["gateway/apps/ideas/authentication.py:MiddlewareAuthentication", "core/apps/board/models.py:BoardNode,BoardConnection"]
-      }
+      "passes": true,
+      "notes": "Defect: DEF-001, DEF-002. File to create: frontend/src/__tests__/free-text-node.test.tsx. Component: frontend/src/components/board/FreeTextNode.tsx. The component has data-testid='free-text-node' on container, data-testid='free-text-textarea' in editing mode, data-testid='free-text-display' in display mode. Mock pattern: vi.mock('@xyflow/react', () => ({ Handle: ({ type, position, ...props }) => <div data-testid={`handle-${type}`} data-position={position} {...props} />, Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' } })). Import i18n from '@/i18n/config' and run i18n.changeLanguage('en') in beforeAll. Use same renderHelper pattern as box-node.test.tsx. Describe blocks: 'T-3.1.03: FreeTextNode renders without border' and 'T-3.2.04: Click opens content editor'. For T-3.1.03: render with body='Some text', verify free-text-node has bg-transparent class, verify no 'border' class (use .not.toContain), verify body text visible. For T-3.2.04: render with body, click on free-text-node, verify free-text-textarea appears via fireEvent.click, verify free-text-display visible before click."
     },
     {
-      "id": "US-002",
-      "title": "Board Connections REST API",
-      "description": "As a developer, I want REST endpoints for board connection CRUD operations so that the frontend can create, read, update, and delete connections between nodes.",
+      "id": "BF-002",
+      "title": "Fix: Missing ConnectionEdge render test (T-3.2.05) and label editor test (T-3.2.06)",
+      "description": "Fix defects DEF-003 and DEF-004 from QA report qa-m4-board-core.md. Create ConnectionEdge unit tests.",
       "acceptanceCriteria": [
-        "GET /api/ideas/:id/board/connections returns all connections",
-        "POST /api/ideas/:id/board/connections creates a connection with source_node_id and target_node_id",
-        "PATCH /api/ideas/:id/board/connections/:connId updates connection label",
-        "DELETE /api/ideas/:id/board/connections/:connId deletes connection",
-        "Validation: no self-connections (source_node_id != target_node_id)",
-        "Validation: no duplicate connections (UNIQUE constraint on source-target pair)",
+        "Test T-3.2.05: ConnectionEdge renders BaseEdge with stroke gray and strokeWidth 1.5",
+        "Test T-3.2.06: Double-click on edge label opens input editor",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "testIds": ["API-BOARD.08", "API-BOARD.09", "API-BOARD.10", "API-BOARD.11", "DB-CONN.01", "DB-CONN.02", "DB-CONN.03"],
-      "notes": "Architecture: data-model.md § board_connections, api-design.md § Board Endpoints\nDesign: Backend-only\nTesting: test-matrix.md § API-BOARD.08-11, DB-CONN.01-03\nFiles: services/gateway/apps/board/{models,views,serializers,urls,tests/test_views}.py\nGotchas: unique_together(source,target) returns 409, CASCADE delete, no self-connections",
-      "context": {
-        "data_model": ["board_connections: id uuid, idea_id, source_node_id FK CASCADE, target_node_id FK CASCADE, label(500), UNIQUE(source,target)"],
-        "api_endpoints": ["GET /api/ideas/:id/board/connections → 200", "POST → 201", "PATCH /:id → 200", "DELETE → 204"]
-      }
+      "passes": true,
+      "notes": "Defect: DEF-003, DEF-004. File to create: frontend/src/__tests__/connection-edge.test.tsx. Component: frontend/src/components/board/ConnectionEdge.tsx. The component uses BaseEdge, getSmoothStepPath, EdgeLabelRenderer from @xyflow/react. Mock pattern: vi.mock('@xyflow/react', () => ({ BaseEdge: ({ id, path, style, ...props }) => <div data-testid={`base-edge-${id}`} data-path={path} data-stroke={style?.stroke} data-stroke-width={style?.strokeWidth} {...props} />, getSmoothStepPath: () => ['M0,0 L100,100', 50, 50], EdgeLabelRenderer: ({ children }) => <div data-testid='edge-label-renderer'>{children}</div>, Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' } })). Import i18n, beforeAll changeLanguage('en'). For T-3.2.05: render ConnectionEdge with id='test-edge', sourceX=0, sourceY=0, targetX=100, targetY=100, sourcePosition=Position.Bottom, targetPosition=Position.Top, selected=false, data={label:'test'}. Verify base-edge-test-edge has data-stroke='gray' and data-stroke-width='1.5'. For T-3.2.06: render with data={label:'Hello'}, find edge-label-test-edge, fireEvent.doubleClick on it, verify input element appears. Also verify Enter key commits edit (input disappears). Edge data-testid is `edge-label-${id}`."
     },
     {
-      "id": "US-003",
-      "title": "React Flow Canvas Setup",
-      "description": "As a user, I want a React Flow canvas in the Board tab so that I can view and interact with board nodes on a pannable, zoomable canvas with a background grid.",
+      "id": "BF-003",
+      "title": "Fix: Missing BoardToolbar button actions test (T-3.3.03)",
+      "description": "Fix defect DEF-005 from QA report qa-m4-board-core.md. Create BoardToolbar unit tests.",
       "acceptanceCriteria": [
-        "Board tab renders React Flow canvas with dot grid background (20px gap)",
-        "Pan (drag) and zoom (scroll) work, zoom range 25%-200%",
-        "Background uses var(--background) design token",
-        "Minimap and zoom controls placeholders render (functional in US-009)",
-        "Typecheck passes",
-        "Verify in browser"
+        "Test T-3.3.03: Click Add Box calls onAddBox callback",
+        "Test T-3.3.03: Click Fit View invokes fitView from useReactFlow",
+        "Test T-3.3.03: Delete button disabled when selectedCount=0, enabled when selectedCount=1",
+        "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "testIds": ["T-3.3.01", "T-3.3.02"],
-      "notes": "Architecture: project-structure.md § frontend/src/components/board/\nDesign: component-specs.md § 6.6 Board Canvas\nTesting: test-matrix.md § T-3.3.01-02\nFiles: frontend/src/components/board/BoardCanvas.tsx, components/workspace/WorkspaceLayout.tsx\nGotchas: npm package is '@xyflow/react', Board tab exists in WorkspaceLayout from M3",
-      "context": {
-        "api_endpoints": ["GET /api/ideas/:id/board/nodes", "GET .../connections"],
-        "components": ["BoardCanvas: React Flow with grid, pan, zoom"],
-        "existing_code": ["workspace/WorkspaceLayout.tsx:Board tab (M3)", "ui/tabs.tsx:Radix Tabs", "app/globals.css:CSS vars"]
-      }
-    },
-    {
-      "id": "US-004",
-      "title": "BoxNode Component",
-      "description": "As a user, I want box nodes to render with a title bar and bullet-point body so that I can organize ideas visually on the board.",
-      "acceptanceCriteria": [
-        "Box node renders with title bar (border-b) and bullet body",
-        "Min 192px, max 320px width",
-        "Border 1px solid var(--border), rounded-md, shadow-sm, bg var(--card)",
-        "Reference button (Pin icon) in top-right inserts @board[uuid] into chat",
-        "AI badge (Bot icon) shows when created_by='ai'",
-        "Lock icon (Lock) in bottom-right when is_locked=true",
-        "Typecheck passes",
-        "Verify in browser"
-      ],
-      "priority": 4,
-      "passes": false,
-      "testIds": ["T-3.1.01", "T-3.2.08", "T-3.8.01", "T-3.8.02"],
-      "notes": "Architecture: data-model.md § board_nodes\nDesign: component-specs.md § 6.1 Box Node\nTesting: test-matrix.md § T-3.1.01, T-3.2.08, T-3.8.01-02\nFiles: frontend/src/components/board/BoxNode.tsx, BoardCanvas.tsx\nGotchas: React Flow nodeTypes prop, reference button → ChatInput shared state",
-      "context": {
-        "data_model": ["board_nodes: node_type='box', title(500), body, created_by, is_locked"],
-        "components": ["BoxNode: custom React Flow node"],
-        "existing_code": ["ui/button.tsx:Button (ghost)", "chat/ChatInput.tsx"]
-      }
-    },
-    {
-      "id": "US-005",
-      "title": "GroupNode Component",
-      "description": "As a user, I want group nodes to render as dashed containers so that I can visually group related boxes on the board.",
-      "acceptanceCriteria": [
-        "Group renders with 2px dashed border var(--border-strong)",
-        "Background var(--muted) opacity-30",
-        "Label badge top-left (bg-muted px-2 py-0.5 rounded)",
-        "Min 200x150px, resizable (React Flow ResizeControl)",
-        "Children move with parent when dragged",
-        "Typecheck passes",
-        "Verify in browser"
-      ],
-      "priority": 5,
-      "passes": false,
-      "testIds": ["T-3.1.02", "T-3.1.04", "T-3.2.02", "T-3.2.03"],
-      "notes": "Architecture: data-model.md § board_nodes\nDesign: component-specs.md § 6.2 Group Node\nTesting: test-matrix.md § T-3.1.02/04, T-3.2.02-03\nFiles: frontend/src/components/board/GroupNode.tsx, BoardCanvas.tsx\nGotchas: ResizeControl for resize, parent-child via parent_id, drag in/out deferred to M5",
-      "context": {
-        "data_model": ["board_nodes: node_type='group', width, height, parent_id FK self SET NULL"],
-        "components": ["GroupNode: dashed container, resizable"]
-      }
-    },
-    {
-      "id": "US-006",
-      "title": "FreeTextNode Component",
-      "description": "As a user, I want free text nodes to render as transparent text so that I can add labels and annotations to the board.",
-      "acceptanceCriteria": [
-        "Free text renders with transparent background, no border (only dashed on hover)",
-        "Font Gotham Book text-sm, text-foreground",
-        "Click to edit opens textarea with auto-grow",
-        "Typecheck passes",
-        "Verify in browser"
-      ],
-      "priority": 6,
-      "passes": false,
-      "testIds": ["T-3.1.03", "T-3.2.04"],
-      "notes": "Architecture: data-model.md § board_nodes\nDesign: component-specs.md § 6.3 Free Text Node\nTesting: test-matrix.md § T-3.1.03, T-3.2.04\nFiles: frontend/src/components/board/FreeTextNode.tsx, BoardCanvas.tsx\nGotchas: No title for free_text (only body), hover border CSS",
-      "context": {
-        "data_model": ["board_nodes: node_type='free_text', body (title NULL)"],
-        "components": ["FreeTextNode: transparent, click-to-edit textarea"],
-        "existing_code": ["ui/textarea.tsx:Textarea"]
-      }
-    },
-    {
-      "id": "US-007",
-      "title": "ConnectionEdge Component",
-      "description": "As a user, I want connections to render as smooth-step edges with arrowheads so that I can visualize relationships between board nodes.",
-      "acceptanceCriteria": [
-        "Connections render as smoothstep edges with arrowhead on target",
-        "Stroke 1.5px gray, 2.5px on hover",
-        "Double-click opens label editor (bg-card, border, rounded-sm, text-xs)",
-        "Selected edge: stroke var(--primary) gold, 2.5px",
-        "Typecheck passes",
-        "Verify in browser"
-      ],
-      "priority": 7,
-      "passes": false,
-      "testIds": ["T-3.2.05", "T-3.2.06"],
-      "notes": "Architecture: data-model.md § board_connections\nDesign: component-specs.md § 6.4 Connections\nTesting: test-matrix.md § T-3.2.05-06\nFiles: frontend/src/components/board/ConnectionEdge.tsx, BoardCanvas.tsx\nGotchas: React Flow edgeTypes prop, label edit via double-click",
-      "context": {
-        "data_model": ["board_connections: label(500)"],
-        "components": ["ConnectionEdge: smoothstep, arrowhead, label editor"]
-      }
-    },
-    {
-      "id": "US-008",
-      "title": "BoardToolbar Component",
-      "description": "As a user, I want a toolbar with Add Box, Delete, and Fit View buttons so that I can create nodes, delete selected items, and navigate the board.",
-      "acceptanceCriteria": [
-        "Toolbar renders at top (border-b, bg-card, h-10, px-2)",
-        "Add Box (Plus icon) creates box at viewport center",
-        "Delete (Trash2) deletes selected, disabled when nothing selected",
-        "Fit View (Maximize2) zooms to fit all",
-        "Buttons ghost style, icon-sm (32px), dividers between groups",
-        "Typecheck passes",
-        "Verify in browser"
-      ],
-      "priority": 8,
-      "passes": false,
-      "testIds": ["T-3.3.03"],
-      "notes": "Design: component-specs.md § 6.5 Board Toolbar\nTesting: test-matrix.md § T-3.3.03\nFiles: frontend/src/components/board/BoardToolbar.tsx, BoardCanvas.tsx\nGotchas: Add Box uses getViewport(), Undo/Redo deferred to M5",
-      "context": {
-        "components": ["BoardToolbar: Add Box, Delete, Fit View"],
-        "existing_code": ["ui/button.tsx:Button ghost"]
-      }
-    },
-    {
-      "id": "US-009",
-      "title": "Minimap and Zoom Controls",
-      "description": "As a user, I want a minimap and zoom controls so that I can navigate large boards easily.",
-      "acceptanceCriteria": [
-        "Minimap renders bottom-right (120x80px, border, rounded-sm, shadow-sm, bg-card)",
-        "Minimap shows board overview with all nodes",
-        "Zoom controls bottom-left (vertical: +, -, fit, ghost style)",
-        "Controls increase/decrease zoom or fit all",
-        "Typecheck passes",
-        "Verify in browser"
-      ],
-      "priority": 9,
-      "passes": false,
-      "testIds": ["T-3.3.01", "T-3.3.02"],
-      "notes": "Design: component-specs.md § 6.6 Board Canvas\nTesting: test-matrix.md § T-3.3.01-02\nFiles: frontend/src/components/board/BoardCanvas.tsx\nGotchas: React Flow MiniMap and Controls built-in, style via className",
-      "context": {
-        "components": ["MiniMap: React Flow built-in bottom-right", "Controls: React Flow built-in bottom-left"]
-      }
+      "passes": true,
+      "notes": "Defect: DEF-005. File to create: frontend/src/__tests__/board-toolbar.test.tsx. Component: frontend/src/components/board/BoardToolbar.tsx. The component uses useReactFlow from @xyflow/react to get fitView and screenToFlowPosition. Props: { selectedCount: number, onAddBox: (pos) => void, onDeleteSelected: () => void }. data-testid values: toolbar-add-box, toolbar-delete, toolbar-fit-view. Mock pattern: const mockFitView = vi.fn(); const mockScreenToFlowPosition = vi.fn(() => ({ x: 0, y: 0 })); vi.mock('@xyflow/react', () => ({ useReactFlow: () => ({ fitView: mockFitView, screenToFlowPosition: mockScreenToFlowPosition }) })). Import i18n, beforeAll changeLanguage('en'). For T-3.3.03 describe block: (1) render with onAddBox=vi.fn(), click toolbar-add-box, verify onAddBox called. (2) render with onDeleteSelected=vi.fn() and selectedCount=0, verify toolbar-delete button has disabled attribute. (3) render with selectedCount=1, click toolbar-delete, verify onDeleteSelected called. (4) click toolbar-fit-view, verify mockFitView called."
     }
   ]
 }

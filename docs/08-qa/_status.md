@@ -3,12 +3,12 @@
 ## Project
 - **Name:** ZiqReq
 - **Started:** 2026-03-09
-- **Last updated:** 2026-03-09
+- **Last updated:** 2026-03-10
 
 ## Current Review
-- **Milestone:** 3 — Workspace Chat
+- **Milestone:** 4 — Board Core
 - **Phase:** 6 (verdict delivered)
-- **Bugfix cycle:** 1
+- **Bugfix cycle:** 2 (review complete — PASS)
 - **Status:** passed
 
 ## Milestone QA History
@@ -17,35 +17,27 @@
 | M1 — Foundation | `qa-m1-foundation.md` | 2 (post-escalation) | PASS | 2026-03-09 |
 | M2 — Landing | `qa-m2-landing.md` | 0 | PASS | 2026-03-09 |
 | M3 — Workspace Chat | `qa-m3-workspace-chat.md` | 1 | PASS | 2026-03-09 |
+| M4 — Board Core | `qa-m4-board-core.md` | 2 | PASS | 2026-03-10 |
 
 ## Input Consumed
 - .ralph/prd.json
 - .ralph/progress.txt
+- docs/01-requirements/*.md
+- docs/02-architecture/data-model.md
+- docs/02-architecture/api-design.md
+- docs/03-design/component-specs.md
 - docs/04-test-architecture/test-matrix.md
 - docs/04-test-architecture/runtime-safety.md
-- tasks/prd-m3.json
-- services/gateway/apps/chat/views.py
-- services/gateway/apps/chat/serializers.py
-- services/gateway/apps/chat/urls.py
-- services/gateway/apps/chat/tests/test_chat_messages.py
-- services/gateway/apps/chat/tests/test_reactions.py
-- frontend/src/pages/IdeaWorkspace/index.tsx
-- frontend/src/components/workspace/*.tsx
-- frontend/src/components/chat/*.tsx
-- frontend/src/api/chat.ts
-- frontend/src/api/reactions.ts
-- frontend/src/api/ideas.ts
-- frontend/src/__tests__/workspace-layout.test.tsx
-- frontend/src/__tests__/section-visibility.test.tsx
-- frontend/src/__tests__/workspace-header.test.tsx
-- frontend/src/__tests__/idea-workspace.test.tsx
-- frontend/src/__tests__/mention-dropdown.test.tsx
+- tasks/prd-m4.json
+- services/gateway/apps/board/{models,views,serializers,urls,tests/test_views}.py
+- frontend/src/components/board/{BoardCanvas,BoxNode,GroupNode,FreeTextNode,ConnectionEdge,BoardToolbar}.tsx
+- frontend/src/__tests__/{board-canvas,box-node,group-node,free-text-node,connection-edge,board-toolbar}.test.tsx
 
 ## Handoff
 - **Ready for merge:** true
-- **Next phase:** Merge + Verify (handled by pipeline), then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m3-workspace-chat.md, docs/08-qa/_status.md
+- **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
+- **Files produced:** docs/08-qa/qa-m4-board-core.md, docs/08-qa/_status.md
 - **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
-- None
+- None. All defects resolved.

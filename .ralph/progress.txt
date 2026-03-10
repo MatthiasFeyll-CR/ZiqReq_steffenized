@@ -727,3 +727,188 @@ Started: 2026-03-09T17:27:54+0100
   - MentionDropdown uses onMouseDown (not onClick) to prevent textarea blur
   - Test data-testid pattern: mention-item-{id} for individual items, mention-dropdown for container
 ---
+
+## US-001: Board Nodes REST API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/board/models.py (new), services/gateway/apps/board/serializers.py, services/gateway/apps/board/views.py, services/gateway/apps/board/urls.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/board/migrations/0001_initial.py (new), services/gateway/apps/board/tests/__init__.py (new), services/gateway/apps/board/tests/test_views.py (new)
+- Tests: 25 board node tests pass, 88 total tests pass. Ruff clean, tsc clean, Docker build clean.
+- Learnings for future iterations:
+  - Gateway board models need `db_table = "board_nodes"` WITHOUT `managed = False` — tests need Django to create the table
+  - Migration needed for gateway board app — run makemigrations after creating models, then rebuild python-tests Docker image
+  - Board URLs wired under ideas: `path("<str:idea_id>/board/", include("apps.board.urls"))` in ideas/urls.py
+  - Board node views follow same pattern as chat: _require_auth, _get_idea_or_error, _check_access helpers
+  - parent_id validation: must be group node type, checked in both create and update
+  - Locked nodes return 403 with error code NODE_LOCKED on PATCH attempts
+  - Delete uses ON DELETE SET NULL for parent FK — children detached automatically by DB
+  - Test path in Docker container: `services/gateway/apps/board/` (not `apps/board/`)
+  - Auto-generated migrations may have long lines — need manual formatting to pass ruff E501
+---
+
+## US-002: Board Connections REST API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/board/models.py, services/gateway/apps/board/serializers.py, services/gateway/apps/board/views.py, services/gateway/apps/board/urls.py, services/gateway/apps/board/tests/test_views.py, services/gateway/apps/board/migrations/0002_boardconnection.py
+- Tests: 108 Python tests passed, 103 Node tests passed. All gate checks (ruff, tsc, docker build) passed.
+- Learnings for future iterations:
+  - Connection serializers use source_node_id/target_node_id (Django FK _id suffix) for both input and output
+  - Duplicate connection check done at application level before DB insert to return 409 with proper error body
+  - CASCADE delete on source/target FKs means deleting a node automatically removes its connections
+  - Gateway mirror model uses related_name="outgoing_connections"/"incoming_connections" to avoid clash with core model
+  - Migration 0002_boardconnection adds unique_together constraint at DB level
+---
+
+## US-003: React Flow Canvas Setup
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardCanvas.tsx (new), frontend/src/components/workspace/WorkspaceLayout.tsx, frontend/src/__tests__/board-canvas.test.tsx (new), frontend/src/__tests__/workspace-layout.test.tsx, frontend/src/__tests__/section-visibility.test.tsx
+- Tests: 4/4 board-canvas tests pass, 107/107 full suite pass, tsc clean, ruff clean, docker build OK
+- Learnings for future iterations:
+  - @xyflow/react v12 exports: ReactFlow, Background, BackgroundVariant, MiniMap, Controls, useNodesState, useEdgesState, useReactFlow
+  - React Flow requires ResizeObserver in jsdom — must mock BoardCanvas in any test that renders WorkspaceLayout or IdeaWorkspacePage
+  - vi.mock("@/components/board/BoardCanvas") pattern needed in workspace-layout.test.tsx and section-visibility.test.tsx
+  - BoardCanvas uses overflow-hidden (not overflow-auto) on TabsContent to let React Flow manage its own scroll/pan
+  - proOptions={{ hideAttribution: true }} removes React Flow watermark
+  - Background color uses var(--foreground) with opacity-20 style for dot grid visibility
+---
+
+## US-004: BoxNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoxNode.tsx (new), frontend/src/components/board/BoardCanvas.tsx (updated)
+- Tests: tsc --noEmit PASS, vitest 103 passed, pytest 108 passed, ruff PASS, docker build PASS
+- Learnings for future iterations:
+  - BoxNode uses memo() wrapper for React Flow performance optimization
+  - Handle components from @xyflow/react need Position enum (Position.Top, Position.Bottom)
+  - NodeTypes map must be defined outside the component (not in useMemo) to avoid re-renders
+  - Reference button dispatches CustomEvent "board:reference" with @board[uuid] payload — ChatInput can listen for this in a future story
+  - BoxNodeData interface needs [key: string]: unknown index signature for React Flow compatibility
+  - Lucide icons: Pin, Bot, Lock all available from "lucide-react"
+  - Node type generics: Node<BoxNodeData, "box"> for type-safe custom nodes
+---
+
+## US-005: GroupNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/GroupNode.tsx (new), frontend/src/components/board/BoardCanvas.tsx (added group to nodeTypes)
+- Tests: tsc --noEmit PASS, ruff PASS, docker build (gateway/core/ai) PASS
+- Learnings for future iterations:
+  - NodeResizer from @xyflow/react provides resize handles; use minWidth/minHeight props for constraints
+  - Group nodes need h-full w-full on inner div to fill the resizable container
+  - For semi-transparent backgrounds, color-mix(in srgb, var(--muted) 30%, transparent) works well with CSS variables
+  - Pattern: memo + Handle top/bottom + data-testid consistent with BoxNode
+---
+
+## US-006: FreeTextNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/FreeTextNode.tsx (new), frontend/src/components/board/BoardCanvas.tsx (updated nodeTypes)
+- Tests: tsc --noEmit PASS, ruff check PASS, docker compose build (gateway/core/ai) PASS
+- Learnings for future iterations:
+  - FreeTextNode uses only `body` (no title) — consistent with data model where free_text nodes have title NULL
+  - Click-to-edit pattern: useState for editing mode, textarea with auto-grow via scrollHeight
+  - Hover border uses Tailwind `group` + `hover:outline` utilities for dashed border on hover only
+  - handleChange auto-grow: just pass e.target directly to autoGrow, no type gymnastics needed
+  - NodeTypes key must match node_type from backend: 'free_text' (underscore, not camelCase)
+---
+
+## US-007: ConnectionEdge Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/ConnectionEdge.tsx (new), frontend/src/components/board/BoardCanvas.tsx, frontend/src/app/globals.css
+- Tests: tsc --noEmit PASS, ruff PASS, docker compose build PASS (gateway)
+- Learnings for future iterations:
+  - React Flow custom edges use edgeTypes prop + defaultEdgeOptions for consistent styling
+  - MarkerType.ArrowClosed from @xyflow/react for arrowheads on target
+  - EdgeLabelRenderer required for HTML labels positioned on edges
+  - getSmoothStepPath returns [path, labelX, labelY] for positioning
+  - Hover stroke-width done via CSS on .react-flow__edge:hover .connection-edge
+  - Frontend Dockerfile build still fails (pre-existing nginx.conf issue)
+---
+
+## US-008: BoardToolbar Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardToolbar.tsx (new), frontend/src/components/board/BoardCanvas.tsx (modified)
+- Tests: tsc --noEmit PASS, ruff PASS, eslint PASS, vitest 103/103 PASS, docker build PASS
+- Learnings for future iterations:
+  - BoardToolbar uses useReactFlow() hook (screenToFlowPosition) to calculate viewport center for new nodes
+  - BoardCanvas restructured to flex-col layout with toolbar on top and ReactFlow in flex-1 container
+  - crypto.randomUUID() for generating node IDs client-side
+  - Dividers between button groups use simple div with w-px h-5 bg-border
+  - selectedCount derived from both nodes and edges selection state
+---
+
+## US-009: Minimap and Zoom Controls
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/app/globals.css, frontend/src/__tests__/board-canvas.test.tsx
+- Tests: 107/107 passed (13 files), typecheck PASS, ruff PASS
+- Learnings for future iterations:
+  - MiniMap and Controls were already placed in BoardCanvas from US-003 as placeholders — US-009 added styling
+  - React Flow Controls buttons are styled via .react-flow__controls-button CSS class overrides with !important
+  - MiniMap node colors use .react-flow__minimap-node fill override
+  - The board-canvas test mock needed MarkerType and useReactFlow exports added for completeness (was missing from US-003 mock)
+  - Ghost button style for controls: transparent bg, border-none, hover with var(--accent)
+---
+
+---
+
+## US-004: BoxNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/box-node.test.tsx (new)
+- Tests: 116/116 passed (14 files), typecheck PASS, ruff PASS, docker build PASS
+- Learnings for future iterations:
+  - BoxNode implementation was already correct from Phase 2; only missing unit tests
+  - Mock @xyflow/react Handle and Position for custom node tests (minimal mock)
+  - NodeProps requires many fields (id, data, type, selected, isConnectable, zIndex, positionAbsoluteX/Y, dragging, etc.)
+  - CustomEvent dispatch tested via window.addEventListener + vi.fn() handler
+  - node-tests Docker image must be rebuilt after adding new test files (no volume mount)
+---
+
+## US-005: GroupNode Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/group-node.test.tsx (new)
+- Tests: 125 frontend tests pass (9 new group-node tests). Typecheck passes.
+- Learnings for future iterations:
+  - Mock NodeResizer from @xyflow/react as a simple div with data attributes for min-width/height verification
+  - GroupNode uses inline styles for border and backgroundColor, so test via element.style not className
+  - Docker image rebuild required (docker compose -f docker-compose.test.yml build node-tests) for new test files to be picked up
+  - Follow same renderHelper pattern as box-node.test.tsx: pass NodeProps shape with all required fields
+---
+
+## BF-001: Fix: Missing FreeTextNode render test (T-3.1.03) and click-to-edit test (T-3.2.04)
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/free-text-node.test.tsx (created)
+- Tests: 5 passed (T-3.1.03: 3 tests for transparent bg, no border, body visible; T-3.2.04: 2 tests for display mode before click, textarea after click)
+- Learnings for future iterations:
+  - FreeTextNode has hover:outline-border class which contains "border" substring — check individual classes with split() instead of toContain on full className string
+  - Same renderHelper pattern as box-node.test.tsx works for FreeTextNode with type "free_text"
+  - Click on free-text-node container triggers editing state, switching from free-text-display to free-text-textarea
+---
+
+## BF-002: Fix: Missing ConnectionEdge render test (T-3.2.05) and label editor test (T-3.2.06)
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/connection-edge.test.tsx (created)
+- Tests: 5 tests pass — T-3.2.05 (stroke gray, strokeWidth 1.5, selected styles), T-3.2.06 (span before dblclick, input after dblclick, Enter commits edit)
+- Learnings for future iterations:
+  - ConnectionEdge mock pattern: BaseEdge needs style destructured to data-attributes for assertion
+  - getSmoothStepPath mock returns [path, labelX, labelY] tuple
+  - EdgeLabelRenderer mock just wraps children in a div
+  - .ralph/ is gitignored — prd.json changes are local only
+---
+
+## BF-003: Fix: Missing BoardToolbar button actions test (T-3.3.03)
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/__tests__/board-toolbar.test.tsx (created)
+- Tests: 4 passed (click Add Box calls onAddBox, click Fit View invokes fitView, delete disabled when selectedCount=0, delete enabled and calls onDeleteSelected when selectedCount=1). Full suite: 139 passed, 18 files.
+- Learnings for future iterations:
+  - BoardToolbar uses useReactFlow for fitView and screenToFlowPosition — mock with vi.mock at module level, define mock fns above the mock
+  - Clear mocks in beforeEach to avoid cross-test pollution
+  - Docker node-tests needs rebuild after adding new test files (no volume mount)
+---

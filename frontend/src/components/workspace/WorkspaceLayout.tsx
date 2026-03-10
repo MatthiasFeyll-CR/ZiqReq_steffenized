@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PanelDivider } from "./PanelDivider";
+import { BoardCanvas } from "@/components/board/BoardCanvas";
 
 const STORAGE_KEY = "workspace-panel-split";
 const DEFAULT_RATIO = 0.4;
@@ -118,10 +119,8 @@ export function WorkspaceLayout({ chatPanel, reviewVisible = true }: WorkspaceLa
               </TabsTrigger>
             )}
           </TabsList>
-          <TabsContent value="board" className="flex-1 overflow-auto" data-testid="board-content">
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              {t("workspace.boardPlaceholder", "Board canvas (M4)")}
-            </div>
+          <TabsContent value="board" className="flex-1 overflow-hidden" data-testid="board-content">
+            <BoardCanvas />
           </TabsContent>
           {reviewVisible && (
             <TabsContent value="review" className="flex-1 overflow-auto" data-testid="review-content">

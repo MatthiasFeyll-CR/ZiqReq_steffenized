@@ -7,4 +7,5 @@ urlpatterns = [
     path("<str:idea_id>", views.ideas_detail),
     path("<str:idea_id>/restore", views.restore_idea),
     path("<str:idea_id>/chat", include("apps.chat.urls")),
+    path("<str:idea_id>/board/", include("apps.board.urls")),
 ]
