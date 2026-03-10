@@ -223,6 +223,18 @@
     "T-3.5.03": {
       "file": "services/gateway/apps/websocket/tests/test_consumers.py",
       "function": "test_board_selection_deselect_null_node"
+    },
+    "T-6.1.07": {
+      "file": "frontend/src/__tests__/websocket-slice.test.ts",
+      "function": "sets connectionState to online"
+    },
+    "T-6.1.08": {
+      "file": "frontend/src/__tests__/use-websocket.test.ts",
+      "function": "connects to WebSocket when authenticated"
+    },
+    "LOOP-004": {
+      "file": "frontend/src/__tests__/use-websocket.test.ts",
+      "function": "backoff caps at 30 seconds"
     }
   }
 }

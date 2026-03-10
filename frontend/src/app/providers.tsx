@@ -5,6 +5,7 @@ import { ToastContainer } from "react-toastify";
 import { store } from "../store";
 import { AuthContext } from "../hooks/use-auth";
 import { useAuthProvider } from "../hooks/use-auth-provider";
+import { useWebSocket } from "../hooks/use-websocket";
 import type { ReactNode } from "react";
 import "../i18n/config";
 
@@ -22,12 +23,19 @@ function AuthProvider({ children }: { children: ReactNode }) {
   return createElement(AuthContext.Provider, { value: auth }, children);
 }
 
+function WebSocketManager({ children }: { children: ReactNode }) {
+  useWebSocket();
+  return <>{children}</>;
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          {children}
+          <WebSocketManager>
+            {children}
+          </WebSocketManager>
           <ToastContainer position="bottom-right" />
         </AuthProvider>
       </QueryClientProvider>
