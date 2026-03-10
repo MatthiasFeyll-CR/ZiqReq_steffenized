@@ -275,6 +275,10 @@
     "T-6.5.02": {
       "file": "frontend/src/__tests__/offline-banner.test.tsx",
       "function": "calls reconnectNow when Reconnect button is clicked"
+    },
+    "T-6.6.01": {
+      "file": "frontend/src/__tests__/connection-indicator.test.tsx",
+      "function": "shows green dot and 'Online' when connected"
     }
   }
 }

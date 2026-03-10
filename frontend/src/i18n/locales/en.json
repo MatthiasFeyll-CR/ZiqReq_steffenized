@@ -3,7 +3,8 @@
     "loading": "Loading...",
     "error": "An error occurred",
     "retry": "Retry",
-    "online": "Online"
+    "online": "Online",
+    "offline": "Offline"
   },
   "nav": {
     "ideas": "Ideas",
