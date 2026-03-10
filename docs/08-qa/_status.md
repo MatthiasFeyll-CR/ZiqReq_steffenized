@@ -8,7 +8,7 @@
 ## Current Review
 - **Milestone:** 6 — WebSocket & Real-Time
 - **Phase:** 6 (verdict delivered)
-- **Bugfix cycle:** 4 (post-escalation human fix)
+- **Bugfix cycle:** 5 (BF-001 for DEF-003)
 - **Status:** failed
 
 ## Milestone QA History
@@ -19,10 +19,11 @@
 | M3 — Workspace Chat | `qa-m3-workspace-chat.md` | 1 | PASS | 2026-03-09 |
 | M4 — Board Core | `qa-m4-board-core.md` | 2 | PASS | 2026-03-10 |
 | M5 — Board Advanced | `qa-m5-board-advanced.md` | 1 | PASS | 2026-03-10 |
-| M6 — WebSocket | `qa-m6-websocket.md` | 4 (post-escalation) | FAIL | 2026-03-10 |
+| M6 — WebSocket | `qa-m6-websocket.md` | 5 | FAIL | 2026-03-10 |
 
 ## Input Consumed
 - .ralph/prd.json
+- .ralph/progress.txt
 - docs/01-requirements/*.md
 - docs/02-architecture/api-design.md
 - docs/02-architecture/tech-stack.md
@@ -32,24 +33,19 @@
 - tasks/prd-m6.json
 - services/gateway/apps/websocket/consumers.py
 - services/gateway/apps/websocket/middleware.py
+- services/gateway/apps/websocket/routing.py
 - services/gateway/apps/websocket/tests/test_consumers.py
 - services/gateway/conftest.py
 - services/gateway/gateway/settings/test.py
-- infra/docker/init-test-db.sql
-- docker-compose.test.yml
-- frontend/src/store/websocket-slice.ts
-- frontend/src/hooks/use-websocket.ts
-- frontend/src/components/common/OfflineBanner.tsx
-- frontend/src/components/layout/ConnectionIndicator.tsx
-- frontend/src/components/workspace/PresenceIndicators.tsx
-- frontend/src/components/board/UserSelectionHighlight.tsx
+- services/gateway/gateway/asgi.py
 
 ## Handoff
 - **Ready for merge:** false
-- **Next phase:** Bugfix cycle 4 — Ralph implements BF-001 from tasks/prd-m6.json (replace serialized_rollback with app-table TRUNCATE)
+- **Next phase:** Bugfix cycle 5 — Ralph implements BF-001 from tasks/prd-m6.json (add DB connection cleanup fixture)
 - **Files produced:** docs/08-qa/qa-m6-websocket.md, docs/08-qa/_status.md
 - **Deviations for Spec Reconciler:** 2 (DEV-001: OfflineBanner color, DEV-002: ConnectionIndicator tokens)
 
 ## Open Issues
-- DEF-002 (Critical): 11 backend consumer tests ERROR with `IntegrityError: auth_permission_pkey` during `deserialize_db_from_string()`. Root cause: `serialized_rollback=True` causes `_fixture_setup` to INSERT auth_permission rows into a non-empty DB. Fix: replace serialized_rollback with app-table-only TRUNCATE fixture.
-- Human fix (commit 1b3e5dc) improved from 17 affected (cycle 3) to 11 affected (cycle 4). Convergence confirmed — one more targeted fix should resolve.
+- DEF-003 (Critical): 8 backend consumer tests FAIL with connection/access assertion errors. Root cause: stale DB connections between async TransactionTestCase tests. Fix: add connections.close_all() autouse fixture to conftest.py.
+- DEF-002 (RESOLVED): IntegrityError on auth_permission — fixed by BF-001 (post_migrate signal disconnect).
+- DEF-001 (RESOLVED): FK constraint violation — fixed in cycle 1.

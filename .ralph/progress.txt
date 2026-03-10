@@ -12,3 +12,17 @@
   - Session-scoped autouse fixtures don't have guaranteed ordering relative to other session-scoped fixtures (like django_db_setup) — moving signal disconnection INTO django_db_setup was necessary
   - Transient test failures can occur when the DB has stale data from previous failed runs — always use `docker compose down -v` (with `-v` for volumes) before re-running
 ---
+
+## BF-001: Fix: DEF-003 — Add DB connection cleanup fixture to conftest.py
+- Status: PASS
+- Attempts: 3
+- Changes: services/gateway/conftest.py
+- Tests: 142 Python tests passed (0 errors, 0 failures), 244 Node tests passed, ruff lint clean, tsc clean
+- Learnings for future iterations:
+  - Stale thread-local DB connections between async TransactionTestCase tests cause order-dependent failures where WebSocket connections are rejected or subscribe returns "Access denied"
+  - `connections.close_all()` only closes connections for the CURRENT thread — it does NOT affect the ASGIRef main thread used by `@database_sync_to_async(thread_sensitive=True)`
+  - An autouse fixture with `connections.close_all()` must guard against closing connections inside atomic blocks (regular `TestCase` wraps tests in transactions) — use `if not connection.in_atomic_block` check
+  - Placing the fixture in the root conftest (with the atomic block guard) is necessary — a websocket-only conftest doesn't help because the stale connections come from non-WebSocket tests that run first
+  - After closing all connections, also explicitly close `connection.connection` and set it to None to reset the default connection's thread-local state
+  - First run after `docker compose down -v` may show transient failures from stale DB state; second run confirms stability
+---
