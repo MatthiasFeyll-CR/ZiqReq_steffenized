@@ -311,6 +311,14 @@
     "T-2.10.03": {
       "file": "services/ai/tests/test_pipeline.py",
       "function": "test_abort_flag_causes_early_exit"
+    },
+    "T-2.10.01": {
+      "file": "services/ai/tests/test_debouncer.py",
+      "function": "test_debounce_waits_period"
+    },
+    "T-2.10.02": {
+      "file": "services/ai/tests/test_debouncer.py",
+      "function": "test_debounce_resets_on_new_message"
     }
   }
 }

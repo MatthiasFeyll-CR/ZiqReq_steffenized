@@ -58,3 +58,40 @@ Started: 2026-03-11T00:07:22+0100
   - FacilitatorAgent._execute() uses service.get_chat_message_contents() with FunctionChoiceBehavior.Auto
   - SK config: max_auto_invoke_attempts=3, temperature=0.7, max_tokens=1000, frequency_penalty=0.3
 ---
+
+## US-003: Chat Processing Pipeline Orchestrator
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/processing/pipeline.py, services/ai/processing/context_assembler.py, services/ai/tests/test_pipeline.py, .ralph/test-manifest.json
+- Tests: 191 Python tests passed (13 new), 244 Node tests passed, ruff clean, tsc clean, Docker build OK (backend services)
+- Learnings for future iterations:
+  - ChatProcessingPipeline uses class-level dicts (_versions, _abort_flags) for per-idea state tracking
+  - Version tracking: _start_processing() increments version, _check_abort() validates before each step
+  - Abort flag checked at step boundaries — PipelineAborted exception exits early without persisting
+  - Delegation in M7 is a stub: logs "not available", re-invokes Facilitator with empty results
+  - Board Agent in M7 is a stub: logs instructions but does not execute them
+  - Step 6 publishes ai.processing.complete with counter_reset: true
+  - Step 7 cleans up abort flag (version stays for mismatch detection)
+  - ContextAssembler.assemble() maps GetIdeaContext gRPC response to FacilitatorAgent input_data format
+  - FacilitatorAgent is imported lazily inside step methods to avoid circular imports
+  - When patching lazily imported classes in tests, patch at the source module (agents.facilitator.agent.FacilitatorAgent), not the consuming module
+  - Docker test container caches COPY layer — must rebuild (--no-cache or just rebuild) when source files change
+  - .ralph/prd.json is a symlink to tasks/prd-m7.json — commit the real file path
+---
+
+## US-004: Debouncer Implementation
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/processing/debouncer.py, services/ai/tests/test_debouncer.py, services/ai/ai_service/settings/base.py, .ralph/test-manifest.json
+- Tests: 200 Python tests passed (9 new debouncer tests), 244 Node tests passed, ruff clean, tsc clean, Docker build OK
+- Learnings for future iterations:
+  - Debouncer uses asyncio.create_task + asyncio.sleep for per-idea timers
+  - State machine: DebouncerState enum (IDLE, DEBOUNCING, PROCESSING) tracked per idea_id in dict
+  - pipeline_callback is an async callable injected at construction — decouples debouncer from pipeline
+  - reset() simply calls start() again which cancels existing timer and starts fresh
+  - _get_debounce_timer() reads admin param via CoreClient, falls back to 3.0s default
+  - Tests use short timers (0.05-0.15s) and asyncio.sleep for timing validation
+  - cleanup() removes all state for an idea (use when idea is closed)
+  - Added debounce_timer to ADMIN_PARAM_DEFAULTS in settings/base.py
+  - mypy "duplicate module" error for events/__init__.py is pre-existing and expected (marked optional in gates)
+---
