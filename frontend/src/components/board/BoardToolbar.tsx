@@ -1,4 +1,4 @@
-import { Plus, Trash2, Maximize2 } from "lucide-react";
+import { Plus, Trash2, Maximize2, Undo2, Redo2 } from "lucide-react";
 import { useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 
@@ -6,12 +6,24 @@ interface BoardToolbarProps {
   selectedCount: number;
   onAddBox: (position: { x: number; y: number }) => void;
   onDeleteSelected: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  undoTopSource?: "user" | "ai";
+  redoTopSource?: "user" | "ai";
 }
 
 export function BoardToolbar({
   selectedCount,
   onAddBox,
   onDeleteSelected,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+  undoTopSource,
+  redoTopSource,
 }: BoardToolbarProps) {
   const { fitView, screenToFlowPosition } = useReactFlow();
 
@@ -64,6 +76,30 @@ export function BoardToolbar({
         data-testid="toolbar-fit-view"
       >
         <Maximize2 className="h-4 w-4" />
+      </Button>
+
+      <div className="w-px h-5 bg-border mx-1" />
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onUndo}
+        disabled={!canUndo}
+        title={undoTopSource === "ai" ? "Undo AI Action" : "Undo"}
+        data-testid="toolbar-undo"
+      >
+        <Undo2 className="h-4 w-4" />
+      </Button>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        onClick={onRedo}
+        disabled={!canRedo}
+        title={redoTopSource === "ai" ? "Redo AI Action" : "Redo"}
+        data-testid="toolbar-redo"
+      >
+        <Redo2 className="h-4 w-4" />
       </Button>
     </div>
   );

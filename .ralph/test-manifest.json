@@ -111,6 +111,58 @@
     "T-2.8.05": {
       "file": "services/gateway/apps/chat/tests/test_reactions.py",
       "function": "test_remove_reaction_returns_204"
+    },
+    "T-3.2.01": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "calls updateBoardNode with new position on drag end"
+    },
+    "T-3.2.02": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "calls updateBoardNode with parent_id when node dropped inside a group"
+    },
+    "T-3.2.03": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "calls updateBoardNode with parent_id null when node dragged outside all groups"
+    },
+    "T-3.2.07": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "sets draggable=false on locked nodes passed to ReactFlow"
+    },
+    "T-3.7.01": {
+      "file": "frontend/src/__tests__/board-undo.test.ts",
+      "function": "undo pops from undoStack and pushes to redoStack"
+    },
+    "T-3.7.02": {
+      "file": "frontend/src/__tests__/board-undo.test.ts",
+      "function": "redo pops from redoStack and pushes to undoStack"
+    },
+    "T-3.7.04": {
+      "file": "frontend/src/__tests__/board-undo.test.ts",
+      "function": "drops oldest entry when stack exceeds 100"
+    },
+    "T-3.7.05": {
+      "file": "frontend/src/__tests__/board-undo-integration.test.ts",
+      "function": "undo dispatches and calls updateBoardNode with previousState"
+    },
+    "T-3.7.03": {
+      "file": "frontend/src/__tests__/board-toolbar-undo.test.tsx",
+      "function": "shows 'Undo AI Action' when undo stack top source is 'ai'"
+    },
+    "T-3.8.01": {
+      "file": "frontend/src/__tests__/box-node.test.tsx",
+      "function": "renders reference button with Pin icon"
+    },
+    "T-3.8.02": {
+      "file": "frontend/src/__tests__/chat-board-reference.test.tsx",
+      "function": "inserts @board[uuid] into empty textarea on board:reference event"
+    },
+    "T-3.4.01": {
+      "file": "frontend/src/__tests__/ai-modified-indicator.test.tsx",
+      "function": "BoxNode shows gold dot when ai_modified_indicator=true"
+    },
+    "T-3.4.02": {
+      "file": "frontend/src/__tests__/ai-modified-indicator.test.tsx",
+      "function": "clicking node with ai_modified_indicator=true calls PATCH with false"
     }
   }
 }

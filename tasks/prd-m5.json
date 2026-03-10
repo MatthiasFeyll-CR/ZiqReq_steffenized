@@ -1,191 +1,23 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m5-board-advanced",
-  "description": "M5: Board Interactions & Undo. Advanced board interactions, undo/redo system, and AI modification indicators.",
+  "description": "Bugfix cycle 1 for Milestone 5 — Board Advanced. Fixes 1 defect found in QA review: locked nodes cannot be unlocked via PATCH API.",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Drag to move nodes with position persistence",
-      "description": "As a user, I want to drag board nodes to reposition them on the canvas, so that I can organize my board layout visually.",
+      "id": "BF-001",
+      "title": "Fix: Allow lock toggle on locked nodes via PATCH API",
+      "description": "Fix defect DEF-001 from QA report qa-m5-board-advanced.md. The backend _update_node() rejects ALL PATCH requests on locked nodes, including is_locked toggle. This prevents users from unlocking nodes.",
       "acceptanceCriteria": [
-        "User can drag any node to new position",
-        "PATCH persists position_x, position_y on drag end",
-        "Position updates locally and broadcasts via WebSocket",
-        "Dragging works smoothly without lag",
+        "PATCH {is_locked: false} on a locked node returns 200 and unlocks the node",
+        "PATCH {title: 'new'} on a locked node still returns 403 NODE_LOCKED",
+        "PATCH {is_locked: true, title: 'new'} on a locked node returns 403 (mixed update blocked)",
+        "New backend test: test_unlock_locked_node_returns_200",
+        "All existing backend tests still pass",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": ["T-3.2.01"],
-      "notes": "Architecture: api-design.md § PATCH nodes/:nodeId — position_x, position_y\nDesign: component-specs.md § 6.1-6.3 — all nodes draggable\nTesting: test-matrix.md § T-3.2.01\nFiles: BoardCanvas.tsx (onNodeDragStop), api/board.ts (PATCH fn)\nGotchas: Send PATCH only on drag END, not during. WebSocket broadcast server-side.",
-      "context": {
-        "data_model": ["board_nodes: position_x, position_y float"],
-        "api_endpoints": ["PATCH nodes/:nodeId — {position_x, position_y}"],
-        "test_cases": ["T-3.2.01 | Unit | Drag moves node | Position updates"]
-      }
-    },
-    {
-      "id": "US-002",
-      "title": "Group nesting (drag into/out of groups)",
-      "description": "As a user, I want to drag boxes and free text nodes into groups to organize related items, and drag them out to ungroup them.",
-      "acceptanceCriteria": [
-        "Drag node over group sets parent_id via PATCH",
-        "Visual feedback shows valid drop zone",
-        "Drag out of group clears parent_id",
-        "Children move with parent group",
-        "Nested groups supported",
-        "Typecheck passes"
-      ],
-      "priority": 2,
-      "passes": false,
-      "testIds": ["T-3.2.02", "T-3.2.03"],
-      "notes": "Architecture: data-model.md § parent_id FK\nDesign: component-specs.md § 6.2 Group Node\nTesting: test-matrix.md § T-3.2.02, T-3.2.03\nFiles: BoardCanvas.tsx (parent detection), api/board.ts\nGotchas: React Flow doesn't auto-detect parents. Check if node position within group bounds. Groups resizable so width/height dynamic.",
-      "context": {
-        "data_model": ["board_nodes: parent_id uuid FK → board_nodes"],
-        "api_endpoints": ["PATCH nodes/:nodeId — {parent_id: uuid|null}"],
-        "test_cases": [
-          "T-3.2.02 | Drag into group | parent_id set",
-          "T-3.2.03 | Drag out | parent_id null"
-        ]
-      }
-    },
-    {
-      "id": "US-003",
-      "title": "Node lock toggle",
-      "description": "As a user, I want to lock individual board nodes to prevent accidental edits, so that finalized content remains stable.",
-      "acceptanceCriteria": [
-        "Each node has lock toggle button",
-        "Toggle is_locked via PATCH",
-        "Locked nodes show Lock icon",
-        "Locked nodes cannot be edited or dragged",
-        "Typecheck passes"
-      ],
-      "priority": 3,
-      "passes": false,
-      "testIds": ["T-3.2.07"],
-      "notes": "Architecture: data-model.md § is_locked boolean\nDesign: component-specs.md § 6.1 Lock icon bottom-right\nTesting: test-matrix.md § T-3.2.07\nFiles: BoxNode.tsx, GroupNode.tsx, FreeTextNode.tsx (add toggle), api/board.ts\nGotchas: Lock icon already displays (M4). Add interactive button. Set draggable=false when locked.",
-      "context": {
-        "data_model": ["board_nodes: is_locked boolean"],
-        "api_endpoints": ["PATCH nodes/:nodeId — {is_locked: bool}"],
-        "test_cases": ["T-3.2.07 | Lock toggle | Edit disabled"]
-      }
-    },
-    {
-      "id": "US-004",
-      "title": "Multi-select with selection box",
-      "description": "As a user, I want to select multiple board nodes at once using Ctrl+drag, so that I can perform batch operations like delete.",
-      "acceptanceCriteria": [
-        "Ctrl+drag creates selection box",
-        "Nodes within box selected",
-        "Delete removes all selected",
-        "Verify in browser",
-        "Typecheck passes"
-      ],
-      "priority": 4,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: React Flow built-in\nDesign: component-specs.md § 6.5 Toolbar\nFiles: BoardCanvas.tsx (enable selectionOnDrag prop)\nGotchas: Set selectionMode='partial', selectionKeyCode='Control'. Delete handler exists.",
-      "context": {
-        "components": ["BoardCanvas — selectionOnDrag prop"]
-      }
-    },
-    {
-      "id": "US-005",
-      "title": "Undo/redo Redux system",
-      "description": "As a user, I want undo/redo functionality for all board actions, so that I can revert mistakes and experiment freely.",
-      "acceptanceCriteria": [
-        "Redux stores undo/redo stacks",
-        "Each action: {type, data, previousState, source}",
-        "Stack bounded at 100 entries",
-        "Undo restores previous state, pushes to redo",
-        "Redo reapplies, pushes to undo",
-        "New action clears redo stack",
-        "Undo sends REST PATCH to persist",
-        "Typecheck passes"
-      ],
-      "priority": 5,
-      "passes": false,
-      "testIds": ["T-3.7.01", "T-3.7.02", "T-3.7.04", "T-3.7.05"],
-      "notes": "Architecture: tech-stack.md § Board Undo/Redo — frontend Redux only\nDesign: Redux Toolkit slice with pushAction, undo, redo reducers\nTesting: test-matrix.md § T-3.7.01-05\nFiles: board-slice.ts (implement reducers), BoardCanvas.tsx (dispatch pushAction), hooks/useBoardUndo.ts\nGotchas: All changes dispatch pushAction. source='user' for M5. Undo restores locally AND sends PATCH. Drop oldest at 101.",
-      "context": {
-        "api_endpoints": ["PATCH nodes/:nodeId — restore state on undo"],
-        "test_cases": [
-          "T-3.7.01 | Undo reverses",
-          "T-3.7.02 | Redo reapplies",
-          "T-3.7.04 | Stack bounded 100",
-          "T-3.7.05 | Undo sends PATCH"
-        ]
-      }
-    },
-    {
-      "id": "US-006",
-      "title": "Undo/redo buttons with context-aware labels",
-      "description": "As a user, I want undo/redo buttons in the toolbar with labels that reflect whether I'm undoing an AI action or my own action.",
-      "acceptanceCriteria": [
-        "Undo button with Undo2 icon",
-        "Redo button with Redo2 icon",
-        "Label: 'Undo AI Action' if stack top source='ai', else 'Undo'",
-        "Same for Redo",
-        "Buttons disabled when stack empty",
-        "Verify in browser",
-        "Typecheck passes"
-      ],
-      "priority": 6,
-      "passes": false,
-      "testIds": ["T-3.7.03"],
-      "notes": "Design: component-specs.md § 6.5 Toolbar — context-aware tooltips\nTesting: test-matrix.md § T-3.7.03\nFiles: BoardToolbar.tsx (add buttons), board-slice.ts (selectors)\nGotchas: Read stack top source. For M5 all source='user', but prepare for 'ai'.",
-      "context": {
-        "test_cases": ["T-3.7.03 | AI action undo label correct"]
-      }
-    },
-    {
-      "id": "US-007",
-      "title": "Board item reference insertion to chat",
-      "description": "As a user, I want to click the reference button on a board node to insert a reference into the chat input, so that I can explicitly refer to board items in my messages.",
-      "acceptanceCriteria": [
-        "Pin button dispatches custom event (M4 done)",
-        "ChatInput listens for board:reference event",
-        "Inserts @board[uuid] at cursor",
-        "Preserves existing text and cursor",
-        "Verify in browser",
-        "Typecheck passes"
-      ],
-      "priority": 7,
-      "passes": false,
-      "testIds": ["T-3.8.01", "T-3.8.02"],
-      "notes": "Architecture: api-design.md § Chat supports @board[uuid]\nDesign: component-specs.md § 6.1 Pin button\nTesting: test-matrix.md § T-3.8.01, T-3.8.02\nFiles: BoxNode.tsx (event done M4), ChatInput.tsx (add listener)\nGotchas: BoxNode already dispatches CustomEvent('board:reference'). ChatInput use setRangeText() at cursor.",
-      "context": {
-        "test_cases": [
-          "T-3.8.01 | Reference button visible",
-          "T-3.8.02 | Inserts @board[uuid]"
-        ]
-      }
-    },
-    {
-      "id": "US-008",
-      "title": "AI modification indicators",
-      "description": "As a user, I want to see a visual indicator on board nodes that the AI has modified, so that I can quickly identify AI changes and acknowledge them.",
-      "acceptanceCriteria": [
-        "Gold pulsing dot on ai_modified_indicator=true",
-        "8px dot, top-left, animate-pulse",
-        "Click node PATCHes ai_modified_indicator=false",
-        "Indicator disappears after cleared",
-        "prefers-reduced-motion: static dot",
-        "Verify in browser",
-        "Typecheck passes"
-      ],
-      "priority": 8,
-      "passes": false,
-      "testIds": ["T-3.4.01", "T-3.4.02"],
-      "notes": "Architecture: data-model.md § ai_modified_indicator boolean\nDesign: component-specs.md § 6.1 Gold dot top-left\nTesting: test-matrix.md § T-3.4.01, T-3.4.02\nFiles: BoxNode.tsx, GroupNode.tsx, FreeTextNode.tsx (add dot), BoardCanvas.tsx (onNodeClick clear)\nGotchas: ai_modified_indicator separate from created_by. No AI modifies board in M5 (M8), this is prep.",
-      "context": {
-        "data_model": ["board_nodes: ai_modified_indicator boolean"],
-        "api_endpoints": ["PATCH nodes/:nodeId — {ai_modified_indicator: false}"],
-        "test_cases": [
-          "T-3.4.01 | Indicator visible",
-          "T-3.4.02 | Clears on selection"
-        ]
-      }
+      "passes": true,
+      "notes": "Defect: DEF-001. File: services/gateway/apps/board/views.py:199-203. Expected: Lock toggle (is_locked field) should bypass the lock check. Actual: All PATCH requests on locked nodes are rejected with 403. Suggested fix: In _update_node(), check if the ONLY field being updated is is_locked. If so, skip the lock check. If other fields are included alongside is_locked, still reject. Add test in services/gateway/apps/board/tests/test_views.py."
     }
   ]
 }

@@ -129,3 +129,36 @@ describe("T-3.8.02: Reference button dispatches @board[uuid]", () => {
     window.removeEventListener("board:reference", handler);
   });
 });
+
+describe("T-3.2.07: Lock toggle on BoxNode", () => {
+  it("renders lock-toggle button", () => {
+    renderBoxNode();
+    expect(screen.getByTestId("lock-toggle")).toBeInTheDocument();
+  });
+
+  it("shows Lock icon when is_locked is true", () => {
+    renderBoxNode({ is_locked: true });
+    expect(screen.getByTestId("lock-icon")).toBeInTheDocument();
+    expect(screen.queryByTestId("unlock-icon")).not.toBeInTheDocument();
+  });
+
+  it("shows Unlock icon when is_locked is false", () => {
+    renderBoxNode({ is_locked: false });
+    expect(screen.getByTestId("unlock-icon")).toBeInTheDocument();
+    expect(screen.queryByTestId("lock-icon")).not.toBeInTheDocument();
+  });
+
+  it("calls onToggleLock with (nodeId, true) when unlocked node is toggled", () => {
+    const onToggleLock = vi.fn();
+    renderBoxNode({ is_locked: false, onToggleLock }, "node-1");
+    fireEvent.click(screen.getByTestId("lock-toggle"));
+    expect(onToggleLock).toHaveBeenCalledWith("node-1", true);
+  });
+
+  it("calls onToggleLock with (nodeId, false) when locked node is toggled", () => {
+    const onToggleLock = vi.fn();
+    renderBoxNode({ is_locked: true, onToggleLock }, "node-1");
+    fireEvent.click(screen.getByTestId("lock-toggle"));
+    expect(onToggleLock).toHaveBeenCalledWith("node-1", false);
+  });
+});

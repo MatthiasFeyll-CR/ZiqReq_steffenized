@@ -196,7 +196,11 @@ def _update_node(request: Request, idea_id: str, node_id: str) -> Response:
     if error:
         return error
 
-    if node.is_locked:
+    # Allow lock toggle on locked nodes: if the ONLY field is is_locked, skip lock check.
+    request_fields = set(request.data.keys())
+    is_lock_toggle_only = request_fields == {"is_locked"}
+
+    if node.is_locked and not is_lock_toggle_only:
         return Response(
             {"error": "NODE_LOCKED", "message": "Cannot update a locked node"},
             status=status.HTTP_403_FORBIDDEN,

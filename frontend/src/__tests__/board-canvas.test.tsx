@@ -2,11 +2,25 @@ import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import i18n from "@/i18n/config";
 
+vi.mock("react-redux", () => ({
+  useDispatch: () => vi.fn(),
+  useSelector: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      board: {
+        undoStack: [],
+        redoStack: [],
+        selectedNodeIds: [],
+      },
+    }),
+}));
+
 // Mock @xyflow/react since jsdom lacks DOM measurement APIs
 vi.mock("@xyflow/react", () => {
   const BackgroundVariant = { Dots: "dots", Lines: "lines", Cross: "cross" };
   const MarkerType = { Arrow: "arrow", ArrowClosed: "arrowclosed" };
+  const SelectionMode = { Partial: "partial", Full: "full" };
   return {
+    SelectionMode,
     ReactFlow: ({ children, minZoom, maxZoom, ...props }: Record<string, unknown>) => (
       <div data-testid="react-flow" data-min-zoom={minZoom} data-max-zoom={maxZoom} {...props}>
         {children as React.ReactNode}

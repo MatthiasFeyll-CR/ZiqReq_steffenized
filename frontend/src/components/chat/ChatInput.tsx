@@ -186,6 +186,40 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
     ],
   );
 
+  // Listen for board:reference custom event and insert at cursor
+  useEffect(() => {
+    const handleBoardReference = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail;
+      if (!detail) return;
+
+      const el = textareaRef.current;
+      if (!el) {
+        // If textarea not focused, just append
+        setValue((prev) => (prev ? `${prev} ${detail} ` : `${detail} `));
+        return;
+      }
+
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+
+      setValue((prev) => {
+        const before = prev.slice(0, start);
+        const after = prev.slice(end);
+        return `${before}${detail} ${after}`;
+      });
+
+      // Set cursor after inserted reference
+      requestAnimationFrame(() => {
+        const cursorPos = start + detail.length + 1;
+        el.setSelectionRange(cursorPos, cursorPos);
+        el.focus();
+      });
+    };
+
+    window.addEventListener("board:reference", handleBoardReference);
+    return () => window.removeEventListener("board:reference", handleBoardReference);
+  }, []);
+
   // Close mention on click outside
   useEffect(() => {
     if (!mentionOpen) return;

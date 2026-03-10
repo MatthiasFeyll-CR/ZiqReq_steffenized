@@ -1,6 +1,6 @@
 import { memo, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
-import { Pin, Bot, Lock } from "lucide-react";
+import { Pin, Bot, Lock, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface BoxNodeData {
@@ -8,14 +8,16 @@ export interface BoxNodeData {
   body?: string;
   created_by?: "user" | "ai";
   is_locked?: boolean;
+  ai_modified_indicator?: boolean;
   nodeId?: string;
+  onToggleLock?: (nodeId: string, newLocked: boolean) => void;
   [key: string]: unknown;
 }
 
 export type BoxNodeType = Node<BoxNodeData, "box">;
 
 function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
-  const { title, body, created_by, is_locked } = data;
+  const { title, body, created_by, is_locked, ai_modified_indicator, onToggleLock } = data;
 
   const handleReference = useCallback(() => {
     const nodeId = data.nodeId ?? id;
@@ -23,6 +25,10 @@ function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
       new CustomEvent("board:reference", { detail: `@board[${nodeId}]` }),
     );
   }, [data.nodeId, id]);
+
+  const handleToggleLock = useCallback(() => {
+    onToggleLock?.(id, !is_locked);
+  }, [id, is_locked, onToggleLock]);
 
   const bullets = body
     ? body
@@ -37,6 +43,13 @@ function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
       style={{ minWidth: 192, maxWidth: 320 }}
       data-testid="box-node"
     >
+      {ai_modified_indicator && (
+        <span
+          className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-amber-400 motion-safe:animate-pulse"
+          data-testid="ai-modified-dot"
+        />
+      )}
+
       <Handle type="target" position={Position.Top} className="!bg-border" />
 
       {/* Title bar */}
@@ -66,12 +79,23 @@ function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
         </ul>
       )}
 
-      {/* Lock icon */}
-      {is_locked && (
-        <div className="absolute bottom-1 right-1" data-testid="lock-icon">
-          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-      )}
+      {/* Lock toggle button */}
+      <div className="absolute bottom-1 right-1">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="h-6 w-6"
+          onClick={handleToggleLock}
+          aria-label={is_locked ? "Unlock node" : "Lock node"}
+          data-testid="lock-toggle"
+        >
+          {is_locked ? (
+            <Lock className="h-3.5 w-3.5 text-muted-foreground" data-testid="lock-icon" />
+          ) : (
+            <Unlock className="h-3.5 w-3.5 text-muted-foreground" data-testid="unlock-icon" />
+          )}
+        </Button>
+      </div>
 
       <Handle type="source" position={Position.Bottom} className="!bg-border" />
     </div>
