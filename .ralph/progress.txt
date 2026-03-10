@@ -36,3 +36,19 @@ Started: 2026-03-09T17:27:54+0100
   - Docker build gate (`docker compose build`) fails on pre-existing nginx.conf issue — not related to source changes
   - vi.fn() needs explicit generic for typed mock params: `vi.fn<(a: string, b: string, c: Record<string, unknown>) => Promise<unknown>>()`
 ---
+
+## US-002: Group nesting (drag into/out of groups)
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardCanvas.tsx, frontend/src/components/board/GroupNode.tsx, frontend/src/__tests__/board-interactions.test.tsx, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 149 passed (19 test files), including 7 new tests (T-3.2.02, T-3.2.03, visual feedback, nested groups)
+- Learnings for future iterations:
+  - @xyflow/react v12 Node type does NOT have `positionAbsolute` — it's on `InternalNode.internals.positionAbsolute`. Use `useReactFlow().getInternalNode(id)` to access absolute positions.
+  - `findParentGroup` selects the smallest-area group containing the absolute position, which naturally handles nested groups.
+  - React Flow handles child-moves-with-parent natively when `parentId` is set on a node.
+  - When reparenting, recalculate position relative to new parent (absX - parentAbsX).
+  - Set `expandParent: true` on child nodes so the parent group auto-expands if the child is near the edge.
+  - Visual drop zone feedback uses `_dropTarget` flag in group node data, toggled during `onNodeDrag`.
+  - Docker test container copies files at build time — must `docker compose -f docker-compose.test.yml down && up -d --build` after changing test files.
+  - Mock `useNodesState` must be stateful (using a module-level variable + callback-aware mockSetNodes) for tests that verify state mutations via setNodes callbacks.
+---

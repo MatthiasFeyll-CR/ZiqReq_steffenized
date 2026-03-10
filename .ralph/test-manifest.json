@@ -115,6 +115,14 @@
     "T-3.2.01": {
       "file": "frontend/src/__tests__/board-interactions.test.tsx",
       "function": "calls updateBoardNode with new position on drag end"
+    },
+    "T-3.2.02": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "calls updateBoardNode with parent_id when node dropped inside a group"
+    },
+    "T-3.2.03": {
+      "file": "frontend/src/__tests__/board-interactions.test.tsx",
+      "function": "calls updateBoardNode with parent_id null when node dragged outside all groups"
     }
   }
 }

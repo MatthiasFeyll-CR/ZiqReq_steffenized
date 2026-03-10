@@ -37,7 +37,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.2.02", "T-3.2.03"],
       "notes": "Architecture: data-model.md § parent_id FK\nDesign: component-specs.md § 6.2 Group Node\nTesting: test-matrix.md § T-3.2.02, T-3.2.03\nFiles: BoardCanvas.tsx (parent detection), api/board.ts\nGotchas: React Flow doesn't auto-detect parents. Check if node position within group bounds. Groups resizable so width/height dynamic.",
       "context": {

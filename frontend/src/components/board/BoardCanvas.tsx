@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -8,6 +8,7 @@ import {
   MarkerType,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type OnConnect,
   type Node,
   type Edge,
@@ -44,6 +45,66 @@ const defaultEdgeOptions = {
 const defaultNodes: Node[] = [];
 const defaultEdges: Edge[] = [];
 
+interface NodeInfo {
+  id: string;
+  type?: string;
+  parentId?: string;
+  position: { x: number; y: number };
+  absX: number;
+  absY: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Find the group node that contains the given absolute position.
+ * Returns the smallest (most deeply nested) matching group,
+ * excluding the dragged node itself and any of its descendants.
+ */
+function findParentGroup(
+  nodeInfos: NodeInfo[],
+  draggedNodeId: string,
+  absoluteX: number,
+  absoluteY: number,
+): NodeInfo | null {
+  const draggedDescendants = new Set<string>();
+  function collectDescendants(parentId: string) {
+    for (const n of nodeInfos) {
+      if (n.parentId === parentId) {
+        draggedDescendants.add(n.id);
+        collectDescendants(n.id);
+      }
+    }
+  }
+  if (nodeInfos.find((n) => n.id === draggedNodeId)?.type === "group") {
+    collectDescendants(draggedNodeId);
+  }
+
+  let bestGroup: NodeInfo | null = null;
+  let bestArea = Infinity;
+
+  for (const n of nodeInfos) {
+    if (n.type !== "group") continue;
+    if (n.id === draggedNodeId) continue;
+    if (draggedDescendants.has(n.id)) continue;
+
+    if (
+      absoluteX >= n.absX &&
+      absoluteX <= n.absX + n.width &&
+      absoluteY >= n.absY &&
+      absoluteY <= n.absY + n.height
+    ) {
+      const area = n.width * n.height;
+      if (area < bestArea) {
+        bestArea = area;
+        bestGroup = n;
+      }
+    }
+  }
+
+  return bestGroup;
+}
+
 interface BoardCanvasProps {
   ideaId?: string;
 }
@@ -51,6 +112,35 @@ interface BoardCanvasProps {
 export function BoardCanvas({ ideaId }: BoardCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
+  const dropTargetIdRef = useRef<string | null>(null);
+  const { getInternalNode } = useReactFlow();
+
+  const getNodeInfos = useCallback((): NodeInfo[] => {
+    return nodes.map((n) => {
+      const internal = getInternalNode(n.id);
+      return {
+        id: n.id,
+        type: n.type,
+        parentId: n.parentId,
+        position: n.position,
+        absX: internal?.internals.positionAbsolute.x ?? n.position.x,
+        absY: internal?.internals.positionAbsolute.y ?? n.position.y,
+        width: internal?.measured.width ?? n.width ?? 200,
+        height: internal?.measured.height ?? n.height ?? 150,
+      };
+    });
+  }, [nodes, getInternalNode]);
+
+  const getAbsolutePosition = useCallback(
+    (node: Node): { x: number; y: number } => {
+      const internal = getInternalNode(node.id);
+      return {
+        x: internal?.internals.positionAbsolute.x ?? node.position.x,
+        y: internal?.internals.positionAbsolute.y ?? node.position.y,
+      };
+    },
+    [getInternalNode],
+  );
 
   const onConnect: OnConnect = useCallback(() => {
     // Connection handling will be implemented in later stories
@@ -87,17 +177,99 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
     setEdges((eds) => eds.filter((e) => !e.selected));
   }, [setNodes, setEdges]);
 
-  const onNodeDragStop = useCallback(
+  const onNodeDrag = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      if (!ideaId) return;
-      updateBoardNode(ideaId, node.id, {
-        position_x: node.position.x,
-        position_y: node.position.y,
-      }).catch(() => {
-        // Position will be retried on next drag or sync
+      const abs = getAbsolutePosition(node);
+      const nodeInfos = getNodeInfos();
+
+      setNodes((nds) => {
+        const group = findParentGroup(nodeInfos, node.id, abs.x, abs.y);
+        const newTargetId = group?.id ?? null;
+        const prevTargetId = dropTargetIdRef.current;
+
+        if (newTargetId === prevTargetId) return nds;
+        dropTargetIdRef.current = newTargetId;
+
+        return nds.map((n) => {
+          if (n.type !== "group") return n;
+          const isTarget = n.id === newTargetId;
+          const wasTarget = n.id === prevTargetId;
+          if (!isTarget && !wasTarget) return n;
+          return {
+            ...n,
+            data: { ...n.data, _dropTarget: isTarget },
+          };
+        });
       });
     },
-    [ideaId],
+    [setNodes, getAbsolutePosition, getNodeInfos],
+  );
+
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      // Clear drop target highlight
+      dropTargetIdRef.current = null;
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.type === "group" && n.data._dropTarget
+            ? { ...n, data: { ...n.data, _dropTarget: false } }
+            : n,
+        ),
+      );
+
+      if (!ideaId) return;
+
+      const abs = getAbsolutePosition(node);
+      const nodeInfos = getNodeInfos();
+
+      const oldParentId = node.parentId ?? null;
+      const targetGroup = findParentGroup(nodeInfos, node.id, abs.x, abs.y);
+      const newParentId = targetGroup?.id ?? null;
+
+      const parentChanged = oldParentId !== newParentId;
+
+      if (parentChanged) {
+        // Recalculate position relative to new parent
+        let relX = abs.x;
+        let relY = abs.y;
+        if (targetGroup) {
+          relX = abs.x - targetGroup.absX;
+          relY = abs.y - targetGroup.absY;
+        }
+
+        // Update node in React Flow state
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === node.id
+              ? {
+                  ...n,
+                  parentId: newParentId ?? undefined,
+                  position: { x: relX, y: relY },
+                  expandParent: newParentId ? true : undefined,
+                }
+              : n,
+          ),
+        );
+
+        // Persist parent_id + position
+        updateBoardNode(ideaId, node.id, {
+          parent_id: newParentId,
+          position_x: relX,
+          position_y: relY,
+        }).catch(() => {
+          // Will be retried on next drag or sync
+        });
+      } else {
+        // Just persist position (same as US-001)
+        updateBoardNode(ideaId, node.id, {
+          position_x: node.position.x,
+          position_y: node.position.y,
+        }).catch(() => {
+          // Position will be retried on next drag or sync
+        });
+      }
+    },
+    [ideaId, setNodes, getAbsolutePosition, getNodeInfos],
   );
 
   const proOptions = useMemo(() => ({ hideAttribution: true }), []);
@@ -116,6 +288,7 @@ export function BoardCanvas({ ideaId }: BoardCanvasProps) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
