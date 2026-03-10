@@ -80,3 +80,18 @@ Started: 2026-03-09T17:27:54+0100
   - `deleteKeyCode={null}` disables React Flow's built-in delete to use custom `handleDeleteSelected` that respects locked nodes
   - Added keyboard listener for Delete/Backspace keys that calls `handleDeleteSelected`, with input/textarea guard to prevent deleting while editing text
 ---
+
+## US-005: Undo/redo Redux system
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/store/board-slice.ts, frontend/src/hooks/use-board-undo.ts, frontend/src/components/board/BoardCanvas.tsx, frontend/src/components/board/BoardToolbar.tsx, frontend/src/__tests__/board-undo.test.ts (new), frontend/src/__tests__/board-undo-integration.test.ts (new), frontend/src/__tests__/board-interactions.test.tsx, frontend/src/__tests__/board-canvas.test.tsx, .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 169 passed (21 test files), including 10 new undo/redo tests (T-3.7.01, T-3.7.02, T-3.7.04, T-3.7.05)
+- Learnings for future iterations:
+  - board-slice uses createSlice with typed `UndoEntry` interface: `{type, nodeId, data, previousState, source}`. Selectors exported for undoTop/redoTop/canUndo/canRedo.
+  - `useBoardUndo` hook wraps dispatch + selectors. On undo reads `undoTop.previousState` before dispatching, sends PATCH with that data. On redo reads `redoTop.data`.
+  - BoardCanvas now imports useBoardUndo and pushes undo entries on drag-end and lock-toggle. The hook needs react-redux Provider.
+  - All test files rendering BoardCanvas must mock react-redux: `vi.mock("react-redux", () => ({ useDispatch: () => vi.fn(), useSelector: (selector) => selector({ board: { undoStack: [], redoStack: [], selectedNodeIds: [] } }) }))`.
+  - TS lib doesn't include es2022 — `Array.at()` unavailable, use bracket access instead.
+  - BoardToolbar interface extended with optional undo/redo props (onUndo, onRedo, canUndo, canRedo, undoTopSource, redoTopSource) for US-006 to use.
+  - Pure Redux reducer tests (board-undo.test.ts) don't need any component mocking — test the reducer function directly with `boardReducer(state, action)`.
+---
