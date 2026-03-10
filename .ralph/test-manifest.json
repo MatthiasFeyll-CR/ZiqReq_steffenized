@@ -143,6 +143,10 @@
     "T-3.7.05": {
       "file": "frontend/src/__tests__/board-undo-integration.test.ts",
       "function": "undo dispatches and calls updateBoardNode with previousState"
+    },
+    "T-3.7.03": {
+      "file": "frontend/src/__tests__/board-toolbar-undo.test.tsx",
+      "function": "shows 'Undo AI Action' when undo stack top source is 'ai'"
     }
   }
 }
