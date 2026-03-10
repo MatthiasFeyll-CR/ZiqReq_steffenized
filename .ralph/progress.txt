@@ -120,3 +120,17 @@ Started: 2026-03-09T17:27:54+0100
   - Test pattern: use `act(() => { window.dispatchEvent(...) })` to trigger custom events in tests, then assert textarea value directly.
   - T-3.8.01 tests already existed in box-node.test.tsx from M4 — just registered in test manifest.
 ---
+
+## US-008: AI modification indicators
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoxNode.tsx, frontend/src/components/board/GroupNode.tsx, frontend/src/components/board/FreeTextNode.tsx, frontend/src/components/board/BoardCanvas.tsx, frontend/src/__tests__/ai-modified-indicator.test.tsx (new), .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 191 passed (24 test files), including 10 new AI indicator tests (T-3.4.01, T-3.4.02)
+- Learnings for future iterations:
+  - AI modified indicator is an 8px gold dot (bg-amber-400) positioned absolute top-left (-left-1 -top-1) on each node component.
+  - `motion-safe:animate-pulse` Tailwind class handles prefers-reduced-motion automatically — only animates when user hasn't set reduced motion preference.
+  - `onNodeClick` handler on ReactFlow clears the indicator: checks `node.data.ai_modified_indicator`, updates local state via setNodes, and PATCHes backend.
+  - For T-3.4.02 tests (BoardCanvas click behavior), use `vi.resetModules()` + `vi.doMock()` + dynamic `await import()` pattern to isolate module state between tests.
+  - GroupNode and FreeTextNode need `z-10` on the dot to ensure it renders above NodeResizer handles and other overlapping elements.
+  - No AI actually modifies nodes in M5 — this is preparatory UI for M8.
+---
