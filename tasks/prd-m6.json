@@ -23,7 +23,7 @@
         "T-6.1.02",
         "T-6.1.03"
       ],
-      "notes": "QA DEF-001: Tests test_connection_missing_token, test_connection_nonexistent_user_token, test_error_on_unknown_message_type, test_error_on_missing_message_type ERROR in Docker due to async DB transaction isolation. Consumer code is correct. Fix: consolidate multi-step DB setup in test helpers into single @database_sync_to_async blocks, and add a conftest.py to ensure proper test DB isolation for async tests with PostgreSQL.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 handshake URL format, auth on connect, message envelope\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Connection Lifecycle \u2014 connect, validate, disconnect flow\nFiles: services/gateway/apps/websocket/consumers.py (new), services/gateway/apps/websocket/routing.py, services/gateway/apps/websocket/middleware.py (new for token validation)\nGotchas: Token validation must use the same middleware/utilities as REST endpoints (check services/gateway/middleware/ for existing auth patterns). Django Channels consumers don't have request.user automatically \u2014 you must populate it from token validation in middleware or in consumer.connect().",
+      "notes": "QA DEF-002 (cycle 1): Consumer code is correct. Tests test_error_on_missing_message_type FAIL and test_connection_valid_token + test_connection_invalid_token ERROR in Docker due to django_content_type duplicate key IntegrityError during test teardown. Root cause: @pytest.mark.django_db(transaction=True) on PostgreSQL causes content type table corruption between async tests. Fix: create conftest.py at services/gateway/conftest.py (or services/gateway/apps/websocket/tests/conftest.py) with proper test isolation fixtures — reset InMemoryChannelLayer between tests, add asyncio_mode='auto' to pyproject.toml [tool.pytest.ini_options], and consider using serialized_rollback=True or reset_sequences=True on django_db markers. Previous DEF-001 (FK violations) was successfully resolved by consolidating DB setup.\nFiles: services/gateway/apps/websocket/tests/test_consumers.py, services/gateway/conftest.py (create new), pyproject.toml",
       "context": {
         "api_endpoints": [
           "WebSocket /ws/?token=<jwt> \u2014 session-level connection, token auth on handshake"
@@ -51,13 +51,13 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "testIds": [
         "T-6.1.04",
         "T-6.1.05",
         "T-6.1.06"
       ],
-      "notes": "QA DEF-001: Tests test_subscribe_idea_as_owner/co_owner/collaborator FAIL with IntegrityError, test_subscribe_idea_nonexistent/test_unsubscribe_idea/test_unsubscribe_idea_not_subscribed ERROR. Root cause: @database_sync_to_async helpers _create_idea and _add_collaborator may use different DB connections in PostgreSQL Docker, causing FK violations. Fix: combine multi-step setup into single @database_sync_to_async functions.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 subscribe_idea / unsubscribe_idea client events\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Real-Time Transport Design \u2014 channel groups per idea\nFiles: services/gateway/apps/websocket/consumers.py\nGotchas: Channel group naming convention should be \"idea_<uuid>\". Use self.channel_layer.group_add() and group_discard(). Track subscribed ideas in consumer instance state so disconnect can clean up all groups. Access validation: query idea_collaborators table + check owner_id/co_owner_id.",
+      "notes": "QA DEF-002 (cycle 1): Consumer code is correct. test_subscribe_idea_as_owner FAIL and test_subscribe_idea_nonexistent + test_unsubscribe_idea_not_subscribed ERROR due to django_content_type duplicate key during test teardown. Same root cause as US-001. Fix is in conftest.py — see US-001 notes.\nFiles: services/gateway/apps/websocket/tests/test_consumers.py",
       "context": {
         "api_endpoints": [
           "subscribe_idea: {type, idea_id} \u2014 add client to idea group",
@@ -89,7 +89,7 @@
         "T-6.4.01",
         "T-6.4.02"
       ],
-      "notes": "QA DEF-001: test_chat_message_broadcast_to_subscriber ERRORs in Docker. Same root cause as US-001/US-002. Fix: consolidate test setup into single @database_sync_to_async blocks.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 chat_message event schema\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Board Sync Protocol \u2014 REST mutation \u2192 persist \u2192 WebSocket broadcast\nFiles: services/gateway/events/consumers.py (check if exists, or create chat_consumer.py), services/gateway/apps/websocket/consumers.py (add receive handler for group messages)\nGotchas: The REST endpoint (POST /api/ideas/:id/chat) already exists from M3. It publishes a broker event after persisting. You need to consume that event and translate it to a WebSocket broadcast. Check services/gateway/events/ for existing event consumer patterns.",
+      "notes": "QA DEF-002 (cycle 1): Consumer code is correct. test_chat_message_broadcast_not_received_by_unsubscribed ERROR due to django_content_type duplicate key during test teardown. Same root cause as US-001. Fix is in conftest.py — see US-001 notes.\nFiles: services/gateway/apps/websocket/tests/test_consumers.py",
       "context": {
         "api_endpoints": [
           "POST /api/ideas/:id/chat \u2014 creates message, publishes event"
@@ -123,7 +123,7 @@
         "T-3.6.01",
         "T-3.6.02"
       ],
-      "notes": "QA DEF-001: test_board_update_not_received_by_unsubscribed FAIL+ERROR, test_board_update_broadcast_source_ai ERROR. Same root cause. Fix: consolidate test setup.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 board_update event schema\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Board Sync Protocol \u2014 hybrid model, REST-first then broadcast\nFiles: services/gateway/events/board_consumer.py (likely exists from M4/M5, extend it), services/gateway/apps/websocket/consumers.py\nGotchas: The board REST endpoints (POST/PATCH/DELETE on nodes and connections) already exist from M4/M5. They should already be publishing broker events. Check services/gateway/events/board_consumer.py for existing consumption. You're adding WebSocket broadcast as a side effect. Batching: if multiple events arrive in quick succession, debounce or batch them into one board_update message.",
+      "notes": "QA DEF-002 (cycle 1): Consumer code is correct. test_board_update_broadcast_source_ai FAIL and test_board_update_broadcast_via_view_helper + test_board_update_broadcast_node_delete ERROR due to django_content_type duplicate key during test teardown. Same root cause as US-001. Fix is in conftest.py — see US-001 notes.\nFiles: services/gateway/apps/websocket/tests/test_consumers.py",
       "context": {
         "api_endpoints": [
           "POST /api/ideas/:id/board/nodes \u2014 creates node, publishes event",
@@ -152,13 +152,13 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-3.5.01",
         "T-3.5.02",
         "T-3.5.03"
       ],
-      "notes": "QA DEF-001: test_board_selection_deselect_null_node FAIL+ERROR, test_board_selection_broadcast_excludes_sender ERROR. Same root cause. Fix: consolidate test setup.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 board_selection (client\u2192server, server\u2192client), board_lock_change (server\u2192client only)\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Board Sync Protocol \u2014 awareness events (selections, lock state) are WebSocket-only, ephemeral\nFiles: services/gateway/apps/websocket/consumers.py, services/gateway/events/board_consumer.py\nGotchas: Selection events come from client, not from REST. The consumer receives the message and broadcasts it. Lock changes are triggered by PATCH REST calls that persist the lock state \u2014 those publish events that get broadcast (already handled in US-004, but verify lock-specific broadcast).",
+      "notes": "QA cycle 1: PASS. Previous DEF-001 (FK violations) resolved by bugfix cycle 1. All 4 board awareness tests now pass.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol\nFiles: services/gateway/apps/websocket/consumers.py",
       "context": {
         "api_endpoints": [
           "board_selection client event: {type, idea_id, payload: {node_id, user}}",
@@ -223,14 +223,14 @@
         "Verify in browser: open idea in 2 tabs with different dev users, see 2 avatars; open same user in 2 tabs, see 1 avatar"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-6.3.01",
         "T-6.3.02",
         "T-6.3.03",
         "T-6.3.04"
       ],
-      "notes": "QA DEF-001: test_presence_broadcast_on_subscribe and test_presence_update_client_message FAIL. Same root cause. Fix: consolidate test setup.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 presence_update client event, presence_update server event\nDesign: docs/03-design/component-specs.md \u00a7 9.2 Stacked Avatars (Presence) \u2014 max 4 visible, overlap by 8px, +N overflow, idle = opacity-50 + grayscale\nDesign: docs/03-design/component-inventory.md \u00a7 Collaboration \u2014 PresenceIndicators (Workspace header)\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-6.3.x \u2014 presence states, multi-tab dedup, idle detection\nFiles: frontend/src/store/websocket-slice.ts (add presence state), frontend/src/components/workspace/PresenceIndicators.tsx (new), frontend/src/components/workspace/WorkspaceHeader.tsx (integrate PresenceIndicators), services/gateway/apps/websocket/consumers.py (add presence tracking logic server-side)\nGotchas: Server-side dedup: track presence per user_id (not per channel). When user connects from multiple tabs, presence list shows them once. Idle state: client sends presence_update with state='idle' after idle_timeout (default 5 min). This is a future enhancement for M16 \u2014 for now, just implement online/offline. The test matrix includes idle, but the milestone scope says 'partial' idle detection (F-15.1).",
+      "notes": "QA cycle 1: PASS. Previous DEF-001 (FK violations) resolved by bugfix cycle 1. All 4 presence tests now pass.\nArchitecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol\nFiles: services/gateway/apps/websocket/consumers.py, frontend/src/components/workspace/PresenceIndicators.tsx",
       "context": {
         "api_endpoints": [
           "presence_update client: {type, payload: {state, idea_id}}",
