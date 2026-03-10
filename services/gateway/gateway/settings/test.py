@@ -6,6 +6,12 @@ from .base import *  # noqa: F401, F403
 DEBUG = True
 AUTH_BYPASS = True
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
+
 _db_url = os.environ.get("DATABASE_URL", "")
 if _db_url:
     _parsed = urlparse(_db_url)

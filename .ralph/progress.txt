@@ -1,0 +1,42 @@
+# Ralph Progress Log — M6 (websocket)
+Started: 2026-03-10T03:55:44+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Django Channels WebSocket consumer — connect, token auth, disconnect, error handling
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/consumers.py, services/gateway/apps/websocket/middleware.py, services/gateway/apps/websocket/tests/test_consumers.py, services/gateway/gateway/asgi.py, services/gateway/gateway/settings/test.py, .ralph/test-manifest.json
+- Tests: 6 passed (test_connection_valid_token, test_connection_invalid_token, test_connection_missing_token, test_connection_nonexistent_user_token, test_error_on_unknown_message_type, test_error_on_missing_message_type). Full suite: 116 Python tests passed, 191 Node tests passed.
+- Learnings for future iterations:
+  - WebSocketAuthMiddleware is an ASGI middleware wrapping URLRouter in asgi.py. It validates token from query string and populates scope["user_id"] and scope["user_display_name"]
+  - In dev bypass mode (AUTH_BYPASS=True), the token is treated as a user UUID directly (no Azure AD validation)
+  - IdeaConsumer inherits AsyncJsonWebsocketConsumer, stores user_id, user_display_name, connection_id (uuid4), and subscribed_groups (set) on connect
+  - Consumer rejects connection (close code 4003) if scope["user_id"] is missing (middleware didn't set it)
+  - receive_json dispatches to handle_{type} methods, returns error JSON for unknown/missing types
+  - Tests use channels.testing.WebsocketCommunicator with the full middleware+router stack
+  - Docker test containers copy code at build time — must rebuild python-tests after code changes
+  - InMemoryChannelLayer added to test settings for channel layer operations
+  - WebsocketCommunicator does NOT expose .instance attribute — can't directly inspect consumer state in tests
+  - The docker compose build gate check has a pre-existing failure (frontend Dockerfile references nginx.conf that doesn't exist at that path)
+---

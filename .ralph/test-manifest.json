@@ -163,6 +163,18 @@
     "T-3.4.02": {
       "file": "frontend/src/__tests__/ai-modified-indicator.test.tsx",
       "function": "clicking node with ai_modified_indicator=true calls PATCH with false"
+    },
+    "T-6.1.01": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_connection_valid_token"
+    },
+    "T-6.1.02": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_connection_invalid_token"
+    },
+    "T-6.1.03": {
+      "file": "services/gateway/apps/websocket/tests/test_consumers.py",
+      "function": "test_error_on_unknown_message_type"
     }
   }
 }

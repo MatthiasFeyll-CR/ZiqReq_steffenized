@@ -1,11 +1,11 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m6-websocket",
-  "description": "M6: WebSocket & Real-Time — Session-level WebSocket connection with presence tracking, chat/board broadcasting, offline handling, and multi-user collaboration awareness.",
+  "description": "M6: WebSocket & Real-Time \u2014 Session-level WebSocket connection with presence tracking, chat/board broadcasting, offline handling, and multi-user collaboration awareness.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Django Channels WebSocket consumer — connect, token auth, disconnect, error handling",
+      "title": "Django Channels WebSocket consumer \u2014 connect, token auth, disconnect, error handling",
       "description": "As a backend developer, I want a Django Channels WebSocket consumer that validates tokens on handshake and manages connection lifecycle so that authenticated users can establish secure real-time connections.",
       "acceptanceCriteria": [
         "WebSocket consumer accepts connections at /ws/?token=<jwt>",
@@ -17,18 +17,28 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": ["T-6.1.01", "T-6.1.02", "T-6.1.03"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — handshake URL format, auth on connect, message envelope\nArchitecture: docs/02-architecture/tech-stack.md § Connection Lifecycle — connect, validate, disconnect flow\nFiles: services/gateway/apps/websocket/consumers.py (new), services/gateway/apps/websocket/routing.py, services/gateway/apps/websocket/middleware.py (new for token validation)\nGotchas: Token validation must use the same middleware/utilities as REST endpoints (check services/gateway/middleware/ for existing auth patterns). Django Channels consumers don't have request.user automatically — you must populate it from token validation in middleware or in consumer.connect().",
+      "passes": true,
+      "testIds": [
+        "T-6.1.01",
+        "T-6.1.02",
+        "T-6.1.03"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 handshake URL format, auth on connect, message envelope\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Connection Lifecycle \u2014 connect, validate, disconnect flow\nFiles: services/gateway/apps/websocket/consumers.py (new), services/gateway/apps/websocket/routing.py, services/gateway/apps/websocket/middleware.py (new for token validation)\nGotchas: Token validation must use the same middleware/utilities as REST endpoints (check services/gateway/middleware/ for existing auth patterns). Django Channels consumers don't have request.user automatically \u2014 you must populate it from token validation in middleware or in consumer.connect().",
       "context": {
-        "api_endpoints": ["WebSocket /ws/?token=<jwt> — session-level connection, token auth on handshake"],
-        "data_model": ["users: id uuid PK, email, display_name — user lookup from token"],
-        "existing_code": ["services/gateway/middleware/error_handling.py — check for auth pattern examples"]
+        "api_endpoints": [
+          "WebSocket /ws/?token=<jwt> \u2014 session-level connection, token auth on handshake"
+        ],
+        "data_model": [
+          "users: id uuid PK, email, display_name \u2014 user lookup from token"
+        ],
+        "existing_code": [
+          "services/gateway/middleware/error_handling.py \u2014 check for auth pattern examples"
+        ]
       }
     },
     {
       "id": "US-002",
-      "title": "Channel group management — subscribe_idea, unsubscribe_idea, group join/leave",
+      "title": "Channel group management \u2014 subscribe_idea, unsubscribe_idea, group join/leave",
       "description": "As a backend developer, I want the consumer to handle subscribe_idea and unsubscribe_idea messages so that clients receive events only for ideas they're viewing.",
       "acceptanceCriteria": [
         "Consumer accepts {\"type\": \"subscribe_idea\", \"idea_id\": \"<uuid>\"} from client",
@@ -42,17 +52,27 @@
       ],
       "priority": 2,
       "passes": false,
-      "testIds": ["T-6.1.04", "T-6.1.05", "T-6.1.06"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — subscribe_idea / unsubscribe_idea client events\nArchitecture: docs/02-architecture/tech-stack.md § Real-Time Transport Design — channel groups per idea\nFiles: services/gateway/apps/websocket/consumers.py\nGotchas: Channel group naming convention should be \"idea_<uuid>\". Use self.channel_layer.group_add() and group_discard(). Track subscribed ideas in consumer instance state so disconnect can clean up all groups. Access validation: query idea_collaborators table + check owner_id/co_owner_id.",
+      "testIds": [
+        "T-6.1.04",
+        "T-6.1.05",
+        "T-6.1.06"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 subscribe_idea / unsubscribe_idea client events\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Real-Time Transport Design \u2014 channel groups per idea\nFiles: services/gateway/apps/websocket/consumers.py\nGotchas: Channel group naming convention should be \"idea_<uuid>\". Use self.channel_layer.group_add() and group_discard(). Track subscribed ideas in consumer instance state so disconnect can clean up all groups. Access validation: query idea_collaborators table + check owner_id/co_owner_id.",
       "context": {
-        "api_endpoints": ["subscribe_idea: {type, idea_id} — add client to idea group", "unsubscribe_idea: {type, idea_id} — remove client from idea group"],
-        "data_model": ["ideas: id, owner_id, co_owner_id", "idea_collaborators: idea_id, user_id — access check"],
+        "api_endpoints": [
+          "subscribe_idea: {type, idea_id} \u2014 add client to idea group",
+          "unsubscribe_idea: {type, idea_id} \u2014 remove client from idea group"
+        ],
+        "data_model": [
+          "ideas: id, owner_id, co_owner_id",
+          "idea_collaborators: idea_id, user_id \u2014 access check"
+        ],
         "existing_code": []
       }
     },
     {
       "id": "US-003",
-      "title": "Chat message broadcast — on REST POST success, broadcast chat.message.created to idea group",
+      "title": "Chat message broadcast \u2014 on REST POST success, broadcast chat.message.created to idea group",
       "description": "As a backend developer, I want chat message creation to broadcast via WebSocket so that all users on the idea see new messages in real-time.",
       "acceptanceCriteria": [
         "Gateway event consumer listens for 'chat.message.created' broker event",
@@ -65,17 +85,27 @@
       ],
       "priority": 3,
       "passes": false,
-      "testIds": ["T-6.4.01", "T-6.4.02"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — chat_message event schema\nArchitecture: docs/02-architecture/tech-stack.md § Board Sync Protocol — REST mutation → persist → WebSocket broadcast\nFiles: services/gateway/events/consumers.py (check if exists, or create chat_consumer.py), services/gateway/apps/websocket/consumers.py (add receive handler for group messages)\nGotchas: The REST endpoint (POST /api/ideas/:id/chat) already exists from M3. It publishes a broker event after persisting. You need to consume that event and translate it to a WebSocket broadcast. Check services/gateway/events/ for existing event consumer patterns.",
+      "testIds": [
+        "T-6.4.01",
+        "T-6.4.02"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 chat_message event schema\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Board Sync Protocol \u2014 REST mutation \u2192 persist \u2192 WebSocket broadcast\nFiles: services/gateway/events/consumers.py (check if exists, or create chat_consumer.py), services/gateway/apps/websocket/consumers.py (add receive handler for group messages)\nGotchas: The REST endpoint (POST /api/ideas/:id/chat) already exists from M3. It publishes a broker event after persisting. You need to consume that event and translate it to a WebSocket broadcast. Check services/gateway/events/ for existing event consumer patterns.",
       "context": {
-        "api_endpoints": ["POST /api/ideas/:id/chat — creates message, publishes event"],
-        "data_model": ["chat_messages: id, sender_type, sender_id, content, created_at"],
-        "existing_code": ["services/gateway/events/board_consumer.py — example event consumer pattern", "services/gateway/apps/websocket/consumers.py — add group message receive handler"]
+        "api_endpoints": [
+          "POST /api/ideas/:id/chat \u2014 creates message, publishes event"
+        ],
+        "data_model": [
+          "chat_messages: id, sender_type, sender_id, content, created_at"
+        ],
+        "existing_code": [
+          "services/gateway/events/board_consumer.py \u2014 example event consumer pattern",
+          "services/gateway/apps/websocket/consumers.py \u2014 add group message receive handler"
+        ]
       }
     },
     {
       "id": "US-004",
-      "title": "Board sync — broadcast board.node.updated / board.connection.updated after REST persistence",
+      "title": "Board sync \u2014 broadcast board.node.updated / board.connection.updated after REST persistence",
       "description": "As a backend developer, I want board mutations to broadcast via WebSocket so that all users see board changes in real-time.",
       "acceptanceCriteria": [
         "Event consumer listens for 'board.node.created', 'board.node.updated', 'board.node.deleted' events",
@@ -87,17 +117,31 @@
       ],
       "priority": 4,
       "passes": false,
-      "testIds": ["T-6.4.03", "T-6.4.04", "T-3.6.01", "T-3.6.02"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — board_update event schema\nArchitecture: docs/02-architecture/tech-stack.md § Board Sync Protocol — hybrid model, REST-first then broadcast\nFiles: services/gateway/events/board_consumer.py (likely exists from M4/M5, extend it), services/gateway/apps/websocket/consumers.py\nGotchas: The board REST endpoints (POST/PATCH/DELETE on nodes and connections) already exist from M4/M5. They should already be publishing broker events. Check services/gateway/events/board_consumer.py for existing consumption. You're adding WebSocket broadcast as a side effect. Batching: if multiple events arrive in quick succession, debounce or batch them into one board_update message.",
+      "testIds": [
+        "T-6.4.03",
+        "T-6.4.04",
+        "T-3.6.01",
+        "T-3.6.02"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 board_update event schema\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Board Sync Protocol \u2014 hybrid model, REST-first then broadcast\nFiles: services/gateway/events/board_consumer.py (likely exists from M4/M5, extend it), services/gateway/apps/websocket/consumers.py\nGotchas: The board REST endpoints (POST/PATCH/DELETE on nodes and connections) already exist from M4/M5. They should already be publishing broker events. Check services/gateway/events/board_consumer.py for existing consumption. You're adding WebSocket broadcast as a side effect. Batching: if multiple events arrive in quick succession, debounce or batch them into one board_update message.",
       "context": {
-        "api_endpoints": ["POST /api/ideas/:id/board/nodes — creates node, publishes event", "PATCH /api/ideas/:id/board/nodes/:id — updates node, publishes event", "DELETE /api/ideas/:id/board/nodes/:id — deletes node, publishes event"],
-        "data_model": ["board_nodes: id, node_type, title, body, position_x, position_y, is_locked, created_by", "board_connections: id, source_node_id, target_node_id, label"],
-        "existing_code": ["services/gateway/events/board_consumer.py — extend with WebSocket broadcast"]
+        "api_endpoints": [
+          "POST /api/ideas/:id/board/nodes \u2014 creates node, publishes event",
+          "PATCH /api/ideas/:id/board/nodes/:id \u2014 updates node, publishes event",
+          "DELETE /api/ideas/:id/board/nodes/:id \u2014 deletes node, publishes event"
+        ],
+        "data_model": [
+          "board_nodes: id, node_type, title, body, position_x, position_y, is_locked, created_by",
+          "board_connections: id, source_node_id, target_node_id, label"
+        ],
+        "existing_code": [
+          "services/gateway/events/board_consumer.py \u2014 extend with WebSocket broadcast"
+        ]
       }
     },
     {
       "id": "US-005",
-      "title": "Board awareness events — selection/deselection, lock state changes (WebSocket-only, no persistence)",
+      "title": "Board awareness events \u2014 selection/deselection, lock state changes (WebSocket-only, no persistence)",
       "description": "As a backend developer, I want ephemeral board awareness events (selection, lock changes) to broadcast without persisting so that users see what others are doing on the board.",
       "acceptanceCriteria": [
         "Consumer accepts {\"type\": \"board_selection\", \"idea_id\": \"<uuid>\", \"payload\": {node_id, user}} from client",
@@ -109,17 +153,24 @@
       ],
       "priority": 5,
       "passes": false,
-      "testIds": ["T-3.5.01", "T-3.5.02", "T-3.5.03"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — board_selection (client→server, server→client), board_lock_change (server→client only)\nArchitecture: docs/02-architecture/tech-stack.md § Board Sync Protocol — awareness events (selections, lock state) are WebSocket-only, ephemeral\nFiles: services/gateway/apps/websocket/consumers.py, services/gateway/events/board_consumer.py\nGotchas: Selection events come from client, not from REST. The consumer receives the message and broadcasts it. Lock changes are triggered by PATCH REST calls that persist the lock state — those publish events that get broadcast (already handled in US-004, but verify lock-specific broadcast).",
+      "testIds": [
+        "T-3.5.01",
+        "T-3.5.02",
+        "T-3.5.03"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 board_selection (client\u2192server, server\u2192client), board_lock_change (server\u2192client only)\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Board Sync Protocol \u2014 awareness events (selections, lock state) are WebSocket-only, ephemeral\nFiles: services/gateway/apps/websocket/consumers.py, services/gateway/events/board_consumer.py\nGotchas: Selection events come from client, not from REST. The consumer receives the message and broadcasts it. Lock changes are triggered by PATCH REST calls that persist the lock state \u2014 those publish events that get broadcast (already handled in US-004, but verify lock-specific broadcast).",
       "context": {
-        "api_endpoints": ["board_selection client event: {type, idea_id, payload: {node_id, user}}", "PATCH /api/ideas/:id/board/nodes/:id — lock toggle triggers board_lock_change event"],
+        "api_endpoints": [
+          "board_selection client event: {type, idea_id, payload: {node_id, user}}",
+          "PATCH /api/ideas/:id/board/nodes/:id \u2014 lock toggle triggers board_lock_change event"
+        ],
         "data_model": [],
         "existing_code": []
       }
     },
     {
       "id": "US-006",
-      "title": "Frontend WebSocket connection manager — connect on auth, reconnect with exponential backoff, session-level",
+      "title": "Frontend WebSocket connection manager \u2014 connect on auth, reconnect with exponential backoff, session-level",
       "description": "As a frontend developer, I want a WebSocket connection manager that establishes a session-level connection and handles reconnection so that users have a stable real-time connection.",
       "acceptanceCriteria": [
         "Connection manager module/hook connects to /ws/?token=<jwt> on app mount (after auth)",
@@ -130,22 +181,35 @@
         "Reconnection stops if user logs out or navigates away",
         "Cleanup: on unmount, close connection and clear reconnection timers",
         "Typecheck passes",
-        "Verify in browser: connection established, visible in DevTools Network → WS tab"
+        "Verify in browser: connection established, visible in DevTools Network \u2192 WS tab"
       ],
       "priority": 6,
       "passes": false,
-      "testIds": ["T-6.1.07", "T-6.1.08", "LOOP-004"],
-      "notes": "Architecture: docs/02-architecture/tech-stack.md § Connection Lifecycle — connect on load, reconnect with exponential backoff, max 30s\nDesign: docs/03-design/component-specs.md § 14. Connection State Indicator — green/red dot + Online/Offline label\nTesting: docs/04-test-architecture/runtime-safety.md § LOOP-004: WebSocket Reconnection Backoff — backoff cap, cleanup on unmount\nFiles: frontend/src/hooks/use-websocket.ts (new), frontend/src/store/websocket-slice.ts (new Redux slice for connection state), frontend/src/app/providers.tsx (mount WebSocket provider)\nGotchas: The connection is session-level (not per-idea). Use a React context or provider to manage the connection globally. Reconnection backoff must cap at max_reconnection_backoff from admin parameters (default 30s). Cleanup timers on unmount to prevent memory leaks (see LOOP-004 runtime safety tests).",
+      "testIds": [
+        "T-6.1.07",
+        "T-6.1.08",
+        "LOOP-004"
+      ],
+      "notes": "Architecture: docs/02-architecture/tech-stack.md \u00a7 Connection Lifecycle \u2014 connect on load, reconnect with exponential backoff, max 30s\nDesign: docs/03-design/component-specs.md \u00a7 14. Connection State Indicator \u2014 green/red dot + Online/Offline label\nTesting: docs/04-test-architecture/runtime-safety.md \u00a7 LOOP-004: WebSocket Reconnection Backoff \u2014 backoff cap, cleanup on unmount\nFiles: frontend/src/hooks/use-websocket.ts (new), frontend/src/store/websocket-slice.ts (new Redux slice for connection state), frontend/src/app/providers.tsx (mount WebSocket provider)\nGotchas: The connection is session-level (not per-idea). Use a React context or provider to manage the connection globally. Reconnection backoff must cap at max_reconnection_backoff from admin parameters (default 30s). Cleanup timers on unmount to prevent memory leaks (see LOOP-004 runtime safety tests).",
       "context": {
-        "api_endpoints": ["WebSocket /ws/?token=<jwt> — session-level connection"],
-        "data_model": ["admin_parameters: max_reconnection_backoff (default 30)"],
-        "test_cases": ["LOOP-004 | Runtime | WebSocket reconnection backoff cap + cleanup | Disconnect, never reconnect | Backoff caps at 30s, timers cleared on unmount"],
-        "existing_code": ["frontend/src/hooks/use-board-undo.ts — example custom hook pattern", "frontend/src/store/board-slice.ts — example Redux slice"]
+        "api_endpoints": [
+          "WebSocket /ws/?token=<jwt> \u2014 session-level connection"
+        ],
+        "data_model": [
+          "admin_parameters: max_reconnection_backoff (default 30)"
+        ],
+        "test_cases": [
+          "LOOP-004 | Runtime | WebSocket reconnection backoff cap + cleanup | Disconnect, never reconnect | Backoff caps at 30s, timers cleared on unmount"
+        ],
+        "existing_code": [
+          "frontend/src/hooks/use-board-undo.ts \u2014 example custom hook pattern",
+          "frontend/src/store/board-slice.ts \u2014 example Redux slice"
+        ]
       }
     },
     {
       "id": "US-007",
-      "title": "Presence tracking — online/idle/offline states, stacked avatars in workspace header, multi-tab dedup",
+      "title": "Presence tracking \u2014 online/idle/offline states, stacked avatars in workspace header, multi-tab dedup",
       "description": "As a frontend developer, I want presence indicators showing who's on the idea so that users see who they're collaborating with.",
       "acceptanceCriteria": [
         "On subscribe_idea, send {\"type\": \"presence_update\", \"payload\": {state: \"active\", idea_id}} to server",
@@ -160,18 +224,33 @@
       ],
       "priority": 7,
       "passes": false,
-      "testIds": ["T-6.3.01", "T-6.3.02", "T-6.3.03", "T-6.3.04"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — presence_update client event, presence_update server event\nDesign: docs/03-design/component-specs.md § 9.2 Stacked Avatars (Presence) — max 4 visible, overlap by 8px, +N overflow, idle = opacity-50 + grayscale\nDesign: docs/03-design/component-inventory.md § Collaboration — PresenceIndicators (Workspace header)\nTesting: docs/04-test-architecture/test-matrix.md § T-6.3.x — presence states, multi-tab dedup, idle detection\nFiles: frontend/src/store/websocket-slice.ts (add presence state), frontend/src/components/workspace/PresenceIndicators.tsx (new), frontend/src/components/workspace/WorkspaceHeader.tsx (integrate PresenceIndicators), services/gateway/apps/websocket/consumers.py (add presence tracking logic server-side)\nGotchas: Server-side dedup: track presence per user_id (not per channel). When user connects from multiple tabs, presence list shows them once. Idle state: client sends presence_update with state='idle' after idle_timeout (default 5 min). This is a future enhancement for M16 — for now, just implement online/offline. The test matrix includes idle, but the milestone scope says 'partial' idle detection (F-15.1).",
+      "testIds": [
+        "T-6.3.01",
+        "T-6.3.02",
+        "T-6.3.03",
+        "T-6.3.04"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 presence_update client event, presence_update server event\nDesign: docs/03-design/component-specs.md \u00a7 9.2 Stacked Avatars (Presence) \u2014 max 4 visible, overlap by 8px, +N overflow, idle = opacity-50 + grayscale\nDesign: docs/03-design/component-inventory.md \u00a7 Collaboration \u2014 PresenceIndicators (Workspace header)\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-6.3.x \u2014 presence states, multi-tab dedup, idle detection\nFiles: frontend/src/store/websocket-slice.ts (add presence state), frontend/src/components/workspace/PresenceIndicators.tsx (new), frontend/src/components/workspace/WorkspaceHeader.tsx (integrate PresenceIndicators), services/gateway/apps/websocket/consumers.py (add presence tracking logic server-side)\nGotchas: Server-side dedup: track presence per user_id (not per channel). When user connects from multiple tabs, presence list shows them once. Idle state: client sends presence_update with state='idle' after idle_timeout (default 5 min). This is a future enhancement for M16 \u2014 for now, just implement online/offline. The test matrix includes idle, but the milestone scope says 'partial' idle detection (F-15.1).",
       "context": {
-        "api_endpoints": ["presence_update client: {type, payload: {state, idea_id}}", "presence_update server: {type, idea_id, payload: {user: {id, display_name}, state}}"],
-        "data_model": ["users: id, display_name — presence user info"],
-        "test_cases": ["T-6.3.01 | Integration | Online user shows in presence list | User subscribes to idea | Avatar appears", "T-6.3.02 | Integration | Multi-tab dedup | Same user in 2 tabs | Single presence entry"],
-        "existing_code": ["frontend/src/components/layout/UserDropdown.tsx — avatar rendering example"]
+        "api_endpoints": [
+          "presence_update client: {type, payload: {state, idea_id}}",
+          "presence_update server: {type, idea_id, payload: {user: {id, display_name}, state}}"
+        ],
+        "data_model": [
+          "users: id, display_name \u2014 presence user info"
+        ],
+        "test_cases": [
+          "T-6.3.01 | Integration | Online user shows in presence list | User subscribes to idea | Avatar appears",
+          "T-6.3.02 | Integration | Multi-tab dedup | Same user in 2 tabs | Single presence entry"
+        ],
+        "existing_code": [
+          "frontend/src/components/layout/UserDropdown.tsx \u2014 avatar rendering example"
+        ]
       }
     },
     {
       "id": "US-008",
-      "title": "User selection highlights on board — colored borders with username when another user selects a node",
+      "title": "User selection highlights on board \u2014 colored borders with username when another user selects a node",
       "description": "As a frontend developer, I want selection highlights showing which nodes other users are editing so that users avoid edit conflicts.",
       "acceptanceCriteria": [
         "On node selection (ReactFlow onNodeClick), send {\"type\": \"board_selection\", \"idea_id\": \"<uuid>\", \"payload\": {node_id, user}} to server",
@@ -186,18 +265,28 @@
       ],
       "priority": 8,
       "passes": false,
-      "testIds": ["T-3.5.01", "T-3.5.02", "T-3.5.03"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — board_selection client→server, server→client\nDesign: docs/03-design/component-inventory.md § Board — UserSelectionHighlight\nDesign: docs/03-design/component-specs.md § 6.1 Box Node — 'Selected by other user: border-2 in user's color, small name label above node'\nTesting: docs/04-test-architecture/test-matrix.md § T-3.5.x — selection highlights, multi-user board editing\nFiles: frontend/src/store/websocket-slice.ts (add selections state), frontend/src/components/board/BoxNode.tsx (add selection highlight), frontend/src/components/board/GroupNode.tsx, frontend/src/components/board/FreeTextNode.tsx, frontend/src/components/board/BoardCanvas.tsx (send selection events on onNodeClick), frontend/src/hooks/use-websocket.ts (handle incoming board_selection messages)\nGotchas: Color assignment: use a deterministic mapping (e.g., user_id hash % palette.length) so the same user gets the same color consistently. Don't show highlight for own selections. Clear selection when user disconnects.",
+      "testIds": [
+        "T-3.5.01",
+        "T-3.5.02",
+        "T-3.5.03"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 WebSocket Protocol \u2014 board_selection client\u2192server, server\u2192client\nDesign: docs/03-design/component-inventory.md \u00a7 Board \u2014 UserSelectionHighlight\nDesign: docs/03-design/component-specs.md \u00a7 6.1 Box Node \u2014 'Selected by other user: border-2 in user's color, small name label above node'\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-3.5.x \u2014 selection highlights, multi-user board editing\nFiles: frontend/src/store/websocket-slice.ts (add selections state), frontend/src/components/board/BoxNode.tsx (add selection highlight), frontend/src/components/board/GroupNode.tsx, frontend/src/components/board/FreeTextNode.tsx, frontend/src/components/board/BoardCanvas.tsx (send selection events on onNodeClick), frontend/src/hooks/use-websocket.ts (handle incoming board_selection messages)\nGotchas: Color assignment: use a deterministic mapping (e.g., user_id hash % palette.length) so the same user gets the same color consistently. Don't show highlight for own selections. Clear selection when user disconnects.",
       "context": {
-        "api_endpoints": ["board_selection: {type, idea_id, payload: {node_id, user: {id, display_name}}}"],
+        "api_endpoints": [
+          "board_selection: {type, idea_id, payload: {node_id, user: {id, display_name}}}"
+        ],
         "data_model": [],
-        "test_cases": ["T-3.5.01 | Integration | Selection highlights visible | User A selects node | User B sees border + name"],
-        "existing_code": ["frontend/src/components/board/BoxNode.tsx — extend with selection highlight rendering"]
+        "test_cases": [
+          "T-3.5.01 | Integration | Selection highlights visible | User A selects node | User B sees border + name"
+        ],
+        "existing_code": [
+          "frontend/src/components/board/BoxNode.tsx \u2014 extend with selection highlight rendering"
+        ]
       }
     },
     {
       "id": "US-009",
-      "title": "Offline banner + behavior — 'Currently offline' with countdown, chat/board locked, reconnect button",
+      "title": "Offline banner + behavior \u2014 'Currently offline' with countdown, chat/board locked, reconnect button",
       "description": "As a frontend developer, I want an offline banner that appears when the connection drops so that users understand they're offline and can reconnect.",
       "acceptanceCriteria": [
         "OfflineBanner component renders when connection state = 'offline'",
@@ -211,18 +300,28 @@
       ],
       "priority": 9,
       "passes": false,
-      "testIds": ["T-6.2.01", "T-6.5.01", "T-6.5.02"],
-      "notes": "Architecture: docs/02-architecture/tech-stack.md § Connection Lifecycle — offline banner, reconnect with exponential backoff\nDesign: docs/03-design/component-specs.md § 11.5 Banners — full-width, semantic color, slide-down animation\nDesign: docs/03-design/component-inventory.md § Common — OfflineBanner (Workspace)\nTesting: docs/04-test-architecture/test-matrix.md § T-6.2.01, T-6.5.x — offline banner, locked state\nFiles: frontend/src/components/common/OfflineBanner.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx (integrate banner), frontend/src/components/chat/ChatInput.tsx (add offline overlay), frontend/src/components/board/BoardCanvas.tsx (disable interactions when offline)\nGotchas: Countdown synchronization: the banner's countdown must match the actual reconnection timer. Use shared state from websocket slice. LockOverlay pattern: reuse the pattern from chat rate limit lockout (F-2.11, see component-specs § 5.8). State sync on reconnect: after successful reconnection, refetch chat messages and board state to get any updates that happened while offline.",
+      "testIds": [
+        "T-6.2.01",
+        "T-6.5.01",
+        "T-6.5.02"
+      ],
+      "notes": "Architecture: docs/02-architecture/tech-stack.md \u00a7 Connection Lifecycle \u2014 offline banner, reconnect with exponential backoff\nDesign: docs/03-design/component-specs.md \u00a7 11.5 Banners \u2014 full-width, semantic color, slide-down animation\nDesign: docs/03-design/component-inventory.md \u00a7 Common \u2014 OfflineBanner (Workspace)\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-6.2.01, T-6.5.x \u2014 offline banner, locked state\nFiles: frontend/src/components/common/OfflineBanner.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx (integrate banner), frontend/src/components/chat/ChatInput.tsx (add offline overlay), frontend/src/components/board/BoardCanvas.tsx (disable interactions when offline)\nGotchas: Countdown synchronization: the banner's countdown must match the actual reconnection timer. Use shared state from websocket slice. LockOverlay pattern: reuse the pattern from chat rate limit lockout (F-2.11, see component-specs \u00a7 5.8). State sync on reconnect: after successful reconnection, refetch chat messages and board state to get any updates that happened while offline.",
       "context": {
         "api_endpoints": [],
         "data_model": [],
-        "test_cases": ["T-6.2.01 | Unit | Offline banner appears on disconnect | connection state = offline | Banner visible", "T-6.5.01 | Integration | Chat locked when offline | Disconnect | Chat input disabled, overlay shown"],
-        "existing_code": ["frontend/src/components/workspace/LockOverlay.tsx — reuse overlay pattern", "frontend/src/components/chat/ChatInput.tsx — add offline overlay"]
+        "test_cases": [
+          "T-6.2.01 | Unit | Offline banner appears on disconnect | connection state = offline | Banner visible",
+          "T-6.5.01 | Integration | Chat locked when offline | Disconnect | Chat input disabled, overlay shown"
+        ],
+        "existing_code": [
+          "frontend/src/components/workspace/LockOverlay.tsx \u2014 reuse overlay pattern",
+          "frontend/src/components/chat/ChatInput.tsx \u2014 add offline overlay"
+        ]
       }
     },
     {
       "id": "US-010",
-      "title": "Connection state indicator — navbar green/red dot + Online/Offline label",
+      "title": "Connection state indicator \u2014 navbar green/red dot + Online/Offline label",
       "description": "As a frontend developer, I want a connection indicator in the navbar so that users always know their connection status.",
       "acceptanceCriteria": [
         "ConnectionIndicator component in navbar (right side, near user dropdown)",
@@ -236,13 +335,20 @@
       ],
       "priority": 10,
       "passes": false,
-      "testIds": ["T-6.6.01"],
-      "notes": "Architecture: docs/02-architecture/tech-stack.md § Connection Lifecycle — connection state indicator in navbar\nDesign: docs/03-design/component-specs.md § 14. Connection State Indicator — green/red dot + Online/Offline label\nDesign: docs/03-design/component-inventory.md § Layout — ConnectionIndicator (Navbar)\nTesting: docs/04-test-architecture/test-matrix.md § T-6.6.01 — connection indicator displays correct state\nFiles: frontend/src/components/layout/ConnectionIndicator.tsx (new), frontend/src/components/layout/Navbar.tsx (integrate ConnectionIndicator)\nGotchas: Connection state comes from websocket-slice Redux state. The indicator is a passive display component, no interactive behavior. Position in navbar: right side, before NotificationBell and UserDropdown.",
+      "testIds": [
+        "T-6.6.01"
+      ],
+      "notes": "Architecture: docs/02-architecture/tech-stack.md \u00a7 Connection Lifecycle \u2014 connection state indicator in navbar\nDesign: docs/03-design/component-specs.md \u00a7 14. Connection State Indicator \u2014 green/red dot + Online/Offline label\nDesign: docs/03-design/component-inventory.md \u00a7 Layout \u2014 ConnectionIndicator (Navbar)\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-6.6.01 \u2014 connection indicator displays correct state\nFiles: frontend/src/components/layout/ConnectionIndicator.tsx (new), frontend/src/components/layout/Navbar.tsx (integrate ConnectionIndicator)\nGotchas: Connection state comes from websocket-slice Redux state. The indicator is a passive display component, no interactive behavior. Position in navbar: right side, before NotificationBell and UserDropdown.",
       "context": {
         "api_endpoints": [],
         "data_model": [],
-        "test_cases": ["T-6.6.01 | Unit | Connection indicator displays correct state | connection state = online/offline | Green 'Online' or Red 'Offline' displayed"],
-        "existing_code": ["frontend/src/components/layout/Navbar.tsx — add ConnectionIndicator", "frontend/src/store/websocket-slice.ts — connection state source"]
+        "test_cases": [
+          "T-6.6.01 | Unit | Connection indicator displays correct state | connection state = online/offline | Green 'Online' or Red 'Offline' displayed"
+        ],
+        "existing_code": [
+          "frontend/src/components/layout/Navbar.tsx \u2014 add ConnectionIndicator",
+          "frontend/src/store/websocket-slice.ts \u2014 connection state source"
+        ]
       }
     }
   ]
