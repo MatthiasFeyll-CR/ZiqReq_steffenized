@@ -117,3 +117,22 @@ Started: 2026-03-10T03:55:44+0100
   - MockWebSocket class in tests uses `vi.stubGlobal("WebSocket", MockWebSocket)` for clean test isolation
   - To test escalating backoff, simulate close without open (open resets backoff to initial value)
 ---
+
+## US-007: Presence tracking — online/idle/offline states, stacked avatars in workspace header, multi-tab dedup
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/consumers.py, frontend/src/store/presence-slice.ts, frontend/src/hooks/use-websocket.ts, frontend/src/app/providers.tsx, frontend/src/components/workspace/PresenceIndicators.tsx (new), frontend/src/components/workspace/WorkspaceHeader.tsx, frontend/src/__tests__/presence-slice.test.ts (new), frontend/src/__tests__/presence-indicators.test.tsx (new), services/gateway/apps/websocket/tests/test_consumers.py, .ralph/test-manifest.json, frontend/src/__tests__/workspace-header.test.tsx, frontend/src/__tests__/section-visibility.test.tsx
+- Tests: 4 new backend tests passed (test_presence_broadcast_on_subscribe, test_presence_multi_tab_dedup, test_presence_offline_on_unsubscribe, test_presence_update_client_message). 11 new frontend tests passed (7 presence-slice, 4 presence-indicators). Full suite: 142 Python tests passed, 218 Node tests passed. TSC clean. Ruff clean.
+- Learnings for future iterations:
+  - Server-side presence uses a module-level `_presence_registry` dict: `group_name -> {user_id -> set(channel_names)}` for multi-tab dedup
+  - When a user subscribes from tab 1: online broadcast. Tab 2: no broadcast (already present). Tab 1 disconnects: no offline. Tab 2 disconnects: offline broadcast.
+  - `_add_presence` and `_remove_presence` are async helpers on IdeaConsumer that manage the registry and broadcast
+  - Subscribe now broadcasts presence_update, so ALL existing tests that used `receive_nothing` after subscribe needed updating to drain the presence message
+  - Created `_subscribe_and_drain()` test helper that subscribes and consumes the presence broadcast
+  - For multi-user tests (2 communicators), after both subscribe, the first user gets a cross-presence message from the second user that also needs draining
+  - `useWebSocket` hook now has `ws.onmessage` handler that dispatches `updatePresence` to Redux for `presence_update` messages
+  - `useWsSend` context/hook exported from providers.tsx gives components access to WebSocket send capability
+  - PresenceIndicators uses Avatar component with userId-based hue coloring, status badges (green/yellow/gray), and tooltip
+  - Adding PresenceIndicators to WorkspaceHeader required updating existing workspace-header and section-visibility tests to wrap renders in Redux Provider
+  - The `_presence_registry` is cleared between tests via `autouse=True` pytest fixture
+---
