@@ -84,3 +84,17 @@ Started: 2026-03-10T03:55:44+0100
   - Consumer `board_update` handler is a simple passthrough like `chat_message` — forwards group_send to WebSocket client
   - All 6 board CRUD endpoints (create/update/delete for both nodes and connections) now broadcast after persistence
 ---
+
+## US-005: Board awareness events — selection/deselection, lock state changes (WebSocket-only, no persistence)
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/consumers.py, services/gateway/apps/board/views.py, services/gateway/apps/websocket/tests/test_consumers.py, .ralph/test-manifest.json
+- Tests: 4 new tests passed (test_board_selection_broadcast_excludes_sender, test_board_selection_deselect_null_node, test_board_selection_not_subscribed_error, test_board_lock_change_broadcast). Full suite: 138 Python tests passed, 191 Node tests passed. Ruff clean. TSC clean.
+- Learnings for future iterations:
+  - `handle_board_selection` validates the user is subscribed to the idea group before broadcasting — returns error if not subscribed
+  - Board selection is ephemeral (no persistence) — consumer receives client message and immediately broadcasts to group via `group_send`
+  - Sender exclusion: `sender_channel` is included in the group_send event dict; the `board_selection` handler compares it to `self.channel_name` and skips forwarding if they match
+  - `board_lock_change` is broadcast from board views `_update_node` when `is_locked` field changes — detected by comparing `data["is_locked"]` against `node.is_locked` before applying update
+  - `_broadcast_board_lock_change` follows same fire-and-forget pattern as `_broadcast_board_update` and `_broadcast_chat_message`
+  - The user info in selection payload is populated server-side from `self.user_id` / `self.user_display_name` (not trusted from client)
+---
