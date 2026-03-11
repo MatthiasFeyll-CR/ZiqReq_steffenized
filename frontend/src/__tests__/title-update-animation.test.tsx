@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { presenceReducer } from "@/store/presence-slice";
@@ -12,6 +13,28 @@ vi.mock("@/api/ideas", async () => {
   const actual = await vi.importActual("@/api/ideas");
   return { ...actual, patchIdea: vi.fn() };
 });
+
+vi.mock("@/api/collaboration", () => ({
+  searchUsers: vi.fn().mockResolvedValue([]),
+  sendInvitation: vi.fn(),
+  fetchCollaborators: vi.fn().mockResolvedValue({ owner: null, co_owner: null, collaborators: [] }),
+  removeCollaborator: vi.fn(),
+  transferOwnership: vi.fn(),
+  fetchPendingInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
+  revokeInvitation: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: { id: "00000000-0000-0000-0000-000000000001", display_name: "Test User", email: "test@test.com", roles: [] },
+    isAuthenticated: true,
+    isDevBypass: false,
+    hasRole: () => false,
+    logout: () => {},
+    setUser: () => {},
+  }),
+  AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
+}));
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
@@ -47,14 +70,17 @@ const MOCK_IDEA: Idea = {
 function renderHeader(idea: Idea = MOCK_IDEA) {
   const onIdeaUpdate = vi.fn();
   const store = configureStore({ reducer: { presence: presenceReducer } });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const result = render(
-    <Provider store={store}>
-      <MemoryRouter>
-        <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} />
-      </MemoryRouter>
-    </Provider>,
+    <QueryClientProvider client={qc}>
+      <Provider store={store}>
+        <MemoryRouter>
+          <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} />
+        </MemoryRouter>
+      </Provider>
+    </QueryClientProvider>,
   );
-  return { ...result, onIdeaUpdate, store };
+  return { ...result, onIdeaUpdate, store, qc };
 }
 
 describe("T-2.3.03: Title update animates", () => {
@@ -71,7 +97,7 @@ describe("T-2.3.03: Title update animates", () => {
   });
 
   it("re-renders with new animated span when title changes", () => {
-    const { rerender, onIdeaUpdate, store } = renderHeader();
+    const { rerender, onIdeaUpdate, store, qc } = renderHeader();
 
     // Verify original title in the title-display container
     expect(screen.getByTestId("title-display")).toHaveTextContent("Original Title");
@@ -80,11 +106,13 @@ describe("T-2.3.03: Title update animates", () => {
 
     // Re-render with new title (simulating WebSocket title_update)
     rerender(
-      <Provider store={store}>
-        <MemoryRouter>
-          <WorkspaceHeader idea={updatedIdea} onIdeaUpdate={onIdeaUpdate} />
-        </MemoryRouter>
-      </Provider>,
+      <QueryClientProvider client={qc}>
+        <Provider store={store}>
+          <MemoryRouter>
+            <WorkspaceHeader idea={updatedIdea} onIdeaUpdate={onIdeaUpdate} />
+          </MemoryRouter>
+        </Provider>
+      </QueryClientProvider>,
     );
 
     // New title should appear (AnimatePresence renders new element with new key)

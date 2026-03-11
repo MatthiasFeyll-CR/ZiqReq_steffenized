@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { presenceReducer } from "@/store/presence-slice";
@@ -17,6 +18,30 @@ vi.mock("@/api/ideas", async () => {
     patchIdea: vi.fn(),
   };
 });
+
+// Mock collaboration API to avoid network calls
+vi.mock("@/api/collaboration", () => ({
+  searchUsers: vi.fn().mockResolvedValue([]),
+  sendInvitation: vi.fn(),
+  fetchCollaborators: vi.fn().mockResolvedValue({ owner: null, co_owner: null, collaborators: [] }),
+  removeCollaborator: vi.fn(),
+  transferOwnership: vi.fn(),
+  fetchPendingInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
+  revokeInvitation: vi.fn(),
+}));
+
+// Mock useAuth for CollaboratorModal
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: { id: "00000000-0000-0000-0000-000000000001", display_name: "Test User", email: "test@test.com", roles: [] },
+    isAuthenticated: true,
+    isDevBypass: false,
+    hasRole: () => false,
+    logout: () => {},
+    setUser: () => {},
+  }),
+  AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
+}));
 
 import { patchIdea } from "@/api/ideas";
 
@@ -59,18 +84,21 @@ const MOCK_IDEA: Idea = {
 function renderHeader(props: Partial<{ idea: Idea; onIdeaUpdate: (idea: Idea) => void; readOnly: boolean }> = {}) {
   const onIdeaUpdate = props.onIdeaUpdate ?? vi.fn();
   const store = configureStore({ reducer: { presence: presenceReducer } });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return {
     onIdeaUpdate,
     ...render(
-      <Provider store={store}>
-        <MemoryRouter>
-          <WorkspaceHeader
-            idea={props.idea ?? MOCK_IDEA}
-            onIdeaUpdate={onIdeaUpdate}
-            readOnly={props.readOnly ?? false}
-          />
-        </MemoryRouter>
-      </Provider>,
+      <QueryClientProvider client={qc}>
+        <Provider store={store}>
+          <MemoryRouter>
+            <WorkspaceHeader
+              idea={props.idea ?? MOCK_IDEA}
+              onIdeaUpdate={onIdeaUpdate}
+              readOnly={props.readOnly ?? false}
+            />
+          </MemoryRouter>
+        </Provider>
+      </QueryClientProvider>,
     ),
   };
 }

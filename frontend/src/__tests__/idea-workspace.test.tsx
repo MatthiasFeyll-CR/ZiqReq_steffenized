@@ -21,6 +21,9 @@ vi.mock("@/components/workspace/ChatPanel", () => ({
 vi.mock("@/components/review/ReviewSection", () => ({
   ReviewSection: () => <div data-testid="review-section">ReviewSection</div>,
 }));
+vi.mock("@/components/workspace/InvitationBanner", () => ({
+  InvitationBanner: () => null,
+}));
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
 }));

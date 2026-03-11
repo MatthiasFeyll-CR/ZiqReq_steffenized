@@ -1,0 +1,173 @@
+import { env } from "@/config/env";
+
+export interface UserSearchResult {
+  id: string;
+  display_name: string;
+  email: string;
+  roles: string[];
+}
+
+export interface CollaboratorUser {
+  id: string;
+  display_name: string;
+  email: string;
+  joined_at?: string;
+}
+
+export interface CollaboratorsResponse {
+  owner: CollaboratorUser;
+  co_owner: CollaboratorUser | null;
+  collaborators: CollaboratorUser[];
+}
+
+export interface PendingInvitation {
+  id: string;
+  invitee: { id: string; display_name: string; email: string };
+  created_at: string;
+}
+
+async function handleResponse<T>(res: Response): Promise<T> {
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+export async function searchUsers(query: string): Promise<UserSearchResult[]> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/users/search?q=${encodeURIComponent(query)}`,
+    { credentials: "include" },
+  );
+  return handleResponse<UserSearchResult[]>(res);
+}
+
+export async function sendInvitation(
+  ideaId: string,
+  inviteeId: string,
+): Promise<{ invitation_id: string; status: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/invite`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ invitee_id: inviteeId }),
+    },
+  );
+  return handleResponse(res);
+}
+
+export async function fetchCollaborators(
+  ideaId: string,
+): Promise<CollaboratorsResponse> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators`,
+    { credentials: "include" },
+  );
+  return handleResponse<CollaboratorsResponse>(res);
+}
+
+export async function removeCollaborator(
+  ideaId: string,
+  userId: string,
+): Promise<void> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/${userId}`,
+    { method: "DELETE", credentials: "include" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+}
+
+export async function transferOwnership(
+  ideaId: string,
+  newOwnerId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/transfer-ownership`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ new_owner_id: newOwnerId }),
+    },
+  );
+  return handleResponse(res);
+}
+
+export async function fetchPendingInvitations(
+  ideaId: string,
+): Promise<{ invitations: PendingInvitation[] }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/invitations`,
+    { credentials: "include" },
+  );
+  return handleResponse(res);
+}
+
+export async function revokeInvitation(
+  invitationId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/invitations/${invitationId}/revoke`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}
+
+export async function acceptInvitation(
+  invitationId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/invitations/${invitationId}/accept`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}
+
+export async function leaveIdea(
+  ideaId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/leave`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}
+
+export async function declineInvitation(
+  invitationId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/invitations/${invitationId}/decline`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}

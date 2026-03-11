@@ -1,3 +1,4 @@
+import secrets
 import uuid
 
 from django.db.models import Count, Q
@@ -262,6 +263,12 @@ def _patch_idea(request: Request, idea_id: str) -> Response:
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    if "visibility" in request.data:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Visibility cannot be manually set"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     serializer = IdeaPatchSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -402,4 +409,47 @@ def context_window(request: Request, idea_id: str) -> Response:
             "compression_iterations": compression_iterations,
             "recent_message_count": recent_message_count,
         }
+    )
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def generate_share_link(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/share-link — Generate read-only share link token (owner only)."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_id)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if idea.owner_id != user.id:
+        return Response(
+            {"error": "FORBIDDEN", "message": "Only the idea owner can generate share links"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    token = secrets.token_hex(32)
+    idea.share_link_token = token
+    idea.save(update_fields=["share_link_token"])
+
+    return Response(
+        {
+            "share_link_token": token,
+            "share_url": f"/idea/{idea_id}?token={token}",
+        },
+        status=status.HTTP_201_CREATED,
     )

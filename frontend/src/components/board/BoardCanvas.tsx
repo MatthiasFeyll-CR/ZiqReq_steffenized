@@ -115,9 +115,10 @@ function findParentGroup(
 interface BoardCanvasProps {
   ideaId?: string;
   disabled?: boolean;
+  readOnly?: boolean;
 }
 
-export function BoardCanvas({ ideaId, disabled }: BoardCanvasProps) {
+export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
   const dropTargetIdRef = useRef<string | null>(null);
@@ -417,17 +418,19 @@ export function BoardCanvas({ ideaId, disabled }: BoardCanvasProps) {
 
   return (
     <div className="flex flex-col h-full w-full" data-testid="board-canvas">
-      <BoardToolbar
-        selectedCount={selectedCount}
-        onAddBox={handleAddBox}
-        onDeleteSelected={handleDeleteSelected}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        undoTopSource={undoTop?.source}
-        redoTopSource={redoTop?.source}
-      />
+      {!readOnly && (
+        <BoardToolbar
+          selectedCount={selectedCount}
+          onAddBox={handleAddBox}
+          onDeleteSelected={handleDeleteSelected}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          undoTopSource={undoTop?.source}
+          redoTopSource={redoTop?.source}
+        />
+      )}
       <div className="flex-1 min-h-0">
         <ReactFlow
           nodes={processedNodes}

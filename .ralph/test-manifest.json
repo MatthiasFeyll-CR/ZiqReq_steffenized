@@ -603,6 +603,146 @@
     "UI-4.07": {
       "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
       "function": "shows the Allow information gaps toggle switch in the editor"
+    },
+    "API-INVITE.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_send_invitation_success"
+    },
+    "API-INVITE.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_accept_invitation_success"
+    },
+    "API-INVITE.03": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_decline_invitation_success"
+    },
+    "API-INVITE.04": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_revoke_invitation_success"
+    },
+    "API-INVITE.05": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_reinvite_after_decline"
+    },
+    "T-8.1.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_first_accept_transitions_visibility"
+    },
+    "API-COLLAB.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_list_collaborators_returns_owner_and_collaborators"
+    },
+    "API-COLLAB.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_remove_collaborator_success"
+    },
+    "API-COLLAB.03": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_transfer_ownership_success"
+    },
+    "API-COLLAB.04": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_collaborator_can_leave"
+    },
+    "T-8.4.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_single_owner_cannot_leave"
+    },
+    "T-8.4.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_co_owner_can_leave"
+    },
+    "API-USERS.01": {
+      "file": "services/gateway/apps/authentication/tests/test_user_search.py",
+      "function": "test_search_by_display_name"
+    },
+    "API-USERS.02": {
+      "file": "services/gateway/apps/authentication/tests/test_user_search.py",
+      "function": "test_query_too_short_returns_400"
+    },
+    "API-USERS.03": {
+      "file": "services/gateway/apps/authentication/tests/test_user_search.py",
+      "function": "test_max_20_results"
+    },
+    "API-SHARE.01": {
+      "file": "services/gateway/apps/ideas/tests/test_share_link.py",
+      "function": "test_generate_share_link_success"
+    },
+    "API-SHARE.02": {
+      "file": "services/gateway/apps/ideas/tests/test_share_link.py",
+      "function": "test_regenerate_overwrites_existing_token"
+    },
+    "T-8.3.01": {
+      "file": "services/gateway/apps/ideas/tests/test_share_link.py",
+      "function": "test_valid_token_adds_share_link_viewer_role"
+    },
+    "T-8.3.02": {
+      "file": "services/gateway/apps/ideas/tests/test_share_link.py",
+      "function": "test_invalid_token_returns_403"
+    },
+    "T-8.1.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_visibility.py",
+      "function": "test_removing_all_collaborators_keeps_collaborating"
+    },
+    "UI-COLLAB.01": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "renders modal with Invite, Collaborators, and Pending tabs"
+    },
+    "UI-COLLAB.02": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "sends invitation on Invite button click"
+    },
+    "UI-COLLAB.03": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "removes collaborator with confirmation"
+    },
+    "UI-COLLAB.04": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "shows pending invitations and allows revoke"
+    },
+    "UI-INVITE.01": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "renders invitation card with inviter name, idea title, and action buttons"
+    },
+    "UI-INVITE.02": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "shows banner when pending invitation exists for current idea"
+    },
+    "UI-INVITE.03": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "accept calls API and shows success toast"
+    },
+    "T-12.3.01": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "does not show banner when no pending invitation for this idea"
+    },
+    "UI-SHARE.01": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "shows read-only banner when token is present"
+    },
+    "UI-SHARE.02": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "hides chat input and shows read-only notice"
+    },
+    "T-8.3.03": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "passes token to fetchIdea"
+    },
+    "T-8.3.04": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "passes readOnly to BoardCanvas"
+    },
+    "UI-CHAT.05": {
+      "file": "frontend/src/__tests__/multi-user-awareness.test.tsx",
+      "function": "shows sender names when collaborators > 0"
+    },
+    "T-2.5.01": {
+      "file": "frontend/src/__tests__/multi-user-awareness.test.tsx",
+      "function": "does NOT show sender names for single-user ideas"
+    },
+    "T-8.4.07": {
+      "file": "frontend/src/__tests__/multi-user-awareness.test.tsx",
+      "function": "shows disabled Leave button with tooltip for single owner"
     }
   }
 }

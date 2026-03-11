@@ -6,7 +6,7 @@
 - **Last updated:** 2026-03-11
 
 ## Current Review
-- **Milestone:** 10 — Review Workflow
+- **Milestone:** 11 — Collaboration & Sharing
 - **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 0
 - **Status:** passed
@@ -24,6 +24,7 @@
 | M8 — AI Context | `qa-m8-ai-context.md` | 0 | PASS | 2026-03-11 |
 | M9 — BRD & PDF | `qa-m9-brd-pdf.md` | 0 | PASS | 2026-03-11 |
 | M10 — Review Workflow | `qa-m10-review.md` | 0 | PASS | 2026-03-11 |
+| M11 — Collaboration | `qa-m11-collaboration.md` | 0 | PASS | 2026-03-11 |
 
 ## Input Consumed
 - .ralph/prd.json
@@ -35,25 +36,31 @@
 - docs/03-design/component-specs.md
 - docs/03-design/page-layouts.md
 - docs/04-test-architecture/test-matrix.md
-- docs/05-milestones/milestone-10.md
-- tasks/prd-m10.json
-- services/gateway/apps/review/*.py
-- services/gateway/apps/review/tests/*.py
-- services/gateway/apps/review/migrations/*.py
+- docs/04-test-architecture/runtime-safety.md
+- docs/05-milestones/milestone-11.md
+- tasks/prd-m11.json
+- services/gateway/apps/collaboration/*.py
+- services/gateway/apps/collaboration/tests/*.py
+- services/gateway/middleware/share_link.py
+- services/gateway/apps/ideas/views.py
 - services/gateway/apps/ideas/urls.py
-- frontend/src/pages/review-page.tsx
-- frontend/src/pages/IdeaWorkspace/index.tsx
-- frontend/src/components/review/*.tsx
-- frontend/src/components/workspace/ReviewTab.tsx
-- frontend/src/components/workspace/WorkspaceLayout.tsx
-- frontend/src/api/review.ts
+- services/gateway/apps/authentication/views.py
+- services/gateway/apps/authentication/tests/test_user_search.py
+- frontend/src/api/collaboration.ts
 - frontend/src/api/ideas.ts
+- frontend/src/components/collaboration/CollaboratorModal.tsx
+- frontend/src/components/workspace/InvitationBanner.tsx
+- frontend/src/components/workspace/ReadOnlyBanner.tsx
+- frontend/src/components/workspace/WorkspaceHeader.tsx
+- frontend/src/components/chat/ChatMessageList.tsx
+- frontend/src/pages/IdeaWorkspace/index.tsx
+- .ralph/test-manifest.json
 
 ## Handoff
 - **Ready for merge:** true
 - **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m10-review.md, docs/08-qa/_status.md
-- **Deviations for Spec Reconciler:** 0
+- **Files produced:** docs/08-qa/qa-m11-collaboration.md, docs/08-qa/_status.md
+- **Deviations for Spec Reconciler:** 1 (DEV-001: additional GET /api/ideas/:id/invitations endpoint)
 
 ## Open Issues
 - None
