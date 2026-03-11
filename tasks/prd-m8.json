@@ -224,7 +224,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Core gRPC — GetFullChatHistory RPC returns all uncompressed messages\nAI: docs/03-ai/agent-architecture.md § S3.4 — Context Extension architecture, escalated model tier, timeout\nAI: docs/03-ai/system-prompts.md § 5. Context Extension — full system prompt template\nTesting: No dedicated test IDs (tested indirectly via delegate_to_context_extension)\nFiles: services/ai/agents/context_extension/agent.py, services/ai/agents/context_extension/prompt.py, services/ai/fixtures/context_extension_response.json\nGotchas: Context Extension uses escalated_ai_model (from admin params) which has larger context window. Full chat history can be large (thousands of messages) — model must handle this. If GetFullChatHistory gRPC fails, return error to Facilitator.",
       "context": {

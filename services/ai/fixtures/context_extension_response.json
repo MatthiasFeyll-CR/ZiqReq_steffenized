@@ -1,1 +1,4 @@
-{"mock": true}
+{
+  "response": "Based on the conversation history, on 2026-03-10 at 14:32, the team discussed the API authentication approach and decided to use JWT tokens with a 24-hour expiry. User Alice specifically mentioned preferring short-lived tokens for security. This was agreed upon by the group in the subsequent messages.",
+  "messages_cited": ["mock-msg-001", "mock-msg-002", "mock-msg-003"]
+}
