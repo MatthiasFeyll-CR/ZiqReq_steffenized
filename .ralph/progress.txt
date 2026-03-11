@@ -110,3 +110,18 @@ Started: 2026-03-11T09:17:48+0100
   - AI events: delegation complete published from gateway AIEventConsumer._handle_processing_complete (→ idea owner)
   - Publisher catches and logs exceptions without blocking the main request flow
 ---
+
+## US-006: NotificationBell Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/notifications.ts (new), frontend/src/components/layout/NotificationBell.tsx (new), frontend/src/components/layout/Navbar.tsx, frontend/src/hooks/use-websocket.ts, frontend/src/app/globals.css, frontend/src/__tests__/notification-bell.test.tsx (new), frontend/src/__tests__/dev-login-flow.test.tsx
+- Tests: 6 passed (notification-bell). Full suite: 395 passed (Node, 1 pre-existing failure in idea-workspace.test.tsx).
+- Learnings for future iterations:
+  - NotificationBell uses TanStack Query useQuery for fetching unread count — any test that renders Navbar now needs QueryClientProvider
+  - Fixed dev-login-flow.test.tsx by adding QueryClientProvider wrapper
+  - WebSocket notification events dispatched via window CustomEvent pattern (ws:notification) — same pattern as title_update, ai_processing, rate_limit
+  - Optimistic count update via queryClient.setQueryData followed by invalidateQueries for server reconciliation
+  - CSS animation for badge scale-in added to globals.css since Tailwind v4 uses @theme and doesn't have a tailwind.config.js
+  - Navbar now has a placeholder notification panel div that toggles with notifPanelOpen state — US-007 will replace this with the real NotificationPanel component
+  - idea-workspace.test.tsx failure is pre-existing (TanStack Query v5 passes extra undefined arg to fetchIdea)
+---
