@@ -37,3 +37,18 @@ Started: 2026-03-11T07:34:47+0100
   - Visibility transition uses `Idea.objects.filter(..., visibility="private").update(visibility="collaborating")` — only updates if still private, safe for idempotency
   - `transaction.atomic()` wraps accept flow: invitation status + collaborator create + visibility transition
 ---
+
+## US-002: Collaborator Management API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/collaboration/views.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py, .ralph/test-manifest.json
+- Tests: 595 Python tests passed (14 new), 361 Node tests passed. 1 pre-existing node error (PDFPreview).
+- Learnings for future iterations:
+  - All 4 new endpoints (list, remove, transfer, leave) mounted under ideas URLs at `<idea_id>/collaborators`, `<idea_id>/collaborators/<user_id_param>`, `<idea_id>/transfer-ownership`, `<idea_id>/leave`
+  - Transfer ownership uses `transaction.atomic()`: remove new owner from collaborators, add previous owner as collaborator, update `owner_id`
+  - Co-owner leave sets `co_owner_id=NULL` directly (not via collaborators table). Co-owners are not in `idea_collaborators`.
+  - Single owner constraint: check `idea.owner_id == user.id and idea.co_owner_id is None` → 400
+  - Batch-load users pattern for list endpoint: collect IDs from owner + co_owner + collaborators, single query, build map
+  - `.ralph/` directory is gitignored — must use `git add -f` to stage `.ralph/` files
+  - Transient DB connection errors can occur between test classes (test DB dropped mid-suite) — re-running resolves
+---
