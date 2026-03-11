@@ -9,12 +9,13 @@ from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from apps.authentication.models import User
 from apps.brd.models import BrdDraft
 from apps.ideas.authentication import MiddlewareAuthentication
 from apps.ideas.models import Idea
 
 from .models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
-from .serializers import ReviewActionCommentSerializer, SubmitIdeaSerializer
+from .serializers import ReviewActionCommentSerializer, SubmitIdeaSerializer, TimelineCommentSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -397,3 +398,92 @@ def drop_review(request: Request, idea_id: str) -> Response:
 def undo_review(request: Request, idea_id: str) -> Response:
     """POST /api/ideas/:id/review/undo — Undo review action."""
     return _handle_review_action(request, idea_id, "undo")
+
+
+def _serialize_timeline_entry(entry: ReviewTimelineEntry, author_map: dict) -> dict:
+    """Serialize a single timeline entry to dict."""
+    author = None
+    if entry.author_id and entry.author_id in author_map:
+        u = author_map[entry.author_id]
+        author = {"id": str(u.id), "display_name": u.display_name}
+
+    return {
+        "id": str(entry.id),
+        "entry_type": entry.entry_type,
+        "author": author,
+        "content": entry.content,
+        "parent_entry_id": str(entry.parent_entry_id) if entry.parent_entry_id else None,
+        "old_state": entry.old_state,
+        "new_state": entry.new_state,
+        "old_version_id": str(entry.old_version_id) if entry.old_version_id else None,
+        "new_version_id": str(entry.new_version_id) if entry.new_version_id else None,
+        "created_at": entry.created_at.isoformat() if entry.created_at else None,
+    }
+
+
+@api_view(["GET", "POST"])
+@authentication_classes([MiddlewareAuthentication])
+def review_timeline(request: Request, idea_id: str) -> Response:
+    """GET/POST /api/ideas/:id/review/timeline — Get or add timeline entries."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    if request.method == "GET":
+        return _get_timeline(idea)
+    else:
+        return _post_timeline_comment(request, idea, user)
+
+
+def _get_timeline(idea: Idea) -> Response:
+    """Return chronological list of timeline entries for the idea."""
+    entries = ReviewTimelineEntry.objects.filter(idea_id=idea.id).order_by("created_at")
+
+    # Batch-load authors
+    author_ids = {e.author_id for e in entries if e.author_id}
+    author_map = {}
+    if author_ids:
+        authors = User.objects.filter(id__in=author_ids)
+        author_map = {u.id: u for u in authors}
+
+    data = [_serialize_timeline_entry(e, author_map) for e in entries]
+    return Response(data)
+
+
+def _post_timeline_comment(request: Request, idea: Idea, user) -> Response:
+    """Create a comment entry on the timeline."""
+    serializer = TimelineCommentSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {"error": "VALIDATION_ERROR", "message": "Content is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    content = serializer.validated_data["content"]
+    parent_entry_id = serializer.validated_data.get("parent_entry_id")
+
+    # Validate parent_entry_id if provided
+    if parent_entry_id:
+        try:
+            ReviewTimelineEntry.objects.get(id=parent_entry_id, idea_id=idea.id)
+        except ReviewTimelineEntry.DoesNotExist:
+            return Response(
+                {"error": "NOT_FOUND", "message": "Parent entry not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    entry = ReviewTimelineEntry.objects.create(
+        idea_id=idea.id,
+        entry_type="comment",
+        author_id=user.id,
+        content=content,
+        parent_entry_id=parent_entry_id,
+    )
+
+    author_map = {user.id: user}
+    data = _serialize_timeline_entry(entry, author_map)
+    return Response(data, status=status.HTTP_201_CREATED)

@@ -179,7 +179,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "API-TIMELINE.01",
         "API-TIMELINE.02",

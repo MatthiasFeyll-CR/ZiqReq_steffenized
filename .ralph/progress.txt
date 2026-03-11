@@ -69,3 +69,18 @@ Started: 2026-03-11T05:56:48+0100
   - Timeline entries created atomically with state change using transaction.atomic()
   - _require_reviewer helper from US-002 reused for all 4 endpoints
 ---
+
+## US-004: Review Timeline API — GET Entries & POST Comments
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/review/views.py (added review_timeline, _get_timeline, _post_timeline_comment, _serialize_timeline_entry), services/gateway/apps/review/serializers.py (added TimelineCommentSerializer), services/gateway/apps/ideas/urls.py (added review/timeline route), services/gateway/apps/review/tests/test_review_timeline.py (new — 15 tests)
+- Tests: 15 passed, 0 failed — covers API-TIMELINE.01-05 plus ordering, empty timeline, null author, parent wrong idea, unauthenticated
+- Learnings for future iterations:
+  - Timeline endpoint uses combined GET/POST view with method dispatch (review_timeline function)
+  - Author info is batch-loaded to avoid N+1 queries — collect author_ids from entries, bulk fetch User objects
+  - _serialize_timeline_entry helper converts model to dict with author object {id, display_name} or null
+  - Parent entry validation checks both existence AND same idea_id (prevents cross-idea replies)
+  - POST returns 201 (not 200) for created comment entries
+  - TimelineCommentSerializer validates content (required, non-blank) and optional parent_entry_id (UUID)
+  - docker compose build python-tests needed when adding new test files (container copies files at build time)
+---

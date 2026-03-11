@@ -12,3 +12,8 @@ class SubmitIdeaSerializer(serializers.Serializer):
 
 class ReviewActionCommentSerializer(serializers.Serializer):
     comment = serializers.CharField(required=True, allow_blank=False)
+
+
+class TimelineCommentSerializer(serializers.Serializer):
+    content = serializers.CharField(required=True, allow_blank=False)
+    parent_entry_id = serializers.UUIDField(required=False, default=None)
