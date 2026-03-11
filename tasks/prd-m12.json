@@ -17,7 +17,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-NOTIF.01", "API-NOTIF.02", "API-NOTIF.03", "API-NOTIF.04"],
       "notes": "Architecture: docs/02-architecture/api-design.md § Notifications — list, unread-count, mark read/acted endpoints\nDesign: Component inventory mentions NotificationBell and NotificationPanel but no specific specs in component-specs.md\nTesting: docs/04-test-architecture/test-matrix.md § API-NOTIF.01-04\nFiles: services/gateway/apps/notifications/views.py (new), services/gateway/apps/notifications/urls.py (new), services/gateway/gateway/urls.py (mount notifications app), services/gateway/apps/notifications/tests/test_notification_api.py (new)\nGotchas: Notification model already exists in services/gateway/apps/notifications/models.py — use it directly. Filter by user_id and apply pagination. Notifications are owned by gateway (not core).",
       "context": {

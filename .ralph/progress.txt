@@ -1,0 +1,40 @@
+# Ralph Progress Log — M12 (notifications)
+Started: 2026-03-11T09:17:48+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Notification REST API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/notifications/views.py, services/gateway/apps/notifications/urls.py, services/gateway/apps/notifications/serializers.py, services/gateway/apps/notifications/tests/test_notification_api.py, .ralph/test-manifest.json
+- Tests: 12 passed (test_list_notifications, test_list_unread_only, test_pagination, test_unread_count_excludes_actioned, test_unauthenticated, test_unread_count, test_unread_count_zero, test_mark_as_read, test_mark_action_taken, test_not_found_wrong_user, test_not_found_nonexistent, test_mark_all_read). Full suite: 632 passed.
+- Learnings for future iterations:
+  - Notification urls.py already mounted in gateway/urls.py at `api/` prefix — no need to add new mount
+  - URL ordering matters: put specific paths (unread-count, mark-all-read) before `<str:notification_id>` pattern
+  - Existing stub views.py and serializers.py existed — replaced with full implementation
+  - Auth pattern: `_require_auth(request)` + `_unauthorized_response()` + `@authentication_classes([MiddlewareAuthentication])`
+  - For ownership checks on notifications, return 404 (not 403) when notification belongs to another user — prevents information leakage
+  - Transient DB connection errors between test classes are normal — re-running resolves them
+  - `docker compose build` gate check fails because only docker-compose.test.yml exists (no main docker-compose.yml)
+  - Node test `information-gaps-toggle.test.tsx` has pre-existing failure unrelated to M12
+---
