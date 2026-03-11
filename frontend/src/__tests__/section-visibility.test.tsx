@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { presenceReducer } from "@/store/presence-slice";
 import { websocketReducer } from "@/store/websocket-slice";
@@ -33,6 +34,29 @@ vi.mock("@/components/workspace/ReviewTab", () => ({
 }));
 vi.mock("@/components/review/ReviewSection", () => ({
   ReviewSection: () => <div data-testid="review-section">ReviewSection</div>,
+}));
+
+// Mock collaboration API for CollaboratorModal
+vi.mock("@/api/collaboration", () => ({
+  searchUsers: vi.fn().mockResolvedValue([]),
+  sendInvitation: vi.fn(),
+  fetchCollaborators: vi.fn().mockResolvedValue({ owner: null, co_owner: null, collaborators: [] }),
+  removeCollaborator: vi.fn(),
+  transferOwnership: vi.fn(),
+  fetchPendingInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
+  revokeInvitation: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    user: { id: "00000000-0000-0000-0000-000000000001", display_name: "Test User", email: "test@test.com", roles: [] },
+    isAuthenticated: true,
+    isDevBypass: false,
+    hasRole: () => false,
+    logout: () => {},
+    setUser: () => {},
+  }),
+  AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));
 
 // Mock fetchIdea
@@ -79,14 +103,17 @@ function renderWorkspace(idea: Idea) {
       websocket: { connectionState: "online" as const, reconnectCountdown: null },
     },
   });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
-    <Provider store={store}>
-      <MemoryRouter initialEntries={[`/idea/${idea.id}`]}>
-        <Routes>
-          <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
-        </Routes>
-      </MemoryRouter>
-    </Provider>,
+    <QueryClientProvider client={qc}>
+      <Provider store={store}>
+        <MemoryRouter initialEntries={[`/idea/${idea.id}`]}>
+          <Routes>
+            <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    </QueryClientProvider>,
   );
 }
 

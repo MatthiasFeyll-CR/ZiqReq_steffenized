@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { patchIdea, type Idea } from "@/api/ideas";
+import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
 import { PresenceIndicators } from "./PresenceIndicators";
 
 interface WorkspaceHeaderProps {
@@ -26,6 +27,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(idea.title);
+  const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleTitleClick = useCallback(() => {
@@ -149,8 +151,28 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
         </SelectContent>
       </Select>
 
+      {/* Manage collaborators */}
+      {!readOnly && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCollaboratorModalOpen(true)}
+          data-testid="manage-collaborators-button"
+        >
+          <Users className="mr-1 h-4 w-4" />
+          {t("workspace.manage", "Manage")}
+        </Button>
+      )}
+
       {/* Presence indicators */}
       <PresenceIndicators ideaId={idea.id} />
+
+      <CollaboratorModal
+        ideaId={idea.id}
+        ownerId={idea.owner_id}
+        open={collaboratorModalOpen}
+        onOpenChange={setCollaboratorModalOpen}
+      />
     </div>
   );
 }

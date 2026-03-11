@@ -683,6 +683,22 @@
     "T-8.1.02": {
       "file": "services/gateway/apps/collaboration/tests/test_visibility.py",
       "function": "test_removing_all_collaborators_keeps_collaborating"
+    },
+    "UI-COLLAB.01": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "renders modal with Invite, Collaborators, and Pending tabs"
+    },
+    "UI-COLLAB.02": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "sends invitation on Invite button click"
+    },
+    "UI-COLLAB.03": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "removes collaborator with confirmation"
+    },
+    "UI-COLLAB.04": {
+      "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
+      "function": "shows pending invitations and allows revoke"
     }
   }
 }

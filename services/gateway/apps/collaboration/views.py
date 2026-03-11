@@ -531,3 +531,59 @@ def leave_idea(request: Request, idea_id: str) -> Response:
         )
 
     return Response({"message": "You have left the idea"})
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def idea_pending_invitations(request: Request, idea_id: str) -> Response:
+    """GET /api/ideas/:id/invitations — List pending invitations for an idea (owner only)."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        idea_uuid = uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_uuid)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if idea.owner_id != user.id:
+        return Response(
+            {"error": "FORBIDDEN", "message": "Only the idea owner can view pending invitations"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    invitations = CollaborationInvitation.objects.filter(
+        idea_id=idea_uuid,
+        status="pending",
+    ).order_by("-created_at")
+
+    invitee_ids = {inv.invitee_id for inv in invitations}
+    invitees_map = {u.id: u for u in User.objects.filter(id__in=invitee_ids)}
+
+    results = []
+    for inv in invitations:
+        invitee = invitees_map.get(inv.invitee_id)
+        results.append(
+            {
+                "id": str(inv.id),
+                "invitee": {
+                    "id": str(inv.invitee_id),
+                    "display_name": invitee.display_name if invitee else "",
+                    "email": invitee.email if invitee else "",
+                },
+                "created_at": inv.created_at.isoformat(),
+            }
+        )
+
+    return Response({"invitations": results})

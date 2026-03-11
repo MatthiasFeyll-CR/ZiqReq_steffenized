@@ -106,7 +106,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-8.1.01", "T-8.1.02"],
       "notes": "Architecture: docs/02-architecture/data-model.md § ideas.visibility\nTesting: docs/04-test-architecture/test-matrix.md § T-8.1.01-02\nFiles: services/gateway/apps/collaboration/views.py (accept_invitation — add transition), services/core/apps/collaboration/tests/test_visibility.py\nGotchas: Transition ONLY on first accept. Check IdeaCollaborator.count() before insert. Use transaction.atomic().",
       "context": {
@@ -129,7 +129,7 @@
         "Verify in browser"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": ["UI-COLLAB.01", "UI-COLLAB.02", "UI-COLLAB.03", "UI-COLLAB.04"],
       "notes": "Design: docs/03-design/component-inventory.md § CollaboratorModal, docs/03-design/component-specs.md § 17 Modal\nTesting: docs/04-test-architecture/test-matrix.md § UI-COLLAB.01-04\nFiles: frontend/src/components/collaboration/CollaboratorModal.tsx (new), frontend/src/api/collaboration.ts (new), frontend/src/__tests__/collaborator-modal.test.tsx\nGotchas: Nested Dialog for transfer confirmation. TanStack Query invalidateQueries(['collaborators', ideaId], ['invitations', ideaId]).",
       "context": {
