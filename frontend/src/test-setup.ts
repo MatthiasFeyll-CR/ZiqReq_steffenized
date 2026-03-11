@@ -5,6 +5,12 @@ import i18n from "@/i18n/config";
 i18n.changeLanguage("en");
 localStorage.setItem("language", "en");
 
+// jsdom does not implement URL.createObjectURL / revokeObjectURL
+if (typeof URL.createObjectURL === "undefined") {
+  URL.createObjectURL = () => "blob:mock";
+  URL.revokeObjectURL = () => {};
+}
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

@@ -39,7 +39,7 @@ export default function IdeaWorkspacePage() {
     setLoading(true);
     setError(null);
 
-    fetchIdea(id, shareToken ?? undefined)
+    (shareToken ? fetchIdea(id, shareToken) : fetchIdea(id))
       .then((data) => {
         if (!cancelled) {
           setIdea(data);
@@ -59,7 +59,7 @@ export default function IdeaWorkspacePage() {
     return () => {
       cancelled = true;
     };
-  }, [id, t]);
+  }, [id, shareToken, t]);
 
   const handleIdeaUpdate = useCallback((updated: Idea) => {
     setIdea(updated);
