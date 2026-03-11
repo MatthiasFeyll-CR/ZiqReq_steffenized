@@ -81,7 +81,7 @@ const authenticatedAuth: AuthContextValue = {
     display_name: "Test User",
     roles: ["user"],
   },
-  isAuthenticated: true,
+  isAuthenticated: true, isLoading: false,
   isDevBypass: true,
   hasRole: () => false,
   logout: () => {},
@@ -91,7 +91,7 @@ const authenticatedAuth: AuthContextValue = {
 
 const unauthenticatedAuth: AuthContextValue = {
   user: null,
-  isAuthenticated: false,
+  isAuthenticated: false, isLoading: false,
   isDevBypass: true,
   hasRole: () => false,
   logout: () => {},

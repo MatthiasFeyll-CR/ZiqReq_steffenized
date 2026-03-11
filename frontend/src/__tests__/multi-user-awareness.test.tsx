@@ -64,7 +64,7 @@ vi.mock("react-toastify", () => ({
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
     user: { id: OWNER_ID, display_name: "Owner User", email: "owner@test.com", roles: [] },
-    isAuthenticated: true,
+    isAuthenticated: true, isLoading: false,
     isDevBypass: false,
     hasRole: () => false,
     logout: () => {},

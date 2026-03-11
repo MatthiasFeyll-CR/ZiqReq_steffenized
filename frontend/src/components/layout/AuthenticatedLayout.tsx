@@ -3,7 +3,11 @@ import { useAuth } from "@/hooks/use-auth"
 import { PageShell } from "./PageShell"
 
 export function AuthenticatedLayout() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return null
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />

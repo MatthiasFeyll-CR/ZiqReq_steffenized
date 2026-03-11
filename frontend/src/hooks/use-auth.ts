@@ -12,6 +12,7 @@ export interface AuthUser {
 export interface AuthContextValue {
   user: AuthUser | null
   isAuthenticated: boolean
+  isLoading: boolean
   isDevBypass: boolean
   hasRole: (role: string) => boolean
   logout: () => void
@@ -22,6 +23,7 @@ export interface AuthContextValue {
 export const AuthContext = createContext<AuthContextValue>({
   user: null,
   isAuthenticated: false,
+  isLoading: true,
   isDevBypass: false,
   hasRole: () => false,
   logout: () => {},

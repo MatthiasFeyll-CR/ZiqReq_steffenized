@@ -45,7 +45,7 @@ vi.stubGlobal(
 function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
     user: null,
-    isAuthenticated: false,
+    isAuthenticated: false, isLoading: false,
     isDevBypass: true,
     hasRole: (role: string) => overrides.user?.roles.includes(role) ?? false,
     logout: vi.fn(),
@@ -136,7 +136,7 @@ describe("T-7.1.04: Dev login flow end-to-end", () => {
     currentUser = DEV_USERS[0] as AuthUser;
     const selectedAuth = createAuthValue({
       user: currentUser,
-      isAuthenticated: true,
+      isAuthenticated: true, isLoading: false,
       hasRole: (role: string) => currentUser?.roles.includes(role) ?? false,
     });
 

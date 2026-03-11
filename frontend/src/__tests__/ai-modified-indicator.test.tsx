@@ -174,7 +174,7 @@ describe("T-3.4.02: Indicator clears on user selection (BoardCanvas)", () => {
     }));
 
     vi.doMock("@/hooks/use-auth", () => ({
-      useAuth: () => ({ user: { id: "test-user", display_name: "Test User" }, isAuthenticated: true }),
+      useAuth: () => ({ user: { id: "test-user", display_name: "Test User" }, isAuthenticated: true, isLoading: false }),
     }));
 
     vi.doMock("@xyflow/react", () => {

@@ -27,7 +27,7 @@ vi.mock("@/api/collaboration", () => ({
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
     user: { id: "00000000-0000-0000-0000-000000000001", display_name: "Test User", email: "test@test.com", roles: [] },
-    isAuthenticated: true,
+    isAuthenticated: true, isLoading: false,
     isDevBypass: false,
     hasRole: () => false,
     logout: () => {},

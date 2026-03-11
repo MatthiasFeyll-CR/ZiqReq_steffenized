@@ -42,7 +42,7 @@ function makeAuth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
       display_name: "Admin User",
       roles: ["admin"],
     },
-    isAuthenticated: true,
+    isAuthenticated: true, isLoading: false,
     isDevBypass: false,
     hasRole: (role: string) => ["admin"].includes(role),
     logout: vi.fn(),

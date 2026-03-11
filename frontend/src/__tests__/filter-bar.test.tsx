@@ -77,7 +77,7 @@ function createAuthValue(): AuthContextValue {
       display_name: "Alice Admin",
       roles: ["admin", "reviewer", "user"],
     },
-    isAuthenticated: true,
+    isAuthenticated: true, isLoading: false,
     isDevBypass: true,
     hasRole: () => true,
     logout: vi.fn(),

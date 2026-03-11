@@ -52,7 +52,7 @@ function createAuthValue(): AuthContextValue {
       display_name: "Rev Iewer",
       roles: ["user", "reviewer"],
     },
-    isAuthenticated: true,
+    isAuthenticated: true, isLoading: false,
     isDevBypass: true,
     hasRole: (r: string) => ["user", "reviewer"].includes(r),
     logout: vi.fn(),

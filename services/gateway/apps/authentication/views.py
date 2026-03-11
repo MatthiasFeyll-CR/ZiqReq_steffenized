@@ -63,6 +63,19 @@ def validate_token(request: Request) -> Response:
 
 
 @api_view(["GET"])
+def me(request: Request) -> Response:
+    """GET /api/auth/me — Return the currently authenticated user."""
+    user = getattr(request, "user_obj", None)
+    if user is None:
+        return Response(
+            {"error": "UNAUTHORIZED", "message": "Not authenticated"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+    serializer = UserSerializer(user)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
 def dev_users(request: Request) -> Response:
     """GET /api/auth/dev-users — List dev users (bypass mode only)."""
     if not _is_dev_bypass_enabled():

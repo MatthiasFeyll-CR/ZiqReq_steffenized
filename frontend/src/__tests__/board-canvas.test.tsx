@@ -22,7 +22,7 @@ vi.mock("@/app/providers", () => ({
 }));
 
 vi.mock("@/hooks/use-auth", () => ({
-  useAuth: () => ({ user: { id: "test-user", display_name: "Test User" }, isAuthenticated: true }),
+  useAuth: () => ({ user: { id: "test-user", display_name: "Test User" }, isAuthenticated: true, isLoading: false }),
 }));
 
 // Mock @xyflow/react since jsdom lacks DOM measurement APIs
