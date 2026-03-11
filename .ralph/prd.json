@@ -109,7 +109,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol and features.md § FA-12.5 — All Notification Events table. RabbitMQ event publishing pattern from M6 WebSocket milestone.\nDesign: No design component — backend event publishing.\nTesting: No test matrix entries — integration testing via notification service consumer.\nFiles: services/gateway/apps/collaboration/views.py (publish events on invite/accept/decline/remove/transfer), services/gateway/apps/review/views.py (publish on submit/accept/reject/drop/undo/comment), services/gateway/apps/ideas/views.py (publish on chat @mention detection), services/core/tasks.py or ai service (publish AI delegation complete), common event publisher utility (services/gateway/utils/events.py or similar)\nGotchas: RabbitMQ connection and publishing pattern already established in M6. Reuse existing event bus setup. @mention detection requires parsing chat message content for @user[<uuid>] patterns. AI delegation complete event requires AI service coordination — may need to defer to AI milestone if not implemented yet.\nDeviations: AI delegation complete event may require AI service changes — coordinate with AI Engineer or defer if AI service not ready. Focus on collaboration, review, and chat events first.",
       "context": {

@@ -92,3 +92,21 @@ Started: 2026-03-11T09:17:48+0100
   - Test path inside container: `services/gateway/apps/authentication/tests/test_notification_prefs.py` (full path from /app)
   - Pre-existing ruff error in services/notification/main.py (unused `sys` import from US-003) — fixed as part of this story
 ---
+
+## US-005: Wire All Notification Events — Collaboration, Review, Chat, AI
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/events/publisher.py (new), services/gateway/apps/collaboration/views.py, services/gateway/apps/review/views.py, services/gateway/apps/chat/views.py, services/gateway/events/consumers.py, .ralph/prd.json
+- Tests: Full suite: 639 passed (Python), 389 passed (Node, 1 pre-existing failure).
+- Learnings for future iterations:
+  - Created `events/publisher.py` as shared RabbitMQ publisher utility using pika BlockingConnection
+  - Exchange: `ziqreq.events` (topic), routing keys: `notification.{category}.{action}`
+  - Event payload: `{user_id, event_type, title, body, reference_id, reference_type, timestamp}`
+  - MUST use lazy imports (`from events.publisher import ...` inside function body) in view files — test_ai_consumer.py manipulates sys.modules for `events` package at collection time, which breaks top-level `from events.publisher import ...` when pytest collects all tests
+  - `_publish_notification(**kwargs)` wrapper pattern used across collaboration/review/chat views for consistent lazy-import approach
+  - Collaboration events wired: invitation sent (→ invitee), accepted (→ inviter), declined (→ inviter), left (→ owner), removed (→ removed user), ownership transferred (→ new owner)
+  - Review events wired: submitted (→ assigned reviewers), state changed (→ owner + co-owner), comment posted (→ owner + co-owner, excluding commenter)
+  - Chat events: @mention detection via regex `@user\[<uuid>\]` pattern in message content, publishes per-mentioned-user
+  - AI events: delegation complete published from gateway AIEventConsumer._handle_processing_complete (→ idea owner)
+  - Publisher catches and logs exceptions without blocking the main request flow
+---

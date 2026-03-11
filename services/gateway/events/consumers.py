@@ -207,6 +207,30 @@ class AIEventConsumer:
         }
         await self._broadcast(idea_id, "ai_processing", payload)
 
+        # Publish AI delegation complete notification
+        self._publish_ai_delegation_notification(idea_id)
+
+    def _publish_ai_delegation_notification(self, idea_id: str) -> None:
+        """Look up the idea owner and publish an AI delegation complete notification."""
+        try:
+            from apps.ideas.models import Idea
+            from events.publisher import publish_notification_event
+
+            idea = Idea.objects.get(id=idea_id)
+            publish_notification_event(
+                routing_key="notification.ai.delegation_complete",
+                user_id=str(idea.owner_id),
+                event_type="ai_delegation_complete",
+                title="AI Processing Complete",
+                body=f'AI has finished processing your request for "{idea.title}"',
+                reference_id=str(idea.id),
+                reference_type="idea",
+            )
+        except Exception:
+            logger.exception(
+                "Failed to publish AI delegation notification for idea %s", idea_id
+            )
+
     async def _broadcast(
         self, idea_id: str, event_type: str, payload: dict[str, Any]
     ) -> None:

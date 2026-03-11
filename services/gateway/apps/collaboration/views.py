@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from django.db import transaction
@@ -12,6 +13,15 @@ from apps.ideas.authentication import MiddlewareAuthentication
 from apps.ideas.models import Idea, IdeaCollaborator
 
 from .models import CollaborationInvitation
+
+logger = logging.getLogger(__name__)
+
+
+def _publish_notification(**kwargs) -> None:
+    """Lazy-import wrapper to avoid module-collection ordering issues in tests."""
+    from events.publisher import publish_notification_event
+
+    publish_notification_event(**kwargs)
 
 
 def _require_auth(request: Request):
@@ -148,6 +158,17 @@ def send_invitation(request: Request, idea_id: str) -> Response:
         status="pending",
     )
 
+    # Notify invitee of the invitation
+    _publish_notification(
+        routing_key="notification.collaboration.invitation",
+        user_id=str(invitee_uuid),
+        event_type="collaboration_invitation",
+        title="Collaboration Invitation",
+        body=f"{user.display_name} invited you to collaborate on \"{idea.title}\"",
+        reference_id=str(invitation.id),
+        reference_type="invitation",
+    )
+
     return Response(
         {"invitation_id": str(invitation.id), "status": "pending"},
         status=status.HTTP_201_CREATED,
@@ -209,6 +230,24 @@ def accept_invitation(request: Request, invitation_id: str) -> Response:
                 visibility="collaborating"
             )
 
+    # Fetch idea title for notification body
+    try:
+        idea = Idea.objects.get(id=invitation.idea_id)
+        idea_title = idea.title or "Untitled Idea"
+    except Idea.DoesNotExist:
+        idea_title = "an idea"
+
+    # Notify inviter that invitation was accepted
+    _publish_notification(
+        routing_key="notification.collaboration.accepted",
+        user_id=str(invitation.inviter_id),
+        event_type="collaborator_joined",
+        title="Invitation Accepted",
+        body=f"{user.display_name} accepted your invitation to \"{idea_title}\"",
+        reference_id=str(invitation.idea_id),
+        reference_type="idea",
+    )
+
     return Response({"message": "Invitation accepted"})
 
 
@@ -251,6 +290,17 @@ def decline_invitation(request: Request, invitation_id: str) -> Response:
     invitation.status = "declined"
     invitation.responded_at = timezone.now()
     invitation.save(update_fields=["status", "responded_at"])
+
+    # Notify inviter that invitation was declined
+    _publish_notification(
+        routing_key="notification.collaboration.declined",
+        user_id=str(invitation.inviter_id),
+        event_type="collaborator_left",
+        title="Invitation Declined",
+        body=f"{user.display_name} declined your collaboration invitation",
+        reference_id=str(invitation.idea_id),
+        reference_type="idea",
+    )
 
     return Response({"message": "Invitation declined"})
 
@@ -403,6 +453,17 @@ def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> R
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    # Notify removed collaborator
+    _publish_notification(
+        routing_key="notification.collaboration.removed",
+        user_id=str(target_uuid),
+        event_type="removed_from_idea",
+        title="Removed from Idea",
+        body=f"You were removed from \"{idea.title}\" by {user.display_name}",
+        reference_id=str(idea_uuid),
+        reference_type="idea",
+    )
+
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -479,6 +540,17 @@ def transfer_ownership(request: Request, idea_id: str) -> Response:
         idea.owner_id = new_owner_uuid
         idea.save(update_fields=["owner_id"])
 
+    # Notify new owner of ownership transfer
+    _publish_notification(
+        routing_key="notification.collaboration.transfer",
+        user_id=str(new_owner_uuid),
+        event_type="ownership_transferred",
+        title="Ownership Transferred",
+        body=f"{user.display_name} transferred ownership of \"{idea.title}\" to you",
+        reference_id=str(idea_uuid),
+        reference_type="idea",
+    )
+
     return Response({"message": "Ownership transferred"})
 
 
@@ -517,6 +589,16 @@ def leave_idea(request: Request, idea_id: str) -> Response:
     if idea.co_owner_id == user.id:
         idea.co_owner_id = None
         idea.save(update_fields=["co_owner_id"])
+        # Notify owner
+        _publish_notification(
+            routing_key="notification.collaboration.left",
+            user_id=str(idea.owner_id),
+            event_type="collaborator_left",
+            title="Collaborator Left",
+            body=f"{user.display_name} left \"{idea.title}\"",
+            reference_id=str(idea_uuid),
+            reference_type="idea",
+        )
         return Response({"message": "You have left the idea"})
 
     # Regular collaborator leaves
@@ -529,6 +611,17 @@ def leave_idea(request: Request, idea_id: str) -> Response:
             {"error": "BAD_REQUEST", "message": "You are not a collaborator on this idea"},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    # Notify owner
+    _publish_notification(
+        routing_key="notification.collaboration.left",
+        user_id=str(idea.owner_id),
+        event_type="collaborator_left",
+        title="Collaborator Left",
+        body=f"{user.display_name} left \"{idea.title}\"",
+        reference_id=str(idea_uuid),
+        reference_type="idea",
+    )
 
     return Response({"message": "You have left the idea"})
 
