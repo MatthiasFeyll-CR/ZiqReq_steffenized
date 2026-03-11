@@ -13,8 +13,11 @@ export interface Idea {
   collaborators: Array<{ user_id: string; display_name: string }>;
 }
 
-export async function fetchIdea(id: string): Promise<Idea> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${id}/`, {
+export async function fetchIdea(id: string, token?: string): Promise<Idea> {
+  const url = token
+    ? `${env.apiBaseUrl}/ideas/${id}/?token=${encodeURIComponent(token)}`
+    : `${env.apiBaseUrl}/ideas/${id}/`;
+  const res = await fetch(url, {
     credentials: "include",
   });
   if (!res.ok) {

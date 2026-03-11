@@ -11,9 +11,10 @@ interface ChatPanelProps {
   idea: Idea;
   locked: boolean;
   lockReason: string | null;
+  readOnly?: boolean;
 }
 
-export function ChatPanel({ idea, locked, lockReason }: ChatPanelProps) {
+export function ChatPanel({ idea, locked, lockReason, readOnly }: ChatPanelProps) {
   const [newMessages, setNewMessages] = useState<ChatMessage[]>([]);
   const { isLimited } = useRateLimit(idea.id);
 
@@ -32,13 +33,19 @@ export function ChatPanel({ idea, locked, lockReason }: ChatPanelProps) {
     <div className="relative flex flex-col flex-1" data-testid="chat-panel-inner">
       <ChatMessageList idea={idea} appendedMessages={newMessages} />
       <AIProcessingIndicator ideaId={idea.id} />
-      <ChatInput
-        ideaId={idea.id}
-        idea={idea}
-        onMessageSent={handleMessageSent}
-        disabled={isDisabled}
-      />
-      {isDisabled && overlayReason && <LockOverlay reason={overlayReason} />}
+      {readOnly ? (
+        <div className="px-4 py-3 text-sm text-muted-foreground border-t text-center" data-testid="chat-read-only-notice">
+          Viewing shared idea — chat is read-only
+        </div>
+      ) : (
+        <ChatInput
+          ideaId={idea.id}
+          idea={idea}
+          onMessageSent={handleMessageSent}
+          disabled={isDisabled}
+        />
+      )}
+      {!readOnly && isDisabled && overlayReason && <LockOverlay reason={overlayReason} />}
     </div>
   );
 }

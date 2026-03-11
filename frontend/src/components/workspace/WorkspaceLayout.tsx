@@ -44,9 +44,10 @@ interface WorkspaceLayoutProps {
   ideaId?: string;
   ideaState?: string;
   disabled?: boolean;
+  readOnly?: boolean;
 }
 
-export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId, ideaState, disabled }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId, ideaState, disabled, readOnly }: WorkspaceLayoutProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(loadRatio);
@@ -124,7 +125,7 @@ export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId, ideaS
             )}
           </TabsList>
           <TabsContent value="board" className="flex-1 overflow-hidden" data-testid="board-content">
-            <BoardCanvas ideaId={ideaId} disabled={disabled} />
+            <BoardCanvas ideaId={ideaId} disabled={disabled} readOnly={readOnly} />
           </TabsContent>
           {reviewVisible && (
             <TabsContent value="review" className="flex-1 overflow-auto" data-testid="review-content">

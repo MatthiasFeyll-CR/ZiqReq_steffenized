@@ -715,6 +715,22 @@
     "T-12.3.01": {
       "file": "frontend/src/__tests__/invitation-display.test.tsx",
       "function": "does not show banner when no pending invitation for this idea"
+    },
+    "UI-SHARE.01": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "shows read-only banner when token is present"
+    },
+    "UI-SHARE.02": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "hides chat input and shows read-only notice"
+    },
+    "T-8.3.03": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "passes token to fetchIdea"
+    },
+    "T-8.3.04": {
+      "file": "frontend/src/__tests__/read-only-view.test.tsx",
+      "function": "passes readOnly to BoardCanvas"
     }
   }
 }

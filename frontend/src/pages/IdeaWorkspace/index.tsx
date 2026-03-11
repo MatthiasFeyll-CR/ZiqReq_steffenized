@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { fetchIdea, type Idea } from "@/api/ideas";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,7 @@ import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { InvitationBanner } from "@/components/workspace/InvitationBanner";
+import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useSelector } from "react-redux";
@@ -19,6 +20,8 @@ export default function IdeaWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
+  const shareToken = searchParams.get("token");
 
   const [idea, setIdea] = useState<Idea | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +34,7 @@ export default function IdeaWorkspacePage() {
     setLoading(true);
     setError(null);
 
-    fetchIdea(id)
+    fetchIdea(id, shareToken ?? undefined)
       .then((data) => {
         if (!cancelled) {
           setIdea(data);
@@ -118,16 +121,18 @@ export default function IdeaWorkspacePage() {
   if (!idea) return null;
 
   return (
-    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} />
+    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} readOnly={!!shareToken} />
   );
 }
 
 function IdeaWorkspaceContent({
   idea,
   onIdeaUpdate,
+  readOnly = false,
 }: {
   idea: Idea;
   onIdeaUpdate: (idea: Idea) => void;
+  readOnly?: boolean;
 }) {
   const { reviewVisible, chatLocked, allReadOnly, lockReason } = useSectionVisibility(idea);
   const isOnline = useSelector(selectIsOnline);
@@ -168,25 +173,30 @@ function IdeaWorkspaceContent({
     }
   }, [idea.state]);
 
-  const effectiveChatLocked = chatLocked || !isOnline;
-  const effectiveLockReason = !isOnline
-    ? "You are currently offline. Chat is disabled."
-    : lockReason;
+  const effectiveChatLocked = chatLocked || !isOnline || readOnly;
+  const effectiveLockReason = readOnly
+    ? "Viewing shared idea — chat is read-only"
+    : !isOnline
+      ? "You are currently offline. Chat is disabled."
+      : lockReason;
+  const effectiveReadOnly = allReadOnly || readOnly;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
-      <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={allReadOnly} />
-      <InvitationBanner ideaId={idea.id} />
+      <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={effectiveReadOnly} />
+      {readOnly && <ReadOnlyBanner />}
+      {!readOnly && <InvitationBanner ideaId={idea.id} />}
       <OfflineBanner />
       <div ref={brainstormingRef} className="flex-1 min-h-0 flex flex-col" style={{ minHeight: hasBeenSubmitted ? "calc(100vh - 64px)" : undefined }}>
         <WorkspaceLayout
           chatPanel={
-            <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} />
+            <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly} />
           }
           reviewVisible={reviewVisible}
           ideaId={idea.id}
           ideaState={idea.state}
-          disabled={!isOnline}
+          disabled={!isOnline || readOnly}
+          readOnly={readOnly}
         />
       </div>
       {hasBeenSubmitted && (
