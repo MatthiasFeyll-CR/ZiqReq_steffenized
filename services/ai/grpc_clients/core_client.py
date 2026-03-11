@@ -120,3 +120,16 @@ class CoreClient:
     def delete_board_connection(self, connection_id: str) -> dict[str, Any]:
         logger.warning("AI CoreClient.delete_board_connection stub called")
         return {"success": True}
+
+    # ── Context compression (stubs — gRPC wire-up in later milestones) ──
+
+    def upsert_context_summary(
+        self,
+        idea_id: str,
+        summary_text: str,
+        messages_covered_up_to_id: str,
+        compression_iteration: int,
+        context_window_usage: float,
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.upsert_context_summary stub called")
+        return {"success": True}

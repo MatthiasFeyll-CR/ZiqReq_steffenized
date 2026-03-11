@@ -363,12 +363,98 @@ class ChatProcessingPipeline:
             })
 
     async def _step_publish_complete(self, idea_id: str) -> None:
-        """Step 6: Publish ai.processing.complete event."""
+        """Step 6: Check compression threshold, then publish ai.processing.complete."""
+        # Compression check before publishing
+        await self._check_and_compress(idea_id)
+
         logger.info("Step 6: Publishing completion for idea %s", idea_id)
         await publish_event("ai.processing.complete", {
             "idea_id": idea_id,
             "counter_reset": True,
         })
+
+    async def _check_and_compress(self, idea_id: str) -> None:
+        """Check if context window utilization exceeds threshold and trigger compression.
+
+        Reads context_compression_threshold admin param (default 60%).
+        Estimates token usage from recent messages and existing summary.
+        """
+        from django.conf import settings as django_settings
+
+        if getattr(django_settings, "AI_MOCK_MODE", False):
+            logger.info(
+                "Step 6: Compression check skipped in mock mode for idea %s",
+                idea_id,
+            )
+            return
+
+        # Read compression threshold from admin params (default 60%)
+        threshold = 60
+        try:
+            param_result = self.core_client.get_admin_parameter(
+                "context_compression_threshold"
+            )
+            value = param_result.get("value", "")
+            if value:
+                threshold = int(value)
+        except Exception:
+            logger.debug(
+                "Could not read context_compression_threshold — using default %d",
+                threshold,
+            )
+
+        # Load idea context to estimate utilization
+        idea_context = self.core_client.get_idea_context(idea_id)
+        recent_messages = idea_context.get("recent_messages", [])
+        chat_summary = idea_context.get("chat_summary")
+
+        # Estimate context window usage (tokens approximated at ~4 chars/token)
+        total_chars = sum(
+            len(m.get("content", "")) for m in recent_messages
+        )
+        if chat_summary:
+            total_chars += len(chat_summary.get("summary_text", ""))
+
+        estimated_tokens = total_chars / 4
+        # Default context window limit ~128k tokens for most models
+        context_limit = 128000
+        usage_pct = (estimated_tokens / context_limit) * 100
+
+        logger.info(
+            "Step 6: Context usage for idea %s: %.1f%% (threshold: %d%%)",
+            idea_id, usage_pct, threshold,
+        )
+
+        if usage_pct < threshold:
+            return
+
+        # Trigger compression
+        logger.info(
+            "Step 6: Triggering compression for idea %s (usage %.1f%% > %d%%)",
+            idea_id, usage_pct, threshold,
+        )
+
+        previous_summary_text: str | None = None
+        compression_iteration = 0
+        if chat_summary:
+            previous_summary_text = chat_summary.get("summary_text")
+            compression_iteration = chat_summary.get("compression_iteration", 0)
+
+        try:
+            from agents.context_compression.agent import ContextCompressionAgent
+
+            agent = ContextCompressionAgent(core_client=self.core_client)
+            await agent.process({
+                "idea_id": idea_id,
+                "messages_to_compress": recent_messages,
+                "previous_summary": previous_summary_text,
+                "compression_iteration": compression_iteration,
+                "context_window_usage": usage_pct,
+            })
+        except Exception:
+            logger.exception(
+                "Step 6: Compression failed for idea %s", idea_id,
+            )
 
     def _step_cleanup(self, idea_id: str) -> None:
         """Step 7: Cleanup — clear abort flag."""

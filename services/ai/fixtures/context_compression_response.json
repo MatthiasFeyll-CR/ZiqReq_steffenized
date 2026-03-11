@@ -1,1 +1,5 @@
-{"mock": true}
+{
+  "summary_text": "The team discussed project architecture decisions. Alice proposed using a microservices approach with gRPC for inter-service communication. Bob agreed and suggested adding a gateway service for REST API exposure. Key decisions: (1) Use PostgreSQL with pgvector for embeddings, (2) Django for gateway service, (3) React with TypeScript for frontend. The team also discussed timeline, targeting a 3-month delivery window with bi-weekly milestones.",
+  "compression_iteration": 1,
+  "context_window_usage": 65.0
+}

@@ -371,6 +371,10 @@
     "T-2.15.02": {
       "file": "services/ai/tests/test_facilitator.py",
       "function": "test_delegation_empty_bucket_rejected"
+    },
+    "T-2.14.03": {
+      "file": "services/ai/tests/test_context_compression.py",
+      "function": "test_compression_triggered_above_threshold"
     }
   }
 }
