@@ -28,6 +28,7 @@ _EVENT_HANDLERS = {
     "ai.chat_response.ready": "_handle_chat_response",
     "ai.reaction.ready": "_handle_reaction",
     "ai.title.updated": "_handle_title_update",
+    "ai.processing.complete": "_handle_processing_complete",
 }
 
 
@@ -165,6 +166,20 @@ class AIEventConsumer:
         }
 
         await self._broadcast(idea_id, "title_update", payload)
+
+    async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
+        """ai.processing.complete → reset rate limit counter + broadcast ai_processing {state: completed}."""
+        idea_id = event["idea_id"]
+
+        from apps.chat.views import reset_rate_limit_counter
+
+        reset_rate_limit_counter(idea_id)
+
+        payload = {
+            "idea_id": idea_id,
+            "state": "completed",
+        }
+        await self._broadcast(idea_id, "ai_processing", payload)
 
     async def _broadcast(
         self, idea_id: str, event_type: str, payload: dict[str, Any]

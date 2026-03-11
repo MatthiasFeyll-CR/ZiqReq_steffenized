@@ -339,6 +339,18 @@
     "T-2.12.02": {
       "file": "frontend/src/__tests__/ai-processing-indicator.test.tsx",
       "function": "hides on ai_processing {state: completed}"
+    },
+    "T-2.11.01": {
+      "file": "services/gateway/apps/chat/tests/test_rate_limit.py",
+      "function": "test_rate_limit_locks_chat_at_cap"
+    },
+    "T-2.11.02": {
+      "file": "services/gateway/apps/chat/tests/test_rate_limit.py",
+      "function": "test_rate_limit_resets_on_complete"
+    },
+    "T-2.11.03": {
+      "file": "frontend/src/__tests__/rate-limit.test.tsx",
+      "function": "shows toast on rate_limit WebSocket event"
     }
   }
 }

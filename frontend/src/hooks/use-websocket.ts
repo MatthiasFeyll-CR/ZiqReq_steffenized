@@ -126,6 +126,12 @@ export function useWebSocket() {
                 detail: { idea_id: data.idea_id, state: data.payload.state },
               }),
             );
+          } else if (data.type === "rate_limit" && data.idea_id) {
+            window.dispatchEvent(
+              new CustomEvent("ws:rate_limit", {
+                detail: { idea_id: data.idea_id },
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&
