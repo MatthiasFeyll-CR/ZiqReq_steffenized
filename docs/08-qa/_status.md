@@ -6,7 +6,7 @@
 - **Last updated:** 2026-03-11
 
 ## Current Review
-- **Milestone:** 7 — AI Core: Chat Processing Pipeline
+- **Milestone:** 8 — AI Board Agent & Context
 - **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 0
 - **Status:** passed
@@ -21,6 +21,7 @@
 | M5 — Board Advanced | `qa-m5-board-advanced.md` | 1 | PASS | 2026-03-10 |
 | M6 — WebSocket | `qa-m6-websocket.md` | 7 | PASS | 2026-03-10 |
 | M7 — AI Chat | `qa-m7-ai-chat.md` | 0 | PASS | 2026-03-11 |
+| M8 — AI Context | `qa-m8-ai-context.md` | 0 | PASS | 2026-03-11 |
 
 ## Input Consumed
 - .ralph/prd.json
@@ -30,34 +31,27 @@
 - docs/02-architecture/tech-stack.md
 - docs/03-design/component-specs.md
 - docs/03-ai/agent-architecture.md
+- docs/03-ai/tools-and-functions.md
 - docs/04-test-architecture/test-matrix.md
 - docs/04-test-architecture/runtime-safety.md
-- docs/05-milestones/milestone-7.md
-- tasks/prd-m7.json
-- services/ai/agents/base.py
-- services/ai/agents/facilitator/agent.py
+- docs/05-milestones/milestone-8.md
+- tasks/prd-m8.json
+- services/ai/agents/board_agent/*.py
+- services/ai/agents/context_agent/*.py
+- services/ai/agents/context_extension/*.py
+- services/ai/agents/context_compression/*.py
+- services/ai/agents/keyword_agent/*.py
 - services/ai/agents/facilitator/plugins.py
-- services/ai/agents/facilitator/prompt.py
-- services/ai/kernel/sk_factory.py
-- services/ai/kernel/model_router.py
-- services/ai/kernel/token_tracker.py
 - services/ai/processing/pipeline.py
-- services/ai/processing/debouncer.py
-- services/ai/processing/context_assembler.py
-- services/ai/events/publishers.py
-- services/gateway/events/consumers.py
-- services/gateway/apps/chat/views.py
-- services/gateway/apps/websocket/consumers.py
-- frontend/src/components/chat/AIProcessingIndicator.tsx
-- frontend/src/components/workspace/WorkspaceHeader.tsx
-- frontend/src/components/workspace/ChatPanel.tsx
-- frontend/src/hooks/useRateLimit.ts
-- frontend/src/hooks/use-websocket.ts
+- services/ai/embedding/*.py
+- services/gateway/apps/ideas/views.py
+- frontend/src/components/chat/ContextWindowIndicator.tsx
+- frontend/src/api/ideas.ts
 
 ## Handoff
 - **Ready for merge:** true
 - **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m7-ai-chat.md, docs/08-qa/_status.md
+- **Files produced:** docs/08-qa/qa-m8-ai-context.md, docs/08-qa/_status.md
 - **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
