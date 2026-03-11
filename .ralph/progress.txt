@@ -53,3 +53,19 @@ Started: 2026-03-11T13:38:26+0100
   - _publish_append_complete called outside transaction (same pattern as merge_service)
   - Pre-existing flaky test: information-gaps-toggle.test.tsx has error after all tests pass (PDFPreview import issue)
 ---
+
+## US-003: Manual Merge — UUID/URL Entry
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/serializers.py, services/gateway/apps/similarity/models.py, services/core/apps/similarity/models.py, services/core/apps/similarity/migrations/0003_add_manual_request_flag.py (new), services/gateway/apps/ideas/tests/test_manual_merge.py (new), .ralph/test-manifest.json
+- Tests: 800 Python tests passed (13 new manual merge tests), 403 Node tests passed, ruff clean, tsc clean
+- Learnings for future iterations:
+  - MergeRequestCreateSerializer now accepts target_idea_url OR target_idea_id (both optional, at least one required)
+  - URL parsing uses regex `/idea/([0-9a-f-]{36})/` to extract UUID from URL
+  - manual_request=True flag set when target_idea_url is provided; False for direct UUID
+  - No access check on target idea for merge requests — the original code didn't have one and the similarity system handles discovery
+  - Error codes changed from generic to specific: TARGET_NOT_FOUND, CANNOT_MERGE_SELF, INVALID_UUID, INVALID_STATE
+  - Target must be non-deleted (deleted_at__isnull=True) and in valid state (open, in_review, rejected)
+  - Declined pairs bypass: no check for prior declined MergeRequests, only pending ones are blocked
+  - Pre-existing flaky test: idea-workspace.test.tsx T-1.7.01 fails intermittently (unrelated to changes)
+---

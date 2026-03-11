@@ -710,22 +710,47 @@ def create_merge_request(request: Request, idea_id: str) -> Response:
 
     serializer = MergeRequestCreateSerializer(data=request.data)
     if not serializer.is_valid():
+        # Surface INVALID_UUID for URL parsing failures
+        errors = serializer.errors
+        if "target_idea_url" in errors and errors["target_idea_url"] == ["INVALID_UUID"]:
+            return Response(
+                {"error": "INVALID_UUID", "message": "Could not extract a valid UUID from the URL"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     target_idea_id = serializer.validated_data["target_idea_id"]
+    is_manual = serializer.validated_data.get("_manual_request", False)
+
+    # Validate target UUID format
+    try:
+        uuid.UUID(str(target_idea_id))
+    except ValueError:
+        return Response(
+            {"error": "INVALID_UUID", "message": "Malformed UUID"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Validate target idea exists
-    target_idea, err = _get_idea_or_404(str(target_idea_id))
-    if err:
+    try:
+        target_idea = Idea.objects.get(id=target_idea_id, deleted_at__isnull=True)
+    except Idea.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Target idea not found"},
+            {"error": "TARGET_NOT_FOUND", "message": "Target idea not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     # Cannot merge with self
     if requesting_idea.id == target_idea.id:
         return Response(
-            {"error": "BAD_REQUEST", "message": "Cannot create merge request with the same idea"},
+            {"error": "CANNOT_MERGE_SELF", "message": "Cannot create merge request with the same idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Validate target state
+    if target_idea.state not in ("open", "in_review", "rejected"):
+        return Response(
+            {"error": "INVALID_STATE", "message": "Target idea is in an incompatible state"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -775,6 +800,7 @@ def create_merge_request(request: Request, idea_id: str) -> Response:
         requesting_owner_consent="accepted",
         target_owner_consent="pending",
         reviewer_consent=reviewer_consent,
+        manual_request=is_manual,
     )
 
     # Publish event based on merge type

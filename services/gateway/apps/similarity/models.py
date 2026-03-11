@@ -53,6 +53,7 @@ class MergeRequest(models.Model):
     target_owner_consent = models.CharField(max_length=15, choices=TARGET_CONSENT_CHOICES, default="pending")
     reviewer_consent = models.CharField(max_length=20, choices=REVIEWER_CONSENT_CHOICES, default="not_required")
     resulting_idea_id = models.UUIDField(null=True, blank=True)
+    manual_request = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
 
