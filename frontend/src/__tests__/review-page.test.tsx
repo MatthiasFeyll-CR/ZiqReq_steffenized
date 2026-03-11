@@ -80,6 +80,7 @@ function renderReviewPage(fetchResult: ReviewListResponse = emptyResponse) {
       websocket: {
         connectionState: "online" as const,
         reconnectCountdown: null,
+        isIdleDisconnected: false,
       },
     },
   });

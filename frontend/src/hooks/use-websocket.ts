@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import {
   setConnectionState,
   setReconnectCountdown,
+  setIdleDisconnected,
 } from "@/store/websocket-slice";
 import { updatePresence } from "@/store/presence-slice";
 import { updateSelection } from "@/store/selections-slice";
@@ -175,10 +176,14 @@ export function useWebSocket() {
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event: CloseEvent) => {
         wsRef.current = null;
+        const isIdleDisconnect = event.code === 4008;
+        if (isIdleDisconnect) {
+          dispatch(setIdleDisconnected(true));
+        }
         dispatch(setConnectionState("offline"));
-        if (!intentionalCloseRef.current) {
+        if (!intentionalCloseRef.current && !isIdleDisconnect) {
           scheduleReconnect(token);
         }
       };

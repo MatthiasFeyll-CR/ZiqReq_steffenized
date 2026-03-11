@@ -871,6 +871,10 @@
     "T-15.1.02": {
       "file": "frontend/src/__tests__/idle-detection.test.tsx",
       "function": "sets idle immediately when tab becomes hidden"
+    },
+    "T-15.2.01": {
+      "file": "frontend/src/__tests__/idle-disconnect.test.tsx",
+      "function": "shows idle disconnect message when isIdleDisconnected is true"
     }
   }
 }

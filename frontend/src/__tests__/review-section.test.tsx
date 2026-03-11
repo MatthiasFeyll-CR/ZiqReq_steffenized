@@ -81,7 +81,7 @@ function renderWorkspace(idea: Idea) {
   const store = configureStore({
     reducer: { websocket: websocketReducer },
     preloadedState: {
-      websocket: { connectionState: "online" as const, reconnectCountdown: null },
+      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false },
     },
   });
   const queryClient = new QueryClient({

@@ -18,7 +18,7 @@ class MockWebSocket {
   static instances: MockWebSocket[] = [];
   url: string;
   onopen: (() => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: { code: number }) => void) | null = null;
   onerror: (() => void) | null = null;
   onmessage: ((e: unknown) => void) | null = null;
   readyState = 0;
@@ -36,9 +36,9 @@ class MockWebSocket {
     this.onopen?.();
   }
 
-  simulateClose() {
+  simulateClose(code = 1000) {
     this.readyState = 3;
-    this.onclose?.();
+    this.onclose?.({ code });
   }
 
   simulateError() {

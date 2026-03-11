@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import {
   selectConnectionState,
   selectReconnectCountdown,
+  selectIsIdleDisconnected,
 } from "@/store/websocket-slice";
 import { useWsReconnect } from "@/app/providers";
 
 export function OfflineBanner() {
   const connectionState = useSelector(selectConnectionState);
   const countdown = useSelector(selectReconnectCountdown);
+  const isIdleDisconnected = useSelector(selectIsIdleDisconnected);
   const reconnect = useWsReconnect();
 
   const isOffline = connectionState === "offline";
@@ -29,19 +31,26 @@ export function OfflineBanner() {
           <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-400 dark:border-amber-600 rounded-md p-4 mx-0">
             <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
             <p className="text-sm text-foreground flex-1">
-              Currently offline.
-              {countdown !== null && countdown > 0
-                ? ` Retrying in ${countdown} seconds`
-                : " Attempting to reconnect\u2026"}
+              {isIdleDisconnected
+                ? "Connection closed due to inactivity. Move your mouse to reconnect."
+                : <>
+                    Currently offline.
+                    {countdown !== null && countdown > 0
+                      ? ` Retrying in ${countdown} seconds`
+                      : " Attempting to reconnect\u2026"}
+                  </>
+              }
             </p>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={reconnect}
-              data-testid="reconnect-button"
-            >
-              Reconnect
-            </Button>
+            {!isIdleDisconnected && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={reconnect}
+                data-testid="reconnect-button"
+              >
+                Reconnect
+              </Button>
+            )}
           </div>
         </motion.div>
       )}

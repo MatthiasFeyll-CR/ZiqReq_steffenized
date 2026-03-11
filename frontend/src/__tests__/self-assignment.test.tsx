@@ -94,6 +94,7 @@ function renderCard(
       websocket: {
         connectionState: "online" as const,
         reconnectCountdown: null,
+        isIdleDisconnected: false,
       },
     },
   });
