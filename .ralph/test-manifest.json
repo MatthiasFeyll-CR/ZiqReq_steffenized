@@ -847,6 +847,22 @@
     "T-11.5.01": {
       "file": "services/gateway/apps/monitoring/tests/test_monitoring_service.py",
       "function": "test_task_unhealthy_publishes_alert"
+    },
+    "T-14.1.01": {
+      "file": "frontend/src/__tests__/error-toast.test.tsx",
+      "function": "renders toast with Show Logs and Retry buttons"
+    },
+    "T-14.1.02": {
+      "file": "frontend/src/__tests__/error-log-modal.test.tsx",
+      "function": "renders modal with all four sections"
+    },
+    "T-14.1.03": {
+      "file": "frontend/src/__tests__/error-toast.test.tsx",
+      "function": "clicking Retry calls the onRetry callback"
+    },
+    "T-14.1.04": {
+      "file": "frontend/src/__tests__/error-toast.test.tsx",
+      "function": "disables Retry button and shows Max retries reached when max retries exhausted"
     }
   }
 }

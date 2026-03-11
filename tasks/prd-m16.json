@@ -16,7 +16,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-14.1.01", "T-14.1.03", "T-14.1.04"],
       "notes": "Design: component-specs.md § 11.4 Error States\nFiles: frontend/src/components/common/ErrorToast.tsx (enhance), frontend/src/hooks/useErrorHandler.ts (new)\nGotchas: Max retries from admin_parameters.max_retry_attempts (default 3)",
       "context": {
@@ -34,7 +34,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-14.1.02"],
       "notes": "Design: component-specs.md § 11.4 Error States\nFiles: frontend/src/components/common/ErrorLogModal.tsx (enhance), frontend/src/utils/errorLogger.ts (new)\nGotchas: Console log capture needs window.console.error monkey-patch or ErrorBoundary",
       "context": {

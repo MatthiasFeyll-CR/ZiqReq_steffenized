@@ -35,3 +35,16 @@ Started: 2026-03-11T17:44:30+0100
   - Toast component uses role="alert" and supports data-testid
   - Pre-existing Docker build failure (missing nginx.conf) and information-gaps-toggle test failure — not related to M16
 ---
+
+## US-002: Error Log Modal — Technical Details
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/common/ErrorLogModal.tsx (enhanced with 4 sections), frontend/src/utils/errorLogger.ts (new), frontend/src/__tests__/error-log-modal.test.tsx (new), .ralph/test-manifest.json (added T-14.1.01-04)
+- Tests: 8 passed (T-14.1.02 covered + errorLogger utility tests). Typecheck clean. No regressions in error-toast tests.
+- Learnings for future iterations:
+  - ErrorLogModal now accepts consoleLogs, networkResponse, and technicalDetails props alongside legacy errors array
+  - errorLogger.ts provides console.error monkey-patch capture (max 20 entries), buildTechnicalDetails, buildNetworkResponse, buildErrorLogData helpers
+  - utils directory created at frontend/src/utils/ for shared utilities
+  - Support contact: support@commerzreal.de (hardcoded as SUPPORT_EMAIL constant)
+  - Dialog component from shadcn/ui uses Radix primitives — data-testid passes through via spread props
+---
