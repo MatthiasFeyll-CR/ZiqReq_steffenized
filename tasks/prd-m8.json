@@ -1,0 +1,414 @@
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m8-ai-context",
+  "description": "AI Board Agent & Context — Implements 5 AI agents (Board Agent, Context Agent, Context Extension, Context Compression, Keyword Agent) plus embedding pipeline and frontend context indicator for M8 milestone.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Board Agent Implementation",
+      "description": "As the AI system, I want to execute spatial board operations via an 8-tool Board Agent so that I can create/update/delete nodes and connections from Facilitator instructions.",
+      "acceptanceCriteria": [
+        "BoardAgent class inherits from BaseAgent and implements async _execute() method",
+        "BoardPlugin class with 8 @kernel_function decorated tools: create_node, update_node, delete_node, move_node, resize_group, create_connection, update_connection, delete_connection",
+        "System prompt renders from build_system_prompt() template with board state, instructions, and spatial reasoning rules",
+        "Agent invoked with board instructions + current board state returns list of executed mutations",
+        "Each tool calls CoreClient gRPC to persist mutations and publishes ai.board.updated events",
+        "create_node sets created_by='ai' and ai_modified_indicator=true automatically",
+        "Locked nodes cannot be modified (validation in update_node, delete_node, move_node)",
+        "Board state includes node titles, IDs, positions, parent relationships for spatial reasoning",
+        "Agent uses SK function calling loop with max_auto_invoke_attempts=10",
+        "Mock mode loads fixture from fixtures/board_agent_response.json",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "testIds": ["T-2.17.01", "T-2.17.02", "T-2.17.03"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § board_nodes, board_connections — table schemas for nodes and edges\nDesign: docs/03-design/component-specs.md § 6.1, 6.2, 6.3, 6.4 — visual specs for Box, Group, Free Text, Connections\nAI: docs/03-ai/agent-architecture.md § S3.2 — Board Agent architecture, spatial reasoning mode, model tier\nAI: docs/03-ai/tools-and-functions.md § Board Agent Plugin — all 8 tool definitions with exact schemas\nAI: docs/03-ai/system-prompts.md § 3. Board Agent — full system prompt template\nTesting: docs/04-test-architecture/test-matrix.md § T-2.17.01, T-2.17.02, T-2.17.03 — Board Agent test cases\nFiles: services/ai/agents/board_agent/agent.py, services/ai/agents/board_agent/prompt.py, services/ai/agents/board_agent/plugins.py, services/ai/fixtures/board_agent_response.json\nGotchas: Board Agent uses SK function calling loop with higher max_auto_invoke_attempts (10) than Facilitator (3) because complex reorganizations need many rounds. Tool execution is sequential — model decides tool order based on dependencies.",
+      "context": {
+        "data_model": [
+          "board_nodes: id uuid PK, idea_id uuid FK, node_type varchar CHECK(box|group|free_text), title varchar(500), body text, position_x float, position_y float, width float, height float, parent_id uuid FK self, is_locked boolean, created_by varchar CHECK(user|ai), ai_modified_indicator boolean — see data-model.md § board_nodes",
+          "board_connections: id uuid PK, idea_id uuid FK, source_node_id uuid FK, target_node_id uuid FK, label varchar(500), UNIQUE(source_node_id, target_node_id) — see data-model.md § board_connections"
+        ],
+        "api_endpoints": [
+          "Core gRPC: CreateBoardNode — {idea_id, node_type, title, body, position_x, position_y, width, height, parent_id} → {node_id, created_at}",
+          "Core gRPC: UpdateBoardNode — {node_id, title?, body?} → {updated_fields}",
+          "Core gRPC: DeleteBoardNode — {node_id} → {success, detached_children}",
+          "Core gRPC: MoveBoardNode — {node_id, position_x, position_y, new_parent_id?} → {parent_changed}",
+          "Core gRPC: ResizeBoardGroup — {node_id, width, height} → {success}",
+          "Core gRPC: CreateBoardConnection — {idea_id, source_node_id, target_node_id, label?} → {connection_id}",
+          "Core gRPC: UpdateBoardConnection — {connection_id, label} → {success}",
+          "Core gRPC: DeleteBoardConnection — {connection_id} → {success}"
+        ],
+        "test_cases": [
+          "T-2.17.01 | AI Agent | Board Agent creates one topic per box | Board instructions with multiple topics | Separate boxes per topic | P1",
+          "T-2.17.02 | AI Agent | Board Agent uses bullet-point format for body | Box creation instruction | Body contains bullet points | P2",
+          "T-2.17.03 | AI Agent | Board Agent organizes boxes into groups | Multiple boxes exist | Group node created containing boxes | P2"
+        ],
+        "ai_specs": [
+          "Board Agent — model: default tier (from admin params), max_auto_invoke_attempts: 10, tools: 8 board manipulation functions, mode: spatial reasoning — see agent-architecture.md § S3.2"
+        ],
+        "existing_code": [
+          "services/ai/agents/base.py: BaseAgent.process() — async entry, dispatches to _execute() or _load_mock_response()",
+          "services/ai/kernel/sk_factory.py: create_kernel() — creates SK Kernel with AzureChatCompletion service",
+          "services/ai/grpc_clients/core_client.py: CoreClient — async gRPC client for Core service",
+          "services/ai/events/publishers.py: publish_event() — publishes events to in-memory list (M7 stub)"
+        ]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "request_board_changes Tool (Facilitator)",
+      "description": "As the Facilitator AI, I want to delegate board modification instructions to the Board Agent so that I can update the digital board based on brainstorming content.",
+      "acceptanceCriteria": [
+        "Add request_board_changes tool to FacilitatorPlugin with semantic intent schema from tools-and-functions.md § 6",
+        "Tool accepts instructions array with intent, description, suggested_title, suggested_content, target, related_to, suggested_group, etc.",
+        "Tool stores instructions on plugin instance (self.board_instructions) and returns {accepted: true, instruction_count: N}",
+        "Tool is non-blocking — returns immediately, does not wait for Board Agent execution",
+        "ChatProcessingPipeline Step 5 reads plugin.board_instructions after Facilitator invocation",
+        "Pipeline invokes BoardAgent with instructions + current board state loaded from GetBoardState gRPC",
+        "Board mutations publish ai.board.updated events with mutation details",
+        "Mock mode: instructions logged but Board Agent not invoked (M7 pattern)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Core gRPC — GetBoardState RPC for loading current board\nAI: docs/03-ai/tools-and-functions.md § 6. request_board_changes — exact tool schema with intent enum\nAI: docs/03-ai/agent-architecture.md § S4.1 Step 4 — Board Agent invocation after Facilitator completes\nTesting: Covered by T-2.17.* tests (Board Agent creates content from instructions)\nFiles: services/ai/agents/facilitator/plugins.py, services/ai/processing/pipeline.py\nGotchas: This is an async handoff — the tool returns immediately, Board Agent executes later. The Facilitator's SK loop completes before board changes happen. Board state must be fresh when Board Agent runs (load via gRPC at Step 5, not cached from Step 1).\nDeviations: M7 had board changes stubbed in pipeline. This story implements the real Board Agent invocation.",
+      "context": {
+        "data_model": [],
+        "api_endpoints": [
+          "Core gRPC: GetBoardState — {idea_id} → {nodes: [{id, type, title, body, position_x, position_y, width, height, parent_id, is_locked}], connections: [{id, source_node_id, target_node_id, label}]}"
+        ],
+        "test_cases": [],
+        "ai_specs": [
+          "request_board_changes tool — intent enum: add_topic, update_topic, remove_topic, reorganize, add_relationship, update_relationship, remove_relationship — see tools-and-functions.md § 6"
+        ],
+        "existing_code": [
+          "services/ai/agents/facilitator/plugins.py: FacilitatorPlugin — existing plugin with 5 tools, add 6th",
+          "services/ai/processing/pipeline.py: ChatProcessingPipeline._step_board_agent() — currently logs stub, replace with real invocation"
+        ]
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "Context Agent Implementation",
+      "description": "As the AI system, I want a RAG retrieval agent that searches company context chunks via pgvector so that I can answer company-specific questions grounded in the knowledge base.",
+      "acceptanceCriteria": [
+        "ContextAgent class inherits from BaseAgent and implements async _execute() method",
+        "System prompt renders from build_system_prompt() template with query, retrieved chunks, and grounding rules",
+        "Agent input: {query: str, idea_id: str}",
+        "Agent invokes Retriever.retrieve() with query → gets top_k chunks via pgvector cosine similarity",
+        "Chunks injected into prompt as <retrieved_context> with chunk_text + source_section",
+        "Agent generates response citing only retrieved chunks, refuses to fabricate if no relevant chunks",
+        "Agent output: {response: str, chunks_used: [chunk_ids]}",
+        "Uses default model tier",
+        "Mock mode loads fixture from fixtures/context_agent_response.json",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "testIds": ["T-2.15.01", "T-2.15.03"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § context_chunks — chunked context with pgvector embeddings\nAI: docs/03-ai/agent-architecture.md § S3.3 — Context Agent architecture, RAG retrieval mode, grounding rules\nAI: docs/03-ai/system-prompts.md § 4. Context Agent — full system prompt template with citation rules\nTesting: docs/04-test-architecture/test-matrix.md § T-2.15.01, T-2.15.03 — delegation and grounding tests\nFiles: services/ai/agents/context_agent/agent.py, services/ai/agents/context_agent/prompt.py, services/ai/embedding/retriever.py, services/ai/fixtures/context_agent_response.json\nGotchas: Context Agent must refuse to answer if no relevant chunks retrieved (grounding rule). The retriever uses pgvector cosine similarity search with admin-configurable threshold (context_rag_min_similarity, default 0.7) and top_k (context_rag_top_k, default 5).",
+      "context": {
+        "data_model": [
+          "context_chunks: id uuid PK, bucket_id uuid FK, chunk_index int, chunk_text text, token_count int, embedding vector(1536), source_section varchar(100), UNIQUE(bucket_id, chunk_index) — see data-model.md § context_chunks"
+        ],
+        "api_endpoints": [],
+        "test_cases": [
+          "T-2.15.01 | AI Agent | Facilitator delegates to Context Agent | Question about company systems | delegate_to_context_agent tool called | P1",
+          "T-2.15.03 | AI Agent | Context Agent grounded in retrieved chunks | RAG query with matching chunks | Response cites chunk content only | P1"
+        ],
+        "ai_specs": [
+          "Context Agent — model: default tier, tools: none, mode: RAG retrieval + grounding, refuses to fabricate — see agent-architecture.md § S3.3"
+        ],
+        "existing_code": [
+          "services/ai/agents/base.py: BaseAgent.process() — async entry point",
+          "services/ai/kernel/sk_factory.py: create_kernel() — SK Kernel factory",
+          "services/ai/apps/embedding/models.py: ContextChunk — Django model with pgvector field"
+        ]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "Context Chunks Embedding Pipeline",
+      "description": "As the system, I want to chunk, embed, and index company context from the context_agent_bucket so that the Context Agent can retrieve relevant information via RAG.",
+      "acceptanceCriteria": [
+        "Chunker.chunk() reads context_agent_bucket (sections jsonb + free_text), splits into chunks with max_tokens and overlap (from admin params or defaults)",
+        "Section-aware chunking: each section key becomes source_section, free_text has source_section=null",
+        "Embedder.embed() calls Azure OpenAI text-embedding-3-small (or configured embedding model) via SK",
+        "Embedder returns list of {chunk_text, token_count, embedding: vector(1536), source_section}",
+        "Reindexer.reindex() deletes all existing context_chunks rows and inserts new chunked+embedded data",
+        "Triggered via gRPC UpdateContextAgentBucket RPC (called by admin UI, implemented in ai service)",
+        "Reindexer logs chunk count, total tokens, re-index duration",
+        "Error handling: if embedding fails, log error, raise exception (no partial updates)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/data-model.md § context_agent_bucket, context_chunks — bucket schema and chunk schema\nAI: docs/03-ai/agent-architecture.md § S6.3 — embedding pipeline design, chunking strategy, re-index on bucket update\nTesting: No dedicated test IDs (infrastructure tested indirectly via Context Agent retrieval)\nFiles: services/ai/embedding/chunker.py, services/ai/embedding/embedder.py, services/ai/embedding/reindexer.py, services/ai/grpc_server/servicers/context_servicer.py\nGotchas: Entire context_chunks table is rebuilt on bucket update (DELETE + INSERT, no incremental). Chunk size and overlap should read admin params with fallbacks (e.g., max_chunk_tokens: 512, chunk_overlap: 50). pgvector dimension is 1536 for text-embedding-3-small.\nDeviations: Admin UI for bucket management comes in M15. For M8, bucket updates happen via direct DB or test fixtures. The gRPC RPC should still be implemented for future UI integration.",
+      "context": {
+        "data_model": [
+          "context_agent_bucket: id uuid PK, sections jsonb, free_text text, updated_by uuid FK, updated_at timestamptz — singleton, see data-model.md § context_agent_bucket",
+          "context_chunks: id uuid PK, bucket_id uuid FK, chunk_index int, chunk_text text, token_count int, embedding vector(1536), source_section varchar(100) — see data-model.md § context_chunks"
+        ],
+        "api_endpoints": [
+          "AI gRPC: UpdateContextAgentBucket — {sections: jsonb, free_text: text} → {chunk_count, total_tokens, duration_ms}"
+        ],
+        "test_cases": [],
+        "ai_specs": [
+          "Embedding model: text-embedding-3-small (dimension 1536), chunking: max 512 tokens, overlap 50 tokens (configurable via admin params) — see agent-architecture.md § S6.3"
+        ],
+        "existing_code": [
+          "services/ai/apps/embedding/models.py: ContextChunk, ContextAgentBucket — Django models with pgvector support",
+          "services/ai/kernel/sk_factory.py: create_kernel() — can be extended to add embedding service"
+        ]
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "delegate_to_context_agent Tool (Facilitator)",
+      "description": "As the Facilitator AI, I want to delegate company-specific queries to the Context Agent so that I can provide grounded, accurate answers from the knowledge base.",
+      "acceptanceCriteria": [
+        "Add delegate_to_context_agent tool to FacilitatorPlugin with query parameter (string, precise description)",
+        "Tool validation: context_agent_bucket must have content (sections not empty or free_text not empty), return error if empty",
+        "Tool stores query on plugin instance (self.delegation_query, self.delegation_type='context_agent') and returns {delegation_id: uuid, status: 'queued'}",
+        "Tool is non-blocking — returns immediately",
+        "ChatProcessingPipeline Step 4 detects delegation_query presence, invokes ContextAgent with query + idea_id",
+        "ContextAgent returns {response, chunks_used}",
+        "Pipeline re-invokes Facilitator with <delegation_results> injected into prompt containing Context Agent's response",
+        "After second Facilitator pass, publish ai.delegation.complete event to de-emphasize delegation message",
+        "Mock mode: delegation logged but Context Agent not invoked (returns empty findings)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "testIds": ["T-2.15.01", "T-2.15.02"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § AI gRPC — no new RPC needed, pipeline internal\nAI: docs/03-ai/tools-and-functions.md § 4. delegate_to_context_agent — exact tool schema\nAI: docs/03-ai/agent-architecture.md § S4.1 Step 3a — Context Agent delegation flow\nDesign: docs/03-design/component-specs.md § 5.3 — delegation message de-emphasis\nTesting: docs/04-test-architecture/test-matrix.md § T-2.15.01, T-2.15.02 — delegation trigger and UI feedback\nFiles: services/ai/agents/facilitator/plugins.py, services/ai/processing/pipeline.py\nGotchas: Delegation is a two-pass process — first Facilitator call uses send_chat_message(message_type='delegation'), second call receives Context Agent findings. The original delegation message is de-emphasized after the second pass via ai.delegation.complete event.\nDeviations: M7 stubbed delegation with logs. This story implements the real Context Agent invocation and second Facilitator pass.",
+      "context": {
+        "data_model": [
+          "chat_messages.message_type: CHECK(regular|delegation) — delegation messages are visually de-emphasized — see data-model.md § chat_messages"
+        ],
+        "api_endpoints": [],
+        "components": [
+          "Delegation message — opacity-60, italic, lighter border, de-emphasizes after real response — see component-specs.md § 5.3"
+        ],
+        "test_cases": [
+          "T-2.15.01 | AI Agent | Facilitator delegates to Context Agent | Question about company systems | delegate_to_context_agent tool called | P1",
+          "T-2.15.02 | Unit | Delegation message shows 'researching' placeholder | delegation message_type received | De-emphasized message visible | P1"
+        ],
+        "ai_specs": [
+          "delegate_to_context_agent tool — validates bucket not empty, queues Context Agent invocation, non-blocking — see tools-and-functions.md § 4"
+        ],
+        "existing_code": [
+          "services/ai/agents/facilitator/plugins.py: FacilitatorPlugin — add as 7th tool (after request_board_changes)",
+          "services/ai/processing/pipeline.py: ChatProcessingPipeline._step_delegation() — currently stubbed, replace with real Context Agent invocation"
+        ]
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "Context Extension Agent Implementation",
+      "description": "As the AI system, I want an agent that searches full uncompressed chat history so that I can retrieve specific conversation details lost to compression.",
+      "acceptanceCriteria": [
+        "ContextExtensionAgent class inherits from BaseAgent and implements async _execute() method",
+        "System prompt renders from build_system_prompt() template with query, full chat history, and retrieval rules",
+        "Agent input: {query: str, idea_id: str}",
+        "Agent loads full chat history via CoreClient.get_full_chat_history() gRPC",
+        "Full history injected into prompt as chronological message list (user + AI messages)",
+        "Agent extracts relevant detail from history, cites message timestamps",
+        "Agent output: {response: str, messages_cited: [message_ids]}",
+        "Uses escalated model tier (larger context window for full history)",
+        "Timeout: 90s (1.5× ai_processing_timeout)",
+        "Mock mode loads fixture from fixtures/context_extension_response.json",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Core gRPC — GetFullChatHistory RPC returns all uncompressed messages\nAI: docs/03-ai/agent-architecture.md § S3.4 — Context Extension architecture, escalated model tier, timeout\nAI: docs/03-ai/system-prompts.md § 5. Context Extension — full system prompt template\nTesting: No dedicated test IDs (tested indirectly via delegate_to_context_extension)\nFiles: services/ai/agents/context_extension/agent.py, services/ai/agents/context_extension/prompt.py, services/ai/fixtures/context_extension_response.json\nGotchas: Context Extension uses escalated_ai_model (from admin params) which has larger context window. Full chat history can be large (thousands of messages) — model must handle this. If GetFullChatHistory gRPC fails, return error to Facilitator.",
+      "context": {
+        "data_model": [
+          "chat_messages: id uuid PK, idea_id uuid FK, sender_type varchar CHECK(user|ai), content text, created_at timestamptz — immutable append-only — see data-model.md § chat_messages"
+        ],
+        "api_endpoints": [
+          "Core gRPC: GetFullChatHistory — {idea_id} → {messages: [{id, sender_type, sender_id, ai_agent, content, created_at}]}"
+        ],
+        "test_cases": [],
+        "ai_specs": [
+          "Context Extension — model: escalated tier (larger context), tools: none, mode: full history search, timeout: 90s — see agent-architecture.md § S3.4"
+        ],
+        "existing_code": [
+          "services/ai/agents/base.py: BaseAgent.process() — async entry point",
+          "services/ai/kernel/sk_factory.py: create_kernel() — add escalated_deployment_name parameter",
+          "services/ai/grpc_clients/core_client.py: CoreClient — add get_full_chat_history() method"
+        ]
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "delegate_to_context_extension Tool (Facilitator)",
+      "description": "As the Facilitator AI, I want to delegate to Context Extension when users reference old conversation details so that I can retrieve lost information from compressed context.",
+      "acceptanceCriteria": [
+        "Add delegate_to_context_extension tool to FacilitatorPlugin with query parameter (string, precise description)",
+        "Tool validation: chat_context_summaries must exist for this idea (no_compressed_context error if absent)",
+        "Tool stores query on plugin instance (self.delegation_query, self.delegation_type='context_extension') and returns {delegation_id: uuid, status: 'queued'}",
+        "Tool is non-blocking — returns immediately",
+        "ChatProcessingPipeline Step 4 detects delegation_type='context_extension', invokes ContextExtensionAgent with query + idea_id",
+        "ContextExtensionAgent returns {response, messages_cited}",
+        "Pipeline re-invokes Facilitator with <extension_results> injected into prompt",
+        "After second Facilitator pass, publish ai.delegation.complete event",
+        "If GetFullChatHistory fails, pipeline logs error, re-invokes Facilitator with error message in <extension_results>",
+        "Mock mode: delegation logged but Context Extension not invoked (returns empty findings)",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/data-model.md § chat_context_summaries — compression tracking table\nAI: docs/03-ai/tools-and-functions.md § 5. delegate_to_context_extension — exact tool schema\nAI: docs/03-ai/agent-architecture.md § S4.1 Step 3b — Context Extension delegation flow\nTesting: No dedicated test IDs (infrastructure for future features)\nFiles: services/ai/agents/facilitator/plugins.py, services/ai/processing/pipeline.py\nGotchas: Context Extension is only useful if compression has occurred. If no chat_context_summaries row exists, the tool should return an error (all messages are already in recent_messages, no need for extension). Timeout for Context Extension is longer (90s) than default (60s).",
+      "context": {
+        "data_model": [
+          "chat_context_summaries: id uuid PK, idea_id uuid FK, summary_text text, messages_covered_up_to_id uuid FK, compression_iteration int — see data-model.md § chat_context_summaries"
+        ],
+        "api_endpoints": [],
+        "test_cases": [],
+        "ai_specs": [
+          "delegate_to_context_extension tool — validates compression exists, queues Context Extension invocation, non-blocking, 90s timeout — see tools-and-functions.md § 5"
+        ],
+        "existing_code": [
+          "services/ai/agents/facilitator/plugins.py: FacilitatorPlugin — add as 8th tool",
+          "services/ai/processing/pipeline.py: ChatProcessingPipeline._step_delegation() — extend to handle delegation_type routing"
+        ]
+      }
+    },
+    {
+      "id": "US-008",
+      "title": "Context Compression Agent Implementation",
+      "description": "As the AI system, I want to summarize older chat messages into compressed context so that I can maintain conversation continuity without exceeding token limits.",
+      "acceptanceCriteria": [
+        "ContextCompressionAgent class inherits from BaseAgent and implements async _execute() method",
+        "System prompt renders from build_system_prompt() template with previous summary (if exists), new messages to compress, and compression rules",
+        "Agent input: {idea_id: str, messages_to_compress: [messages], previous_summary: str|null}",
+        "Incremental compression: new summary = previous summary + new messages, re-summarized",
+        "Agent generates concise summary preserving key decisions, user names, and topic threads",
+        "Agent output: {summary_text: str, compression_iteration: int, context_window_usage: float}",
+        "Summary persisted to chat_context_summaries table via CoreClient gRPC (upsert)",
+        "Compression triggered by ChatProcessingPipeline Step 6 when context utilization > threshold (default 60%)",
+        "Uses default model tier",
+        "Mock mode loads fixture from fixtures/context_compression_response.json",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "testIds": ["T-2.14.03"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § chat_context_summaries — incremental summary storage\nAI: docs/03-ai/agent-architecture.md § S3.8, S6.2 — Context Compression architecture, incremental strategy\nAI: docs/03-ai/system-prompts.md § 9. Context Compression — full system prompt template\nTesting: docs/04-test-architecture/test-matrix.md § T-2.14.03 — compression triggers at threshold\nFiles: services/ai/agents/context_compression/agent.py, services/ai/agents/context_compression/prompt.py, services/ai/processing/pipeline.py, services/ai/fixtures/context_compression_response.json\nGotchas: Compression is incremental — each iteration builds on the previous summary. Original messages always preserved in chat_messages (immutable). Context window usage check happens at Step 6 of pipeline (after Facilitator response, before publish complete). Threshold is admin-configurable (context_compression_threshold, default 60%).",
+      "context": {
+        "data_model": [
+          "chat_context_summaries: id uuid PK, idea_id uuid FK, summary_text text, messages_covered_up_to_id uuid FK, compression_iteration int, context_window_usage_at_compression float — see data-model.md § chat_context_summaries"
+        ],
+        "api_endpoints": [
+          "Core gRPC: UpsertContextSummary — {idea_id, summary_text, messages_covered_up_to_id, compression_iteration, context_window_usage} → {success}"
+        ],
+        "test_cases": [
+          "T-2.14.03 | AI Agent | Compression triggers at threshold | Context utilization > 60% | Context Compression agent invoked | P1"
+        ],
+        "ai_specs": [
+          "Context Compression — model: default tier, tools: none, mode: incremental summarization, trigger: context utilization > 60% — see agent-architecture.md § S3.8"
+        ],
+        "existing_code": [
+          "services/ai/agents/base.py: BaseAgent.process() — async entry point",
+          "services/ai/processing/pipeline.py: ChatProcessingPipeline — add compression check to Step 6",
+          "services/ai/grpc_clients/core_client.py: CoreClient — add upsert_context_summary() method"
+        ]
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "Keyword Agent Implementation",
+      "description": "As the AI system, I want to extract abstract keywords from idea content after each processing cycle so that I can enable similarity detection via keyword matching.",
+      "acceptanceCriteria": [
+        "KeywordAgent class inherits from BaseAgent and implements async _execute() method",
+        "System prompt renders from build_system_prompt() template with idea title, chat summary, board content, and extraction rules",
+        "Agent input: {idea_id: str, title: str, chat_summary: str, board_content: str}",
+        "Agent extracts max 20 single-word abstract keywords (configurable via max_keywords_per_idea admin param)",
+        "Keywords are lowercase, no duplicates, sorted alphabetically",
+        "Agent output: {keywords: [string]}",
+        "Keywords persisted to idea_keywords table via CoreClient gRPC (upsert)",
+        "After keyword upsert, trigger idea embedding generation via IdeaEmbedder.generate()",
+        "Invoked by ChatProcessingPipeline at end of Step 6 (after compression check, before publish complete)",
+        "Uses default model tier",
+        "Mock mode loads fixture from fixtures/keyword_agent_response.json",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "testIds": ["T-5.1.01", "T-5.1.02", "T-5.1.03"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § idea_keywords — keyword storage, array field\nAI: docs/03-ai/agent-architecture.md § S3.6, S6.4 — Keyword Agent architecture, extraction rules, embedding generation trigger\nAI: docs/03-ai/system-prompts.md § 7. Keyword Agent — full system prompt template\nTesting: docs/04-test-architecture/test-matrix.md § T-5.1.01, T-5.1.02, T-5.1.03 — keyword extraction tests\nFiles: services/ai/agents/keyword_agent/agent.py, services/ai/agents/keyword_agent/prompt.py, services/ai/embedding/idea_embedder.py, services/ai/processing/pipeline.py, services/ai/fixtures/keyword_agent_response.json\nGotchas: Keywords are used by M13 (Similarity) for background matching. Idea embeddings are generated after keywords are saved. The Keyword Agent runs as the final sub-step of Step 6 (after compression, before event publish). Deep Comparison agent (which uses keywords + embeddings) comes in M13.",
+      "context": {
+        "data_model": [
+          "idea_keywords: id uuid PK, idea_id uuid FK UNIQUE, keywords varchar[], last_updated_at timestamptz — max 20 keywords, single abstract words — see data-model.md § idea_keywords",
+          "idea_embeddings: id uuid PK, idea_id uuid FK UNIQUE, embedding vector(1536), source_text_hash varchar(64) — generated after keywords saved — see data-model.md § idea_embeddings"
+        ],
+        "api_endpoints": [
+          "Core gRPC: UpsertKeywords — {idea_id, keywords: [string]} → {success}",
+          "AI internal: IdeaEmbedder.generate() — generates idea embedding from title + chat summary + board content, persists to idea_embeddings"
+        ],
+        "test_cases": [
+          "T-5.1.01 | AI Agent | Keyword Agent extracts keywords | Chat with clear direction | JSON array of keyword strings | P1",
+          "T-5.1.02 | AI Agent | Keywords capped at max_keywords_per_idea | Input with many topics | Array length ≤ 20 | P1",
+          "T-5.1.03 | AI Agent | Keywords are single abstract words | Any input | Each keyword is single word | P1"
+        ],
+        "ai_specs": [
+          "Keyword Agent — model: default tier, tools: none, mode: keyword extraction, max: 20 keywords (admin param), single abstract words — see agent-architecture.md § S3.6"
+        ],
+        "existing_code": [
+          "services/ai/agents/base.py: BaseAgent.process() — async entry point",
+          "services/ai/processing/pipeline.py: ChatProcessingPipeline._step_publish_complete() — add keyword agent invocation before event publish",
+          "services/ai/grpc_clients/core_client.py: CoreClient — add upsert_keywords() method"
+        ]
+      }
+    },
+    {
+      "id": "US-010",
+      "title": "Context Window Indicator (Frontend)",
+      "description": "As a user, I want to see a visual indicator of AI context window usage in the chat panel so that I understand when compression will occur.",
+      "acceptanceCriteria": [
+        "GET /api/ideas/:id/context-window endpoint returns {usage_percentage: float, message_count: int, compression_iterations: int, recent_message_count: int}",
+        "ContextWindowIndicator component renders as 20px filling circle (progress ring) left of chat input",
+        "Circle fill color is primary (gold) proportional to usage_percentage (0-100%)",
+        "At usage < 80%: circle color is text-muted-foreground, fill is primary",
+        "At usage >= 80%: circle color changes to warning (amber) to signal nearing threshold",
+        "Hover tooltip shows: 'Context: X% used, Y messages, Z compressions'",
+        "Component fetches context-window data on mount and every 30s polling interval",
+        "If compression_iterations > 0, tooltip adds line: 'Older messages compressed'",
+        "Component hidden if idea state is not 'open' (no AI processing in review/accepted/dropped)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "testIds": ["T-2.14.01", "T-2.14.02"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/ideas/:id/context-window — endpoint spec\nDesign: docs/03-design/component-specs.md § 5.7 — Context Window Indicator visual spec\nTesting: docs/04-test-architecture/test-matrix.md § T-2.14.01, T-2.14.02 — indicator rendering and hover tooltip\nFiles: frontend/src/components/chat/ContextWindowIndicator.tsx, services/gateway/apps/ideas/views.py (add endpoint)\nGotchas: The endpoint calculates usage % based on current token count vs model context limit (read from admin params). Formula: usage_percentage = (recent_messages_tokens + summary_tokens) / context_window_limit * 100. Verify in browser using dev-browser skill after implementation.",
+      "context": {
+        "data_model": [
+          "chat_messages: message count per idea — see data-model.md § chat_messages",
+          "chat_context_summaries: compression tracking — see data-model.md § chat_context_summaries"
+        ],
+        "api_endpoints": [
+          "GET /api/ideas/:id/context-window — no request body → {usage_percentage: float, message_count: int, compression_iterations: int, recent_message_count: int}"
+        ],
+        "components": [
+          "ContextWindowIndicator — 20px circle, filling progress ring, gold/amber color transition at 80%, tooltip with details — see component-specs.md § 5.7"
+        ],
+        "test_cases": [
+          "T-2.14.01 | Unit | Context window indicator renders with usage percentage | GET /api/ideas:id/context-window response | Circular progress at correct percentage | P1",
+          "T-2.14.02 | Unit | Hover shows context window details | Mouse hover on indicator | Tooltip with message counts | P2"
+        ],
+        "ai_specs": [],
+        "existing_code": [
+          "frontend/src/components/chat/ChatPanel.tsx — add ContextWindowIndicator left of input",
+          "services/gateway/apps/ideas/views.py — add context_window endpoint to IdeaViewSet"
+        ]
+      }
+    }
+  ]
+}
