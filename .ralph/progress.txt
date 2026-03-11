@@ -205,3 +205,14 @@ Started: 2026-03-11T09:17:48+0100
   - The only issue was TEST_INFRASTRUCTURE/DB_LIFECYCLE which was already fixed in US-003 bugfix cycle 1
   - No application code changes needed — just verified and marked as passing
 ---
+
+## US-006: NotificationBell Component (Bugfix Cycle 2)
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (set passes: true)
+- Tests: 639 passed (Python), 403 passed (Node, 1 pre-existing failure in information-gaps-toggle.test.tsx). Typecheck passes. Ruff passes.
+- Learnings for future iterations:
+  - US-006 implementation was already complete from Phase 2 — NotificationBell.tsx, notifications.ts API client, navbar integration, WebSocket event handling all in place
+  - The only issue was TEST_INFRASTRUCTURE/DB_LIFECYCLE which was already fixed in US-003 bugfix cycle 1
+  - No application code changes needed — just verified and marked as passing
+---
