@@ -18,6 +18,7 @@ import { PDFPreview } from "@/components/brd/PDFPreview";
 import { BRDSectionEditor } from "@/components/brd/BRDSectionEditor";
 import { fetchBrdDraft, triggerBrdGeneration, fetchBrdPdf } from "@/api/brd";
 import type { BrdDraft } from "@/api/brd";
+import { SubmitArea } from "@/components/review/SubmitArea";
 
 const TODO_MARKER = "/TODO";
 
@@ -35,10 +36,11 @@ function hasTodoMarkers(draft: BrdDraft): boolean {
 
 interface ReviewTabProps {
   ideaId: string;
+  ideaState?: string;
   disabled?: boolean;
 }
 
-export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
+export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
@@ -217,6 +219,11 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
           </Button>
         )}
       </div>
+
+      {/* Submit Area (visible for open/rejected states) */}
+      {ideaState && (
+        <SubmitArea ideaId={ideaId} ideaState={ideaState} />
+      )}
 
       {/* Slide-in Editor */}
       {brdDraft && (

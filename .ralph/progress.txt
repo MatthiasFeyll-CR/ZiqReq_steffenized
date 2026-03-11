@@ -162,3 +162,18 @@ Started: 2026-03-11T05:56:48+0100
   - screen.getAllByTestId()[1] needs non-null assertion (!) for TypeScript strict mode
   - Pre-existing unhandled error in information-gaps-toggle.test.tsx (URL.createObjectURL) does not affect test results
 ---
+
+## US-010: Submit Flow UI — SubmitArea in Review Tab
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/review/SubmitArea.tsx (new — message textarea, reviewer multi-select, submit button), frontend/src/components/workspace/ReviewTab.tsx (added SubmitArea integration + ideaState prop), frontend/src/components/workspace/WorkspaceLayout.tsx (added ideaState prop passthrough), frontend/src/pages/IdeaWorkspace/index.tsx (pass idea.state to WorkspaceLayout), frontend/src/api/ideas.ts (added submitIdea function + SubmitIdeaResponse type), frontend/src/api/review.ts (added fetchReviewerUsers function + ReviewerUser type), services/gateway/apps/review/views.py (added list_reviewer_users endpoint), services/gateway/apps/review/urls.py (added reviewers route), frontend/src/__tests__/submit-area.test.tsx (new — 10 tests)
+- Tests: 10 new tests passed, 361 total node tests passed, ruff + tsc clean
+- Learnings for future iterations:
+  - SubmitArea visibility controlled by ideaState prop — renders only for 'open' and 'rejected' states
+  - ideaState prop threaded through IdeaWorkspace → WorkspaceLayout → ReviewTab → SubmitArea
+  - Reviewer multi-select uses checkbox list fetched from GET /api/reviews/reviewers (new backend endpoint)
+  - Backend list_reviewer_users filters by roles__contains=["reviewer"] using PostgreSQL array containment
+  - vi.hoisted() pattern used for all mocked functions referenced in vi.mock factories (submitIdea, fetchReviewerUsers, toast)
+  - SubmitArea calls invalidateQueries for ["brd", ideaId], ["idea", ideaId], ["timeline", ideaId] on success
+  - Pre-existing URL.createObjectURL error in information-gaps-toggle.test.tsx is unrelated
+---

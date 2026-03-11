@@ -183,6 +183,7 @@ function IdeaWorkspaceContent({
           }
           reviewVisible={reviewVisible}
           ideaId={idea.id}
+          ideaState={idea.state}
           disabled={!isOnline}
         />
       </div>

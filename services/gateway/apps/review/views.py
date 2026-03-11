@@ -512,6 +512,22 @@ def get_idea_reviewers(request: Request, idea_id: str) -> Response:
     return Response({"reviewers": reviewers})
 
 
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def list_reviewer_users(request: Request) -> Response:
+    """GET /api/reviews/reviewers — List users with reviewer role."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    reviewers = User.objects.filter(roles__contains=["reviewer"]).order_by("display_name")
+    data = [
+        {"id": str(r.id), "display_name": r.display_name, "email": r.email}
+        for r in reviewers
+    ]
+    return Response(data)
+
+
 def _serialize_timeline_entry(entry: ReviewTimelineEntry, author_map: dict) -> dict:
     """Serialize a single timeline entry to dict."""
     author = None

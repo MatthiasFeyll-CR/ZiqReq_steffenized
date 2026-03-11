@@ -438,7 +438,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "UI-SUBMIT.01",
         "UI-SUBMIT.02",
