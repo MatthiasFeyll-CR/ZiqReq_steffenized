@@ -38,3 +38,18 @@ Started: 2026-03-11T05:56:48+0100
   - docker compose build gate check requires docker-compose.yml which doesn't exist (only docker-compose.test.yml) — pre-existing
   - User model has `roles` ArrayField — use roles=["user", "reviewer"] for reviewer users in tests
 ---
+
+## US-002: Self-Assignment & Unassignment API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/review/views.py (added assign_review, unassign_review, _require_reviewer), services/gateway/apps/review/urls.py (added assign/unassign routes), services/gateway/apps/review/tests/test_review_assignments.py (new — 13 tests)
+- Tests: 13 passed, 0 failed — covers T-10.3.01, T-10.3.02, T-10.4.01, API-REVIEW.03, API-REVIEW.04, API-REVIEW.05 plus co-owner conflict, reassign after unassign, invalid states, not-found cases
+- Learnings for future iterations:
+  - Review app URLs are mounted at /api/reviews/ in gateway/urls.py — use <str:idea_id>/assign and <str:idea_id>/unassign
+  - _require_reviewer helper checks user.roles for "reviewer" — reuse for all reviewer-only endpoints
+  - Duplicate assignment check: filter by unassigned_at__isnull=True (active assignments only)
+  - Reassign after unassign creates a new ReviewAssignment row (old one keeps unassigned_at timestamp)
+  - django.utils.timezone.now() used for setting unassigned_at timestamp
+  - Test infrastructure requires rebuild (docker compose build python-tests) when adding new test files
+  - Node tests have 1 pre-existing error in information-gaps-toggle.test.tsx — not caused by backend changes
+---

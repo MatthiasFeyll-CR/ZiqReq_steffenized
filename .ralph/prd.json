@@ -75,7 +75,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-10.3.01",
         "T-10.3.02",
