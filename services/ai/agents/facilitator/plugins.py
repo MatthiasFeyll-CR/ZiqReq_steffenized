@@ -1,4 +1,4 @@
-"""Facilitator agent SK plugins (6 tools).
+"""Facilitator agent SK plugins (7 tools).
 
 Each method is decorated with @kernel_function so SK registers it as a
 callable tool for the Azure OpenAI function-calling loop.
@@ -142,13 +142,21 @@ class FacilitatorPlugin:
         name="delegate_to_context_agent",
         description=(
             "Delegate to the Context Agent to retrieve company-specific information "
-            "from the knowledge base."
+            "from the knowledge base. Only call this when the user asks about "
+            "company-specific systems, processes, or policies."
         ),
     )
     async def delegate_to_context_agent(self, query: str) -> dict[str, Any]:
         """Publish ai.delegation.started event (non-blocking)."""
         if not query or not query.strip():
             return _error_response("validation_error", "Query must not be empty.")
+
+        # Validate that context_agent_bucket has content
+        if not self._context_bucket_has_content():
+            return _error_response(
+                "no_context_available",
+                "The knowledge base is empty. No company context has been configured.",
+            )
 
         delegation_id = str(uuid.uuid4())
         self.delegations.append({
@@ -178,6 +186,14 @@ class FacilitatorPlugin:
         if not query or not query.strip():
             return _error_response("validation_error", "Query must not be empty.")
 
+        # Validate that compression has occurred for this idea
+        if not self._has_compressed_context():
+            return _error_response(
+                "no_compressed_context",
+                "No compressed context exists for this idea. All messages are already "
+                "available in recent context — no need for context extension.",
+            )
+
         delegation_id = str(uuid.uuid4())
         self.delegations.append({
             "delegation_id": delegation_id,
@@ -199,27 +215,74 @@ class FacilitatorPlugin:
         description=(
             "Submit board modification instructions for the Board Agent to execute. "
             "Express SEMANTIC INTENT — describe what content to add, update, or "
-            "reorganize and why."
+            "reorganize and why. Reference board items by title. The Board Agent "
+            "handles all spatial layout, grouping, and positioning. Only call this "
+            "when the brainstorming has produced content that should be captured or "
+            "restructured on the board."
         ),
     )
     async def request_board_changes(
         self,
         instructions: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        """Accept board change instructions. Board Agent stub in M7."""
+        """Accept board change instructions for Board Agent execution."""
         if not instructions:
             return _error_response(
                 "validation_error", "At least one instruction is required."
             )
 
+        valid_intents = {
+            "add_topic", "update_topic", "remove_topic", "reorganize",
+            "add_relationship", "update_relationship", "remove_relationship",
+        }
+
+        for i, instr in enumerate(instructions):
+            intent = instr.get("intent")
+            if not intent or intent not in valid_intents:
+                return _error_response(
+                    "validation_error",
+                    f"Instruction {i}: invalid or missing intent '{intent}'. "
+                    f"Must be one of: {', '.join(sorted(valid_intents))}.",
+                )
+            if not instr.get("description"):
+                return _error_response(
+                    "validation_error",
+                    f"Instruction {i}: 'description' is required.",
+                )
+
         self.board_instructions.extend(instructions)
         logger.info(
-            "Board changes requested for idea %s: %d instructions (Board Agent stub — M7)",
+            "Board changes requested for idea %s: %d instructions",
             self.idea_id,
             len(instructions),
         )
 
         return {"accepted": True, "instruction_count": len(instructions)}
+
+    def _has_compressed_context(self) -> bool:
+        """Check if chat_context_summaries exist for this idea."""
+        try:
+            from apps.context.models import ChatContextSummary
+
+            return ChatContextSummary.objects.filter(idea_id=self.idea_id).exists()
+        except Exception:
+            logger.warning("Failed to check chat_context_summaries — assuming none exist")
+            return False
+
+    def _context_bucket_has_content(self) -> bool:
+        """Check if the context_agent_bucket singleton has any content."""
+        try:
+            from apps.context.models import ContextAgentBucket
+
+            bucket = ContextAgentBucket.objects.first()
+            if bucket is None:
+                return False
+            has_sections = bool(bucket.sections)
+            has_free_text = bool(bucket.free_text and bucket.free_text.strip())
+            return has_sections or has_free_text
+        except Exception:
+            logger.warning("Failed to check context_agent_bucket — assuming empty")
+            return False
 
 
 def _validate_board_refs(content: str, board_state: dict[str, Any]) -> str:

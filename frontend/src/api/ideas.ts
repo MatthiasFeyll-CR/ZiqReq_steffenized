@@ -159,3 +159,21 @@ export async function restoreIdea(id: string): Promise<void> {
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
   }
 }
+
+export interface ContextWindowData {
+  usage_percentage: number;
+  message_count: number;
+  compression_iterations: number;
+  recent_message_count: number;
+}
+
+export async function fetchContextWindow(ideaId: string): Promise<ContextWindowData> {
+  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/context-window`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}

@@ -4,6 +4,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { sendChatMessage, type ChatMessage } from "@/api/chat";
 import { MentionDropdown, type MentionItem } from "./MentionDropdown";
+import { ContextWindowIndicator } from "./ContextWindowIndicator";
 import type { Idea } from "@/api/ideas";
 
 interface ChatInputProps {
@@ -240,10 +241,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
 
   return (
     <div ref={containerRef} className="relative border-t bg-card p-3 flex items-end gap-2" data-testid="chat-input">
-      <div
-        className="w-5 h-5 rounded-full border border-muted-foreground flex-shrink-0 mb-1.5"
-        title={t("chat.contextPlaceholder", "Context tracking (M7)")}
-      />
+      <ContextWindowIndicator ideaId={ideaId} ideaState={idea?.state ?? "open"} />
       <div className="relative flex-1">
         {mentionOpen && (
           <MentionDropdown

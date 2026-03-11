@@ -534,10 +534,13 @@ class TestDelegation:
     @pytest.mark.asyncio
     async def test_delegate_to_context_agent(self):
         """T-2.15.01: delegate_to_context_agent publishes ai.delegation.started."""
+        from unittest.mock import patch
+
         plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.delegate_to_context_agent(
-            query="What document management system does Commerz Real use?"
-        )
+        with patch.object(plugin, "_context_bucket_has_content", return_value=True):
+            result = await plugin.delegate_to_context_agent(
+                query="What document management system does Commerz Real use?"
+            )
         assert result["status"] == "queued"
         assert "delegation_id" in result
 
@@ -550,10 +553,13 @@ class TestDelegation:
     @pytest.mark.asyncio
     async def test_delegate_to_context_extension(self):
         """delegate_to_context_extension publishes ai.delegation.started."""
+        from unittest.mock import patch
+
         plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.delegate_to_context_extension(
-            query="What did Lisa say about digital signatures?"
-        )
+        with patch.object(plugin, "_has_compressed_context", return_value=True):
+            result = await plugin.delegate_to_context_extension(
+                query="What did Lisa say about digital signatures?"
+            )
         assert result["status"] == "queued"
         assert "delegation_id" in result
 
@@ -568,6 +574,79 @@ class TestDelegation:
         result = await plugin.delegate_to_context_agent(query="")
         assert "error" in result
 
+    @pytest.mark.asyncio
+    async def test_delegation_empty_bucket_rejected(self):
+        """T-2.15.02: delegate_to_context_agent returns error when bucket is empty."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_context_bucket_has_content", return_value=False):
+            result = await plugin.delegate_to_context_agent(
+                query="What system does the company use?"
+            )
+        assert "error" in result
+        assert result["error"]["code"] == "no_context_available"
+        assert len(get_published_events()) == 0
+
+    @pytest.mark.asyncio
+    async def test_delegate_to_context_extension_empty_query_rejected(self):
+        """delegate_to_context_extension with empty query returns error."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.delegate_to_context_extension(query="")
+        assert "error" in result
+        assert result["error"]["code"] == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_delegate_to_context_extension_no_compressed_context_rejected(self):
+        """delegate_to_context_extension returns error when no compression exists."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_has_compressed_context", return_value=False):
+            result = await plugin.delegate_to_context_extension(
+                query="What did Lisa say about digital signatures?"
+            )
+        assert "error" in result
+        assert result["error"]["code"] == "no_compressed_context"
+        assert len(get_published_events()) == 0
+
+    @pytest.mark.asyncio
+    async def test_delegate_to_context_extension_with_compressed_context_succeeds(self):
+        """delegate_to_context_extension succeeds when compression exists."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_has_compressed_context", return_value=True):
+            result = await plugin.delegate_to_context_extension(
+                query="What did Lisa say about digital signatures?"
+            )
+        assert result["status"] == "queued"
+        assert "delegation_id" in result
+        assert plugin.delegations[0]["delegation_type"] == "context_extension"
+
+        events = get_published_events()
+        assert len(events) == 1
+        assert events[0]["event_type"] == "ai.delegation.started"
+        assert events[0]["delegation_type"] == "context_extension"
+
+    @pytest.mark.asyncio
+    async def test_delegation_with_bucket_content_succeeds(self):
+        """delegate_to_context_agent succeeds when bucket has content."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_context_bucket_has_content", return_value=True):
+            result = await plugin.delegate_to_context_agent(
+                query="What document management system is used?"
+            )
+        assert result["status"] == "queued"
+        assert "delegation_id" in result
+        assert plugin.delegations[0]["delegation_type"] == "context_agent"
+
+        events = get_published_events()
+        assert len(events) == 1
+        assert events[0]["event_type"] == "ai.delegation.started"
+
 
 # ── request_board_changes ──
 
@@ -575,7 +654,7 @@ class TestDelegation:
 class TestBoardChanges:
     @pytest.mark.asyncio
     async def test_request_board_changes_accepted(self):
-        """request_board_changes returns accepted (Board Agent stub in M7)."""
+        """request_board_changes returns accepted with valid intent and description."""
         plugin = FacilitatorPlugin(idea_id="idea-1")
         result = await plugin.request_board_changes(
             instructions=[{"intent": "add_topic", "description": "Add pain point about manual approvals"}]
@@ -589,6 +668,72 @@ class TestBoardChanges:
         plugin = FacilitatorPlugin(idea_id="idea-1")
         result = await plugin.request_board_changes(instructions=[])
         assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_invalid_intent_rejected(self):
+        """Instructions with invalid intent are rejected."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"intent": "invalid_intent", "description": "Test"}]
+        )
+        assert "error" in result
+        assert "invalid or missing intent" in result["error"]["message"]
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_missing_intent_rejected(self):
+        """Instructions without intent field are rejected."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"description": "Test without intent"}]
+        )
+        assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_missing_description_rejected(self):
+        """Instructions without description field are rejected."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"intent": "add_topic"}]
+        )
+        assert "error" in result
+        assert "'description' is required" in result["error"]["message"]
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_all_intents_accepted(self):
+        """All valid intent types are accepted."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        valid_intents = [
+            "add_topic", "update_topic", "remove_topic", "reorganize",
+            "add_relationship", "update_relationship", "remove_relationship",
+        ]
+        instructions = [{"intent": i, "description": f"Test {i}"} for i in valid_intents]
+        result = await plugin.request_board_changes(instructions=instructions)
+        assert result["accepted"] is True
+        assert result["instruction_count"] == len(valid_intents)
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_stores_on_plugin(self):
+        """Instructions are stored on plugin instance for pipeline to read."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        await plugin.request_board_changes(
+            instructions=[
+                {"intent": "add_topic", "description": "First", "suggested_title": "Pain Points"},
+                {"intent": "add_relationship", "description": "Second", "related_to": ["Pain Points"]},
+            ]
+        )
+        assert len(plugin.board_instructions) == 2
+        assert plugin.board_instructions[0]["suggested_title"] == "Pain Points"
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_nonblocking(self):
+        """Tool returns immediately without waiting for Board Agent."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"intent": "add_topic", "description": "Test"}]
+        )
+        # Returns accepted immediately — no mutation data (Board Agent runs later in pipeline)
+        assert result == {"accepted": True, "instruction_count": 1}
+        assert "mutations" not in result
 
 
 # ── FacilitatorAgent mock mode ──

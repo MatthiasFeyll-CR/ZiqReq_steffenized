@@ -351,6 +351,50 @@
     "T-2.11.03": {
       "file": "frontend/src/__tests__/rate-limit.test.tsx",
       "function": "shows toast on rate_limit WebSocket event"
+    },
+    "T-2.17.01": {
+      "file": "services/ai/tests/test_board_agent.py",
+      "function": "test_create_box_node_publishes_event"
+    },
+    "T-2.17.02": {
+      "file": "services/ai/tests/test_board_agent.py",
+      "function": "test_body_contains_bullet_points"
+    },
+    "T-2.17.03": {
+      "file": "services/ai/tests/test_board_agent.py",
+      "function": "test_create_group_node"
+    },
+    "T-2.15.03": {
+      "file": "services/ai/tests/test_context_agent.py",
+      "function": "test_no_chunks_returns_refusal"
+    },
+    "T-2.15.02": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_delegation_empty_bucket_rejected"
+    },
+    "T-2.14.03": {
+      "file": "services/ai/tests/test_context_compression.py",
+      "function": "test_compression_triggered_above_threshold"
+    },
+    "T-5.1.01": {
+      "file": "services/ai/tests/test_keyword_agent.py",
+      "function": "test_extracts_keywords_via_sk"
+    },
+    "T-5.1.02": {
+      "file": "services/ai/tests/test_keyword_agent.py",
+      "function": "test_parse_max_keywords_cap"
+    },
+    "T-5.1.03": {
+      "file": "services/ai/tests/test_keyword_agent.py",
+      "function": "test_parse_multi_word_filtered"
+    },
+    "T-2.14.01": {
+      "file": "frontend/src/__tests__/context-window-indicator.test.tsx",
+      "function": "renders progress ring at correct percentage"
+    },
+    "T-2.14.02": {
+      "file": "frontend/src/__tests__/context-window-indicator.test.tsx",
+      "function": "shows tooltip with context details on hover"
     }
   }
 }

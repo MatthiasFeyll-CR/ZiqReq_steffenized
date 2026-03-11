@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from apps.authentication.models import User
 
 from .authentication import MiddlewareAuthentication
-from .models import ChatMessage, Idea, IdeaCollaborator
+from .models import ChatContextSummary, ChatMessage, Idea, IdeaCollaborator
 from .serializers import IdeaCreateSerializer, IdeaDetailSerializer, IdeaPatchSerializer
 
 DEFAULT_PAGE_SIZE = 20
@@ -318,3 +318,88 @@ def _delete_idea(request: Request, idea_id: str) -> Response:
     idea.save(update_fields=["deleted_at", "updated_at"])
 
     return Response({"message": "Idea moved to trash"})
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def context_window(request: Request, idea_id: str) -> Response:
+    """GET /api/ideas/:id/context-window — context window usage for AI indicator."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_id)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    is_owner = idea.owner_id == user.id
+    is_co_owner = idea.co_owner_id == user.id
+    is_collaborator = IdeaCollaborator.objects.filter(idea_id=idea.id, user_id=user.id).exists()
+    if not (is_owner or is_co_owner or is_collaborator):
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Count all messages for this idea
+    message_count = ChatMessage.objects.filter(idea_id=idea_id).count()
+
+    # Get latest compression summary
+    latest_summary = (
+        ChatContextSummary.objects.filter(idea_id=idea_id)
+        .order_by("-compression_iteration")
+        .first()
+    )
+
+    compression_iterations = latest_summary.compression_iteration if latest_summary else 0
+
+    # Estimate token usage: ~4 chars per token (OpenAI heuristic)
+    # Context window limit: 128k tokens (default)
+    context_window_limit = 128_000
+
+    from apps.admin_config.models import AdminParameter
+
+    try:
+        param = AdminParameter.objects.get(key="context_window_limit")
+        context_window_limit = int(param.value)
+    except (AdminParameter.DoesNotExist, ValueError):
+        pass
+
+    # Calculate recent messages (those after compression, or all if no compression)
+    if latest_summary:
+        recent_messages = ChatMessage.objects.filter(
+            idea_id=idea_id,
+            created_at__gt=latest_summary.created_at,
+        )
+    else:
+        recent_messages = ChatMessage.objects.filter(idea_id=idea_id)
+
+    recent_message_count = recent_messages.count()
+
+    # Estimate tokens: recent messages + summary
+    recent_tokens = sum(len(m.content) // 4 for m in recent_messages.only("content"))
+    summary_tokens = len(latest_summary.summary_text) // 4 if latest_summary else 0
+    total_tokens = recent_tokens + summary_tokens
+
+    usage_percentage = min(round((total_tokens / context_window_limit) * 100, 1), 100.0)
+
+    return Response(
+        {
+            "usage_percentage": usage_percentage,
+            "message_count": message_count,
+            "compression_iterations": compression_iterations,
+            "recent_message_count": recent_message_count,
+        }
+    )
