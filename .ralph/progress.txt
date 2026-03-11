@@ -115,3 +115,18 @@ Started: 2026-03-11T05:56:48+0100
   - docker compose build node-tests required when adding new test files (container copies at build time)
   - fetchReviews API client follows same pattern as fetchIdeas: credentials include, error handling with status attachment
 ---
+
+## US-007: Self-Assignment UI
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/review.ts (added assignReview, unassignReview functions + owner_id/co_owner_id to ReviewIdea type), frontend/src/components/review/ReviewCard.tsx (added Assign/Unassign buttons with loading, error toast, conflict of interest tooltip), services/gateway/apps/review/views.py (added owner_id, co_owner_id to list_reviews API response), frontend/src/__tests__/self-assignment.test.tsx (new — 11 tests), frontend/src/__tests__/review-page.test.tsx (updated test data with owner_id/co_owner_id fields)
+- Tests: 11 passed, 0 failed — covers UI-ASSIGN.01 (assign button, API call, no navigate on click, loading state), UI-ASSIGN.02 (unassign button, API call, error toast), UI-ASSIGN.03 (conflict of interest disabled for owner/co-owner, no action on final state categories, error toast with Retry)
+- Learnings for future iterations:
+  - ReviewCard outer element changed from <button> to <div role="button"> to avoid nested <button> DOM nesting error
+  - Conflict of interest check: compare current user.id against idea.owner_id and idea.co_owner_id on frontend side
+  - Backend list_reviews API was extended to include owner_id and co_owner_id in response items
+  - TooltipProvider wraps individual tooltip usage (no app-level provider) — same pattern as ContextWindowIndicator
+  - vi.hoisted() must include ALL mocks referenced in vi.mock factories (toast mock was initially not hoisted, causing ReferenceError)
+  - stopPropagation on action button click prevents outer div navigation when clicking Assign/Unassign
+  - useMutation with invalidateQueries on ["reviews"] key refreshes the categorized list after assign/unassign
+---

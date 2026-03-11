@@ -305,7 +305,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "UI-ASSIGN.01",
         "UI-ASSIGN.02",

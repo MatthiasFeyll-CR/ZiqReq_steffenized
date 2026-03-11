@@ -458,6 +458,8 @@ def list_reviews(request: Request) -> Response:
             "id": str(idea.id),
             "title": idea.title,
             "state": idea.state,
+            "owner_id": str(idea.owner_id),
+            "co_owner_id": str(idea.co_owner_id) if idea.co_owner_id else None,
             "owner_name": owner.display_name if owner else "",
             "submitted_at": idea.updated_at.isoformat() if idea.updated_at else None,
             "reviewers": reviewer_info,
