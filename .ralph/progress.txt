@@ -88,3 +88,17 @@ Started: 2026-03-11T13:38:26+0100
   - Toast notifications via react-toastify (toast.success/toast.error)
   - Pre-existing flaky test: information-gaps-toggle.test.tsx (PDFPreview URL.createObjectURL issue)
 ---
+
+## US-005: Recursive Merge — Co-Owner Demotion
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/similarity/merge_service.py, services/gateway/apps/similarity/merge_service.py, services/gateway/apps/ideas/tests/test_recursive_merge.py (new)
+- Tests: 809 Python tests passed (9 new recursive merge tests), 403 Node tests passed (1 pre-existing flaky), ruff clean, tsc clean
+- Learnings for future iterations:
+  - Triggering owners = requesting idea owner_id + target idea owner_id → become co-owners of new idea
+  - Non-triggering co-owners = co_owner_id on either idea IF not in triggering set → demoted to collaborators
+  - Demotion uses IdeaCollaborator.objects.bulk_create with ignore_conflicts=True for deduplication
+  - _publish_merge_complete now accepts demoted_co_owners param (defaults to empty list for backwards compat)
+  - Edge case: if co_owner_id matches a triggering owner (e.g., co-owner of idea A is also owner of idea B), they are NOT demoted
+  - Both core and gateway mirrors must be updated in sync
+---
