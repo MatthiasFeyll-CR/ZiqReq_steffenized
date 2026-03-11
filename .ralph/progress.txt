@@ -1,0 +1,40 @@
+# Ralph Progress Log — M10 (review)
+Started: 2026-03-11T05:56:48+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Submit Idea for Review
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/review/models.py (new — mirror models for BrdVersion, ReviewAssignment, ReviewTimelineEntry), services/gateway/apps/review/views.py (submit_idea endpoint), services/gateway/apps/review/serializers.py (SubmitIdeaSerializer), services/gateway/apps/review/migrations/0001_create_review_tables.py (RunSQL migration), services/gateway/apps/review/tests/test_submit.py (13 tests), services/gateway/apps/ideas/urls.py (added submit route)
+- Tests: 13 passed, 0 failed — covers T-1.5.01, T-1.5.05, T-4.7.01, T-4.10.01, T-4.10.02, API-SUBMIT.01-04 plus additional edge cases
+- Learnings for future iterations:
+  - The review app had placeholder views.py/urls.py/serializers.py — no models.py existed in gateway, only in core service
+  - Submit endpoint is routed via ideas URLs (path("<str:idea_id>/submit")) since it's under /api/ideas/:id/submit
+  - Mirror models use managed=False with RunSQL CREATE TABLE IF NOT EXISTS in gateway migrations (same pattern as brd_drafts)
+  - PdfClient.generate_pdf is a stub that returns {"pdf_data": b"", "filename": "placeholder.pdf"} — mock it in tests with _create_pdf_client
+  - ReviewTimelineEntry has immutability enforcement in save() — raises ValidationError on update
+  - The full test suite (pytest on all apps) has pre-existing test ordering issues with websocket tests (pass individually, error in batch) — not caused by this change
+  - docker compose build gate check requires docker-compose.yml which doesn't exist (only docker-compose.test.yml) — pre-existing
+  - User model has `roles` ArrayField — use roles=["user", "reviewer"] for reviewer users in tests
+---
