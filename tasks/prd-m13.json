@@ -110,7 +110,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § ai.similarity.confirmed — event payload\nArchitecture: docs/02-architecture/data-model.md § notifications, ideas.share_link_token — notification storage, read-only link mechanism\nTesting: No specific test IDs (notification flow validated by M12 tests)\nFiles: services/notification/consumers/similarity_events.py (new or extend existing), services/notification/email/templates/similarity_detected.html (new)\nGotchas: Read-only access uses share_link_token from ideas table (generated on-demand if not exists). Email preference group: 'similarity'. Notification service uses gateway_client.create_notification() gRPC call. Both owners see the other's name (similarity detection is not anonymous).\nDeviations: Milestone scope says 'notify both users (in-app + email)' but doesn't specify read-only link generation — this is inferred from F-5.5 step 2 'both users receive read-only access'.",
       "context": {
