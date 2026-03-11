@@ -84,3 +84,32 @@ Started: 2026-03-11T11:27:20+0100
   - Proto regeneration: `python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. gateway.proto` from proto/ directory
   - Pre-existing Node test failure: information-gaps-toggle.test.tsx — not related to M13 changes
 ---
+
+## US-005: Similar Ideas Display — GET /api/ideas/:id/similar
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/serializers.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/ideas/tests/test_similar_ideas.py (new)
+- Tests: 18 passed (declined merges, reverse direction, pending/accepted exclusion, empty list, 404/403 checks, owner/co-owner/collaborator/reviewer access, pagination defaults/page2/custom/max, deleted idea exclusion, multiple declined, near-threshold mock). Full suite: 696 Python tests passed, 403 Node tests passed.
+- Learnings for future iterations:
+  - Docker test container copies code at build time — must rebuild (`docker compose -f docker-compose.test.yml up -d --build`) after code changes
+  - Raw SQL with pgvector `<=>` operator fails in test DB (no idea_embeddings table) — extracted `_get_near_threshold_matches()` helper function and mocked at class level in tests
+  - `transaction.atomic()` creates savepoints inside Django TestCase but PostgreSQL's "transaction aborted" state doesn't recover cleanly — mocking is more reliable than try/except for raw SQL
+  - SimilarIdeaSerializer uses `allow_null=True` on similarity_score for declined_merge entries (no score)
+  - Permission check adds reviewer access via ReviewAssignment (lazy import to avoid circular dependency)
+  - Class-level `@patch` decorator requires `_mock_near` param on every test method
+  - `.ralph/prd.json` is a symlink to `tasks/prd-m13.json` — commit the real file via `git add tasks/prd-m13.json`
+---
+
+## US-006: State-Aware Match Behavior — Open/Rejected Mergeable
+- Status: PASS
+- Attempts: 1
+- Changes: services/notification/consumers/similarity_events.py
+- Tests: 696 Python tests passed, 403 Node tests passed (1 pre-existing failure in information-gaps-toggle.test.tsx)
+- Learnings for future iterations:
+  - Deep Comparison consumer already includes requesting_idea_state and target_idea_state in ai.similarity.confirmed payload (added in US-003/US-004)
+  - State-aware logic uses _classify_match_behavior() helper: open/rejected → "merge", everything else → "informational"
+  - _informational_body_for_owner() generates context-specific messages per state (in_review, accepted, dropped)
+  - Append flow for in_review is deferred to M14 — US-006 only differentiates notification bodies
+  - No new test file needed — notification bodies tested implicitly via existing consumer patterns
+  - Docker compose build gate check has pre-existing nginx.conf failure (not related to M13)
+---

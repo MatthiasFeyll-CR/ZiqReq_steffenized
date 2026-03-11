@@ -170,7 +170,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § ideas.state — state enum values, state transition rules\nDesign: Feature spec F-5.4 — state-aware match behavior rules (open/rejected→merge, in_review→append, accepted/dropped→informational)\nTesting: No specific test IDs (state-aware logic validated by notification service tests)\nFiles: services/notification/consumers/similarity_events.py (extend from US-004 with state-aware logic)\nGotchas: Append flow (open → in_review) is mentioned in milestone notes as coming in M14. This story only handles the notification differentiation — actual append request API comes in M14. For now, in_review target ideas get informational notification similar to accepted/dropped.\nDeviations: Milestone scope says 'state-aware match behavior' but the actual append flow API is deferred to M14. This story implements the notification differentiation only.",
       "context": {
