@@ -1,4 +1,10 @@
 import { useTranslation } from "react-i18next";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const SECTION_KEYS = [
   "title",
@@ -41,31 +47,39 @@ export function ProgressIndicator({
 
   return (
     <div data-testid="progress-indicator">
-      <div className="flex gap-0.5" data-testid="progress-bar">
-        {SECTION_KEYS.map((key) => {
-          const isReady = !allowInformationGaps && readinessEvaluation[key] === "ready";
-          return (
-            <div
-              key={key}
-              className={`h-2 flex-1 rounded-full ${
-                loading
-                  ? "bg-muted animate-pulse"
-                  : isReady
-                    ? "bg-green-500"
-                    : "bg-gray-300"
-              }`}
-              title={`${SECTION_LABELS[key]}: ${
-                allowInformationGaps
-                  ? "Gaps allowed"
-                  : readinessEvaluation[key] === "ready"
-                    ? "Ready"
-                    : "Insufficient"
-              }`}
-              data-testid={`progress-segment-${key}`}
-            />
-          );
-        })}
-      </div>
+      <TooltipProvider delayDuration={200}>
+        <div className="flex gap-0.5" data-testid="progress-bar">
+          {SECTION_KEYS.map((key) => {
+            const isReady = !allowInformationGaps && readinessEvaluation[key] === "ready";
+            const statusText = allowInformationGaps
+              ? "Gaps allowed"
+              : readinessEvaluation[key] === "ready"
+                ? "Ready"
+                : "Insufficient";
+            const tooltipText = `${SECTION_LABELS[key]}: ${statusText}`;
+            return (
+              <Tooltip key={key}>
+                <TooltipTrigger asChild>
+                  <div
+                    className={`h-2 flex-1 rounded-full ${
+                      loading
+                        ? "bg-muted animate-pulse"
+                        : isReady
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                    }`}
+                    data-testid={`progress-segment-${key}`}
+                    data-tooltip={tooltipText}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{tooltipText}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </TooltipProvider>
       <p className="text-xs text-muted-foreground mt-1" data-testid="progress-label">
         {loading ? t("brd.evaluating", "Evaluating...") : label}
       </p>

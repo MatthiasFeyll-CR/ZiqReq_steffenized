@@ -575,6 +575,18 @@
     "UI-4.05": {
       "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
       "function": "does not show regenerate icon for locked sections"
+    },
+    "T-4.8.03": {
+      "file": "frontend/src/__tests__/readiness-evaluation.test.tsx",
+      "function": "shows 1 green segment and 5 gray for 1/6 ready"
+    },
+    "T-4.8.04": {
+      "file": "frontend/src/__tests__/readiness-evaluation.test.tsx",
+      "function": "shows '4/6 sections ready' when 4 sections are ready"
+    },
+    "UI-4.06": {
+      "file": "frontend/src/__tests__/readiness-evaluation.test.tsx",
+      "function": "renders progress indicator below editor header"
     }
   }
 }
