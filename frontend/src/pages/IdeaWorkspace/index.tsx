@@ -228,7 +228,7 @@ function IdeaWorkspaceContent({
   const effectiveReadOnly = allReadOnly || readOnly || isClosedIdea;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
+    <main id="main-content" className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={effectiveReadOnly || hasMergePending} />
       {readOnly && <ReadOnlyBanner />}
       {!readOnly && isClosedByMerge && idea.merged_idea_ref && (
@@ -262,6 +262,6 @@ function IdeaWorkspaceContent({
           <ReviewSection ideaId={idea.id} idea={idea} />
         </div>
       )}
-    </div>
+    </main>
   );
 }
