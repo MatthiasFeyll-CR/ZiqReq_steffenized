@@ -240,7 +240,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: docs/03-design/component-specs.md § 11.5 Banners — workspace-integrated banner variant (border-b bg-warning/5), framer-motion slide-down\nDesign: docs/03-design/component-specs.md § 5.8 Chat Input Area — LockOverlay pattern for idea locking\nArchitecture: docs/02-architecture/api-design.md § GET /api/ideas/:id — merge_request_pending field in response\nTesting: No specific test IDs (UI component validated by frontend unit tests)\nFiles: frontend/src/components/workspace/MergeRequestBanner.tsx (new), frontend/src/pages/IdeaWorkspace.tsx (integrate banner + lock overlay), frontend/src/hooks/use-websocket.ts (add ws:merge_request event handler)\nGotchas: Banner is persistent (not dismissible) until resolved. Lock overlay prevents all editing (chat input disabled, board canvas read-only). Confirmation dialog for decline uses Dialog component (not AlertDialog — none exists per component-specs.md § 17). merge_request_pending is a nested object: {id, requesting_idea_id, requesting_owner_name, requesting_idea_title}.",
       "context": {
