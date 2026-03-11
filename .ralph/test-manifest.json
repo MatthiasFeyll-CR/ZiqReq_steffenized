@@ -543,6 +543,38 @@
     "UI-4.02": {
       "file": "frontend/src/__tests__/review-tab.test.tsx",
       "function": "shows empty state message when no BRD content exists"
+    },
+    "T-4.4.04": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls PATCH when lock icon is toggled"
+    },
+    "T-4.4.05": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls POST /generate with section_regeneration when regenerate clicked"
+    },
+    "T-4.4.06": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls PATCH on textarea blur"
+    },
+    "T-4.8.02": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "shows progress indicator with correct readiness count"
+    },
+    "T-4.9.03": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls PATCH with allow_information_gaps when toggled"
+    },
+    "UI-4.03": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "opens BRD section editor when Edit Document is clicked"
+    },
+    "UI-4.04": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "shows all 6 section fields with labels"
+    },
+    "UI-4.05": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "does not show regenerate icon for locked sections"
     }
   }
 }

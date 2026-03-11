@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { Download, FileText, Loader2, Pencil } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PDFPreview } from "@/components/brd/PDFPreview";
+import { BRDSectionEditor } from "@/components/brd/BRDSectionEditor";
 import { fetchBrdDraft, triggerBrdGeneration, fetchBrdPdf } from "@/api/brd";
 
 interface ReviewTabProps {
@@ -18,6 +19,7 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const {
     data: brdDraft,
@@ -105,7 +107,7 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
   }
 
   return (
-    <div className="flex flex-col h-full p-4 gap-4" data-testid="review-tab">
+    <div className="relative flex flex-col h-full p-4 gap-4" data-testid="review-tab">
       {/* PDF Preview or Empty State */}
       <div className="flex-1 min-h-0">
         {hasBrdContent ? (
@@ -171,7 +173,28 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
           )}
           {t("review.generate", "Generate")}
         </Button>
+        {hasBrdContent && (
+          <Button
+            variant="ghost"
+            onClick={() => setEditorOpen(true)}
+            disabled={disabled}
+            data-testid="edit-document-button"
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            {t("review.editDocument", "Edit Document")}
+          </Button>
+        )}
       </div>
+
+      {/* Slide-in Editor */}
+      {brdDraft && (
+        <BRDSectionEditor
+          ideaId={ideaId}
+          brdDraft={brdDraft}
+          open={editorOpen}
+          onClose={() => setEditorOpen(false)}
+        />
+      )}
     </div>
   );
 }
