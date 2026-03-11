@@ -241,7 +241,29 @@ def _get_idea(request: Request, idea_id: str) -> Response:
     user_map = {u.id: u for u in users}
 
     detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
-    return Response(detail_serializer.data)
+    data = detail_serializer.data
+
+    # Attach merge_request_pending if an active merge request targets this idea
+    from apps.similarity.models import MergeRequest as MergeRequestModel
+
+    pending_mr = (
+        MergeRequestModel.objects.filter(target_idea_id=idea.id, status="pending")
+        .order_by("-created_at")
+        .first()
+    )
+    if pending_mr:
+        requesting_owner = User.objects.filter(id=pending_mr.requested_by).first()
+        requesting_idea = Idea.objects.filter(id=pending_mr.requesting_idea_id).first()
+        data["merge_request_pending"] = {
+            "id": str(pending_mr.id),
+            "requesting_idea_id": str(pending_mr.requesting_idea_id),
+            "requesting_owner_name": requesting_owner.display_name if requesting_owner else "",
+            "requesting_idea_title": requesting_idea.title if requesting_idea else "",
+        }
+    else:
+        data["merge_request_pending"] = None
+
+    return Response(data)
 
 
 def _patch_idea(request: Request, idea_id: str) -> Response:

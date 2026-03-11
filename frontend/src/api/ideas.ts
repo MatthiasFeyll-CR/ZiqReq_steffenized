@@ -1,5 +1,12 @@
 import { env } from "@/config/env";
 
+export interface MergeRequestPending {
+  id: string;
+  requesting_idea_id: string;
+  requesting_owner_name: string;
+  requesting_idea_title: string;
+}
+
 export interface Idea {
   id: string;
   title: string;
@@ -11,6 +18,7 @@ export interface Idea {
   created_at: string;
   updated_at: string;
   collaborators: Array<{ user_id: string; display_name: string }>;
+  merge_request_pending: MergeRequestPending | null;
 }
 
 export async function fetchIdea(id: string, token?: string): Promise<Idea> {
@@ -198,6 +206,23 @@ export interface ContextWindowData {
 export async function fetchContextWindow(ideaId: string): Promise<ContextWindowData> {
   const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/context-window`, {
     credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function consentMergeRequest(
+  mergeRequestId: string,
+  consent: "accept" | "decline",
+): Promise<Record<string, unknown>> {
+  const res = await fetch(`${env.apiBaseUrl}/merge-requests/${mergeRequestId}/consent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ consent }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

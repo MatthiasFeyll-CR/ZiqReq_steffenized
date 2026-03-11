@@ -90,6 +90,7 @@ const MOCK_IDEA: Idea = {
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
   collaborators: [],
+  merge_request_pending: null,
 };
 
 const TOKEN = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";

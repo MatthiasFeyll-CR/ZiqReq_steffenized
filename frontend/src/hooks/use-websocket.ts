@@ -138,6 +138,12 @@ export function useWebSocket() {
                 detail: data.payload,
               }),
             );
+          } else if (data.type === "merge_request" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:merge_request", {
+                detail: data.payload,
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&
