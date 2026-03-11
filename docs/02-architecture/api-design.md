@@ -970,26 +970,29 @@
   ```
 - **Side effects:** Target idea locked with merge request banner. Target owner notified (email + in-app).
 
-#### POST /api/merge-requests/:id/accept
-- **Purpose:** Accept a merge request (target owner consent)
+#### POST /api/merge-requests/:id/consent
+- **Purpose:** Accept or decline a merge request (target owner consent)
 - **Auth:** Target idea owner
-- **Response (200):**
+- **Request:**
+  ```json
+  {
+    "consent": "accept" | "decline"
+  }
+  ```
+- **Response (200) — Accept:**
   ```json
   {
     "status": "accepted",
     "resulting_idea_id": "uuid — if merge complete"
   }
   ```
-- **Side effects:** If all consents met: new merged idea created by Merge Synthesizer AI. Original ideas become read-only. Both owners become co-owners.
-
-#### POST /api/merge-requests/:id/decline
-- **Purpose:** Decline a merge request (permanent dismissal)
-- **Auth:** Target idea owner
-- **Response (200):**
+- **Response (200) — Decline:**
   ```json
   { "status": "declined" }
   ```
-- **Side effects:** Merge permanently dismissed. Target idea unlocked. Same pair never suggested again (F-5.7).
+- **Side effects:**
+  - **Accept:** If all consents met: new merged idea created by Merge Synthesizer AI. Original ideas become read-only. Both owners become co-owners.
+  - **Decline:** Merge permanently dismissed. Target idea unlocked. Same pair never suggested again (F-5.7).
 
 #### POST /api/ideas/:id/manual-merge
 - **Purpose:** Manual merge request (recovery for accidental declines)
@@ -1133,7 +1136,7 @@
       "Similarity": {
         "label": "Similarity",
         "preferences": {
-          "similarity_alert": true,
+          "similarity": true,
           "merge_request": true
         }
       },
@@ -2118,6 +2121,7 @@ service GatewayService {
   rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
   rpc GetUserPreferences(UserPreferencesRequest) returns (UserPreferencesResponse);
   rpc GetAlertRecipients(AlertRecipientsRequest) returns (AlertRecipientsResponse);
+  rpc GetIdeaDetails(IdeaDetailsRequest) returns (IdeaDetailsResponse);
 }
 
 message CreateNotificationRequest {
@@ -2143,6 +2147,17 @@ message UserPreferencesResponse {
   string display_name = 3;
   map<string, bool> email_notification_preferences = 4;
 }
+
+message IdeaDetailsRequest {
+  string idea_id = 1;
+  bool ensure_share_link_token = 2;  // If true, generates share_link_token if not present
+}
+
+message IdeaDetailsResponse {
+  string title = 1;
+  string owner_id = 2;
+  string share_link_token = 3;       // Empty string if not generated
+}
 ```
 
 ```protobuf
@@ -2163,6 +2178,7 @@ message AlertRecipient {
 - `CreateNotification` also triggers a WebSocket `notification` event to the target user (if online).
 - `GetUserPreferences` is called by the notification service before sending emails, to check if the user has opted out of specific notification types.
 - `GetAlertRecipients` returns admin users who have opted in to monitoring alerts (used by notification service to send alert emails).
+- `GetIdeaDetails` is called by the notification service to fetch idea metadata (title, owner, share link) for constructing similarity notification emails. The `ensure_share_link_token` parameter generates a share token on-demand using `secrets.token_hex(32)` if one doesn't exist.
 - The gateway runs a gRPC server on port 50054 (separate from core 50051, ai 50052, pdf 50053).
 
 ---
