@@ -5,7 +5,7 @@ Steps:
   2. Assemble context for Facilitator
   3. Invoke Facilitator agent
   4. If delegation requested → invoke delegate (M7 stub) → re-invoke Facilitator
-  5. If board changes requested → invoke Board Agent (M7 stub)
+  5. If board changes requested → invoke Board Agent with fresh board state
   6. Publish ai.processing.complete
   7. Cleanup version / abort flag
 """
@@ -210,17 +210,42 @@ class ChatProcessingPipeline:
     async def _step_board_agent(
         self, idea_id: str, facilitator_result: dict[str, Any],
     ) -> None:
-        """Step 5: Board Agent — M7 stub, logs 'not available'."""
+        """Step 5: Invoke Board Agent with instructions + fresh board state."""
         board_instructions = facilitator_result.get("board_instructions", [])
         if not board_instructions:
             logger.info("Step 5: No board changes for idea %s", idea_id)
             return
 
-        logger.warning(
-            "Step 5: Board Agent requested for idea %s (%d instructions) — "
-            "not available in M7",
+        logger.info(
+            "Step 5: Board Agent invoked for idea %s (%d instructions)",
             idea_id, len(board_instructions),
         )
+
+        # Load fresh board state at invocation time (not cached from Step 1)
+        board_state = self.core_client.get_board_state(idea_id)
+
+        from agents.board_agent.agent import BoardAgent
+
+        agent = BoardAgent()
+        result = await agent.process({
+            "idea_id": idea_id,
+            "board_state": board_state,
+            "instructions": board_instructions,
+        })
+
+        mutation_count = result.get("mutation_count", 0)
+        logger.info(
+            "Step 5: Board Agent completed for idea %s — %d mutations",
+            idea_id, mutation_count,
+        )
+
+        # Publish board updated event with mutation details
+        if mutation_count > 0:
+            await publish_event("ai.board.updated", {
+                "idea_id": idea_id,
+                "mutation_count": mutation_count,
+                "mutations": result.get("mutations", []),
+            })
 
     async def _step_publish_complete(self, idea_id: str) -> None:
         """Step 6: Publish ai.processing.complete event."""

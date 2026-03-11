@@ -575,7 +575,7 @@ class TestDelegation:
 class TestBoardChanges:
     @pytest.mark.asyncio
     async def test_request_board_changes_accepted(self):
-        """request_board_changes returns accepted (Board Agent stub in M7)."""
+        """request_board_changes returns accepted with valid intent and description."""
         plugin = FacilitatorPlugin(idea_id="idea-1")
         result = await plugin.request_board_changes(
             instructions=[{"intent": "add_topic", "description": "Add pain point about manual approvals"}]
@@ -589,6 +589,72 @@ class TestBoardChanges:
         plugin = FacilitatorPlugin(idea_id="idea-1")
         result = await plugin.request_board_changes(instructions=[])
         assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_invalid_intent_rejected(self):
+        """Instructions with invalid intent are rejected."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"intent": "invalid_intent", "description": "Test"}]
+        )
+        assert "error" in result
+        assert "invalid or missing intent" in result["error"]["message"]
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_missing_intent_rejected(self):
+        """Instructions without intent field are rejected."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"description": "Test without intent"}]
+        )
+        assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_missing_description_rejected(self):
+        """Instructions without description field are rejected."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"intent": "add_topic"}]
+        )
+        assert "error" in result
+        assert "'description' is required" in result["error"]["message"]
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_all_intents_accepted(self):
+        """All valid intent types are accepted."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        valid_intents = [
+            "add_topic", "update_topic", "remove_topic", "reorganize",
+            "add_relationship", "update_relationship", "remove_relationship",
+        ]
+        instructions = [{"intent": i, "description": f"Test {i}"} for i in valid_intents]
+        result = await plugin.request_board_changes(instructions=instructions)
+        assert result["accepted"] is True
+        assert result["instruction_count"] == len(valid_intents)
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_stores_on_plugin(self):
+        """Instructions are stored on plugin instance for pipeline to read."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        await plugin.request_board_changes(
+            instructions=[
+                {"intent": "add_topic", "description": "First", "suggested_title": "Pain Points"},
+                {"intent": "add_relationship", "description": "Second", "related_to": ["Pain Points"]},
+            ]
+        )
+        assert len(plugin.board_instructions) == 2
+        assert plugin.board_instructions[0]["suggested_title"] == "Pain Points"
+
+    @pytest.mark.asyncio
+    async def test_request_board_changes_nonblocking(self):
+        """Tool returns immediately without waiting for Board Agent."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.request_board_changes(
+            instructions=[{"intent": "add_topic", "description": "Test"}]
+        )
+        # Returns accepted immediately — no mutation data (Board Agent runs later in pipeline)
+        assert result == {"accepted": True, "instruction_count": 1}
+        assert "mutations" not in result
 
 
 # ── FacilitatorAgent mock mode ──

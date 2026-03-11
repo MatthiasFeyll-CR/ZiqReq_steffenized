@@ -264,13 +264,90 @@ class TestDelegationStub:
         assert call_count == 2  # Facilitator invoked twice
 
 
-# ── Board Agent stub (M7) ──
+# ── Board Agent invocation (M8) ──
 
 
-class TestBoardAgentStub:
+class TestBoardAgentInvocation:
     @pytest.mark.asyncio
-    async def test_board_changes_logged_not_executed(self, _clear_pipeline_state, settings):
-        """Board Agent stub logs instructions but does not execute them."""
+    async def test_board_agent_invoked_with_instructions(self, _clear_pipeline_state, settings):
+        """Pipeline Step 5 invokes Board Agent when board_instructions present."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        core_client.get_board_state.return_value = {"nodes": [{"id": "n1", "title": "Existing"}], "connections": []}
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        board_agent_called = False
+        board_agent_input = {}
+
+        async def mock_facilitator_process(input_data):
+            return {
+                "delegations": [],
+                "board_instructions": [{"intent": "add_topic", "description": "Add pain points"}],
+                "response": "I'll add that to the board.",
+                "token_usage": {"input": 100, "output": 20},
+            }
+
+        async def mock_board_process(input_data):
+            nonlocal board_agent_called, board_agent_input
+            board_agent_called = True
+            board_agent_input = input_data
+            return {"mutations": [{"type": "create_node"}], "mutation_count": 1}
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.board_agent.agent.BoardAgent") as MockBoardAgent:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockBoardAgent.return_value.process = mock_board_process
+            result = await pipeline.execute("idea-1")
+
+        assert result["status"] == "completed"
+        assert board_agent_called is True
+        # Board Agent receives fresh board state from gRPC
+        assert board_agent_input["board_state"]["nodes"][0]["title"] == "Existing"
+        assert len(board_agent_input["instructions"]) == 1
+        assert board_agent_input["instructions"][0]["intent"] == "add_topic"
+        # get_board_state called for fresh state
+        core_client.get_board_state.assert_called_once_with("idea-1")
+
+    @pytest.mark.asyncio
+    async def test_board_agent_publishes_updated_event(self, _clear_pipeline_state, settings):
+        """Board Agent mutations trigger ai.board.updated event."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        core_client.get_board_state.return_value = {"nodes": [], "connections": []}
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        async def mock_facilitator_process(input_data):
+            return {
+                "delegations": [],
+                "board_instructions": [{"intent": "add_topic", "description": "Test"}],
+                "response": "Done.",
+                "token_usage": {"input": 100, "output": 20},
+            }
+
+        async def mock_board_process(input_data):
+            return {"mutations": [{"type": "create_node"}], "mutation_count": 1}
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.board_agent.agent.BoardAgent") as MockBoardAgent:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockBoardAgent.return_value.process = mock_board_process
+            await pipeline.execute("idea-1")
+
+        events = get_published_events()
+        board_events = [e for e in events if e["event_type"] == "ai.board.updated"]
+        assert len(board_events) == 1
+        assert board_events[0]["idea_id"] == "idea-1"
+        assert board_events[0]["mutation_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_no_board_event_when_no_instructions(self, _clear_pipeline_state, settings):
+        """No ai.board.updated event when no board instructions."""
         settings.AI_MOCK_MODE = True
         from pathlib import Path
         settings.BASE_DIR = Path(__file__).resolve().parent.parent
@@ -278,20 +355,53 @@ class TestBoardAgentStub:
         core_client = _mock_core_client()
         pipeline = ChatProcessingPipeline(core_client=core_client)
 
-        async def mock_process(input_data):
+        async def mock_facilitator_process(input_data):
             return {
                 "delegations": [],
-                "board_instructions": [{"intent": "add_topic", "description": "Test"}],
-                "response": "I'll add that to the board.",
+                "board_instructions": [],
+                "response": "No board changes needed.",
                 "token_usage": {"input": 100, "output": 20},
             }
 
-        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
-            instance = MockAgent.return_value
-            instance.process = mock_process
-            result = await pipeline.execute("idea-1")
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            await pipeline.execute("idea-1")
 
-        assert result["status"] == "completed"
+        events = get_published_events()
+        board_events = [e for e in events if e["event_type"] == "ai.board.updated"]
+        assert len(board_events) == 0
+
+    @pytest.mark.asyncio
+    async def test_no_board_event_when_zero_mutations(self, _clear_pipeline_state, settings):
+        """No ai.board.updated event when Board Agent returns 0 mutations."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        core_client.get_board_state.return_value = {"nodes": [], "connections": []}
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        async def mock_facilitator_process(input_data):
+            return {
+                "delegations": [],
+                "board_instructions": [{"intent": "add_topic", "description": "Test"}],
+                "response": "Trying to update board.",
+                "token_usage": {"input": 100, "output": 20},
+            }
+
+        async def mock_board_process(input_data):
+            return {"mutations": [], "mutation_count": 0}
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.board_agent.agent.BoardAgent") as MockBoardAgent:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockBoardAgent.return_value.process = mock_board_process
+            await pipeline.execute("idea-1")
+
+        events = get_published_events()
+        board_events = [e for e in events if e["event_type"] == "ai.board.updated"]
+        assert len(board_events) == 0
 
 
 # ── Context Assembler ──

@@ -1,4 +1,4 @@
-"""Facilitator agent SK plugins (6 tools).
+"""Facilitator agent SK plugins (7 tools).
 
 Each method is decorated with @kernel_function so SK registers it as a
 callable tool for the Azure OpenAI function-calling loop.
@@ -199,22 +199,44 @@ class FacilitatorPlugin:
         description=(
             "Submit board modification instructions for the Board Agent to execute. "
             "Express SEMANTIC INTENT — describe what content to add, update, or "
-            "reorganize and why."
+            "reorganize and why. Reference board items by title. The Board Agent "
+            "handles all spatial layout, grouping, and positioning. Only call this "
+            "when the brainstorming has produced content that should be captured or "
+            "restructured on the board."
         ),
     )
     async def request_board_changes(
         self,
         instructions: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        """Accept board change instructions. Board Agent stub in M7."""
+        """Accept board change instructions for Board Agent execution."""
         if not instructions:
             return _error_response(
                 "validation_error", "At least one instruction is required."
             )
 
+        valid_intents = {
+            "add_topic", "update_topic", "remove_topic", "reorganize",
+            "add_relationship", "update_relationship", "remove_relationship",
+        }
+
+        for i, instr in enumerate(instructions):
+            intent = instr.get("intent")
+            if not intent or intent not in valid_intents:
+                return _error_response(
+                    "validation_error",
+                    f"Instruction {i}: invalid or missing intent '{intent}'. "
+                    f"Must be one of: {', '.join(sorted(valid_intents))}.",
+                )
+            if not instr.get("description"):
+                return _error_response(
+                    "validation_error",
+                    f"Instruction {i}: 'description' is required.",
+                )
+
         self.board_instructions.extend(instructions)
         logger.info(
-            "Board changes requested for idea %s: %d instructions (Board Agent stub — M7)",
+            "Board changes requested for idea %s: %d instructions",
             self.idea_id,
             len(instructions),
         )

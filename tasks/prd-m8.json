@@ -71,7 +71,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Core gRPC — GetBoardState RPC for loading current board\nAI: docs/03-ai/tools-and-functions.md § 6. request_board_changes — exact tool schema with intent enum\nAI: docs/03-ai/agent-architecture.md § S4.1 Step 4 — Board Agent invocation after Facilitator completes\nTesting: Covered by T-2.17.* tests (Board Agent creates content from instructions)\nFiles: services/ai/agents/facilitator/plugins.py, services/ai/processing/pipeline.py\nGotchas: This is an async handoff — the tool returns immediately, Board Agent executes later. The Facilitator's SK loop completes before board changes happen. Board state must be fresh when Board Agent runs (load via gRPC at Step 5, not cached from Step 1).\nDeviations: M7 had board changes stubbed in pipeline. This story implements the real Board Agent invocation.",
       "context": {
