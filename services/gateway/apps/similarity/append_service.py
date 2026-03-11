@@ -111,3 +111,22 @@ def _publish_append_complete(
             "target_collaborator_ids": target_collaborator_ids,
         },
     )
+
+    # Broadcast WebSocket append_complete to target idea group
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            payload = {
+                "merge_request_id": merge_request_id,
+                "target_idea_id": target_idea_id,
+                "requesting_idea_id": requesting_idea_id,
+            }
+            async_to_sync(channel_layer.group_send)(
+                f"idea_{target_idea_id}",
+                {"type": "append_complete", "payload": payload},
+            )
+    except Exception:
+        logger.exception("Failed to broadcast WS append_complete")

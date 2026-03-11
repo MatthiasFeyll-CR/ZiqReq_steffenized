@@ -1,3 +1,4 @@
+import logging
 import secrets
 import uuid
 
@@ -21,6 +22,8 @@ from .serializers import (
     MergeRequestSerializer,
     SimilarIdeaSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
@@ -691,6 +694,22 @@ def _publish_notification(**kwargs) -> None:
     publish_notification_event(**kwargs)
 
 
+def _broadcast_ws_event(group_name: str, event_type: str, payload: dict) -> None:
+    """Broadcast a WebSocket event to a channel group."""
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {"type": event_type, "payload": payload},
+            )
+    except Exception:
+        logger.exception("Failed to broadcast WS event %s to %s", event_type, group_name)
+
+
 def _get_idea_or_404(idea_id: str):
     """Validate UUID and return Idea or a 404 Response."""
     try:
@@ -846,6 +865,19 @@ def create_merge_request(request: Request, idea_id: str) -> Response:
         }
     _publish_event(event_type, payload)
 
+    # Broadcast WebSocket event to target idea group
+    _broadcast_ws_event(
+        f"idea_{target_idea.id}",
+        "merge_request",
+        {
+            "merge_request_id": str(merge_request.id),
+            "merge_type": merge_type,
+            "requesting_idea_id": str(requesting_idea.id),
+            "target_idea_id": str(target_idea.id),
+            "status": "pending",
+        },
+    )
+
     result = MergeRequestSerializer(merge_request).data
     return Response(result, status=status.HTTP_201_CREATED)
 
@@ -977,6 +1009,26 @@ def consent_merge_request(request: Request, merge_request_id: str) -> Response:
                     "target_idea_id": str(merge_request.target_idea_id),
                 },
             )
+
+    # Broadcast WebSocket event for merge request status change
+    ws_payload = {
+        "merge_request_id": str(merge_request.id),
+        "merge_type": merge_request.merge_type,
+        "requesting_idea_id": str(merge_request.requesting_idea_id),
+        "target_idea_id": str(merge_request.target_idea_id),
+        "status": merge_request.status,
+    }
+    # Notify both idea groups
+    _broadcast_ws_event(
+        f"idea_{merge_request.requesting_idea_id}",
+        "merge_request",
+        ws_payload,
+    )
+    _broadcast_ws_event(
+        f"idea_{merge_request.target_idea_id}",
+        "merge_request",
+        ws_payload,
+    )
 
     result = MergeRequestSerializer(merge_request).data
     return Response(result, status=status.HTTP_200_OK)

@@ -316,6 +316,34 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             "payload": event["payload"],
         })
 
+    async def notification(self, event: dict) -> None:
+        """Forward notification group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "notification",
+            "payload": event["payload"],
+        })
+
+    async def merge_request(self, event: dict) -> None:
+        """Forward merge_request group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "merge_request",
+            "payload": event["payload"],
+        })
+
+    async def merge_complete(self, event: dict) -> None:
+        """Forward merge_complete group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "merge_complete",
+            "payload": event["payload"],
+        })
+
+    async def append_complete(self, event: dict) -> None:
+        """Forward append_complete group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "append_complete",
+            "payload": event["payload"],
+        })
+
     @database_sync_to_async
     def _check_idea_access(self, idea_id: str, user_id: str) -> bool:
         from apps.ideas.models import Idea, IdeaCollaborator

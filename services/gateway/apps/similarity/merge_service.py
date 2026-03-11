@@ -226,3 +226,36 @@ def _publish_merge_complete(
             "demoted_co_owners": demoted_co_owners or [],
         },
     )
+
+    # Broadcast WebSocket merge_complete to both original idea groups
+    _broadcast_ws_merge_complete(
+        original_idea_1_id, original_idea_2_id, resulting_idea_id, merge_request_id
+    )
+
+
+def _broadcast_ws_merge_complete(
+    original_idea_1_id: str,
+    original_idea_2_id: str,
+    resulting_idea_id: str,
+    merge_request_id: str,
+) -> None:
+    """Broadcast merge_complete WebSocket event to original idea groups."""
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        if not channel_layer:
+            return
+
+        payload = {
+            "merge_request_id": merge_request_id,
+            "resulting_idea_id": resulting_idea_id,
+        }
+        for idea_id in (original_idea_1_id, original_idea_2_id):
+            async_to_sync(channel_layer.group_send)(
+                f"idea_{idea_id}",
+                {"type": "merge_complete", "payload": payload},
+            )
+    except Exception:
+        logger.exception("Failed to broadcast WS merge_complete")

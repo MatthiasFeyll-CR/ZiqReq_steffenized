@@ -41,6 +41,32 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
             reference_type=request.reference_type or None,
         )
 
+        # Broadcast WebSocket notification to the related idea group
+        if ref_id and request.reference_type in ("idea", "merge_request"):
+            try:
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+
+                channel_layer = get_channel_layer()
+                if channel_layer:
+                    async_to_sync(channel_layer.group_send)(
+                        f"idea_{ref_id}",
+                        {
+                            "type": "notification",
+                            "payload": {
+                                "event_type": request.event_type,
+                                "title": request.title,
+                                "body": request.body,
+                                "reference_id": str(ref_id),
+                                "reference_type": request.reference_type,
+                            },
+                        },
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to broadcast WS notification for %s", notification.id
+                )
+
         return gateway_pb2.CreateNotificationResponse(
             notification_id=str(notification.id),
         )

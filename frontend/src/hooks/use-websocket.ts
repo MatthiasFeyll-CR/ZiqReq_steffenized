@@ -144,6 +144,18 @@ export function useWebSocket() {
                 detail: data.payload,
               }),
             );
+          } else if (data.type === "merge_complete" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:merge_complete", {
+                detail: data.payload,
+              }),
+            );
+          } else if (data.type === "append_complete" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:append_complete", {
+                detail: data.payload,
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&
