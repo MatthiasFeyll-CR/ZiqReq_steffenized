@@ -1,1 +1,223 @@
-../tasks/prd-m12.json
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m12-notifications",
+  "description": "Notification System — Persistent in-app notifications (bell + panel), toast notifications, email notifications with preferences, and notification service that consumes events from RabbitMQ and dispatches to users",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Notification REST API",
+      "description": "As a user, I want to list my persistent notifications, see unread count, and mark notifications as read/acted, so that I can stay informed of important events",
+      "acceptanceCriteria": [
+        "GET /api/notifications returns paginated list with unread_count",
+        "Supports unread_only=true query param to filter unread notifications",
+        "GET /api/notifications/unread-count returns badge count",
+        "PATCH /api/notifications/:id marks is_read or action_taken",
+        "POST /api/notifications/mark-all-read updates all user notifications",
+        "Returns 404 if notification does not exist or does not belong to user",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "testIds": ["API-NOTIF.01", "API-NOTIF.02", "API-NOTIF.03", "API-NOTIF.04"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Notifications — list, unread-count, mark read/acted endpoints\nDesign: Component inventory mentions NotificationBell and NotificationPanel but no specific specs in component-specs.md\nTesting: docs/04-test-architecture/test-matrix.md § API-NOTIF.01-04\nFiles: services/gateway/apps/notifications/views.py (new), services/gateway/apps/notifications/urls.py (new), services/gateway/gateway/urls.py (mount notifications app), services/gateway/apps/notifications/tests/test_notification_api.py (new)\nGotchas: Notification model already exists in services/gateway/apps/notifications/models.py — use it directly. Filter by user_id and apply pagination. Notifications are owned by gateway (not core).",
+      "context": {
+        "data_model": ["notifications: id uuid PK, user_id uuid FK, event_type varchar(50), title varchar(300), body text, reference_id uuid, reference_type varchar(30), is_read bool, action_taken bool, created_at timestamptz"],
+        "api_endpoints": ["GET /api/notifications — paginated list with unread_count", "GET /api/notifications/unread-count — badge count", "PATCH /api/notifications/:id — mark read/acted", "POST /api/notifications/mark-all-read — bulk update"],
+        "test_cases": ["API-NOTIF.01 | GET /api/notifications | Happy path | 200 + paginated list", "API-NOTIF.02 | GET .../unread-count | Happy path | 200 + count", "API-NOTIF.03 | PATCH /api/notifications/:id | Happy path | 200", "API-NOTIF.04 | POST .../mark-all-read | Happy path | 200"]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "Notification Creation Service (Gateway gRPC)",
+      "description": "As the notification service, I want to create notification records via gateway gRPC, so that persistent notifications are stored in the database",
+      "acceptanceCriteria": [
+        "Gateway exposes CreateNotification gRPC method",
+        "Accepts user_id, event_type, title, body, reference_id, reference_type",
+        "Creates Notification row in database",
+        "Returns notification_id on success",
+        "Notification service can call this via gRPC client",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Gateway Service gRPC — CreateNotification method. proto/gateway.proto defines the CreateNotificationRequest/Response messages.\nDesign: No design component — this is backend gRPC service.\nFiles: proto/gateway.proto (CreateNotification already defined), services/gateway/gateway_service.py (implement CreateNotification servicer method), services/gateway/apps/notifications/models.py (use existing Notification model)\nGotchas: Gateway gRPC service pattern already established in M1-M11. Use database_sync_to_async for ORM operations. Notification model is unmanaged in core but managed in gateway — gateway owns the table.",
+      "context": {
+        "data_model": ["notifications: id uuid PK, user_id uuid FK, event_type varchar(50), title varchar(300), body text, reference_id uuid, reference_type varchar(30), is_read bool default false, action_taken bool default false, created_at timestamptz"],
+        "api_endpoints": ["gRPC GatewayService.CreateNotification — creates notification row"],
+        "existing_code": ["services/gateway/gateway_service.py: existing gRPC servicers for GetUserPreferences, GetAlertRecipients — add CreateNotification"]
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "Notification Service Consumer — Event Processing & Email Dispatch",
+      "description": "As the notification service, I want to consume notification events from RabbitMQ, create persistent notifications via gateway gRPC, and dispatch email notifications respecting user preferences, so that users are notified of important events",
+      "acceptanceCriteria": [
+        "Notification service consumes events from collaboration, review, chat, AI queues",
+        "For each event: creates notification via gateway CreateNotification gRPC",
+        "Fetches user email preferences via gateway GetUserPreferences gRPC",
+        "Sends email if preference is enabled for that event type",
+        "Email includes event details, link to relevant resource, unsubscribe hint",
+        "Handles missing user preferences gracefully (default to enabled)",
+        "Service runs as standalone consumer (services/notification/main.py entry point)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/project-structure.md § Notification Service — stateless consumer, consumes events from RabbitMQ, calls gateway gRPC for notification creation and user preferences. Email dispatch via SMTP (no dedicated email service yet — use Python smtplib or similar).\nDesign: No design component — backend service.\nFiles: services/notification/main.py (consumer entry point), services/notification/consumers/base.py, services/notification/consumers/collaboration_events.py (new), services/notification/consumers/review_events.py (existing), services/notification/consumers/ai_events.py (existing), services/notification/email/sender.py (new), services/notification/grpc_clients/gateway_client.py (CreateNotification, GetUserPreferences)\nGotchas: Notification service already has structure for consumers and gRPC clients from previous milestones. Reuse existing patterns. Email sender should be a shared module. Email templates can be simple string formatting for MVP — no Jinja2 templates yet. Events are published to RabbitMQ by core/gateway services (not implemented yet — this story focuses on the consumer side).\nDeviations: Event publisher integration (core/gateway) is deferred to US-005 (wire all events). This story implements the consumer side only.",
+      "context": {
+        "data_model": ["users: email_notification_preferences jsonb — per-event-type toggles, empty = all enabled"],
+        "api_endpoints": ["gRPC GatewayService.CreateNotification — creates notification", "gRPC GatewayService.GetUserPreferences — fetches email prefs"],
+        "existing_code": ["services/notification/consumers/review_events.py: existing consumer pattern", "services/notification/grpc_clients/gateway_client.py: existing gRPC client setup"]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "Email Notification Preferences API",
+      "description": "As a user, I want to view and update my email notification preferences, so that I can control which event types trigger email delivery",
+      "acceptanceCriteria": [
+        "GET /api/users/me/notification-preferences returns categorized preferences",
+        "Categories: Collaboration, Review, Chat, Similarity, Admin (if admin role)",
+        "Missing preference keys default to true (all enabled by default)",
+        "PATCH /api/users/me/notification-preferences updates preferences (partial merge)",
+        "Gateway gRPC GetUserPreferences method fetches preferences for notification service",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "testIds": ["API-USER.02", "API-USER.03"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § User endpoints — GET/PATCH notification-preferences. Users table has email_notification_preferences jsonb column.\nDesign: docs/03-design/component-inventory.md § EmailPreferencesPanel — grouped toggles, role-based sections.\nTesting: docs/04-test-architecture/test-matrix.md § API-USER.02-03\nFiles: services/gateway/apps/authentication/views.py (add notification-preferences endpoints), services/gateway/apps/authentication/user_urls.py (mount routes), services/gateway/apps/authentication/tests/test_notification_prefs.py (new), services/gateway/gateway_service.py (implement GetUserPreferences gRPC)\nGotchas: Preferences are stored as jsonb on users table. Use JSONB field merge pattern for PATCH. Gateway already has GetUserPreferences gRPC stub from proto/gateway.proto — implement it. Default to all enabled (absence = enabled).",
+      "context": {
+        "data_model": ["users: email_notification_preferences jsonb — per-type toggles, empty = all enabled"],
+        "api_endpoints": ["GET /api/users/me/notification-preferences — categorized prefs", "PATCH /api/users/me/notification-preferences — partial merge update", "gRPC GatewayService.GetUserPreferences — fetches prefs for notification service"],
+        "test_cases": ["API-USER.02 | GET .../notification-preferences | Happy path | 200 + categories", "API-USER.03 | PATCH .../notification-preferences | Happy path | 200"]
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "Wire All Notification Events — Collaboration, Review, Chat, AI",
+      "description": "As the system, I want to publish notification events to RabbitMQ when collaboration invitations are sent/accepted/declined, review state changes, users are @mentioned in chat, and AI delegation completes, so that users receive timely notifications",
+      "acceptanceCriteria": [
+        "Collaboration events: invitation sent, accepted, declined, collaborator joined, left, removed, ownership transferred",
+        "Review events: idea submitted, state changed (accepted/dropped/rejected/undone), comment posted",
+        "Chat events: @mention detected in chat message",
+        "AI events: delegation complete (AI responds after delegation message)",
+        "Events published to RabbitMQ exchange with routing keys",
+        "Event payload includes user_id (recipient), event_type, title, body, reference_id, reference_type",
+        "Notifications are created by notification service consumer (US-003)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol and features.md § FA-12.5 — All Notification Events table. RabbitMQ event publishing pattern from M6 WebSocket milestone.\nDesign: No design component — backend event publishing.\nTesting: No test matrix entries — integration testing via notification service consumer.\nFiles: services/gateway/apps/collaboration/views.py (publish events on invite/accept/decline/remove/transfer), services/gateway/apps/review/views.py (publish on submit/accept/reject/drop/undo/comment), services/gateway/apps/ideas/views.py (publish on chat @mention detection), services/core/tasks.py or ai service (publish AI delegation complete), common event publisher utility (services/gateway/utils/events.py or similar)\nGotchas: RabbitMQ connection and publishing pattern already established in M6. Reuse existing event bus setup. @mention detection requires parsing chat message content for @user[<uuid>] patterns. AI delegation complete event requires AI service coordination — may need to defer to AI milestone if not implemented yet.\nDeviations: AI delegation complete event may require AI service changes — coordinate with AI Engineer or defer if AI service not ready. Focus on collaboration, review, and chat events first.",
+      "context": {
+        "api_endpoints": ["RabbitMQ event publishing — collaboration, review, chat, AI events"],
+        "existing_code": ["M6 WebSocket: RabbitMQ event publisher pattern", "services/gateway/apps/collaboration/views.py: invite/accept/decline endpoints — add event publishing", "services/gateway/apps/review/views.py: review action endpoints — add event publishing"]
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "NotificationBell Component",
+      "description": "As a user, I want to see a notification bell icon in the navbar with an unread count badge, so that I can quickly see if I have new notifications",
+      "acceptanceCriteria": [
+        "Bell icon (Lucide Bell) in navbar utility section",
+        "Unread count badge displays when count > 0",
+        "Badge shows count up to 99, displays '99+' for higher counts",
+        "Badge has scale-in animation on count increase",
+        "Clicking bell opens NotificationPanel (floating window)",
+        "Unread count fetched from GET /api/notifications/unread-count",
+        "Count updates in real-time via WebSocket notification events",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/notifications/unread-count returns count.\nDesign: docs/03-design/component-specs.md § 3.3 Notification Count Badge — position, size, color, animation, max '99+' display. docs/03-design/component-inventory.md § NotificationBell in Layout Components.\nTesting: No test matrix entry for frontend components — manual verification.\nFiles: frontend/src/components/layout/NotificationBell.tsx (new), frontend/src/components/layout/Navbar.tsx (add bell to utility section), frontend/src/api/notifications.ts (new — API client), frontend/src/__tests__/notification-bell.test.tsx (new)\nGotchas: NotificationBell is a layout component (navbar element), not a feature component. Badge animation uses CSS scale-in on count change. WebSocket notification event updates the count (listen for 'notification' type events). Use TanStack Query for API state management. Bell click toggles NotificationPanel visibility (shared state via React context or local state).",
+      "context": {
+        "api_endpoints": ["GET /api/notifications/unread-count — badge count"],
+        "components": ["NotificationBell — bell icon + badge, Layout component in navbar", "Navbar — add NotificationBell to utility section"],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "NotificationPanel Component",
+      "description": "As a user, I want to see a floating panel with my persistent notifications when I click the bell, so that I can view notification details and take actions",
+      "acceptanceCriteria": [
+        "Floating panel anchored to notification bell (similar to IdeasListFloating pattern)",
+        "Lists notifications with icon, title, body, timestamp",
+        "Each notification shows inline action buttons if applicable (e.g., accept/decline invitation)",
+        "Clicking a notification item navigates to relevant context (idea workspace, review page)",
+        "Clicking navigation marks notification as action_taken",
+        "Panel shows empty state when no notifications exist",
+        "Panel fetches notifications from GET /api/notifications",
+        "Real-time updates: new notifications appear via WebSocket",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/notifications returns list with pagination.\nDesign: docs/03-design/component-inventory.md § NotificationPanel and NotificationItem — icon + title + time + description + actions. docs/03-design/component-specs.md § 11.3 Empty States — 'All caught up' message.\nTesting: No test matrix entry for frontend components — manual verification.\nFiles: frontend/src/components/notifications/NotificationPanel.tsx (new), frontend/src/components/notifications/NotificationItem.tsx (new), frontend/src/api/notifications.ts (add fetchNotifications, markNotificationRead), frontend/src/__tests__/notification-panel.test.tsx (new)\nGotchas: Floating panel pattern similar to IdeasListFloating (M2) — use shadcn Popover or Dialog. NotificationItem action buttons depend on event_type (invitation → accept/decline, merge request → view details, etc.). Navigation on click uses react-router navigate() and marks action_taken via API. WebSocket 'notification' event triggers refetch or optimistic insert. Empty state uses Lucide Check icon.",
+      "context": {
+        "api_endpoints": ["GET /api/notifications — paginated list", "PATCH /api/notifications/:id — mark read/acted"],
+        "components": ["NotificationPanel — floating window with notification list", "NotificationItem — icon + title + time + body + action buttons"],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-008",
+      "title": "WebSocket Notification Delivery — Real-Time Bell Update & Toast",
+      "description": "As a user, I want to receive real-time notifications via WebSocket, so that I see toast alerts and the bell count updates immediately when events occur",
+      "acceptanceCriteria": [
+        "WebSocket consumer listens for 'notification' events",
+        "On notification event: displays toast (react-toastify) with event title and body",
+        "Toast type matches event severity (info, success, warning)",
+        "Bell unread count increments immediately (optimistic update)",
+        "NotificationPanel refetches list to show new notification",
+        "WebSocket notification event is user-scoped (not idea-scoped)",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — 'notification' event delivered to user regardless of current idea.\nDesign: docs/03-design/component-specs.md § 11.1 Toast Notifications — position, auto-dismiss, types.\nTesting: No test matrix entry — manual verification.\nFiles: frontend/src/hooks/useWebSocket.ts (add 'notification' event handler), frontend/src/components/notifications/NotificationBell.tsx (update count on event), frontend/src/components/notifications/NotificationPanel.tsx (refetch on event), frontend/src/__tests__/websocket-notifications.test.tsx (new)\nGotchas: WebSocket notification event structure: {type: 'notification', payload: {id, event_type, title, body, reference_id, reference_type, created_at}}. Toast uses react-toastify (already configured). Optimistic count increment before API refetch. If user has NotificationPanel open, refetch list to show new item. Event is user-scoped — not tied to idea_id.",
+      "context": {
+        "api_endpoints": ["WebSocket 'notification' event — user-scoped, triggers toast + bell update"],
+        "components": ["useWebSocket hook — add notification event handler", "NotificationBell — increment count on event", "NotificationPanel — refetch list on event"],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "EmailPreferencesPanel Component",
+      "description": "As a user, I want to configure my email notification preferences via a floating panel from the user dropdown, so that I can control which events send me emails",
+      "acceptanceCriteria": [
+        "Accessible from user dropdown menu (navbar)",
+        "Floating panel with grouped toggles (shadcn Switch)",
+        "Groups: Collaboration, Review, Chat, Similarity (all users), Review Management (reviewers), System (admins)",
+        "Group toggle switches all items on/off, shows indeterminate state when mixed",
+        "Individual toggles per notification type within each group",
+        "Saves changes via PATCH /api/users/me/notification-preferences",
+        "Shows success toast on save",
+        "Role-based visibility: Admin section only visible to admin users",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § PATCH /api/users/me/notification-preferences updates preferences.\nDesign: docs/03-design/component-inventory.md § EmailPreferencesPanel — grouped toggles, role-based sections. docs/03-design/component-specs.md § 4.4 Switch — toggle styling, 4.5 Checkbox — indeterminate state for group toggles. docs/01-requirements/features.md § FA-13 — role-based notification groups table.\nTesting: No test matrix entry — manual verification.\nFiles: frontend/src/components/notifications/EmailPreferencesPanel.tsx (new), frontend/src/components/layout/Navbar.tsx (add link to user dropdown), frontend/src/api/notifications.ts (add fetchEmailPreferences, updateEmailPreferences), frontend/src/__tests__/email-preferences-panel.test.tsx (new)\nGotchas: Grouped toggles pattern: parent checkbox controls all children, indeterminate when some enabled. Use shadcn Dialog or Popover for floating panel. Notification type mapping from features.md FA-13.3 table. Role-based sections: check user.roles array for 'reviewer' and 'admin'. Save uses PATCH with partial object (only changed preferences). TanStack Query mutation + invalidation.",
+      "context": {
+        "data_model": ["users: email_notification_preferences jsonb — per-type toggles"],
+        "api_endpoints": ["GET /api/users/me/notification-preferences — categorized prefs", "PATCH /api/users/me/notification-preferences — partial update"],
+        "components": ["EmailPreferencesPanel — grouped toggles, Dialog/Popover floating window", "Navbar UserDropdown — add 'Email Preferences' link"],
+        "test_cases": []
+      }
+    }
+  ]
+}

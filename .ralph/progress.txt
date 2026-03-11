@@ -58,3 +58,21 @@ Started: 2026-03-11T09:17:48+0100
   - Ruff I001 (import sorting) requires E402 imports in same block — no blank line between them
   - GetUserPreferences and GetAlertRecipients remain stubs — will be implemented in US-004
 ---
+
+## US-003: Notification Service Consumer — Event Processing & Email Dispatch
+- Status: PASS
+- Attempts: 1
+- Changes: services/notification/main.py, services/notification/consumers/base.py, services/notification/consumers/collaboration_events.py, services/notification/consumers/review_events.py, services/notification/consumers/ai_events.py, services/notification/consumers/chat_events.py (new), services/notification/consumers/similarity_events.py, services/notification/consumers/monitoring_events.py, services/notification/email/sender.py, services/notification/email/renderer.py
+- Tests: Full suite: 632 passed (Python), 389 passed (Node, 1 pre-existing failure).
+- Learnings for future iterations:
+  - Notification service uses pika (BlockingConnection) for RabbitMQ consumption
+  - Exchange: `ziqreq.events` (topic), Queue: `notification_service` (durable)
+  - Routing keys: `notification.collaboration.*`, `notification.review.*`, `notification.chat.*`, `notification.ai.*`, `notification.similarity.*`, `notification.monitoring.*`
+  - Consumer modules use a shared `notify_user()` helper in `consumers/base.py` that handles: (1) create notification via gRPC, (2) check email prefs, (3) send email
+  - Email preferences default to enabled when key is missing (absence = enabled)
+  - Email sender uses Python smtplib (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD env vars)
+  - Ruff import sorting: `from grpc_clients.*` sorts before `from consumers.*` — ruff --fix handles this
+  - `email` module name shadows Python stdlib `email` — imports like `from email.renderer import render_email` work because notification service's `email/` package is on sys.path via the working directory
+  - GatewayClient already implemented in US-002 with `create_notification()` and `get_user_preferences()` methods
+  - mypy errors for pika/grpc/proto stubs are pre-existing and not gating (mypy is optional gate)
+---
