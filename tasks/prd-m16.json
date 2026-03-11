@@ -204,7 +204,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 1.4 Icon Buttons\nFiles: frontend/src/components/**/*.tsx (aria-label, aria-describedby, aria-live)\nGotchas: aria-live='polite' for status, aria-live='assertive' for errors",
       "context": {
@@ -212,6 +212,36 @@
           "Icon buttons — aria-label",
           "AIProcessingIndicator — aria-live='polite'",
           "OfflineBanner — aria-live='assertive'"
+        ]
+      },
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n── PREVIOUS CYCLE ANALYSIS ──\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=368, failed=0, errors=554)\n  Evidence: expected side effects. Deprecated in Pydantic V2.11 to be\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-11T19:33:16+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "expected side effects. Deprecated in Pydantic V2.11 to be",
+            "test_results": {
+              "passed": 368,
+              "failed": 0,
+              "errors": 554,
+              "total": 922
+            },
+            "error_patterns": [
+              {
+                "exception_class": "django.db.utils.ProgrammingError",
+                "message": "relation \"notifications\" already exists",
+                "count": 554,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 16 — Polish & Cross-Cutting\n**Date:** 2026-03-11\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m16.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed 10 user stories covering universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility (keyboard, screen reader, reduced motion), and production auth (MSAL.js). All stories pass acceptance criteria verification. All 11 test matrix tests are"
+          }
         ]
       }
     },
@@ -228,7 +258,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 5.4 AI Processing Indicator\nFiles: frontend/src/components/**/*.tsx (useReducedMotion), frontend/src/app/globals.css (@media rules)\nGotchas: framer-motion has useReducedMotion hook. CSS uses Tailwind motion-reduce: variant",
       "context": {
@@ -236,6 +266,36 @@
           "AIProcessingIndicator — pulse",
           "AIModifiedIndicator — pulse",
           "Skeleton loaders — animate-pulse"
+        ]
+      },
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n── PREVIOUS CYCLE ANALYSIS ──\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=368, failed=0, errors=554)\n  Evidence: expected side effects. Deprecated in Pydantic V2.11 to be\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-11T19:33:16+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "expected side effects. Deprecated in Pydantic V2.11 to be",
+            "test_results": {
+              "passed": 368,
+              "failed": 0,
+              "errors": 554,
+              "total": 922
+            },
+            "error_patterns": [
+              {
+                "exception_class": "django.db.utils.ProgrammingError",
+                "message": "relation \"notifications\" already exists",
+                "count": 554,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 16 — Polish & Cross-Cutting\n**Date:** 2026-03-11\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m16.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed 10 user stories covering universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility (keyboard, screen reader, reduced motion), and production auth (MSAL.js). All stories pass acceptance criteria verification. All 11 test matrix tests are"
+          }
         ]
       }
     },
@@ -256,7 +316,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "API-AUTH.01",
         "API-AUTH.02",
@@ -272,6 +332,36 @@
           "API-AUTH.01 | Valid JWT | 200",
           "API-AUTH.02 | Expired | 401",
           "API-AUTH.03 | Malformed | 401"
+        ]
+      },
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n── PREVIOUS CYCLE ANALYSIS ──\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=368, failed=0, errors=554)\n  Evidence: expected side effects. Deprecated in Pydantic V2.11 to be\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-11T19:33:16+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "expected side effects. Deprecated in Pydantic V2.11 to be",
+            "test_results": {
+              "passed": 368,
+              "failed": 0,
+              "errors": 554,
+              "total": 922
+            },
+            "error_patterns": [
+              {
+                "exception_class": "django.db.utils.ProgrammingError",
+                "message": "relation \"notifications\" already exists",
+                "count": 554,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 16 — Polish & Cross-Cutting\n**Date:** 2026-03-11\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m16.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed 10 user stories covering universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility (keyboard, screen reader, reduced motion), and production auth (MSAL.js). All stories pass acceptance criteria verification. All 11 test matrix tests are"
+          }
         ]
       }
     }
