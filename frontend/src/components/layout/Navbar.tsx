@@ -1,19 +1,22 @@
 import { useCallback, useState } from "react"
-import { Menu, X, Bell, Lightbulb } from "lucide-react"
+import { Menu, X, Lightbulb } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
 import { NavbarLink } from "./NavbarLink"
 import { UserDropdown } from "./UserDropdown"
 import { ConnectionIndicator } from "./ConnectionIndicator"
 import { IdeasListFloating } from "./IdeasListFloating"
+import { NotificationBell } from "./NotificationBell"
 
 export function Navbar() {
   const { user, hasRole } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [ideasOpen, setIdeasOpen] = useState(false)
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false)
   const { t } = useTranslation()
 
   const closeIdeas = useCallback(() => setIdeasOpen(false), [])
+  const toggleNotifPanel = useCallback(() => setNotifPanelOpen((prev) => !prev), [])
 
   return (
     <nav className="sticky top-0 z-40 flex h-14 items-center bg-[#002E3C] px-4 text-white dark:bg-[#0F1A2E]">
@@ -46,12 +49,14 @@ export function Navbar() {
           </button>
           {ideasOpen && <IdeasListFloating onClose={closeIdeas} />}
         </div>
-        <button
-          className="rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          aria-label={t("nav.notifications")}
-        >
-          <Bell className="h-5 w-5" />
-        </button>
+        <div className="relative">
+          <NotificationBell onTogglePanel={toggleNotifPanel} />
+          {notifPanelOpen && (
+            <div className="absolute right-0 top-full mt-2 w-96 rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg">
+              <p className="text-sm text-muted-foreground">No notifications yet</p>
+            </div>
+          )}
+        </div>
         {user && <UserDropdown />}
 
         {/* Mobile hamburger */}

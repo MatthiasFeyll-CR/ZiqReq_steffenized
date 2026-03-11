@@ -39,7 +39,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Gateway Service gRPC — CreateNotification method. proto/gateway.proto defines the CreateNotificationRequest/Response messages.\nDesign: No design component — this is backend gRPC service.\nFiles: proto/gateway.proto (CreateNotification already defined), services/gateway/gateway_service.py (implement CreateNotification servicer method), services/gateway/apps/notifications/models.py (use existing Notification model)\nGotchas: Gateway gRPC service pattern already established in M1-M11. Use database_sync_to_async for ORM operations. Notification model is unmanaged in core but managed in gateway — gateway owns the table.",
       "context": {

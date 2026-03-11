@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext } from "@/hooks/use-auth";
 import type { AuthUser, AuthContextValue } from "@/hooks/use-auth";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
@@ -58,12 +59,15 @@ function renderWithAuth(ui: React.ReactNode, authValue: AuthContextValue) {
     reducer: { websocket: websocketReducer },
     preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null } },
   });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <Provider store={store}>
-      <MemoryRouter>
-        {createElement(AuthContext.Provider, { value: authValue }, ui)}
-      </MemoryRouter>
-    </Provider>,
+    <QueryClientProvider client={qc}>
+      <Provider store={store}>
+        <MemoryRouter>
+          {createElement(AuthContext.Provider, { value: authValue }, ui)}
+        </MemoryRouter>
+      </Provider>
+    </QueryClientProvider>,
   );
 }
 

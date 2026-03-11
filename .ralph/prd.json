@@ -133,7 +133,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/notifications/unread-count returns count.\nDesign: docs/03-design/component-specs.md § 3.3 Notification Count Badge — position, size, color, animation, max '99+' display. docs/03-design/component-inventory.md § NotificationBell in Layout Components.\nTesting: No test matrix entry for frontend components — manual verification.\nFiles: frontend/src/components/layout/NotificationBell.tsx (new), frontend/src/components/layout/Navbar.tsx (add bell to utility section), frontend/src/api/notifications.ts (new — API client), frontend/src/__tests__/notification-bell.test.tsx (new)\nGotchas: NotificationBell is a layout component (navbar element), not a feature component. Badge animation uses CSS scale-in on count change. WebSocket notification event updates the count (listen for 'notification' type events). Use TanStack Query for API state management. Bell click toggles NotificationPanel visibility (shared state via React context or local state).",
       "context": {
