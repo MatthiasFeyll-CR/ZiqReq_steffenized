@@ -14,7 +14,7 @@ from apps.ideas.authentication import MiddlewareAuthentication
 from apps.ideas.models import Idea
 
 from .models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
-from .serializers import SubmitIdeaSerializer
+from .serializers import ReviewActionCommentSerializer, SubmitIdeaSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -294,3 +294,106 @@ def unassign_review(request: Request, idea_id: str) -> Response:
     assignment.save(update_fields=["unassigned_at"])
 
     return Response({"message": "Unassigned successfully"})
+
+
+# --- State transition maps for review actions ---
+
+# Valid source states for each action
+_REVIEW_ACTION_VALID_STATES: dict[str, list[str]] = {
+    "accept": ["in_review"],
+    "reject": ["in_review"],
+    "drop": ["in_review"],
+    "undo": ["accepted", "dropped", "rejected"],
+}
+
+# Target state for each action
+_REVIEW_ACTION_TARGET_STATE: dict[str, str] = {
+    "accept": "accepted",
+    "reject": "rejected",
+    "drop": "dropped",
+    "undo": "in_review",
+}
+
+# Actions that require a mandatory comment
+_COMMENT_REQUIRED_ACTIONS = {"reject", "drop", "undo"}
+
+
+def _handle_review_action(request: Request, idea_id: str, action: str) -> Response:
+    """Shared logic for accept/reject/drop/undo review actions."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    # State validation
+    valid_states = _REVIEW_ACTION_VALID_STATES[action]
+    if idea.state not in valid_states:
+        return Response(
+            {"error": "INVALID_STATE", "message": f"Cannot {action} idea in state '{idea.state}'"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Comment validation for actions that require it
+    comment = None
+    if action in _COMMENT_REQUIRED_ACTIONS:
+        serializer = ReviewActionCommentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "COMMENT_REQUIRED", "message": "A comment is required for this action"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        comment = serializer.validated_data["comment"]
+
+    old_state = idea.state
+    new_state = _REVIEW_ACTION_TARGET_STATE[action]
+
+    with transaction.atomic():
+        idea.state = new_state
+        idea.save(update_fields=["state", "updated_at"])
+
+        content = comment or f"Idea {action}ed"
+        ReviewTimelineEntry.objects.create(
+            idea_id=idea.id,
+            entry_type="state_change",
+            author_id=user.id,
+            content=content,
+            old_state=old_state,
+            new_state=new_state,
+        )
+
+    return Response({"state": new_state})
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def accept_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/accept — Reviewer accepts idea."""
+    return _handle_review_action(request, idea_id, "accept")
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def reject_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/reject — Reviewer rejects idea."""
+    return _handle_review_action(request, idea_id, "reject")
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def drop_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/drop — Reviewer drops idea."""
+    return _handle_review_action(request, idea_id, "drop")
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def undo_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/undo — Undo review action."""
+    return _handle_review_action(request, idea_id, "undo")

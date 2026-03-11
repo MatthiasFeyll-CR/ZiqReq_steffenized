@@ -8,3 +8,7 @@ class SubmitIdeaSerializer(serializers.Serializer):
         required=False,
         default=list,
     )
+
+
+class ReviewActionCommentSerializer(serializers.Serializer):
+    comment = serializers.CharField(required=True, allow_blank=False)

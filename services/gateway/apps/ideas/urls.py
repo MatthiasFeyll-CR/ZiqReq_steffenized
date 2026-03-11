@@ -13,4 +13,8 @@ urlpatterns = [
     path("<str:idea_id>/board/", include("apps.board.urls")),
     path("<str:idea_id>/context-window", views.context_window),
     path("<str:idea_id>/brd", include("apps.brd.urls")),
+    path("<str:idea_id>/review/accept", review_views.accept_review),
+    path("<str:idea_id>/review/reject", review_views.reject_review),
+    path("<str:idea_id>/review/drop", review_views.drop_review),
+    path("<str:idea_id>/review/undo", review_views.undo_review),
 ]
