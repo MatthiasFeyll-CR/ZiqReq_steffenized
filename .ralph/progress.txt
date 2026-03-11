@@ -1,0 +1,37 @@
+# Ralph Progress Log — M16 (polish)
+Started: 2026-03-11T17:44:30+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Universal Error Pattern — Enhanced Error Toast
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/common/ErrorToast.tsx (enhanced with buttons + retry counter), frontend/src/hooks/useErrorHandler.ts (new), frontend/src/__tests__/error-toast.test.tsx (new)
+- Tests: 8 passed (T-14.1.01, T-14.1.03, T-14.1.04 all covered). Typecheck clean.
+- Learnings for future iterations:
+  - ErrorToast accepts onShowLogs/onRetry callbacks and retryCount/maxRetries props
+  - useErrorHandler hook manages retry state: tracks count, enforces max, provides reset
+  - Button component supports variant="outline" and variant="primary" with size="sm"
+  - Toast component uses role="alert" and supports data-testid
+  - Pre-existing Docker build failure (missing nginx.conf) and information-gaps-toggle test failure — not related to M16
+---
