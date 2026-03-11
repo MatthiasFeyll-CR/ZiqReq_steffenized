@@ -263,6 +263,27 @@ def _get_idea(request: Request, idea_id: str) -> Response:
     else:
         data["merge_request_pending"] = None
 
+    # Attach merged_idea_ref / appended_idea_ref for old ideas
+    if idea.closed_by_merge_id:
+        ref_idea = Idea.objects.filter(id=idea.closed_by_merge_id, deleted_at__isnull=True).first()
+        data["merged_idea_ref"] = {
+            "id": str(ref_idea.id),
+            "title": ref_idea.title,
+            "url": f"/idea/{ref_idea.id}",
+        } if ref_idea else None
+    else:
+        data["merged_idea_ref"] = None
+
+    if idea.closed_by_append_id:
+        ref_idea = Idea.objects.filter(id=idea.closed_by_append_id, deleted_at__isnull=True).first()
+        data["appended_idea_ref"] = {
+            "id": str(ref_idea.id),
+            "title": ref_idea.title,
+            "url": f"/idea/{ref_idea.id}",
+        } if ref_idea else None
+    else:
+        data["appended_idea_ref"] = None
+
     return Response(data)
 
 

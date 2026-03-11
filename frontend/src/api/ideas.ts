@@ -7,6 +7,12 @@ export interface MergeRequestPending {
   requesting_idea_title: string;
 }
 
+export interface IdeaRef {
+  id: string;
+  title: string;
+  url: string;
+}
+
 export interface Idea {
   id: string;
   title: string;
@@ -19,6 +25,8 @@ export interface Idea {
   updated_at: string;
   collaborators: Array<{ user_id: string; display_name: string }>;
   merge_request_pending: MergeRequestPending | null;
+  merged_idea_ref: IdeaRef | null;
+  appended_idea_ref: IdeaRef | null;
 }
 
 export async function fetchIdea(id: string, token?: string): Promise<Idea> {

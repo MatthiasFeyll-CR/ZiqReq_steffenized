@@ -113,7 +113,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: data-model.md § ideas.co_owner_id, 2-owner model notes\nTesting: integration-scenarios.md § Recursive Merge, runtime-safety.md § INTEGRITY-009\nFiles: core/apps/similarity/merge_service.py (extend execute_merge), test_recursive_merge.py\nGotchas: Triggerers = requesting owner + target owner. Demoted = all other original owners",
       "context": {
@@ -135,7 +135,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 11.5 Banners, § 5.8 LockOverlay\nFiles: gateway/apps/ideas/views.py (extend response), MergedIdeaBanner.tsx, AppendedIdeaBanner.tsx, IdeaWorkspace.tsx\nGotchas: merged_idea_ref and appended_idea_ref are mutually exclusive",
       "context": {

@@ -12,6 +12,8 @@ import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
 import { MergeRequestBanner } from "@/components/workspace/MergeRequestBanner";
+import { MergedIdeaBanner } from "@/components/workspace/MergedIdeaBanner";
+import { AppendedIdeaBanner } from "@/components/workspace/AppendedIdeaBanner";
 import { LockOverlay } from "@/components/workspace/LockOverlay";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
@@ -147,6 +149,9 @@ function IdeaWorkspaceContent({
   const prevStateRef = useRef(idea.state);
 
   const hasMergePending = !!idea.merge_request_pending;
+  const isClosedByMerge = !!idea.merged_idea_ref;
+  const isClosedByAppend = !!idea.appended_idea_ref;
+  const isClosedIdea = isClosedByMerge || isClosedByAppend;
 
   // has_been_submitted heuristic: state !== 'open' means it was submitted at least once
   const hasBeenSubmitted = idea.state !== "open";
@@ -204,28 +209,38 @@ function IdeaWorkspaceContent({
     });
   }, [idea, onIdeaUpdate]);
 
-  const effectiveChatLocked = chatLocked || !isOnline || readOnly || hasMergePending;
+  const effectiveChatLocked = chatLocked || !isOnline || readOnly || hasMergePending || isClosedIdea;
   const effectiveLockReason = readOnly
     ? "Viewing shared idea — chat is read-only"
     : !isOnline
       ? "You are currently offline. Chat is disabled."
-      : hasMergePending
-        ? "This idea has a pending merge request. Accept or decline to continue editing."
-        : lockReason;
-  const effectiveReadOnly = allReadOnly || readOnly;
+      : isClosedByMerge
+        ? "This idea was merged. Content is read-only."
+        : isClosedByAppend
+          ? "This idea was appended. Content is read-only."
+          : hasMergePending
+            ? "This idea has a pending merge request. Accept or decline to continue editing."
+            : lockReason;
+  const effectiveReadOnly = allReadOnly || readOnly || isClosedIdea;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={effectiveReadOnly || hasMergePending} />
       {readOnly && <ReadOnlyBanner />}
+      {!readOnly && isClosedByMerge && idea.merged_idea_ref && (
+        <MergedIdeaBanner mergedIdeaRef={idea.merged_idea_ref} />
+      )}
+      {!readOnly && isClosedByAppend && idea.appended_idea_ref && (
+        <AppendedIdeaBanner appendedIdeaRef={idea.appended_idea_ref} />
+      )}
       {!readOnly && idea.merge_request_pending && (
         <MergeRequestBanner mergeRequest={idea.merge_request_pending} onResolved={handleMergeResolved} />
       )}
-      {!readOnly && <InvitationBanner ideaId={idea.id} />}
+      {!readOnly && !isClosedIdea && <InvitationBanner ideaId={idea.id} />}
       <OfflineBanner />
       <div ref={brainstormingRef} className="relative flex-1 min-h-0 flex flex-col" style={{ minHeight: hasBeenSubmitted ? "calc(100vh - 64px)" : undefined }}>
-        {hasMergePending && (
-          <LockOverlay reason="This idea has a pending merge request. Accept or decline to continue editing." />
+        {(hasMergePending || isClosedIdea) && (
+          <LockOverlay reason={isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
         )}
         <WorkspaceLayout
           chatPanel={
@@ -234,7 +249,7 @@ function IdeaWorkspaceContent({
           reviewVisible={reviewVisible}
           ideaId={idea.id}
           ideaState={idea.state}
-          disabled={!isOnline || readOnly || hasMergePending}
+          disabled={!isOnline || readOnly || hasMergePending || isClosedIdea}
           readOnly={readOnly}
         />
       </div>

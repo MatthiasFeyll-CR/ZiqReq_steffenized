@@ -33,6 +33,8 @@ const MOCK_IDEA: Idea = {
     { user_id: "u2", display_name: "Bob Baker" },
   ],
   merge_request_pending: null,
+  merged_idea_ref: null,
+  appended_idea_ref: null,
 };
 
 function renderChatInput(ideaOverride?: Partial<Idea>) {
