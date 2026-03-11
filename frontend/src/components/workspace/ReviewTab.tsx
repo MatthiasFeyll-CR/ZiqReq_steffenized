@@ -5,10 +5,33 @@ import { Download, FileText, Loader2, Pencil } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PDFPreview } from "@/components/brd/PDFPreview";
 import { BRDSectionEditor } from "@/components/brd/BRDSectionEditor";
 import { fetchBrdDraft, triggerBrdGeneration, fetchBrdPdf } from "@/api/brd";
+import type { BrdDraft } from "@/api/brd";
+
+const TODO_MARKER = "/TODO";
+
+function hasTodoMarkers(draft: BrdDraft): boolean {
+  const fields = [
+    draft.section_title,
+    draft.section_short_description,
+    draft.section_current_workflow,
+    draft.section_affected_department,
+    draft.section_core_capabilities,
+    draft.section_success_criteria,
+  ];
+  return fields.some((f) => f && f.includes(TODO_MARKER));
+}
 
 interface ReviewTabProps {
   ideaId: string;
@@ -20,6 +43,7 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
   const queryClient = useQueryClient();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [todoWarningOpen, setTodoWarningOpen] = useState(false);
 
   const {
     data: brdDraft,
@@ -70,7 +94,7 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
     brdDraft.section_success_criteria
   );
 
-  const handleDownload = useCallback(async () => {
+  const doDownload = useCallback(async () => {
     try {
       const blob = await fetchBrdPdf(ideaId);
       setPdfBlob(blob);
@@ -89,6 +113,14 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
       );
     }
   }, [ideaId, t]);
+
+  const handleDownload = useCallback(() => {
+    if (brdDraft && hasTodoMarkers(brdDraft)) {
+      setTodoWarningOpen(true);
+      return;
+    }
+    doDownload();
+  }, [brdDraft, doDownload]);
 
   const handleGenerate = useCallback(() => {
     generateMutation.mutate();
@@ -195,6 +227,32 @@ export function ReviewTab({ ideaId, disabled }: ReviewTabProps) {
           onClose={() => setEditorOpen(false)}
         />
       )}
+
+      {/* /TODO Warning Dialog */}
+      <Dialog open={todoWarningOpen} onOpenChange={setTodoWarningOpen}>
+        <DialogContent data-testid="todo-warning-dialog">
+          <DialogHeader>
+            <DialogTitle>
+              {t("review.todoWarningTitle", "Sections contain /TODO markers")}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                "review.todoWarningDescription",
+                "Cannot generate PDF: sections contain /TODO markers. Please complete or disable information gaps.",
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setTodoWarningOpen(false)}
+              data-testid="todo-warning-close"
+            >
+              {t("common.ok", "OK")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

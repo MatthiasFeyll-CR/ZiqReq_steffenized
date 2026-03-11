@@ -587,6 +587,22 @@
     "UI-4.06": {
       "file": "frontend/src/__tests__/readiness-evaluation.test.tsx",
       "function": "renders progress indicator below editor header"
+    },
+    "T-4.9.04": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "when allow_information_gaps=true, progress label shows 'Gaps allowed'"
+    },
+    "T-4.9.05": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "when allow_information_gaps=false, progress label shows section count"
+    },
+    "T-4.9.06": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "shows warning dialog when section contains /TODO markers"
+    },
+    "UI-4.07": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "shows the Allow information gaps toggle switch in the editor"
     }
   }
 }
