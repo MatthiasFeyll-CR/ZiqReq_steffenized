@@ -139,3 +139,18 @@ Started: 2026-03-11T07:34:47+0100
   - InvitationBanner is hidden in read-only mode (share link viewers don't need invitation UI)
   - effectiveReadOnly combines allReadOnly (from state like accepted/dropped) with readOnly (from share link token)
 ---
+
+## US-009: Multi-User Awareness — Sender Names & Co-Owner Rules
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/chat/ChatMessageList.tsx, frontend/src/components/collaboration/CollaboratorModal.tsx, frontend/src/components/workspace/WorkspaceHeader.tsx, frontend/src/api/collaboration.ts, frontend/src/__tests__/multi-user-awareness.test.tsx (new), .ralph/test-manifest.json
+- Tests: 620 Python tests passed, 389 Node tests passed (49 files). 1 pre-existing node error (PDFPreview unrelated).
+- Learnings for future iterations:
+  - ChatMessageList already had multi-user detection (isMultiUser = idea.collaborators.length > 0) and sender name props — just needed to show for ALL messages (not just non-own) and fix getSenderName to include current user
+  - UserMessageBubble already had showSenderName/senderName props with correct text-xs text-muted-foreground styling — no component changes needed
+  - CollaboratorModal accepts coOwnerId prop from WorkspaceHeader, passed through to CollaboratorsTab for leave logic
+  - Leave button uses isSingleOwner check (isOwner && !coOwnerId) — disabled with Radix Tooltip for single owners, enabled for co-owners and collaborators
+  - leaveIdea API function follows same pattern as other collaboration API functions (POST with empty body)
+  - TooltipProvider must wrap Tooltip for Radix tooltip to work — imported from @/components/ui/tooltip
+  - TS strict mode catches unused destructured props (ownerId in CollaboratorsTab) and unused variables (canLeave, isCoOwner) — remove or don't declare
+---
