@@ -109,3 +109,18 @@ Started: 2026-03-11T07:34:47+0100
   - TanStack Query invalidation keys used: `['collaborators', ideaId]`, `['invitations', ideaId]`, `['userSearch', query]`.
   - toast from react-toastify used for success/error notifications on all mutations.
 ---
+
+## US-007: Invitation Display — Banner & Card
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/collaboration.ts, frontend/src/components/workspace/InvitationBanner.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/pages/LandingPage/index.tsx, frontend/src/__tests__/invitation-display.test.tsx (new), frontend/src/__tests__/idea-workspace.test.tsx, frontend/src/__tests__/review-section.test.tsx, frontend/src/__tests__/section-visibility.test.tsx, .ralph/test-manifest.json
+- Tests: 620 Python tests passed, 376 Node tests passed (47 files). 1 pre-existing node error (PDFPreview unrelated).
+- Learnings for future iterations:
+  - InvitationCard already existed with accept/decline prop callbacks — wired from LandingPage using useMutation + invalidateQueries
+  - InvitationBanner fetches invitations via useQuery(["invitations"]) and filters by ideaId — placed below WorkspaceHeader in IdeaWorkspace
+  - framer-motion AnimatePresence used for slide-down effect — causes jsdom `window.scrollTo` errors in tests but doesn't affect results
+  - TanStack Query v5 passes additional context object as second arg to mutationFn — use `mock.calls[0]?.[0]` instead of `toHaveBeenCalledWith(id)` for assertions
+  - Docker node-tests container copies files at build time — MUST rebuild after changes (`docker compose -f docker-compose.test.yml build node-tests`)
+  - When adding new components to IdeaWorkspace, tests that render the full page need InvitationBanner mocked (idea-workspace.test, review-section.test), while tests that render the actual page components (section-visibility.test) need fetchInvitations and acceptInvitation/declineInvitation mocks
+  - useMutation with acceptInvitation/declineInvitation works via @/api/collaboration module — same pattern as CollaboratorModal
+---
