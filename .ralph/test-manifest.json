@@ -803,6 +803,26 @@
     "API-ADMIN.06": {
       "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
       "function": "test_patch_company_context"
+    },
+    "T-11.3.01": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_parameter_update_applies_runtime"
+    },
+    "API-ADMIN.01": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_get_parameters_returns_array"
+    },
+    "API-ADMIN.02": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_non_admin_gets_403"
+    },
+    "API-ADMIN.07": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_patch_parameter_updates_value"
+    },
+    "API-ADMIN.08": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_patch_integer_invalid_returns_400"
     }
   }
 }
