@@ -91,6 +91,7 @@
     "notFound": "Idea not found",
     "noAccess": "You don't have access to this idea",
     "backToHome": "Back to home",
+    "editTitle": "Edit idea title",
     "invitationBanner": {
       "text": "invited you to collaborate on this idea"
     }
@@ -218,6 +219,7 @@
     "todoWarningDescription": "Cannot generate PDF: sections contain /TODO markers. Please complete or disable information gaps."
   },
   "timeline": {
+    "title": "Review timeline",
     "reply": "Reply",
     "resubmitted": "Resubmitted",
     "replyPlaceholder": "Write a reply...",
@@ -364,7 +366,9 @@
   "chat": {
     "inputPlaceholder": "Type a message...",
     "send": "Send",
-    "rateLimited": "Chat input is locked. Please wait for AI to complete processing."
+    "rateLimited": "Chat input is locked. Please wait for AI to complete processing.",
+    "messageList": "Chat messages",
+    "emptyState": "Start brainstorming..."
   },
   "submit": {
     "success": "Idea submitted",

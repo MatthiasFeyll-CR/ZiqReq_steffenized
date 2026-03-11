@@ -152,6 +152,7 @@ function InviteTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
     <div className="space-y-4 py-2" data-testid="invite-tab">
       <Input
         placeholder={t("collaboration.searchPlaceholder")}
+        aria-label={t("collaboration.searchPlaceholder")}
         value={searchQuery}
         onChange={(e) => handleSearchChange(e.target.value)}
         data-testid="invite-search-input"

@@ -260,6 +260,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           placeholder={t("chat.inputPlaceholder", "Type a message...")}
+          aria-label={t("chat.inputPlaceholder", "Type a message...")}
           disabled={sending || disabled}
           data-testid="chat-input-textarea"
         />

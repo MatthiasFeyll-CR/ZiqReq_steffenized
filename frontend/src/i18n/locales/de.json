@@ -91,6 +91,7 @@
     "notFound": "Idee nicht gefunden",
     "noAccess": "Sie haben keinen Zugriff auf diese Idee",
     "backToHome": "Zurück zur Startseite",
+    "editTitle": "Ideetitel bearbeiten",
     "invitationBanner": {
       "text": "hat Sie zur Zusammenarbeit an dieser Idee eingeladen"
     }
@@ -218,6 +219,7 @@
     "todoWarningDescription": "PDF kann nicht erstellt werden: Abschnitte enthalten /TODO-Markierungen. Bitte vervollständigen oder deaktivieren Sie Informationslücken."
   },
   "timeline": {
+    "title": "Prüfungsverlauf",
     "reply": "Antworten",
     "resubmitted": "Erneut eingereicht",
     "replyPlaceholder": "Antwort schreiben...",
@@ -364,7 +366,9 @@
   "chat": {
     "inputPlaceholder": "Nachricht eingeben...",
     "send": "Senden",
-    "rateLimited": "Chat-Eingabe gesperrt. Bitte warten Sie, bis die KI-Verarbeitung abgeschlossen ist."
+    "rateLimited": "Chat-Eingabe gesperrt. Bitte warten Sie, bis die KI-Verarbeitung abgeschlossen ist.",
+    "messageList": "Chat-Nachrichten",
+    "emptyState": "Starten Sie ein Brainstorming..."
   },
   "submit": {
     "success": "Idee eingereicht",

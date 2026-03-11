@@ -26,6 +26,8 @@ export function AIProcessingIndicator({ ideaId }: AIProcessingIndicatorProps) {
   return (
     <div
       className="flex items-center justify-center py-2 text-sm text-muted-foreground"
+      role="status"
+      aria-live="polite"
       data-testid="ai-processing-indicator"
     >
       <span>AI is processing</span>

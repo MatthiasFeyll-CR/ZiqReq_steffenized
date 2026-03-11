@@ -1,11 +1,11 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m16-polish",
-  "description": "M16: Polish & Cross-Cutting \u2014 universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility pass, prefers-reduced-motion, auto-scroll, production auth",
+  "description": "M16: Polish & Cross-Cutting — universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility pass, prefers-reduced-motion, auto-scroll, production auth",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Universal Error Pattern \u2014 Enhanced Error Toast",
+      "title": "Universal Error Pattern — Enhanced Error Toast",
       "description": "As a user, I want error toasts to show 'Show Logs' and 'Retry' buttons so that I can debug issues and retry failed operations",
       "acceptanceCriteria": [
         "Error toast displays 'Show Logs' (outline) and 'Retry' (primary) buttons",
@@ -22,10 +22,10 @@
         "T-14.1.03",
         "T-14.1.04"
       ],
-      "notes": "Design: component-specs.md \u00a7 11.4 Error States\nFiles: frontend/src/components/common/ErrorToast.tsx (enhance), frontend/src/hooks/useErrorHandler.ts (new)\nGotchas: Max retries from admin_parameters.max_retry_attempts (default 3)",
+      "notes": "Design: component-specs.md § 11.4 Error States\nFiles: frontend/src/components/common/ErrorToast.tsx (enhance), frontend/src/hooks/useErrorHandler.ts (new)\nGotchas: Max retries from admin_parameters.max_retry_attempts (default 3)",
       "context": {
         "components": [
-          "ErrorToast \u2014 needs onShowLogs/onRetry + retry counter"
+          "ErrorToast — needs onShowLogs/onRetry + retry counter"
         ],
         "test_cases": [
           "T-14.1.01 | Unit | Toast with buttons",
@@ -36,7 +36,7 @@
     },
     {
       "id": "US-002",
-      "title": "Error Log Modal \u2014 Technical Details",
+      "title": "Error Log Modal — Technical Details",
       "description": "As a user, I want the error log modal to show console logs, network responses, technical details, and support contact",
       "acceptanceCriteria": [
         "Modal shows: console log (last 20 errors), network response (HTTP status, body), technical details (error code, timestamp, user agent, URL)",
@@ -48,10 +48,10 @@
       "testIds": [
         "T-14.1.02"
       ],
-      "notes": "Design: component-specs.md \u00a7 11.4 Error States\nFiles: frontend/src/components/common/ErrorLogModal.tsx (enhance), frontend/src/utils/errorLogger.ts (new)\nGotchas: Console log capture needs window.console.error monkey-patch or ErrorBoundary",
+      "notes": "Design: component-specs.md § 11.4 Error States\nFiles: frontend/src/components/common/ErrorLogModal.tsx (enhance), frontend/src/utils/errorLogger.ts (new)\nGotchas: Console log capture needs window.console.error monkey-patch or ErrorBoundary",
       "context": {
         "components": [
-          "ErrorLogModal \u2014 needs console log + network response + tech details + support contact"
+          "ErrorLogModal — needs console log + network response + tech details + support contact"
         ],
         "test_cases": [
           "T-14.1.02 | Unit | Show Logs opens modal with details"
@@ -60,7 +60,7 @@
     },
     {
       "id": "US-003",
-      "title": "Idle Detection \u2014 Mouse Inactivity & Tab Visibility",
+      "title": "Idle Detection — Mouse Inactivity & Tab Visibility",
       "description": "As a system, I want to detect user idle state after configurable inactivity for server resource management",
       "acceptanceCriteria": [
         "User marked idle after no mouse movement for idle_timeout seconds (default: 300)",
@@ -76,7 +76,7 @@
         "T-15.1.01",
         "T-15.1.02"
       ],
-      "notes": "Design: component-specs.md \u00a7 9.2 Stacked Avatars \u2014 idle avatar opacity-50 + grayscale\nFiles: frontend/src/hooks/useIdleDetection.ts (new), frontend/src/store/slices/presenceSlice.ts, services/gateway/apps/websocket/consumers.py\nGotchas: Mouse movement throttled (500ms). Page Visibility API for tab blur",
+      "notes": "Design: component-specs.md § 9.2 Stacked Avatars — idle avatar opacity-50 + grayscale\nFiles: frontend/src/hooks/useIdleDetection.ts (new), frontend/src/store/slices/presenceSlice.ts, services/gateway/apps/websocket/consumers.py\nGotchas: Mouse movement throttled (500ms). Page Visibility API for tab blur",
       "context": {
         "data_model": [
           "admin_parameters: idle_timeout=300, idle_disconnect=120"
@@ -102,10 +102,10 @@
       "testIds": [
         "T-15.2.01"
       ],
-      "notes": "Design: component-specs.md \u00a7 11.5 Banners\nFiles: services/gateway/apps/websocket/consumers.py (idle timeout timer), frontend/src/components/common/OfflineBanner.tsx\nGotchas: Server idle timer resets on any WebSocket message. Use asyncio timeout",
+      "notes": "Design: component-specs.md § 11.5 Banners\nFiles: services/gateway/apps/websocket/consumers.py (idle timeout timer), frontend/src/components/common/OfflineBanner.tsx\nGotchas: Server idle timer resets on any WebSocket message. Use asyncio timeout",
       "context": {
         "components": [
-          "OfflineBanner \u2014 idle disconnect message variant"
+          "OfflineBanner — idle disconnect message variant"
         ],
         "test_cases": [
           "T-15.2.01 | Unit | Disconnect after idle"
@@ -114,7 +114,7 @@
     },
     {
       "id": "US-005",
-      "title": "Return from Idle \u2014 Reconnection & State Sync",
+      "title": "Return from Idle — Reconnection & State Sync",
       "description": "As a user, I want to automatically reconnect when I return from idle for seamless resumption",
       "acceptanceCriteria": [
         "Mouse movement during idle clears idle flag and triggers reconnection",
@@ -131,7 +131,7 @@
       "notes": "Files: frontend/src/hooks/useIdleDetection.ts, frontend/src/hooks/useIdeaSync.ts (new)\nGotchas: State sync must be idempotent. Use TanStack Query invalidateQueries",
       "context": {
         "api_endpoints": [
-          "GET /api/ideas/:id \u2014 latest state"
+          "GET /api/ideas/:id — latest state"
         ],
         "test_cases": [
           "T-15.3.01 | Unit | Mouse clears idle"
@@ -140,7 +140,7 @@
     },
     {
       "id": "US-006",
-      "title": "i18n Completion \u2014 Full Coverage",
+      "title": "i18n Completion — Full Coverage",
       "description": "As a user, I want all user-facing text in German and English for my preferred language",
       "acceptanceCriteria": [
         "All UI labels, buttons, navigation, tooltips, errors translated to de + en",
@@ -169,7 +169,7 @@
     },
     {
       "id": "US-007",
-      "title": "Accessibility Pass \u2014 Keyboard Navigation & Focus",
+      "title": "Accessibility Pass — Keyboard Navigation & Focus",
       "description": "As a keyboard user, I want all interactive elements keyboard-accessible with visible focus indicators",
       "acceptanceCriteria": [
         "All buttons/links/inputs/dropdowns/modals/tabs accessible via Tab",
@@ -181,19 +181,19 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
-      "notes": "Design: component-specs.md \u00a7 1.3 Button States\nFiles: frontend/src/components/ui/*.tsx (focus styles), frontend/src/components/common/SkipLink.tsx\nGotchas: shadcn/ui has keyboard support via Radix. Add Tailwind focus classes",
+      "notes": "Design: component-specs.md § 1.3 Button States\nFiles: frontend/src/components/ui/*.tsx (focus styles), frontend/src/components/common/SkipLink.tsx\nGotchas: shadcn/ui has keyboard support via Radix. Add Tailwind focus classes",
       "context": {
         "components": [
-          "shadcn/ui components \u2014 verify focus",
-          "SkipLink \u2014 verify rendered"
+          "shadcn/ui components — verify focus",
+          "SkipLink — verify rendered"
         ]
       }
     },
     {
       "id": "US-008",
-      "title": "Accessibility Pass \u2014 Screen Reader Labels",
+      "title": "Accessibility Pass — Screen Reader Labels",
       "description": "As a screen reader user, I want all interactive elements to have appropriate labels",
       "acceptanceCriteria": [
         "Icon-only buttons have aria-label",
@@ -206,12 +206,12 @@
       "priority": 8,
       "passes": false,
       "testIds": [],
-      "notes": "Design: component-specs.md \u00a7 1.4 Icon Buttons\nFiles: frontend/src/components/**/*.tsx (aria-label, aria-describedby, aria-live)\nGotchas: aria-live='polite' for status, aria-live='assertive' for errors",
+      "notes": "Design: component-specs.md § 1.4 Icon Buttons\nFiles: frontend/src/components/**/*.tsx (aria-label, aria-describedby, aria-live)\nGotchas: aria-live='polite' for status, aria-live='assertive' for errors",
       "context": {
         "components": [
-          "Icon buttons \u2014 aria-label",
-          "AIProcessingIndicator \u2014 aria-live='polite'",
-          "OfflineBanner \u2014 aria-live='assertive'"
+          "Icon buttons — aria-label",
+          "AIProcessingIndicator — aria-live='polite'",
+          "OfflineBanner — aria-live='assertive'"
         ]
       }
     },
@@ -230,18 +230,18 @@
       "priority": 9,
       "passes": false,
       "testIds": [],
-      "notes": "Design: component-specs.md \u00a7 5.4 AI Processing Indicator\nFiles: frontend/src/components/**/*.tsx (useReducedMotion), frontend/src/app/globals.css (@media rules)\nGotchas: framer-motion has useReducedMotion hook. CSS uses Tailwind motion-reduce: variant",
+      "notes": "Design: component-specs.md § 5.4 AI Processing Indicator\nFiles: frontend/src/components/**/*.tsx (useReducedMotion), frontend/src/app/globals.css (@media rules)\nGotchas: framer-motion has useReducedMotion hook. CSS uses Tailwind motion-reduce: variant",
       "context": {
         "components": [
-          "AIProcessingIndicator \u2014 pulse",
-          "AIModifiedIndicator \u2014 pulse",
-          "Skeleton loaders \u2014 animate-pulse"
+          "AIProcessingIndicator — pulse",
+          "AIModifiedIndicator — pulse",
+          "Skeleton loaders — animate-pulse"
         ]
       }
     },
     {
       "id": "US-010",
-      "title": "Production Auth \u2014 MSAL.js Integration",
+      "title": "Production Auth — MSAL.js Integration",
       "description": "As a production user, I want to authenticate with Azure AD for authorized access",
       "acceptanceCriteria": [
         "MSAL.js wraps app with MsalProvider",
@@ -262,10 +262,10 @@
         "API-AUTH.02",
         "API-AUTH.03"
       ],
-      "notes": "Architecture: tech-stack.md \u00a7 Authentication Flow Design\nFiles: frontend/src/app/providers.tsx (MsalProvider), frontend/src/config/msalConfig.ts (new), services/gateway/middleware/azure_ad_auth.py (new), services/gateway/apps/websocket/middleware.py\nGotchas: MSAL config needs Azure AD tenant ID, client ID from .env. Token validation caches JWKS keys",
+      "notes": "Architecture: tech-stack.md § Authentication Flow Design\nFiles: frontend/src/app/providers.tsx (MsalProvider), frontend/src/config/msalConfig.ts (new), services/gateway/middleware/azure_ad_auth.py (new), services/gateway/apps/websocket/middleware.py\nGotchas: MSAL config needs Azure AD tenant ID, client ID from .env. Token validation caches JWKS keys",
       "context": {
         "api_endpoints": [
-          "POST /api/auth/validate \u2014 validate JWT",
+          "POST /api/auth/validate — validate JWT",
           "WebSocket /ws/?token=<jwt>"
         ],
         "test_cases": [

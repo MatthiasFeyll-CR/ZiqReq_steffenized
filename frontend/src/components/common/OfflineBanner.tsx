@@ -30,7 +30,7 @@ export function OfflineBanner() {
           className="overflow-hidden"
           data-testid="offline-banner"
         >
-          <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-400 dark:border-amber-600 rounded-md p-4 mx-0">
+          <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-400 dark:border-amber-600 rounded-md p-4 mx-0" role="alert" aria-live="assertive">
             <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
             <p className="text-sm text-foreground flex-1">
               {isIdleDisconnected

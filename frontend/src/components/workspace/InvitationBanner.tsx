@@ -52,7 +52,7 @@ export function InvitationBanner({ ideaId }: InvitationBannerProps) {
           transition={{ duration: 0.3 }}
           data-testid="invitation-banner"
         >
-          <div className="border-b bg-primary/5 px-4 py-3 border-l-4 border-l-primary flex items-center justify-between">
+          <div className="border-b bg-primary/5 px-4 py-3 border-l-4 border-l-primary flex items-center justify-between" role="alert" aria-live="polite">
             <p className="text-sm text-foreground">
               <span className="font-medium">{invitation.inviter.display_name}</span>
               {" "}

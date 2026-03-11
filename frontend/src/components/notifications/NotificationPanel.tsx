@@ -112,7 +112,7 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
           <p className="text-sm text-muted-foreground">{t("notifications.allCaughtUp")}</p>
         </div>
       ) : (
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto" role="list" aria-label={t("notifications.title")}>
           {notifications.map((n) => (
             <NotificationItem
               key={n.id}

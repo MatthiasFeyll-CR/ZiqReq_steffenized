@@ -25,7 +25,7 @@ function ErrorToast({
   const maxRetriesReached = retryCount >= maxRetries
 
   return (
-    <Toast variant="error" onClose={onClose} data-testid="error-toast">
+    <Toast variant="error" onClose={onClose} data-testid="error-toast" role="alert" aria-live="assertive">
       <ToastTitle>{title ?? t("errors.title")}</ToastTitle>
       <ToastDescription>{message}</ToastDescription>
       <div className="mt-2 flex gap-2">

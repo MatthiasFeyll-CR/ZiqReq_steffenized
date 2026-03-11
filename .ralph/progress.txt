@@ -125,3 +125,17 @@ Started: 2026-03-11T17:44:30+0100
   - Toast close button was the only interactive element missing ring-offset-2 in its focus styles
   - Pre-existing test failure: information-gaps-toggle.test.tsx (URL.createObjectURL)
 ---
+
+## US-008: Accessibility Pass — Screen Reader Labels
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/board/BoardToolbar.tsx (aria-label on 5 icon buttons), frontend/src/components/chat/AIProcessingIndicator.tsx (aria-live="polite" + role="status"), frontend/src/components/chat/ChatInput.tsx (aria-label on textarea), frontend/src/components/chat/ChatMessageList.tsx (role="log" + aria-label), frontend/src/components/chat/MentionDropdown.tsx (role="listbox" + aria-selected on items), frontend/src/components/collaboration/CollaboratorModal.tsx (aria-label on search input), frontend/src/components/common/ErrorLogModal.tsx (aria-describedby), frontend/src/components/common/ErrorToast.tsx (role="alert" + aria-live="assertive"), frontend/src/components/common/OfflineBanner.tsx (role="alert" + aria-live="assertive"), frontend/src/components/landing/FilterBar.tsx (aria-label on search input), frontend/src/components/layout/ConnectionIndicator.tsx (role="status" + aria-live="polite"), frontend/src/components/notifications/NotificationPanel.tsx (role="list" on notification list), frontend/src/components/review/ReviewTimeline.tsx (role="log" + aria-label), frontend/src/components/workspace/InvitationBanner.tsx (role="alert" + aria-live="polite"), frontend/src/components/workspace/MergeRequestBanner.tsx (role="alert" + aria-live="polite"), frontend/src/components/workspace/PresenceIndicators.tsx (role="group" + aria-label), frontend/src/components/workspace/ReadOnlyBanner.tsx (role="status" + aria-live="polite"), frontend/src/components/workspace/WorkspaceHeader.tsx (aria-label on title input), frontend/src/i18n/locales/{en,de}.json (3 new keys: chat.messageList, workspace.editTitle, timeline.title)
+- Tests: Typecheck clean. Ruff clean. No test regressions.
+- Learnings for future iterations:
+  - Most shadcn/ui Dialog components already get aria-describedby from DialogDescription via Radix — explicit id just makes it more predictable
+  - BoardToolbar buttons had title but no aria-label — screen readers need aria-label not title
+  - MentionDropdown should use role="listbox" with role="option" + aria-selected for proper listbox semantics
+  - aria-live="assertive" for errors/offline, aria-live="polite" for status/processing indicators
+  - All new i18n keys need to be added to both en.json and de.json in lock-step
+  - Pre-existing test failures: information-gaps-toggle.test.tsx (URL.createObjectURL)
+---

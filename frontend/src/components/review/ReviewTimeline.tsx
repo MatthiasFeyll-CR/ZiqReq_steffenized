@@ -238,7 +238,7 @@ export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
   }
 
   return (
-    <div data-testid="review-timeline">
+    <div data-testid="review-timeline" role="log" aria-label={t("timeline.title", "Review timeline")}>
       {entries.length === 0 ? (
         <div className="flex items-center justify-center py-8 text-sm text-muted-foreground" data-testid="timeline-empty">
           <MessageCircle className="h-4 w-4 mr-2" />

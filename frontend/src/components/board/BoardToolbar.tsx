@@ -50,6 +50,7 @@ export function BoardToolbar({
         size="icon-sm"
         onClick={handleAddBox}
         title={t("board.addBox")}
+        aria-label={t("board.addBox")}
         data-testid="toolbar-add-box"
       >
         <Plus className="h-4 w-4" />
@@ -63,6 +64,7 @@ export function BoardToolbar({
         onClick={onDeleteSelected}
         disabled={selectedCount === 0}
         title={t("board.deleteSelected")}
+        aria-label={t("board.deleteSelected")}
         data-testid="toolbar-delete"
       >
         <Trash2 className="h-4 w-4" />
@@ -75,6 +77,7 @@ export function BoardToolbar({
         size="icon-sm"
         onClick={handleFitView}
         title={t("board.fitView")}
+        aria-label={t("board.fitView")}
         data-testid="toolbar-fit-view"
       >
         <Maximize2 className="h-4 w-4" />
@@ -88,6 +91,7 @@ export function BoardToolbar({
         onClick={onUndo}
         disabled={!canUndo}
         title={undoTopSource === "ai" ? t("board.undoAi") : t("board.undo")}
+        aria-label={undoTopSource === "ai" ? t("board.undoAi") : t("board.undo")}
         data-testid="toolbar-undo"
       >
         <Undo2 className="h-4 w-4" />
@@ -99,6 +103,7 @@ export function BoardToolbar({
         onClick={onRedo}
         disabled={!canRedo}
         title={redoTopSource === "ai" ? t("board.redoAi") : t("board.redo")}
+        aria-label={redoTopSource === "ai" ? t("board.redoAi") : t("board.redo")}
         data-testid="toolbar-redo"
       >
         <Redo2 className="h-4 w-4" />

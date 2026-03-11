@@ -64,7 +64,7 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
           transition={{ duration: 0.2 }}
           data-testid="merge-request-banner"
         >
-          <div className="border-b bg-warning/5 px-4 py-3 flex items-center justify-between">
+          <div className="border-b bg-warning/5 px-4 py-3 flex items-center justify-between" role="alert" aria-live="polite">
             <div className="flex items-center gap-2">
               <GitMerge className="h-4 w-4 text-warning" />
               <p className="text-sm text-foreground">

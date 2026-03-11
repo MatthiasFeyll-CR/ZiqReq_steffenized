@@ -41,10 +41,10 @@ function ErrorLogModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="error-log-modal">
+      <DialogContent data-testid="error-log-modal" aria-describedby="error-log-description">
         <DialogHeader>
           <DialogTitle>{t("errorLog.title")}</DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="error-log-description">
             {t("errorLog.description")}
           </DialogDescription>
         </DialogHeader>

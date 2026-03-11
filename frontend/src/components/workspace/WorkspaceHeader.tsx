@@ -112,6 +112,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleTitleSave}
           onKeyDown={handleTitleKeyDown}
+          aria-label={t("workspace.editTitle", "Edit idea title")}
           data-testid="title-input"
         />
       ) : (
