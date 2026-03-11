@@ -189,6 +189,7 @@ Immutable. Never edited or deleted.
 **Notes:**
 - Only current state persisted. No history in backend — undo/redo is frontend-only (F-3.7, see tech-stack.md Board Undo/Redo Strategy).
 - `parent_id` self-referential FK enables Group nesting. `ON DELETE SET NULL` detaches children if parent deleted.
+- `created_by` is a literal string ('user' or 'ai'), not a foreign key. To determine which user created a node, join via `idea_id` to `ideas.owner_id` or `ideas.co_owner_id`.
 
 ---
 

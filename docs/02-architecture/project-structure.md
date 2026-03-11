@@ -100,6 +100,8 @@ class Idea(models.Model):
 
 **Note on `managed=False` pattern:** The `managed=False` Meta option is used for read-only mirror models where Gateway never runs tests against the table (e.g., `admin_parameters` in Gateway's admin app). For REST API mirror models where Gateway test suites query/mutate the table, migrations are required for Django test database creation.
 
+**Module mirroring for test discoverability (as of M15):** Some Core service modules are mirrored into Gateway for test discoverability when namespace conflicts exist. For example, `apps.monitoring` exists in both Core and Gateway. Core owns the business logic (`health_checks.py`, `tasks.py`), but these files are mirrored into Gateway's `apps.monitoring/` directory so Gateway's test runner can discover and test them. This pattern is used sparingly when PYTHONPATH resolution would otherwise break test imports.
+
 ### Communication Patterns
 
 ```

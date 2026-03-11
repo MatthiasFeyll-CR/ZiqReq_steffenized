@@ -296,6 +296,7 @@ Two categories of board events with different sync strategies:
 ### Design
 - **Celery periodic task** in the core service worker (shared codebase with keyword matching).
 - Runs on configurable interval (default: 60 seconds, admin-configurable via `health_check_interval`).
+- **Module location:** Core service (`services/core/apps/monitoring/`). Files are mirrored into Gateway's `apps.monitoring/` for test discoverability due to namespace conflict (both services have `apps.monitoring` packages). See `project-structure.md` Module Mirroring section.
 
 ### Health Checks
 | Check | Method | Healthy Condition |

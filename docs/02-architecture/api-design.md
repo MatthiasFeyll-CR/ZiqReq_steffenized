@@ -1193,13 +1193,14 @@ All admin endpoints require the `admin` role.
 - **Response (200):**
   ```json
   {
+    "id": "uuid",
     "content": "string",
     "updated_by": { "id": "uuid", "display_name": "string" },
     "updated_at": "iso8601"
   }
   ```
 
-#### PUT /api/admin/ai-context/facilitator
+#### PATCH /api/admin/ai-context/facilitator
 - **Purpose:** Update facilitator context bucket
 - **Auth:** Admin role
 - **Request:**
@@ -1208,12 +1209,13 @@ All admin endpoints require the `admin` role.
   ```
 - **Response (200):** Updated bucket
 
-#### GET /api/admin/ai-context/context-agent
-- **Purpose:** Get context agent bucket
+#### GET /api/admin/ai-context/company
+- **Purpose:** Get company context bucket
 - **Auth:** Admin role
 - **Response (200):**
   ```json
   {
+    "id": "uuid",
     "sections": {},
     "free_text": "string",
     "updated_by": { "id": "uuid", "display_name": "string" },
@@ -1221,8 +1223,8 @@ All admin endpoints require the `admin` role.
   }
   ```
 
-#### PUT /api/admin/ai-context/context-agent
-- **Purpose:** Update context agent bucket
+#### PATCH /api/admin/ai-context/company
+- **Purpose:** Update company context bucket
 - **Auth:** Admin role
 - **Request:**
   ```json
@@ -1232,6 +1234,11 @@ All admin endpoints require the `admin` role.
   }
   ```
 - **Response (200):** Updated bucket
+- **Errors:**
+  | Status | Code | When |
+  |--------|------|------|
+  | 500 | REINDEX_FAILED | gRPC re-indexing failed (DB update persists) |
+- **Side effects:** Triggers AI service re-indexing via gRPC `update_context_agent_bucket`. If re-indexing fails, returns 500 but DB update persists (fire-and-fail pattern).
 
 #### GET /api/admin/parameters
 - **Purpose:** List all runtime parameters
@@ -1297,28 +1304,34 @@ All admin endpoints require the `admin` role.
     ]
   }
   ```
-- **Notes:** `ai_stats` fields reflect the actual `GetAiMetrics` RPC response shape. `service_health` is an array of objects (not a flat map) carrying per-service latency and last check timestamps. Health check results are stored in Redis by a Celery periodic task.
+- **Notes:** `ai_stats` fields reflect the actual `GetAiMetrics` RPC response shape. `service_health` is an array of objects (not a flat map) carrying per-service latency and last check timestamps. Health check results are stored in Redis by a Celery periodic task. `ideas_by_state` counts exclude soft-deleted ideas (`deleted_at IS NOT NULL`).
 
 #### GET /api/admin/monitoring/alerts
-- **Purpose:** Get alert configuration
+- **Purpose:** Get current user's alert configuration
 - **Auth:** Admin role
 - **Response (200):**
   ```json
   {
-    "recipients": [
-      { "user_id": "uuid", "display_name": "string", "is_active": true }
-    ]
+    "user_id": "uuid",
+    "is_active": true
   }
   ```
+- **Notes:** Returns only the current admin user's own alert opt-in status (not all recipients). Uses upsert pattern (creates config row on first access with `is_active=false`).
 
 #### PATCH /api/admin/monitoring/alerts
-- **Purpose:** Update alert configuration (opt in/out)
+- **Purpose:** Update current user's alert configuration (opt in/out)
 - **Auth:** Admin role
 - **Request:**
   ```json
   { "is_active": true }
   ```
-- **Response (200):** Updated config
+- **Response (200):**
+  ```json
+  {
+    "user_id": "uuid",
+    "is_active": true
+  }
+  ```
 
 #### GET /api/admin/users/search
 - **Purpose:** Search users with full profile and stats
@@ -1326,7 +1339,7 @@ All admin endpoints require the `admin` role.
 - **Query params:**
   | Param | Type | Description |
   |-------|------|-------------|
-  | q | string | Search query (name, first name, or email) |
+  | q | string | Search query (name, first name, or email). **Optional** — if empty or omitted, returns all users. |
 - **Response (200):**
   ```json
   {
@@ -1345,6 +1358,7 @@ All admin endpoints require the `admin` role.
     ]
   }
   ```
+- **Notes:** Empty query returns all users (different from regular `/api/users/search` which requires minimum 2 chars). Stats computed via subqueries: `idea_count` (owned ideas), `review_count` (review timeline entries), `contribution_count` (board nodes contributed).
 
 ---
 
