@@ -85,7 +85,7 @@ export function ReviewSection({ ideaId, idea }: ReviewSectionProps) {
             <Skeleton className="h-10 w-3/4" />
           </div>
         ) : (
-          <ReviewTimeline entries={timelineEntries ?? []} />
+          <ReviewTimeline entries={timelineEntries ?? []} ideaId={ideaId} />
         )}
       </div>
     </div>

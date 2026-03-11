@@ -92,6 +92,25 @@ export async function fetchIdeaReviewers(ideaId: string): Promise<{ reviewers: R
   return res.json();
 }
 
+export async function postComment(
+  ideaId: string,
+  data: { content: string; parent_entry_id?: string },
+): Promise<TimelineEntry> {
+  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/review/timeline`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 export async function unassignReview(ideaId: string): Promise<{ message: string }> {
   const res = await fetch(`${env.apiBaseUrl}/reviews/${ideaId}/unassign`, {
     method: "POST",
