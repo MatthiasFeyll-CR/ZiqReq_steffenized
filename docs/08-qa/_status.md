@@ -6,7 +6,7 @@
 - **Last updated:** 2026-03-11
 
 ## Current Review
-- **Milestone:** 8 — AI Board Agent & Context
+- **Milestone:** 9 — BRD & PDF Generation
 - **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 0
 - **Status:** passed
@@ -22,36 +22,37 @@
 | M6 — WebSocket | `qa-m6-websocket.md` | 7 | PASS | 2026-03-10 |
 | M7 — AI Chat | `qa-m7-ai-chat.md` | 0 | PASS | 2026-03-11 |
 | M8 — AI Context | `qa-m8-ai-context.md` | 0 | PASS | 2026-03-11 |
+| M9 — BRD & PDF | `qa-m9-brd-pdf.md` | 0 | PASS | 2026-03-11 |
 
 ## Input Consumed
 - .ralph/prd.json
 - .ralph/progress.txt
 - docs/01-requirements/*.md
 - docs/02-architecture/api-design.md
+- docs/02-architecture/data-model.md
 - docs/02-architecture/tech-stack.md
 - docs/03-design/component-specs.md
 - docs/03-ai/agent-architecture.md
-- docs/03-ai/tools-and-functions.md
+- docs/03-ai/guardrails.md
+- docs/03-ai/system-prompts.md
 - docs/04-test-architecture/test-matrix.md
 - docs/04-test-architecture/runtime-safety.md
-- docs/05-milestones/milestone-8.md
-- tasks/prd-m8.json
-- services/ai/agents/board_agent/*.py
-- services/ai/agents/context_agent/*.py
-- services/ai/agents/context_extension/*.py
-- services/ai/agents/context_compression/*.py
-- services/ai/agents/keyword_agent/*.py
-- services/ai/agents/facilitator/plugins.py
-- services/ai/processing/pipeline.py
-- services/ai/embedding/*.py
-- services/gateway/apps/ideas/views.py
-- frontend/src/components/chat/ContextWindowIndicator.tsx
-- frontend/src/api/ideas.ts
+- docs/05-milestones/milestone-9.md
+- tasks/prd-m9.json
+- services/ai/agents/summarizing_ai/*.py
+- services/ai/processing/brd_pipeline.py
+- services/ai/processing/fabrication_validator.py
+- services/gateway/apps/brd/*.py
+- services/pdf/generator/*.py
+- services/pdf/grpc_server/servicers/pdf_servicer.py
+- frontend/src/components/workspace/ReviewTab.tsx
+- frontend/src/components/brd/*.tsx
+- frontend/src/api/brd.ts
 
 ## Handoff
 - **Ready for merge:** true
 - **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m8-ai-context.md, docs/08-qa/_status.md
+- **Files produced:** docs/08-qa/qa-m9-brd-pdf.md, docs/08-qa/_status.md
 - **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
