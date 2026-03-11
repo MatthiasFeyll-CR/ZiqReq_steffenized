@@ -38,3 +38,23 @@ Started: 2026-03-11T09:17:48+0100
   - `docker compose build` gate check fails because only docker-compose.test.yml exists (no main docker-compose.yml)
   - Node test `information-gaps-toggle.test.tsx` has pre-existing failure unrelated to M12
 ---
+
+## US-002: Notification Creation Service (Gateway gRPC)
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/grpc_server/servicers/gateway_servicer.py, services/gateway/grpc_server/server.py, services/notification/grpc_clients/gateway_client.py
+- Tests: Full suite: 632 passed (Python), 389 passed (Node, 1 pre-existing failure).
+- Learnings for future iterations:
+  - Proto-generated files already exist in proto/ directory and are tracked in git
+  - Generate proto stubs with `bash scripts/generate-proto.sh` — outputs to proto/ dir
+  - Proto imports require sys.path manipulation since generated files use `import gateway_pb2` (not relative)
+  - Gateway servicer path to proto: `Path(__file__).resolve().parents[4] / "proto"`
+  - Notification client path to proto: `Path(__file__).resolve().parents[3] / "proto"`
+  - Gateway server path to proto: resolve via `parents[2] / ".." / ".." / "proto"` then resolve()
+  - GatewayServicer inherits from `gateway_pb2_grpc.GatewayServiceServicer` for proper gRPC registration
+  - Server wiring: `gateway_pb2_grpc.add_GatewayServiceServicer_to_server(servicer, server)`
+  - Django ORM used directly in servicer (not database_sync_to_async since gRPC server uses ThreadPoolExecutor)
+  - Servicer uses lazy import (`from apps.notifications.models import Notification`) to defer Django model loading
+  - Ruff I001 (import sorting) requires E402 imports in same block — no blank line between them
+  - GetUserPreferences and GetAlertRecipients remain stubs — will be implemented in US-004
+---
