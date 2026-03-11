@@ -1,1 +1,4 @@
-{"mock": true}
+{
+  "response": "According to the company onboarding section, new employees complete a 3-day orientation program that covers company policies, tool setup, and team introductions. The IT setup section notes that laptop provisioning takes 24-48 hours after the request is submitted.",
+  "chunks_used": ["mock-chunk-001", "mock-chunk-002"]
+}

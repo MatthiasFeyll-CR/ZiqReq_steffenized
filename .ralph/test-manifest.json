@@ -363,6 +363,10 @@
     "T-2.17.03": {
       "file": "services/ai/tests/test_board_agent.py",
       "function": "test_create_group_node"
+    },
+    "T-2.15.03": {
+      "file": "services/ai/tests/test_context_agent.py",
+      "function": "test_no_chunks_returns_refusal"
     }
   }
 }

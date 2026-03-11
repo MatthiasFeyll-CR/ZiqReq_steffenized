@@ -106,7 +106,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-2.15.01", "T-2.15.03"],
       "notes": "Architecture: docs/02-architecture/data-model.md § context_chunks — chunked context with pgvector embeddings\nAI: docs/03-ai/agent-architecture.md § S3.3 — Context Agent architecture, RAG retrieval mode, grounding rules\nAI: docs/03-ai/system-prompts.md § 4. Context Agent — full system prompt template with citation rules\nTesting: docs/04-test-architecture/test-matrix.md § T-2.15.01, T-2.15.03 — delegation and grounding tests\nFiles: services/ai/agents/context_agent/agent.py, services/ai/agents/context_agent/prompt.py, services/ai/embedding/retriever.py, services/ai/fixtures/context_agent_response.json\nGotchas: Context Agent must refuse to answer if no relevant chunks retrieved (grounding rule). The retriever uses pgvector cosine similarity search with admin-configurable threshold (context_rag_min_similarity, default 0.7) and top_k (context_rag_top_k, default 5).",
       "context": {
