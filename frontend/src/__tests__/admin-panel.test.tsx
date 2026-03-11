@@ -99,10 +99,13 @@ describe("AdminPanel — UI-ADMIN.01: 4 tabs render", () => {
     renderAdminPanel();
     const user = userEvent.setup();
 
-    expect(screen.getByText("AI Context management")).toBeInTheDocument();
+    // AI Context tab renders the AIContextTab component (shows headings while loading)
+    expect(screen.getByText("Facilitator Context (Table of Contents)")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Parameters/i }));
-    expect(screen.getByText("Parameters management")).toBeInTheDocument();
+    // Parameters tab activates
+    const parametersTab = screen.getByRole("tab", { name: /Parameters/i });
+    await user.click(parametersTab);
+    expect(parametersTab).toHaveAttribute("data-state", "active");
 
     await user.click(screen.getByRole("tab", { name: /Monitoring/i }));
     expect(screen.getByText("Monitoring dashboard")).toBeInTheDocument();

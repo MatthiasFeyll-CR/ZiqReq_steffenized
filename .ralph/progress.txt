@@ -119,3 +119,31 @@ Started: 2026-03-11T15:59:48+0100
   - Email subject format: '[ZiqReq Alert] {service_name} - {alert_type}' as specified
   - The flaky information-gaps-toggle.test.tsx test continues to fail intermittently in the node suite — pre-existing issue, not related to US-007
 ---
+
+## US-008: Admin Panel Layout — /admin Route with 4 Tabs
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/pages/admin-panel.tsx (replaced placeholder with 4-tab layout), frontend/src/app/router.tsx (imported AdminPanel component), frontend/src/__tests__/admin-panel.test.tsx (new — 5 tests)
+- Tests: 5 passed (UI-ADMIN.01: 4 tabs render — 4 tests, UI-ADMIN.04: non-admin redirect — 1 test)
+- Learnings for future iterations:
+  - PageShell renders Navbar which uses Redux store (ConnectionIndicator uses useSelector) — tests need ReduxProvider + QueryClientProvider wrapping
+  - Navbar already had admin role-gated link (line 34) from initial scaffold — no changes needed there
+  - shadcn Tabs uses data-[state=active] for active tab styling — override default rounded/shadow styles with rounded-none + border-b-2 border-primary for gold underline
+  - .ralph/prd.json is a symlink to tasks/prd-m15.json — git tracks the symlink, actual content changes go through tasks/prd-m15.json
+  - Admin role check uses useAuth().hasRole("admin") with Navigate to="/landing" for redirect
+---
+
+## US-009: AI Context + Parameters Tabs — Editors & Table
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/admin.ts (new — admin API client for AI context + parameters endpoints), frontend/src/features/admin/AIContextTab.tsx (new — facilitator + company context editors with save), frontend/src/features/admin/ParametersTab.tsx (new — parameters table with inline editing, gold modified indicator), frontend/src/pages/admin-panel.tsx (wired AIContextTab + ParametersTab into tab content), frontend/src/__tests__/admin-panel.test.tsx (updated placeholder text assertions for new tab components), frontend/src/__tests__/parameters-tab.test.tsx (new — 6 tests for UI-ADMIN.02)
+- Tests: 11 passed (admin-panel: 5, parameters-tab: 6), Python 922 passed, Node 414 passed + 1 pre-existing flaky failure
+- Learnings for future iterations:
+  - API pattern: plain fetch with env.apiBaseUrl, credentials: "include", error handling with body.message || body.error — consistent across all api/*.ts files
+  - Company context sections is JSONB — used textarea with JSON.parse validation for MVP (toast.error if invalid JSON)
+  - Parameters inline edit: double-click to start editing, Enter to save (calls PATCH), Escape to cancel, onBlur also cancels
+  - Gold modified indicator: small bg-primary dot shown when param.value !== param.default_value
+  - When replacing placeholder tab content with real components, the admin-panel test checking for placeholder text needs updating — real components render loading states or headings instead
+  - Radix TabsContent renders content lazily when tab is activated — tests that click to a tab and check content need the component to be self-contained (no unmocked API calls that break)
+  - Spreading array elements in TypeScript loses required property types — construct mock return values explicitly rather than using spread
+---

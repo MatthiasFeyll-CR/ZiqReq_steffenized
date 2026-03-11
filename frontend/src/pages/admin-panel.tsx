@@ -3,6 +3,8 @@ import { Brain, Settings, BarChart3, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { AIContextTab } from "@/features/admin/AIContextTab";
+import { ParametersTab } from "@/features/admin/ParametersTab";
 
 export default function AdminPanel() {
   const { hasRole } = useAuth();
@@ -47,14 +49,10 @@ export default function AdminPanel() {
           </TabsList>
 
           <TabsContent value="ai-context">
-            <div className="py-6">
-              <p className="text-muted-foreground">AI Context management</p>
-            </div>
+            <AIContextTab />
           </TabsContent>
           <TabsContent value="parameters">
-            <div className="py-6">
-              <p className="text-muted-foreground">Parameters management</p>
-            </div>
+            <ParametersTab />
           </TabsContent>
           <TabsContent value="monitoring">
             <div className="py-6">
