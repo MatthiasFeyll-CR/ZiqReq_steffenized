@@ -130,3 +130,19 @@ Started: 2026-03-11T05:56:48+0100
   - stopPropagation on action button click prevents outer div navigation when clicking Assign/Unassign
   - useMutation with invalidateQueries on ["reviews"] key refreshes the categorized list after assign/unassign
 ---
+
+## US-008: Review Section Below Fold
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/review/ReviewSection.tsx (new — section with header + timeline), frontend/src/components/review/ReviewTimeline.tsx (new — chronological timeline entry rendering), frontend/src/pages/IdeaWorkspace/index.tsx (added ReviewSection below fold with auto-scroll), frontend/src/api/review.ts (added fetchTimeline, fetchIdeaReviewers, TimelineEntry, ReviewerInfo types), services/gateway/apps/review/views.py (added get_idea_reviewers endpoint), services/gateway/apps/ideas/urls.py (added review/reviewers route), frontend/src/__tests__/review-section.test.tsx (new — 9 tests), frontend/src/__tests__/idea-workspace.test.tsx (added ReviewSection mock), frontend/src/__tests__/section-visibility.test.tsx (added ReviewSection mock)
+- Tests: 9 new tests passed, 337 total node tests passed, 566 python tests passed
+- Learnings for future iterations:
+  - ReviewSection uses TanStack Query hooks — any test that renders IdeaWorkspace must either mock ReviewSection or provide QueryClientProvider
+  - Added vi.mock("@/components/review/ReviewSection") to existing test files (idea-workspace.test.tsx, section-visibility.test.tsx) to prevent useQuery errors
+  - "Below fold" pattern: outer container uses overflow-y-auto, workspace layout gets minHeight: calc(100vh - 64px) when review section is present
+  - has_been_submitted heuristic: idea.state !== "open" (same as useSectionVisibility)
+  - Auto-scroll uses useRef + scrollIntoView({behavior: "smooth"}) with prevStateRef to track state changes
+  - Docker containers need rebuild (docker compose up --build) when frontend files change — local tests pass but container may have stale code
+  - getByText fails with "multiple elements" when both workspace header mock and ReviewSection render same title — use getByTestId + toHaveTextContent instead
+  - Backend get_idea_reviewers endpoint follows same patterns: _require_auth, _get_idea_or_error, batch-load users
+---
