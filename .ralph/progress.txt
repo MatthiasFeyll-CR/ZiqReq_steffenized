@@ -84,3 +84,17 @@ Started: 2026-03-11T05:56:48+0100
   - TimelineCommentSerializer validates content (required, non-blank) and optional parent_entry_id (UUID)
   - docker compose build python-tests needed when adding new test files (container copies files at build time)
 ---
+
+## US-005: Review Page List API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/review/views.py (added list_reviews endpoint), services/gateway/apps/review/urls.py (added root "" route for list_reviews), services/gateway/apps/review/tests/test_review_list.py (new — 11 tests)
+- Tests: 11 passed, 0 failed — covers T-10.1.01, T-10.2.01, API-REVIEW.01, API-REVIEW.02 plus edge cases (other reviewer assignment, unassigned_at handling, metadata fields, open ideas exclusion, unauthenticated, empty list, reviewers list)
+- Learnings for future iterations:
+  - list_reviews is mounted at the root of /api/reviews/ (path("")) — no idea_id param needed
+  - Categories: in_review ideas split into assigned_to_me (current user has active assignment) vs unassigned (no active assignments at all); ideas assigned to other reviewers only don't appear in either
+  - Final state ideas (accepted/rejected/dropped) go to their respective categories regardless of assignments
+  - Batch-load pattern: collect all owner_ids + reviewer_ids, single User query, build users_map for O(1) lookups
+  - submitted_at uses idea.updated_at as proxy (set when state changes to in_review)
+  - Open ideas are excluded from all categories (state not in filter)
+---
