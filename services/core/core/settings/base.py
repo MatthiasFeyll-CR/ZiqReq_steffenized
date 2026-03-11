@@ -17,6 +17,7 @@ INSTALLED_APPS = [
     "apps.collaboration",
     "apps.similarity",
     "apps.admin_config",
+    "apps.monitoring",
 ]
 
 DATABASES = {
@@ -48,6 +49,10 @@ CELERY_BEAT_SCHEDULE = {
     "vector-similarity-sweep": {
         "task": "similarity.vector_similarity_sweep",
         "schedule": 300.0,  # every 5 minutes
+    },
+    "health-check-sweep": {
+        "task": "monitoring.health_check_task",
+        "schedule": 60.0,  # default: every 60 seconds (configurable via admin_parameters)
     },
 }
 

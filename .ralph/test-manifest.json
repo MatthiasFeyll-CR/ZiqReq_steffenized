@@ -779,6 +779,74 @@
     "T-5.8.03": {
       "file": "services/gateway/apps/ideas/tests/test_manual_merge.py",
       "function": "test_400_cannot_merge_self"
+    },
+    "T-11.2.01": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_facilitator_context"
+    },
+    "T-11.2.02": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_company_context"
+    },
+    "API-ADMIN.03": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_get_facilitator_context"
+    },
+    "API-ADMIN.04": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_facilitator_context"
+    },
+    "API-ADMIN.05": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_get_company_context"
+    },
+    "API-ADMIN.06": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_company_context"
+    },
+    "T-11.3.01": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_parameter_update_applies_runtime"
+    },
+    "API-ADMIN.01": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_get_parameters_returns_array"
+    },
+    "API-ADMIN.02": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_non_admin_gets_403"
+    },
+    "API-ADMIN.07": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_patch_parameter_updates_value"
+    },
+    "API-ADMIN.08": {
+      "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
+      "function": "test_patch_integer_invalid_returns_400"
+    },
+    "T-11.4.01": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring.py",
+      "function": "test_dashboard_contains_all_required_fields"
+    },
+    "API-ADMIN.09": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring.py",
+      "function": "test_get_monitoring_dashboard_returns_200"
+    },
+    "API-ADMIN.10": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring.py",
+      "function": "test_non_admin_gets_403"
+    },
+    "API-ADMIN.11": {
+      "file": "services/gateway/apps/authentication/tests/test_admin_users.py",
+      "function": "test_search_returns_200"
+    },
+    "API-ADMIN.12": {
+      "file": "services/gateway/apps/authentication/tests/test_admin_users.py",
+      "function": "test_non_admin_returns_403"
+    },
+    "T-11.5.01": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring_service.py",
+      "function": "test_task_unhealthy_publishes_alert"
     }
   }
 }

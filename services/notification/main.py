@@ -12,7 +12,7 @@ import pika
 from consumers.ai_events import handle_ai_event
 from consumers.chat_events import handle_chat_event
 from consumers.collaboration_events import handle_collaboration_event
-from consumers.monitoring_events import handle_monitoring_event
+from consumers.monitoring_events import handle_monitoring_alert, handle_monitoring_event
 from consumers.review_events import handle_review_event
 from consumers.similarity_events import (
     handle_ai_similarity_confirmed,
@@ -35,6 +35,7 @@ _ROUTE_HANDLERS: dict[str, Any] = {
     "notification.similarity": handle_similarity_event,
     "ai.similarity": handle_ai_similarity_confirmed,
     "notification.monitoring": handle_monitoring_event,
+    "monitoring.alert": handle_monitoring_alert,
 }
 
 
@@ -116,6 +117,7 @@ def main() -> None:
         "notification.similarity.*",
         "notification.monitoring.*",
         "ai.similarity.*",
+        "monitoring.alert",
     ]
     for key in binding_keys:
         channel.queue_bind(

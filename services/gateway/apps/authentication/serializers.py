@@ -8,3 +8,15 @@ class UserSerializer(serializers.Serializer):
     last_name = serializers.CharField()
     display_name = serializers.CharField()
     roles = serializers.ListField(child=serializers.CharField())
+
+
+class AdminUserSearchSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    email = serializers.EmailField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    display_name = serializers.CharField()
+    roles = serializers.ListField(child=serializers.CharField())
+    idea_count = serializers.IntegerField()
+    review_count = serializers.IntegerField()
+    contribution_count = serializers.IntegerField()

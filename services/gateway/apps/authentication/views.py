@@ -252,3 +252,108 @@ def search_users(request: Request) -> Response:
 
     serializer = UserSerializer(users, many=True)
     return Response(serializer.data)
+
+
+def _require_admin(request: Request) -> Response | None:
+    """Return a 403 Response if the user is not an admin, else None."""
+    user = getattr(request, "user", None)
+    if user is None or not getattr(user, "id", None):
+        return Response(
+            {"error": "UNAUTHORIZED", "message": "Authentication required"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+    roles = getattr(user, "roles", []) or []
+    if "admin" not in roles:
+        return Response(
+            {"error": "FORBIDDEN", "message": "Admin role required"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def admin_users_search(request: Request) -> Response:
+    """GET /api/admin/users/search?q=query — Admin user search with stats."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    from django.db.models import Count, IntegerField, OuterRef, Subquery
+    from django.db.models.functions import Coalesce
+
+    from apps.board.models import BoardNode
+    from apps.ideas.models import ChatMessage, Idea
+    from apps.review.models import ReviewTimelineEntry
+
+    query = request.query_params.get("q", "").strip()
+
+    qs = User.objects.all()
+    if query:
+        qs = qs.filter(Q(display_name__icontains=query) | Q(email__icontains=query))
+
+    # Subquery: idea_count = ideas where owner_id=user OR co_owner_id=user
+    idea_count_sq = (
+        Idea.objects.filter(
+            Q(owner_id=OuterRef("pk")) | Q(co_owner_id=OuterRef("pk")),
+            deleted_at__isnull=True,
+        )
+        .order_by()
+        .values("owner_id")  # dummy group-by column
+        .annotate(cnt=Count("id"))
+        .values("cnt")
+    )
+
+    # Subquery: review_count = review_timeline_entries where author_id=user
+    review_count_sq = (
+        ReviewTimelineEntry.objects.filter(author_id=OuterRef("pk"))
+        .order_by()
+        .values("author_id")
+        .annotate(cnt=Count("id"))
+        .values("cnt")
+    )
+
+    # Subquery: chat_message_count = chat_messages where sender_id=user AND sender_type='user'
+    chat_count_sq = (
+        ChatMessage.objects.filter(sender_id=OuterRef("pk"), sender_type="user")
+        .order_by()
+        .values("sender_id")
+        .annotate(cnt=Count("id"))
+        .values("cnt")
+    )
+
+    # Subquery: board_node_count = board_nodes where created_by='user' AND idea is owned by user
+    user_idea_ids = Idea.objects.filter(
+        Q(owner_id=OuterRef(OuterRef("pk"))) | Q(co_owner_id=OuterRef(OuterRef("pk"))),
+        deleted_at__isnull=True,
+    ).values("id")
+    board_count_sq = (
+        BoardNode.objects.filter(created_by="user", idea_id__in=user_idea_ids)
+        .order_by()
+        .values("created_by")
+        .annotate(cnt=Count("id"))
+        .values("cnt")
+    )
+
+    qs = qs.annotate(
+        idea_count=Coalesce(Subquery(idea_count_sq, output_field=IntegerField()), 0),
+        review_count=Coalesce(Subquery(review_count_sq, output_field=IntegerField()), 0),
+        _chat_count=Coalesce(Subquery(chat_count_sq, output_field=IntegerField()), 0),
+        _board_count=Coalesce(Subquery(board_count_sq, output_field=IntegerField()), 0),
+    ).order_by("display_name")
+
+    results = []
+    for u in qs:
+        results.append({
+            "id": u.id,
+            "email": u.email,
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "display_name": u.display_name,
+            "roles": u.roles,
+            "idea_count": u.idea_count,
+            "review_count": u.review_count,
+            "contribution_count": u._chat_count + u._board_count,
+        })
+
+    return Response(results)
