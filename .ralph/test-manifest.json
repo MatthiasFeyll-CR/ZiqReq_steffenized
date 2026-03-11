@@ -375,6 +375,18 @@
     "T-2.14.03": {
       "file": "services/ai/tests/test_context_compression.py",
       "function": "test_compression_triggered_above_threshold"
+    },
+    "T-5.1.01": {
+      "file": "services/ai/tests/test_keyword_agent.py",
+      "function": "test_extracts_keywords_via_sk"
+    },
+    "T-5.1.02": {
+      "file": "services/ai/tests/test_keyword_agent.py",
+      "function": "test_parse_max_keywords_cap"
+    },
+    "T-5.1.03": {
+      "file": "services/ai/tests/test_keyword_agent.py",
+      "function": "test_parse_multi_word_filtered"
     }
   }
 }

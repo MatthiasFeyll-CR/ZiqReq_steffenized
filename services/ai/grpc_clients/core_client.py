@@ -121,6 +121,25 @@ class CoreClient:
         logger.warning("AI CoreClient.delete_board_connection stub called")
         return {"success": True}
 
+    # ── Keywords & embeddings (stubs — gRPC wire-up in later milestones) ──
+
+    def upsert_keywords(
+        self,
+        idea_id: str,
+        keywords: list[str],
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.upsert_keywords stub called")
+        return {"success": True}
+
+    def upsert_idea_embedding(
+        self,
+        idea_id: str,
+        embedding: list[float],
+        source_text_hash: str,
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.upsert_idea_embedding stub called")
+        return {"success": True}
+
     # ── Context compression (stubs — gRPC wire-up in later milestones) ──
 
     def upsert_context_summary(

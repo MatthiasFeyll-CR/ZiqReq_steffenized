@@ -353,7 +353,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-5.1.01",
         "T-5.1.02",

@@ -1,1 +1,3 @@
-{"mock": true}
+{
+  "keywords": ["architecture", "authentication", "database", "deployment", "frontend", "grpc", "microservices", "postgresql", "react", "security", "testing", "typescript"]
+}
