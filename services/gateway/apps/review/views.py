@@ -3,6 +3,7 @@ import uuid
 
 from django.db import transaction
 from django.db.models import Max
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
@@ -201,3 +202,95 @@ def submit_idea(request: Request, idea_id: str) -> Response:
         "pdf_url": pdf_url,
         "state": "in_review",
     })
+
+
+def _require_reviewer(user) -> Response | None:
+    """Return an error response if user does not have the 'reviewer' role, else None."""
+    roles = getattr(user, "roles", None) or []
+    if "reviewer" not in roles:
+        return Response(
+            {"error": "FORBIDDEN", "message": "Reviewer role required"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def assign_review(request: Request, idea_id: str) -> Response:
+    """POST /api/reviews/:id/assign — Self-assign as reviewer."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    # State validation: only 'in_review' ideas can be assigned
+    if idea.state != "in_review":
+        return Response(
+            {"error": "INVALID_STATE", "message": "Only ideas in review can be assigned"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Conflict of interest: reviewer cannot assign to own idea
+    if user.id == idea.owner_id or user.id == idea.co_owner_id:
+        return Response(
+            {"error": "CONFLICT_OF_INTEREST", "message": "Cannot review your own idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Duplicate check: active assignment (unassigned_at IS NULL)
+    if ReviewAssignment.objects.filter(
+        idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+    ).exists():
+        return Response(
+            {"error": "ALREADY_ASSIGNED", "message": "Already assigned to this idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    ReviewAssignment.objects.create(
+        idea_id=idea.id,
+        reviewer_id=user.id,
+        assigned_by="self",
+    )
+
+    return Response({"message": "Assigned successfully"})
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def unassign_review(request: Request, idea_id: str) -> Response:
+    """POST /api/reviews/:id/unassign — Self-unassign as reviewer."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    # Find active assignment
+    try:
+        assignment = ReviewAssignment.objects.get(
+            idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+        )
+    except ReviewAssignment.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "No active assignment found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    assignment.unassigned_at = timezone.now()
+    assignment.save(update_fields=["unassigned_at"])
+
+    return Response({"message": "Unassigned successfully"})
