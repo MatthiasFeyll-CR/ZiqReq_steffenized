@@ -29,3 +29,12 @@ class MonitoringDashboardSerializer(serializers.Serializer):
     online_users = serializers.IntegerField()
     ai_processing = AIProcessingSerializer()
     system_health = serializers.DictField(child=ServiceHealthSerializer())
+
+
+class MonitoringAlertConfigSerializer(serializers.Serializer):
+    user_id = serializers.UUIDField(read_only=True)
+    is_active = serializers.BooleanField()
+
+
+class MonitoringAlertConfigUpdateSerializer(serializers.Serializer):
+    is_active = serializers.BooleanField(required=True)

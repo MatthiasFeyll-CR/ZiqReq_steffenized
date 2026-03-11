@@ -103,7 +103,25 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
         request: gateway_pb2.AlertRecipientsRequest,
         context: grpc.ServicerContext,
     ) -> gateway_pb2.AlertRecipientsResponse:
-        return gateway_pb2.AlertRecipientsResponse(recipients=[])
+        from apps.authentication.models import User
+        from apps.monitoring.models import MonitoringAlertConfig
+
+        opted_in_configs = MonitoringAlertConfig.objects.filter(is_active=True)
+        opted_in_user_ids = [c.user_id for c in opted_in_configs]
+
+        if not opted_in_user_ids:
+            return gateway_pb2.AlertRecipientsResponse(recipients=[])
+
+        users = User.objects.filter(id__in=opted_in_user_ids)
+        recipients = [
+            gateway_pb2.AlertRecipient(
+                user_id=str(u.id),
+                email=u.email,
+                display_name=u.display_name,
+            )
+            for u in users
+        ]
+        return gateway_pb2.AlertRecipientsResponse(recipients=recipients)
 
     def GetIdeaDetails(
         self,

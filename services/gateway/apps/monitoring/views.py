@@ -1,4 +1,4 @@
-"""Monitoring dashboard views — US-003."""
+"""Monitoring dashboard views — US-003, US-007."""
 
 import logging
 
@@ -9,6 +9,8 @@ from rest_framework.response import Response
 
 from apps.ideas.authentication import MiddlewareAuthentication
 
+from .models import MonitoringAlertConfig
+from .serializers import MonitoringAlertConfigSerializer, MonitoringAlertConfigUpdateSerializer
 from .services import get_dashboard_stats
 
 logger = logging.getLogger(__name__)
@@ -41,3 +43,40 @@ def monitoring_dashboard(request: Request) -> Response:
 
     stats = get_dashboard_stats()
     return Response(stats)
+
+
+@api_view(["GET", "PATCH"])
+@authentication_classes([MiddlewareAuthentication])
+def alert_config(request: Request) -> Response:
+    """GET/PATCH /api/admin/monitoring/alerts — admin alert opt-in config."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    user_id = request.user.id
+
+    if request.method == "GET":
+        config, _created = MonitoringAlertConfig.objects.get_or_create(
+            user_id=user_id,
+            defaults={"is_active": False},
+        )
+        serializer = MonitoringAlertConfigSerializer(config)
+        return Response(serializer.data)
+
+    # PATCH
+    update_serializer = MonitoringAlertConfigUpdateSerializer(data=request.data)
+    if not update_serializer.is_valid():
+        return Response(
+            {"error": "VALIDATION_ERROR", "message": update_serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    config, _created = MonitoringAlertConfig.objects.get_or_create(
+        user_id=user_id,
+        defaults={"is_active": False},
+    )
+    config.is_active = update_serializer.validated_data["is_active"]
+    config.save()
+
+    serializer = MonitoringAlertConfigSerializer(config)
+    return Response(serializer.data)
