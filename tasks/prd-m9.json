@@ -1,0 +1,367 @@
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m9-brd-pdf",
+  "description": "Milestone 9: BRD & PDF Generation. Implements the Summarizing AI agent with full/selective/section generation modes, BRD draft REST API, PDF generation service with WeasyPrint, BRD section editor with lock/regenerate, Review tab UI with PDF preview, readiness evaluation, and information gaps toggle. Backend AI agent includes fabrication validation, frontend includes slide-in editor and progress indicator.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Summarizing AI Agent — 3 Generation Modes",
+      "description": "As a backend service, I want the Summarizing AI agent to generate 6-section BRDs from idea state with full_generation, selective_regeneration, and section_regeneration modes so that users can create formal requirement documents from brainstorming.",
+      "acceptanceCriteria": [
+        "SummarizingAIAgent class in services/ai/agents/summarizing_ai/agent.py extends BaseAgent",
+        "Agent supports 3 modes: full_generation (all 6 sections), selective_regeneration (only unlocked sections), section_regeneration (single section)",
+        "System prompt implements critical fabrication rule: output 'Not enough information' when data is insufficient",
+        "Agent uses default model tier (not escalated) and temperature 0.3 for deterministic output",
+        "Input data includes: chat_summary, recent_messages (last 20), board_state, locked_sections array, allow_information_gaps boolean",
+        "Output format: 6 sections (title, short_description, current_workflow, affected_department, core_capabilities, success_criteria)",
+        "When allow_information_gaps=true, agent leaves /TODO markers instead of fabricating",
+        "When allow_information_gaps=false, agent outputs 'Not enough information' for insufficient sections",
+        "Locked sections in selective_regeneration mode are skipped (not regenerated)",
+        "Section_regeneration mode only regenerates the single specified section",
+        "Readiness evaluation performed: each section assessed as 'ready' or 'insufficient' based on content sufficiency",
+        "Mock mode fixture returns realistic 6-section BRD with mixed ready/insufficient statuses",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "testIds": ["T-4.1.01", "T-4.1.02", "T-4.2.01", "T-4.2.02", "T-4.8.01", "T-4.9.01", "AI-4.01", "AI-4.02", "AI-4.03"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § brd_drafts — section_title, section_short_description, section_current_workflow, section_affected_department, section_core_capabilities, section_success_criteria, section_locks (JSONB), allow_information_gaps (boolean), readiness_evaluation (JSONB)\nAI: docs/03-ai/agent-architecture.md § S3.5 Summarizing AI — input contract (7 fields), output contract (6 sections + readiness_evaluation), 3 modes (full_generation, selective_regeneration, section_regeneration), model: default tier, temperature 0.3, timeout 60s, no tools\nAI: docs/03-ai/system-prompts.md § 4. Summarizing AI — critical_rule: NEVER FABRICATE, readiness_evaluation instructions, /TODO marker behavior, section definitions\nAI: docs/03-ai/guardrails.md § 5.2 Summarizing AI — Specific Guards — 5 layers (system prompt, readiness evaluation, /TODO markers, output validation, user editing)\nTesting: docs/04-test-architecture/test-matrix.md § T-4.1.01 (3 modes work correctly), T-4.1.02 (all 6 sections generated), T-4.2.01 (insufficient sections show 'Not enough information'), T-4.2.02 (no fabrication when gaps disallowed), T-4.8.01 (readiness evaluation in output), T-4.9.01 (/TODO markers when gaps allowed), AI-4.01 (full_generation with sufficient data), AI-4.02 (selective_regeneration respects locks), AI-4.03 (section_regeneration single section only)\nFiles: services/ai/agents/summarizing_ai/agent.py, services/ai/agents/summarizing_ai/prompt.py, services/ai/fixtures/summarizing_ai_response.json\nGotchas: SummarizingAIAgent follows same pattern as ContextAgent/ContextExtensionAgent (no tools, direct chat completion via SK). Readiness evaluation is computed by the agent itself based on content sufficiency heuristics (not a separate post-processing step). Locked sections in selective_regeneration must be completely skipped — do not include them in the prompt's regeneration instructions. /TODO markers only appear when allow_information_gaps=true; when false, use 'Not enough information' instead.",
+      "context": {
+        "data_model": ["brd_drafts: idea_id FK, section_title text, section_short_description text, section_current_workflow text, section_affected_department text, section_core_capabilities text, section_success_criteria text, section_locks jsonb, allow_information_gaps boolean, readiness_evaluation jsonb, last_evaluated_at timestamptz"],
+        "ai_specs": ["SummarizingAI — model: default tier, temperature 0.3, timeout 60s, no tools, 3 modes (full_generation, selective_regeneration, section_regeneration), input: chat_summary + recent_messages + board_state + locked_sections + allow_information_gaps, output: 6 sections + readiness_evaluation"],
+        "test_cases": [
+          "T-4.1.01 | Unit | Agent supports all 3 generation modes | mode='full_generation' → all 6 sections",
+          "T-4.2.01 | Unit | Insufficient sections output 'Not enough information' | Empty chat + board → sections show 'Not enough information'",
+          "T-4.8.01 | Unit | Readiness evaluation included in output | Agent output includes readiness_evaluation JSONB",
+          "T-4.9.01 | Unit | /TODO markers when gaps allowed | allow_information_gaps=true → output contains /TODO markers"
+        ],
+        "existing_code": [
+          "services/ai/agents/base.py: BaseAgent abstract class with process(), _execute(), _load_mock_response() — all agents extend this",
+          "services/ai/kernel/sk_factory.py: create_kernel(deployment_name, service_id) — returns configured SK Kernel with AzureChatCompletion",
+          "services/ai/agents/context_agent/agent.py: ContextAgent pattern — no tools, direct chat completion, uses default tier and temp 0.3"
+        ]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "BRD Generation Pipeline — Context Assembly & Fabrication Validation",
+      "description": "As the AI service, I want a BRD generation pipeline that assembles context for the Summarizing AI and validates output for fabrication so that BRD content is grounded in actual brainstorming data.",
+      "acceptanceCriteria": [
+        "BrdGenerationPipeline class in services/ai/processing/brd_pipeline.py orchestrates BRD generation",
+        "Context assembly: queries CoreClient for chat_summary (from chat_context_summaries), recent_messages (last 20), board_state (all nodes + connections), locked_sections (from brd_drafts.section_locks), allow_information_gaps (from brd_drafts)",
+        "Invokes SummarizingAIAgent with assembled context",
+        "Post-processing fabrication validation: FabricationValidator.validate() checks each section for claims not traceable to source material",
+        "Validation uses keyword extraction + fuzzy matching against chat messages and board content (no AI — lightweight heuristic)",
+        "Flagged sections marked in output with 'fabrication_warning' flag but content still returned (user decides)",
+        "Publishes ai.brd.generated event with idea_id, mode, sections (6 fields), readiness_evaluation, fabrication_flags array",
+        "Publishes ai.security.fabrication_flag events for any flagged sections (for monitoring dashboard)",
+        "Error handling: SK failures caught, logged, and returned as error response (not raised)",
+        "Pipeline supports abort mechanism (version tracking like ChatProcessingPipeline)",
+        "Mock mode: loads mock BRD response from fixture, skips SK invocation",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "testIds": ["T-4.1.03", "T-4.2.03", "AI-4.04", "AI-4.05"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § TriggerBrdGeneration gRPC — request: idea_id + mode + section_name, response: success + sections\nAI: docs/03-ai/agent-architecture.md § S4.2 Summarizing AI Pipeline — context assembly sources (chat_context_summaries, chat_messages, board_nodes, brd_drafts.section_locks), fabrication validation (post-processing), event publishing\nAI: docs/03-ai/guardrails.md § 5.2 Layer 4: Output Validation — Source Cross-Reference — keyword extraction, fuzzy matching, proper noun extraction, section length checks\nTesting: docs/04-test-architecture/test-matrix.md § T-4.1.03 (context assembly loads all required fields), T-4.2.03 (fabrication validation flags suspicious sections), AI-4.04 (fabrication validator detects ungrounded claims), AI-4.05 (event publishing includes all fields)\nFiles: services/ai/processing/brd_pipeline.py, services/ai/processing/fabrication_validator.py (new), services/ai/grpc_clients/core_client.py (add BRD stubs)\nGotchas: FabricationValidator is NOT AI-based — uses lightweight keyword extraction (Python stdlib or spaCy) + fuzzy string matching. Do not invoke any AI models for validation. ChatProcessingPipeline pattern: version tracking with _versions dict, abort flags with _abort_flags dict, step-by-step orchestration. CoreClient.get_brd_draft() stub should return an object with section_locks (JSONB as dict) and allow_information_gaps (boolean). Fabrication flags are warnings — content is still returned to the user, not blocked.",
+      "context": {
+        "data_model": ["brd_drafts: section_locks jsonb, allow_information_gaps boolean", "chat_context_summaries: summary_text, messages_covered_up_to_id", "chat_messages: content, sender_type, sender_id", "board_nodes: title, body, node_type"],
+        "api_endpoints": ["TriggerBrdGeneration gRPC — request: idea_id uuid, mode enum (full_generation/selective_regeneration/section_regeneration), section_name string — response: success boolean, sections dict"],
+        "test_cases": [
+          "T-4.1.03 | Integration | Context assembly includes all fields | Pipeline loads chat_summary, recent_messages, board_state, locked_sections, allow_information_gaps",
+          "T-4.2.03 | Unit | Fabrication validator flags ungrounded content | Validator detects claims not in source material",
+          "AI-4.04 | Unit | Keyword extraction + fuzzy matching works | FabricationValidator extracts keywords from section, matches against source",
+          "AI-4.05 | Integration | Events published with all fields | ai.brd.generated event includes idea_id, mode, sections, readiness_evaluation, fabrication_flags"
+        ],
+        "existing_code": [
+          "services/ai/processing/pipeline.py: ChatProcessingPipeline pattern — version tracking, abort flags, step methods, event publishing",
+          "services/ai/processing/context_assembler.py: ContextAssembler.assemble() — maps gRPC response to agent input_data",
+          "services/ai/events/publishers.py: publish_event(event_type, payload) — in-memory event list for M9, future RabbitMQ"
+        ]
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "BRD Draft REST API — GET Draft, PATCH Sections/Locks/Gaps Toggle",
+      "description": "As a frontend client, I want REST endpoints to fetch the current BRD draft and update section content, section locks, and the information gaps toggle so that users can edit and control BRD regeneration.",
+      "acceptanceCriteria": [
+        "GET /api/ideas/:id/brd endpoint returns current BRD draft (or creates empty draft if none exists)",
+        "Response includes: all 6 section fields, section_locks (dict), allow_information_gaps (boolean), readiness_evaluation (dict), last_evaluated_at (timestamp)",
+        "PATCH /api/ideas/:id/brd endpoint updates sections, section_locks, or allow_information_gaps",
+        "Auto-lock on edit: when a section is manually edited via PATCH, that section is automatically added to section_locks",
+        "Section lock toggle: PATCH can toggle individual section locks (lock/unlock)",
+        "Allow information gaps toggle: PATCH can toggle allow_information_gaps boolean",
+        "Validation: idea must exist, user must be owner/co-owner/collaborator",
+        "Optimistic locking: readiness_evaluation is read-only (only updated by AI)",
+        "Returns 404 if idea not found, 403 if user lacks permission",
+        "Django model: BrdDraft in services/core (owned by Core service, mirror model in Gateway for REST API)",
+        "Mirror model pattern: Gateway has unmanaged BrdDraft model with db_table='brd_drafts' for ORM queries",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "testIds": ["T-4.4.01", "T-4.4.02", "T-4.4.03", "T-4.9.02", "API-4.01", "API-4.02", "API-4.03", "API-4.04"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § brd_drafts — all columns, UNIQUE(idea_id), one draft per idea\nArchitecture: docs/02-architecture/api-design.md § BRD Endpoints — GET /api/ideas/:id/brd (response: 6 sections + section_locks + allow_information_gaps + readiness_evaluation), PATCH /api/ideas/:id/brd (request: any subset of fields, auto-lock on section edit)\nArchitecture: docs/02-architecture/project-structure.md § Mirror Model Pattern — Gateway creates unmanaged mirror of Core's brd_drafts table for REST API access\nTesting: docs/04-test-architecture/test-matrix.md § T-4.4.01 (section edit auto-locks that section), T-4.4.02 (lock toggle works), T-4.4.03 (unlocked sections regenerate, locked sections preserved), T-4.9.02 (gaps toggle persists), API-4.01 (GET returns all fields), API-4.02 (PATCH updates sections), API-4.03 (auto-lock on edit), API-4.04 (403 if not collaborator)\nFiles: services/gateway/apps/brd/views.py, services/gateway/apps/brd/serializers.py, services/gateway/apps/brd/models.py (mirror model), services/core/apps/ideas/migrations/0003_brd_drafts.py (if not already created)\nGotchas: Mirror model pattern (same as AdminParameter from M8): Gateway's BrdDraft model has managed=False, db_table='brd_drafts', and connects to same PostgreSQL instance as Core. Core owns migration authority. Auto-lock on edit: serializer update() method checks which sections were modified and adds them to section_locks. JSONB fields (section_locks, readiness_evaluation) serialize as Python dicts. GET should create an empty BRD draft if none exists (all sections NULL, section_locks={}, allow_information_gaps=false).",
+      "context": {
+        "data_model": ["brd_drafts: id uuid PK, idea_id uuid FK UNIQUE, section_title text, section_short_description text, section_current_workflow text, section_affected_department text, section_core_capabilities text, section_success_criteria text, section_locks jsonb, allow_information_gaps boolean, readiness_evaluation jsonb, last_evaluated_at timestamptz"],
+        "api_endpoints": [
+          "GET /api/ideas/:id/brd → 200 {id, idea_id, section_title, section_short_description, section_current_workflow, section_affected_department, section_core_capabilities, section_success_criteria, section_locks, allow_information_gaps, readiness_evaluation, last_evaluated_at}",
+          "PATCH /api/ideas/:id/brd {section_title?, section_short_description?, ..., section_locks?, allow_information_gaps?} → 200 (same response)"
+        ],
+        "test_cases": [
+          "T-4.4.01 | Integration | Section edit auto-locks | PATCH section_title → section_locks includes 'title'",
+          "T-4.4.02 | Integration | Lock toggle works | PATCH section_locks: {core_capabilities: true} → locked",
+          "API-4.01 | Integration | GET returns all BRD fields | GET /api/ideas/:id/brd → 200 with all 6 sections + locks + gaps + readiness",
+          "API-4.03 | Integration | Auto-lock on edit | PATCH section_current_workflow → section_locks['current_workflow'] = true"
+        ],
+        "existing_code": [
+          "services/gateway/apps/admin_config/models.py: AdminParameter mirror model — managed=False, db_table='admin_parameters'",
+          "services/gateway/apps/ideas/models.py: ChatContextSummary mirror model — same pattern for AI service tables"
+        ]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "PDF Generation Service — WeasyPrint gRPC Service",
+      "description": "As the AI service, I want a stateless PDF generation gRPC service that converts BRD HTML to PDF bytes so that users can download formal BRD documents.",
+      "acceptanceCriteria": [
+        "PDF service implements GeneratePdf gRPC method (defined in protos/pdf_service.proto)",
+        "Request: BRD content (6 section strings), idea title, generated date",
+        "Response: PDF bytes (BytesIO stream)",
+        "HTML template: professional A4 portrait layout with Gotham font, Commerz Real branding (logo, colors), section headers, page numbers",
+        "Template includes all 6 BRD sections in order: Title, Short Description, Current Workflow & Pain Points, Affected Department, Core Capabilities, Success Criteria",
+        "WeasyPrint renderer: services/pdf/generator/renderer.py uses WeasyPrint to convert HTML to PDF",
+        "CSS: embedded in HTML template or linked from services/pdf/templates/brd_styles.css",
+        "Font handling: Gotham font files must be available in container (self-hosted from static assets or fallback to system sans-serif)",
+        "Service is stateless: no database access, no state, horizontally scalable",
+        "Error handling: malformed HTML returns gRPC error with descriptive message",
+        "Logging: log PDF generation requests (idea_id, timestamp, success/failure)",
+        "Docker: pdf service container uses Python 3.12 + WeasyPrint dependencies",
+        "Typecheck passes (mypy for PDF service)"
+      ],
+      "priority": 4,
+      "passes": false,
+      "testIds": ["T-4.7.01", "T-4.7.02", "PDF-4.01", "PDF-4.02", "PDF-4.03"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § PDF gRPC Service — GeneratePdf method: request (6 sections + title + date), response (pdf_bytes)\nArchitecture: docs/02-architecture/tech-stack.md § PDF Generation Service Design — WeasyPrint (Python-native HTML-to-PDF), stateless gRPC service, no database, no state, returns PDF bytes\nArchitecture: docs/02-architecture/project-structure.md § PDF Service — lightweight Python service (not Django), just gRPC server + WeasyPrint renderer\nTesting: docs/04-test-architecture/test-matrix.md § T-4.7.01 (PDF generated from BRD content), T-4.7.02 (PDF includes all 6 sections), PDF-4.01 (WeasyPrint renders A4 portrait), PDF-4.02 (Gotham font applied), PDF-4.03 (gRPC service returns bytes)\nFiles: services/pdf/grpc_server/servicers/pdf_servicer.py, services/pdf/generator/renderer.py, services/pdf/generator/builder.py (HTML builder), services/pdf/templates/brd_template.html, services/pdf/templates/brd_styles.css\nGotchas: WeasyPrint requires cairo, pango, gdk-pixbuf libraries in Docker container (apt install libcairo2 libpango-1.0 libgdk-pixbuf2.0). Gotham font: if font files not available, use fallback font stack 'Gotham, ui-sans-serif, system-ui, -apple-system, sans-serif'. HTML template should use semantic structure (headings h1-h3, paragraphs, sections) for accessibility. PDF bytes returned as raw bytes in gRPC response (not base64 encoded). WeasyPrint.HTML().write_pdf() returns BytesIO which can be read as bytes.",
+      "context": {
+        "api_endpoints": ["GeneratePdf gRPC — request: section_title string, section_short_description string, section_current_workflow string, section_affected_department string, section_core_capabilities string, section_success_criteria string, idea_title string, generated_date string — response: pdf_bytes bytes"],
+        "test_cases": [
+          "T-4.7.01 | Integration | PDF generated from BRD content | Call GeneratePdf with 6 sections → returns PDF bytes",
+          "T-4.7.02 | Integration | PDF includes all 6 sections | Open generated PDF → contains all section headings and content",
+          "PDF-4.01 | Unit | WeasyPrint renders A4 portrait | Renderer.render() → PDF with A4 dimensions",
+          "PDF-4.02 | Unit | Gotham font applied | CSS includes font-family: Gotham",
+          "PDF-4.03 | Integration | gRPC service returns bytes | GeneratePdf RPC → response.pdf_bytes is non-empty bytes"
+        ],
+        "existing_code": [
+          "services/pdf/generator/renderer.py: stub file with docstring",
+          "services/pdf/grpc_server/servicers/pdf_servicer.py: placeholder servicer"
+        ]
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "BRD Generation Trigger — REST POST Triggers gRPC to AI",
+      "description": "As a frontend client, I want a POST endpoint to trigger BRD generation that invokes the AI service via gRPC and persists the result so that users can generate BRDs on demand.",
+      "acceptanceCriteria": [
+        "POST /api/ideas/:id/brd/generate endpoint triggers BRD generation",
+        "Request body: mode (full_generation|selective_regeneration|section_regeneration), section_name (required for section_regeneration)",
+        "Gateway invokes AI service TriggerBrdGeneration gRPC method with idea_id, mode, section_name",
+        "AI service publishes ai.brd.ready event after generation completes",
+        "Gateway AIEventConsumer handles ai.brd.ready event: persists BRD sections to brd_drafts table via CoreClient gRPC",
+        "Response: 202 Accepted (async operation), returns generation_id for status polling (future enhancement — M9 returns simple 202)",
+        "Validation: idea must exist, user must be owner/co-owner/collaborator, idea state must be 'open' (BRD generation only available during brainstorming)",
+        "Error handling: if AI service gRPC call fails, return 503 Service Unavailable",
+        "Frontend trigger locations: Review tab \"Generate\" button (triggers full_generation), section editor \"Regenerate\" icon (triggers section_regeneration)",
+        "Optimistic locking: if BRD draft is currently being edited by another user, return 409 Conflict (future enhancement — M9 does not enforce this)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "testIds": ["T-4.3.01", "T-4.3.02", "API-4.05", "API-4.06"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § BRD Endpoints — POST /api/ideas/:id/brd/generate {mode, section_name?} → 202 Accepted, AI gRPC TriggerBrdGeneration invoked\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts — ai.brd.ready event (idea_id, mode, sections, readiness_evaluation, fabrication_flags), consumed by Gateway AIEventConsumer\nTesting: docs/04-test-architecture/test-matrix.md § T-4.3.01 (POST triggers AI generation), T-4.3.02 (ai.brd.ready event persists to DB), API-4.05 (POST /generate returns 202), API-4.06 (gRPC call to AI service succeeds)\nFiles: services/gateway/apps/brd/views.py (add generate endpoint), services/gateway/events/consumers.py (add ai.brd.ready handler), services/ai/grpc_server/servicers/processing_servicer.py (add TriggerBrdGeneration method)\nGotchas: Async operation pattern: REST endpoint returns 202 immediately, actual processing happens in AI service, result published via message broker event, Gateway consumes event and persists. This is the same pattern as chat processing (POST /chat/messages returns 201, AI processing happens async, results published via WebSocket). AIEventConsumer._handle_brd_ready() should call CoreClient.upsert_brd_draft() gRPC method (stub in M9, real in later milestones). Mode validation: full_generation (no section_name), selective_regeneration (no section_name), section_regeneration (section_name required, must be one of 6 valid names). Idea state validation: only 'open' ideas can trigger BRD generation (in_review ideas use resubmit flow in M10).",
+      "context": {
+        "api_endpoints": [
+          "POST /api/ideas/:id/brd/generate {mode: 'full_generation'|'selective_regeneration'|'section_regeneration', section_name?: string} → 202 Accepted",
+          "TriggerBrdGeneration gRPC — request: idea_id, mode, section_name — invokes BrdGenerationPipeline → publishes ai.brd.ready"
+        ],
+        "test_cases": [
+          "T-4.3.01 | Integration | POST triggers AI generation | POST /generate with mode='full_generation' → AI service invoked",
+          "T-4.3.02 | Integration | ai.brd.ready persists to DB | ai.brd.ready event received → brd_drafts updated",
+          "API-4.05 | Integration | POST returns 202 | POST /generate → 202 status",
+          "API-4.06 | Integration | gRPC call succeeds | Gateway calls TriggerBrdGeneration → AI service responds"
+        ],
+        "existing_code": [
+          "services/gateway/apps/chat/views.py: POST /chat/messages pattern — returns 201 immediately, AI processing async, events consumed",
+          "services/gateway/events/consumers.py: AIEventConsumer with _handle_processing_complete, _handle_ai_reaction, etc.",
+          "services/ai/grpc_server/servicers/processing_servicer.py: TriggerChatProcessing method — same pattern for TriggerBrdGeneration"
+        ]
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "Review Tab UI — PDF Preview & Action Bar",
+      "description": "As a user in the idea workspace, I want a Review tab in the right panel with PDF preview and action buttons so that I can view and download the generated BRD.",
+      "acceptanceCriteria": [
+        "Review tab added to workspace right panel tabs (Board | Review)",
+        "Review tab is ONLY visible when idea.state is 'open' OR idea.has_been_submitted is true (F-1.2)",
+        "Tab content shows PDF preview or empty state if no BRD generated yet",
+        "PDF preview: embedded iframe or object with src pointing to PDF blob URL",
+        "Preview container: bg-white (always white for document rendering), border, rounded, shadow, scrollable",
+        "Action bar below preview: \"Download PDF\" button (ghost) and \"Generate\" button (primary)",
+        "Download PDF: fetches GET /api/ideas/:id/brd/versions/:versionId/pdf (placeholder in M9 — downloads current draft, versioning in M10)",
+        "Generate button: triggers POST /api/ideas/:id/brd/generate with mode='full_generation', shows loading state, disabled during generation",
+        "Empty state when no BRD: \"No BRD generated yet. Click Generate to create your first BRD.\"",
+        "Loading state during generation: skeleton placeholder + \"Generating BRD...\" text",
+        "Error state: error toast if generation fails (with Retry button)",
+        "Review tab uses TanStack Query for BRD data fetching and cache invalidation",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "testIds": ["T-1.2.01", "T-1.2.02", "T-4.5.01", "T-4.5.02", "T-4.5.03", "UI-4.01", "UI-4.02"],
+      "notes": "Design: docs/03-design/page-layouts.md § S2 Idea Workspace — Review tab in right panel, below fold Review Section (M10), Review tab shows PDF preview + action bar\nDesign: docs/03-design/component-specs.md § 12.1 Embedded PDF View (Review Tab) — bg-white, border, rounded, shadow, A4 aspect ratio, action bar below preview\nTesting: docs/04-test-architecture/test-matrix.md § T-1.2.01 (Review section hidden for never-submitted idea), T-1.2.02 (Review section visible after first submission), T-4.5.01 (PDF preview renders), T-4.5.02 (action bar visible), T-4.5.03 (download button works), UI-4.01 (Review tab appears in workspace), UI-4.02 (PDF preview shows generated BRD)\nFiles: frontend/src/components/workspace/ReviewTab.tsx (new), frontend/src/components/workspace/PDFPreview.tsx (new), frontend/src/api/brd.ts (new API client), frontend/src/pages/IdeaWorkspace/index.tsx (add Review tab)\nGotchas: Review tab visibility: check idea.has_been_submitted flag (added in M10 but can be stubbed as false in M9). PDF preview: use <object> or <iframe> with src set to blob URL created from PDF bytes. TanStack Query: useBrdDraft() hook for fetching BRD data, invalidate on ai.brd.ready WebSocket event. Action bar: Download button disabled if no PDF exists, Generate button shows loading spinner during generation. Empty state: use EmptyState component with Lightbulb icon.",
+      "context": {
+        "components": [
+          "ReviewTab — container for PDF preview + action bar, fetches BRD data via TanStack Query",
+          "PDFPreview — embedded PDF view with bg-white, border, rounded, scrollable, A4 aspect ratio",
+          "ActionBar — ghost Download button + primary Generate button, below preview"
+        ],
+        "api_endpoints": [
+          "GET /api/ideas/:id/brd → BRD draft with all sections",
+          "POST /api/ideas/:id/brd/generate {mode: 'full_generation'} → 202 Accepted",
+          "GET /api/ideas/:id/brd/versions/:versionId/pdf → PDF bytes (placeholder in M9)"
+        ],
+        "test_cases": [
+          "T-1.2.01 | Unit | Review section hidden for never-submitted idea | has_been_submitted=false → Review tab not visible",
+          "T-4.5.01 | Integration | PDF preview renders | BRD exists → PDF preview shows document",
+          "UI-4.01 | E2E | Review tab appears in workspace | Navigate to idea workspace → Review tab visible"
+        ],
+        "existing_code": [
+          "frontend/src/components/workspace/ChatPanel.tsx: left panel component, uses TanStack Query for chat messages",
+          "frontend/src/components/board/BoardCanvas.tsx: right panel Board tab",
+          "frontend/src/pages/IdeaWorkspace/index.tsx: two-panel layout with tabs"
+        ]
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "BRD Section Editor — Expandable Edit Area with Lock/Regenerate",
+      "description": "As a user viewing the BRD, I want to click \"Edit Document\" to open a slide-in editor where I can edit each section, toggle locks, and regenerate unlocked sections so that I can refine the AI-generated BRD.",
+      "acceptanceCriteria": [
+        "\"Edit Document\" button in Review tab (top-right or below action bar) opens slide-in editor",
+        "Editor slides in from right, full height of right panel, overlays/replaces PDF preview temporarily",
+        "Editor shows all 6 sections in order, each with: section label, textarea (auto-grow), lock icon (toggleable), regenerate icon (unlocked only)",
+        "Section labels: \"1. Title\", \"2. Short Description\", \"3. Current Workflow & Pain Points\", \"4. Affected Department\", \"5. Core Capabilities\", \"6. Success Criteria\"",
+        "Textarea: auto-grow, text-base, border, rounded, bg-card, displays current section content",
+        "Lock icon: Lucide Lock (locked) / LockOpen (unlocked), icon-sm, clickable toggle, updates section_locks via PATCH /api/ideas/:id/brd",
+        "Regenerate icon: Lucide RefreshCw, icon-sm, only visible when section is unlocked, triggers POST /api/ideas/:id/brd/generate with mode='section_regeneration' and section_name",
+        "Close button: Lucide X icon, top-right, closes editor and returns to PDF preview",
+        "Save changes: auto-save on blur or debounced onChange (300ms), calls PATCH /api/ideas/:id/brd with updated section content",
+        "Auto-lock on edit: when user types in a section, that section is automatically locked (section_locks updated)",
+        "/TODO markers: displayed as plain text in textarea (no rich text highlighting in M9)",
+        "Progress bar (readiness indicator): horizontal segmented bar below header, shows per-section readiness (green=ready, gray=insufficient), label \"X/6 sections ready\"",
+        "Allow Information Gaps toggle: switch below progress bar, updates allow_information_gaps via PATCH",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "testIds": ["T-4.4.04", "T-4.4.05", "T-4.4.06", "T-4.8.02", "T-4.9.03", "UI-4.03", "UI-4.04", "UI-4.05"],
+      "notes": "Design: docs/03-design/component-specs.md § 12.2 BRD Section Editor (Expandable Edit Area) — slides in from right, full height, 6 sections with label + textarea + lock icon + regenerate icon, close button, progress bar below header\nDesign: docs/03-design/component-specs.md § 12.3 Progress Indicator — horizontal segmented bar, h-2, rounded-full, 6 segments (one per section), green=ready, gray=insufficient, label \"X/6 sections ready\" or \"Gaps allowed\" when toggle is on\nTesting: docs/04-test-architecture/test-matrix.md § T-4.4.04 (lock toggle updates section_locks), T-4.4.05 (regenerate triggers section_regeneration), T-4.4.06 (auto-save on blur), T-4.8.02 (progress indicator updates), T-4.9.03 (gaps toggle works), UI-4.03 (editor slides in), UI-4.04 (section edit auto-locks), UI-4.05 (regenerate icon triggers generation)\nFiles: frontend/src/components/brd/BRDSectionEditor.tsx (new), frontend/src/components/brd/SectionField.tsx (new), frontend/src/components/brd/ProgressIndicator.tsx (new), frontend/src/components/workspace/ReviewTab.tsx (add Edit Document button)\nGotchas: Slide-in animation: framer-motion with initial={{x: '100%'}} animate={{x: 0}} exit={{x: '100%'}}. Auto-save debouncing: useDebounce hook (300ms) on textarea onChange. Auto-lock on edit: optimistic update to section_locks when user types, then PATCH. Regenerate: only show icon when section is unlocked AND section content is not empty (empty sections have nothing to regenerate). Progress bar: readiness_evaluation JSONB maps section names to 'ready'|'insufficient', count how many are 'ready'. Allow Information Gaps toggle: when true, progress bar label changes to 'Gaps allowed' and all segments turn muted gray (readiness doesn't matter when gaps allowed).",
+      "context": {
+        "components": [
+          "BRDSectionEditor — slide-in container, 6 SectionField components, close button, progress bar, gaps toggle",
+          "SectionField — section label, textarea (auto-grow), lock icon (toggleable), regenerate icon (conditional)",
+          "ProgressIndicator — horizontal segmented progress bar, h-2 rounded-full, 6 segments, label below"
+        ],
+        "api_endpoints": [
+          "PATCH /api/ideas/:id/brd {section_title?, section_locks?} → updates BRD sections and locks",
+          "POST /api/ideas/:id/brd/generate {mode: 'section_regeneration', section_name: 'title'} → regenerates single section"
+        ],
+        "test_cases": [
+          "T-4.4.04 | Integration | Lock toggle updates section_locks | Click lock icon → PATCH sent with updated locks",
+          "T-4.4.05 | Integration | Regenerate triggers section_regeneration | Click regenerate → POST /generate with mode='section_regeneration'",
+          "T-4.8.02 | Unit | Progress indicator updates | readiness_evaluation changes → bar segments update",
+          "UI-4.03 | E2E | Editor slides in | Click Edit Document → editor animates in from right"
+        ],
+        "existing_code": [
+          "frontend/src/components/chat/ChatInput.tsx: auto-grow textarea pattern",
+          "frontend/src/hooks/use-websocket.ts: WebSocket event handling for cache invalidation"
+        ]
+      }
+    },
+    {
+      "id": "US-008",
+      "title": "Readiness Evaluation — Progress Indicator & Per-Section Status",
+      "description": "As a user editing the BRD, I want to see a progress indicator showing which sections are ready vs insufficient so that I know what needs improvement before submission.",
+      "acceptanceCriteria": [
+        "Progress indicator displays below BRD section editor header (below Edit Document title, above sections list)",
+        "Horizontal segmented bar: 6 segments (one per section), h-2, rounded-full, 2px gaps between segments",
+        "Segment colors: green (ready), gray (insufficient), based on readiness_evaluation JSONB",
+        "Label below bar: \"X/6 sections ready\" where X is count of ready sections",
+        "When allow_information_gaps=true: label changes to \"Gaps allowed\", all segments turn muted gray (readiness doesn't matter)",
+        "Per-section status: each SectionField shows small status indicator (green dot or gray dot) next to section label",
+        "Readiness evaluation updated: when BRD generation completes (ai.brd.ready event), readiness_evaluation JSONB is updated, progress bar re-renders",
+        "Loading state: during generation, progress bar shows skeleton/pulse animation",
+        "Tooltip on segment hover: shows section name + status (\"Title: Ready\" or \"Short Description: Insufficient\")",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "testIds": ["T-4.8.03", "T-4.8.04", "UI-4.06"],
+      "notes": "Design: docs/03-design/component-specs.md § 12.3 Progress Indicator — horizontal segmented bar, h-2, rounded-full, 6 segments with 2px gaps, green=ready, gray=insufficient, label \"X/6 sections ready\" or \"Gaps allowed\" when toggle is on\nTesting: docs/04-test-architecture/test-matrix.md § T-4.8.03 (progress bar reflects readiness), T-4.8.04 (label updates on readiness change), UI-4.06 (progress indicator visible in editor)\nFiles: frontend/src/components/brd/ProgressIndicator.tsx (already created in US-007, enhanced here), frontend/src/components/brd/SectionField.tsx (add status dot)\nGotchas: Readiness evaluation JSONB structure: {title: 'ready', short_description: 'insufficient', ...}. Count ready sections: Object.values(readiness_evaluation).filter(s => s === 'ready').length. Segment coloring: map over 6 section names, look up status in readiness_evaluation, assign color. When allow_information_gaps=true, ignore readiness_evaluation and color all segments muted gray. Tooltip: shadcn Tooltip component on each segment, shows section name + status. Loading state: skeleton bar with pulse animation during BRD generation (subscribe to ai.brd.generating WebSocket event if needed).",
+      "context": {
+        "components": [
+          "ProgressIndicator — props: readiness_evaluation (dict), allow_information_gaps (boolean), loading (boolean)"
+        ],
+        "data_model": ["brd_drafts: readiness_evaluation jsonb — {title: 'ready'|'insufficient', short_description: 'ready'|'insufficient', ...}"],
+        "test_cases": [
+          "T-4.8.03 | Unit | Progress bar reflects readiness | readiness_evaluation={title: 'ready', short_description: 'insufficient', ...} → bar shows 1 green, 5 gray",
+          "T-4.8.04 | Unit | Label updates on readiness change | 4/6 ready → label shows '4/6 sections ready'",
+          "UI-4.06 | E2E | Progress indicator visible in editor | Open BRD editor → progress bar renders below header"
+        ],
+        "existing_code": [
+          "frontend/src/components/chat/AIProcessingIndicator.tsx: loading skeleton pattern",
+          "frontend/src/components/ui/tooltip.tsx: shadcn Tooltip for hover details"
+        ]
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "Allow Information Gaps — Toggle Switch & /TODO Marker Handling",
+      "description": "As a user editing the BRD, I want to toggle \"Allow Information Gaps\" so that the AI can leave /TODO markers instead of refusing to generate sections, and I want PDF generation to reject if /TODO markers remain.",
+      "acceptanceCriteria": [
+        "Allow Information Gaps toggle switch below progress bar in BRD section editor",
+        "Switch: shadcn Switch component, label \"Allow information gaps\", updates allow_information_gaps via PATCH /api/ideas/:id/brd",
+        "When toggle is ON: AI leaves /TODO markers in sections instead of outputting 'Not enough information'",
+        "When toggle is OFF: AI outputs 'Not enough information' for insufficient sections (no /TODO markers)",
+        "/TODO markers displayed as plain text in textarea (no syntax highlighting in M9)",
+        "PDF generation rejection: if any section contains /TODO markers, PDF generation fails with error \"Cannot generate PDF: sections contain /TODO markers. Please complete or disable information gaps.\"",
+        "Frontend validation: before calling PDF generation, check for /TODO markers in section content, show warning dialog if found",
+        "Toggle state persists to database (allow_information_gaps column)",
+        "Progress indicator: when toggle is ON, label changes to \"Gaps allowed\" and all segments turn gray (readiness doesn't apply)",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "testIds": ["T-4.9.04", "T-4.9.05", "T-4.9.06", "UI-4.07"],
+      "notes": "Design: docs/03-design/component-specs.md § 4.4 Switch (Toggle) — shadcn Switch, w-10 h-5, off: bg-muted, on: bg-primary (gold), focus: gold ring\nTesting: docs/04-test-architecture/test-matrix.md § T-4.9.04 (gaps toggle ON → /TODO markers in output), T-4.9.05 (gaps toggle OFF → 'Not enough information'), T-4.9.06 (PDF generation rejected if /TODO remains), UI-4.07 (gaps toggle visible in editor)\nFiles: frontend/src/components/brd/BRDSectionEditor.tsx (add toggle), services/ai/agents/summarizing_ai/agent.py (handle allow_information_gaps in prompt), services/pdf/generator/renderer.py (validate for /TODO markers before rendering)\nGotchas: /TODO marker detection: simple string search for '/TODO' in section content (case-sensitive). PDF generation rejection: check in PDF service GeneratePdf method, return gRPC error if /TODO found. Frontend warning dialog: use shadcn Dialog to confirm \"Sections contain /TODO markers. Do you want to complete them first?\" before calling /generate. Progress indicator: when allow_information_gaps=true, all segments gray and label \"Gaps allowed\" (readiness evaluation ignored). Auto-lock on edit: editing a section with /TODO markers should still auto-lock that section.",
+      "context": {
+        "components": [
+          "Switch — shadcn component, controlled by allow_information_gaps state, updates via PATCH"
+        ],
+        "data_model": ["brd_drafts: allow_information_gaps boolean — when true, AI leaves /TODO markers"],
+        "ai_specs": ["SummarizingAI — allow_information_gaps input param → if true, output /TODO markers; if false, output 'Not enough information'"],
+        "test_cases": [
+          "T-4.9.04 | Integration | Gaps toggle ON → /TODO markers | allow_information_gaps=true → BRD output contains /TODO",
+          "T-4.9.05 | Integration | Gaps toggle OFF → 'Not enough information' | allow_information_gaps=false → insufficient sections show 'Not enough information'",
+          "T-4.9.06 | Integration | PDF rejected if /TODO remains | PDF generation with /TODO markers → gRPC error",
+          "UI-4.07 | E2E | Gaps toggle visible in editor | Open editor → toggle switch below progress bar"
+        ],
+        "existing_code": [
+          "frontend/src/components/ui/switch.tsx: shadcn Switch component",
+          "services/ai/agents/summarizing_ai/prompt.py: system prompt with allow_information_gaps conditional logic"
+        ]
+      }
+    }
+  ]
+}
