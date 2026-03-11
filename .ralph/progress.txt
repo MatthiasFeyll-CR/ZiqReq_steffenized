@@ -110,3 +110,18 @@ Started: 2026-03-11T17:44:30+0100
   - Email renderer uses Python with _EMAIL_STRINGS dict pattern for bilingual support
   - Language switcher already existed in UserDropdown.tsx via i18n.changeLanguage + localStorage
 ---
+
+## US-007: Accessibility Pass — Keyboard Navigation & Focus
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/app/app.tsx (added SkipLink), frontend/src/components/layout/PageShell.tsx (added id="main-content"), frontend/src/components/ui/toast.tsx (fixed focus ring offset), frontend/src/pages/IdeaWorkspace/index.tsx (added main-content id + semantic main element)
+- Tests: 460 passed, 1 failed (pre-existing information-gaps-toggle). Typecheck clean. Ruff clean.
+- Learnings for future iterations:
+  - All shadcn/ui components already have proper focus-visible:ring-2 ring-primary ring-offset-2 styles
+  - Radix primitives (Dialog, DropdownMenu, Select, Tabs) provide Escape/Enter/Arrow keyboard navigation out of the box
+  - SkipLink component existed but was never rendered in the app — added to App.tsx before router
+  - PageShell wraps most pages but IdeaWorkspace has its own layout — needed main-content id in both places
+  - IdeaWorkspace top-level element changed from div to semantic main for better accessibility
+  - Toast close button was the only interactive element missing ring-offset-2 in its focus styles
+  - Pre-existing test failure: information-gaps-toggle.test.tsx (URL.createObjectURL)
+---
