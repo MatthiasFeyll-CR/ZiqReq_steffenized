@@ -9,6 +9,7 @@ import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
+import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useSelector } from "react-redux";
 import { selectIsOnline } from "@/store/websocket-slice";
@@ -133,6 +134,12 @@ function IdeaWorkspaceContent({
   ideaRef.current = idea;
   const onIdeaUpdateRef = useRef(onIdeaUpdate);
   onIdeaUpdateRef.current = onIdeaUpdate;
+  const reviewSectionRef = useRef<HTMLDivElement>(null);
+  const brainstormingRef = useRef<HTMLDivElement>(null);
+  const prevStateRef = useRef(idea.state);
+
+  // has_been_submitted heuristic: state !== 'open' means it was submitted at least once
+  const hasBeenSubmitted = idea.state !== "open";
 
   // Listen for WebSocket title_update events
   useEffect(() => {
@@ -146,23 +153,45 @@ function IdeaWorkspaceContent({
     return () => window.removeEventListener("ws:title_update", handler);
   }, []);
 
+  // Auto-scroll based on state transitions
+  useEffect(() => {
+    if (prevStateRef.current === idea.state) return;
+    prevStateRef.current = idea.state;
+
+    if (idea.state === "rejected") {
+      // Scroll to brainstorming (top)
+      brainstormingRef.current?.scrollIntoView({ behavior: "smooth" });
+    } else if (["in_review", "accepted", "dropped"].includes(idea.state)) {
+      // Scroll to review section (below fold)
+      reviewSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [idea.state]);
+
   const effectiveChatLocked = chatLocked || !isOnline;
   const effectiveLockReason = !isOnline
     ? "You are currently offline. Chat is disabled."
     : lockReason;
 
   return (
-    <div className="flex flex-col h-full" data-testid="idea-workspace">
+    <div className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={allReadOnly} />
       <OfflineBanner />
-      <WorkspaceLayout
-        chatPanel={
-          <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} />
-        }
-        reviewVisible={reviewVisible}
-        ideaId={idea.id}
-        disabled={!isOnline}
-      />
+      <div ref={brainstormingRef} className="flex-1 min-h-0 flex flex-col" style={{ minHeight: hasBeenSubmitted ? "calc(100vh - 64px)" : undefined }}>
+        <WorkspaceLayout
+          chatPanel={
+            <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} />
+          }
+          reviewVisible={reviewVisible}
+          ideaId={idea.id}
+          ideaState={idea.state}
+          disabled={!isOnline}
+        />
+      </div>
+      {hasBeenSubmitted && (
+        <div ref={reviewSectionRef} data-testid="review-section-wrapper">
+          <ReviewSection ideaId={idea.id} idea={idea} />
+        </div>
+      )}
     </div>
   );
 }

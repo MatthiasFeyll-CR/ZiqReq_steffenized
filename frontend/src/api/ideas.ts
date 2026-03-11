@@ -160,6 +160,31 @@ export async function restoreIdea(id: string): Promise<void> {
   }
 }
 
+export interface SubmitIdeaResponse {
+  version_number: number;
+  pdf_url: string;
+  state: string;
+}
+
+export async function submitIdea(
+  ideaId: string,
+  data: { message?: string; reviewer_ids?: string[] },
+): Promise<SubmitIdeaResponse> {
+  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 export interface ContextWindowData {
   usage_percentage: number;
   message_count: number;

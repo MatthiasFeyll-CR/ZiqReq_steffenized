@@ -1,7 +1,617 @@
-from rest_framework.decorators import api_view
+import logging
+import uuid
+
+from django.db import transaction
+from django.db.models import Max
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.request import Request
 from rest_framework.response import Response
+
+from apps.authentication.models import User
+from apps.brd.models import BrdDraft
+from apps.ideas.authentication import MiddlewareAuthentication
+from apps.ideas.models import Idea
+
+from .models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
+from .serializers import ReviewActionCommentSerializer, SubmitIdeaSerializer, TimelineCommentSerializer
+
+logger = logging.getLogger(__name__)
+
+def _create_pdf_client():
+    """Create a PdfClient instance (lazy import to avoid namespace collisions)."""
+    from grpc_clients.pdf_client import PdfClient
+
+    return PdfClient()
+
+
+def _require_auth(request: Request):
+    user = request.user
+    if user is None or not getattr(user, "id", None):
+        return None
+    return user
+
+
+def _unauthorized_response() -> Response:
+    return Response(
+        {"error": "UNAUTHORIZED", "message": "Authentication required"},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
+
+
+def _get_idea_or_error(idea_id: str):
+    """Validate idea_id UUID and return (idea, None) or (None, error_response)."""
+    try:
+        uuid.UUID(idea_id)
+    except ValueError:
+        return None, Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_id)
+    except Idea.DoesNotExist:
+        return None, Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return idea, None
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def submit_idea(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/submit — Submit idea for review."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    # Access control: only owner or co-owner
+    if idea.owner_id != user.id and idea.co_owner_id != user.id:
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "Only owner or co-owner can submit"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # State validation: only 'open' and 'rejected' ideas can be submitted
+    if idea.state not in ("open", "rejected"):
+        return Response(
+            {"error": "INVALID_STATE", "message": "Only open or rejected ideas can be submitted for review"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    serializer = SubmitIdeaSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    validated = serializer.validated_data
+    message = validated.get("message", "")
+    reviewer_ids = validated.get("reviewer_ids", [])
+
+    # Get BRD draft for snapshot
+    try:
+        draft = BrdDraft.objects.get(idea_id=idea.id)
+    except BrdDraft.DoesNotExist:
+        draft = None
+
+    # Calculate next version number
+    max_version = BrdVersion.objects.filter(idea_id=idea.id).aggregate(
+        max_v=Max("version_number")
+    )["max_v"]
+    next_version = (max_version or 0) + 1
+
+    # Generate PDF
+    try:
+        pdf_client = _create_pdf_client()
+        sections = {}
+        if draft:
+            sections = {
+                "title": draft.section_title or "",
+                "short_description": draft.section_short_description or "",
+                "current_workflow": draft.section_current_workflow or "",
+                "affected_department": draft.section_affected_department or "",
+                "core_capabilities": draft.section_core_capabilities or "",
+                "success_criteria": draft.section_success_criteria or "",
+            }
+        pdf_client.generate_pdf(
+            idea_id=str(idea.id),
+            idea_title=idea.title or "",
+            sections=sections,
+        )
+    except Exception:
+        logger.exception("PDF generation failed for idea %s", idea_id)
+        return Response(
+            {"error": "PDF_GENERATION_FAILED", "message": "PDF generation service is unavailable"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    # Store PDF
+    pdf_file_path = f"ideas/{idea.id}/brd/v{next_version}.pdf"
+
+    old_state = idea.state
+
+    # Check if this is a resubmission (previous version exists)
+    previous_version = BrdVersion.objects.filter(idea_id=idea.id).order_by("-version_number").first()
+
+    # Atomic transaction for all writes
+    with transaction.atomic():
+        # 1. Create immutable BRD version
+        brd_version = BrdVersion.objects.create(
+            idea_id=idea.id,
+            version_number=next_version,
+            section_title=draft.section_title if draft else None,
+            section_short_description=draft.section_short_description if draft else None,
+            section_current_workflow=draft.section_current_workflow if draft else None,
+            section_affected_department=draft.section_affected_department if draft else None,
+            section_core_capabilities=draft.section_core_capabilities if draft else None,
+            section_success_criteria=draft.section_success_criteria if draft else None,
+            pdf_file_path=pdf_file_path,
+        )
+
+        # 2. Update idea state
+        idea.state = "in_review"
+        idea.save(update_fields=["state", "updated_at"])
+
+        # 3. Create reviewer assignments
+        for reviewer_id in reviewer_ids:
+            ReviewAssignment.objects.create(
+                idea_id=idea.id,
+                reviewer_id=reviewer_id,
+                assigned_by="submitter",
+            )
+
+        # 4. Create state_change timeline entry
+        ReviewTimelineEntry.objects.create(
+            idea_id=idea.id,
+            entry_type="state_change",
+            author_id=user.id,
+            content="Submitted for review",
+            old_state=old_state,
+            new_state="in_review",
+        )
+
+        # 5. Create comment timeline entry (if message provided)
+        if message:
+            ReviewTimelineEntry.objects.create(
+                idea_id=idea.id,
+                entry_type="comment",
+                author_id=user.id,
+                content=message,
+            )
+
+        # 6. Create resubmission timeline entry (if previous version exists)
+        if previous_version:
+            ReviewTimelineEntry.objects.create(
+                idea_id=idea.id,
+                entry_type="resubmission",
+                author_id=user.id,
+                old_version_id=previous_version.id,
+                new_version_id=brd_version.id,
+            )
+
+    pdf_url = f"/api/ideas/{idea.id}/brd/versions/{next_version}/pdf"
+
+    return Response({
+        "version_number": next_version,
+        "pdf_url": pdf_url,
+        "state": "in_review",
+    })
+
+
+def _require_reviewer(user) -> Response | None:
+    """Return an error response if user does not have the 'reviewer' role, else None."""
+    roles = getattr(user, "roles", None) or []
+    if "reviewer" not in roles:
+        return Response(
+            {"error": "FORBIDDEN", "message": "Reviewer role required"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def assign_review(request: Request, idea_id: str) -> Response:
+    """POST /api/reviews/:id/assign — Self-assign as reviewer."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    # State validation: only 'in_review' ideas can be assigned
+    if idea.state != "in_review":
+        return Response(
+            {"error": "INVALID_STATE", "message": "Only ideas in review can be assigned"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Conflict of interest: reviewer cannot assign to own idea
+    if user.id == idea.owner_id or user.id == idea.co_owner_id:
+        return Response(
+            {"error": "CONFLICT_OF_INTEREST", "message": "Cannot review your own idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Duplicate check: active assignment (unassigned_at IS NULL)
+    if ReviewAssignment.objects.filter(
+        idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+    ).exists():
+        return Response(
+            {"error": "ALREADY_ASSIGNED", "message": "Already assigned to this idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    ReviewAssignment.objects.create(
+        idea_id=idea.id,
+        reviewer_id=user.id,
+        assigned_by="self",
+    )
+
+    return Response({"message": "Assigned successfully"})
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def unassign_review(request: Request, idea_id: str) -> Response:
+    """POST /api/reviews/:id/unassign — Self-unassign as reviewer."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    # Find active assignment
+    try:
+        assignment = ReviewAssignment.objects.get(
+            idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+        )
+    except ReviewAssignment.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "No active assignment found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    assignment.unassigned_at = timezone.now()
+    assignment.save(update_fields=["unassigned_at"])
+
+    return Response({"message": "Unassigned successfully"})
+
+
+# --- State transition maps for review actions ---
+
+# Valid source states for each action
+_REVIEW_ACTION_VALID_STATES: dict[str, list[str]] = {
+    "accept": ["in_review"],
+    "reject": ["in_review"],
+    "drop": ["in_review"],
+    "undo": ["accepted", "dropped", "rejected"],
+}
+
+# Target state for each action
+_REVIEW_ACTION_TARGET_STATE: dict[str, str] = {
+    "accept": "accepted",
+    "reject": "rejected",
+    "drop": "dropped",
+    "undo": "in_review",
+}
+
+# Actions that require a mandatory comment
+_COMMENT_REQUIRED_ACTIONS = {"reject", "drop", "undo"}
+
+
+def _handle_review_action(request: Request, idea_id: str, action: str) -> Response:
+    """Shared logic for accept/reject/drop/undo review actions."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    # State validation
+    valid_states = _REVIEW_ACTION_VALID_STATES[action]
+    if idea.state not in valid_states:
+        return Response(
+            {"error": "INVALID_STATE", "message": f"Cannot {action} idea in state '{idea.state}'"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Comment validation for actions that require it
+    comment = None
+    if action in _COMMENT_REQUIRED_ACTIONS:
+        serializer = ReviewActionCommentSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": "COMMENT_REQUIRED", "message": "A comment is required for this action"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        comment = serializer.validated_data["comment"]
+
+    old_state = idea.state
+    new_state = _REVIEW_ACTION_TARGET_STATE[action]
+
+    with transaction.atomic():
+        idea.state = new_state
+        idea.save(update_fields=["state", "updated_at"])
+
+        content = comment or f"Idea {action}ed"
+        ReviewTimelineEntry.objects.create(
+            idea_id=idea.id,
+            entry_type="state_change",
+            author_id=user.id,
+            content=content,
+            old_state=old_state,
+            new_state=new_state,
+        )
+
+    return Response({"state": new_state})
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def accept_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/accept — Reviewer accepts idea."""
+    return _handle_review_action(request, idea_id, "accept")
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def reject_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/reject — Reviewer rejects idea."""
+    return _handle_review_action(request, idea_id, "reject")
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def drop_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/drop — Reviewer drops idea."""
+    return _handle_review_action(request, idea_id, "drop")
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def undo_review(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/review/undo — Undo review action."""
+    return _handle_review_action(request, idea_id, "undo")
 
 
 @api_view(["GET"])
-def placeholder(request):
-    return Response({"status": "ok"})
+@authentication_classes([MiddlewareAuthentication])
+def list_reviews(request: Request) -> Response:
+    """GET /api/reviews — Categorized review lists for Reviewer role."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    # Fetch all non-open ideas (open ideas are not in review workflow)
+    ideas = list(
+        Idea.objects.filter(
+            state__in=["in_review", "accepted", "rejected", "dropped"],
+            deleted_at__isnull=True,
+        )
+    )
+
+    # Batch-load active assignments for all ideas
+    idea_ids = [i.id for i in ideas]
+    active_assignments = ReviewAssignment.objects.filter(
+        idea_id__in=idea_ids, unassigned_at__isnull=True
+    )
+
+    # Build assignment map: idea_id -> list of reviewer_ids
+    assignments_by_idea: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for a in active_assignments:
+        assignments_by_idea.setdefault(a.idea_id, []).append(a.reviewer_id)
+
+    # Batch-load owner and reviewer user info
+    all_user_ids: set[uuid.UUID] = {i.owner_id for i in ideas}
+    for reviewer_ids in assignments_by_idea.values():
+        all_user_ids.update(reviewer_ids)
+    users_map: dict[uuid.UUID, User] = {}
+    if all_user_ids:
+        users_map = {u.id: u for u in User.objects.filter(id__in=all_user_ids)}
+
+    # Categorize ideas
+    assigned_to_me: list[dict] = []
+    unassigned: list[dict] = []
+    accepted: list[dict] = []
+    rejected: list[dict] = []
+    dropped: list[dict] = []
+
+    for idea in ideas:
+        idea_reviewers = assignments_by_idea.get(idea.id, [])
+        reviewer_info = [
+            {"id": str(rid), "display_name": users_map[rid].display_name}
+            for rid in idea_reviewers
+            if rid in users_map
+        ]
+        owner = users_map.get(idea.owner_id)
+        item = {
+            "id": str(idea.id),
+            "title": idea.title,
+            "state": idea.state,
+            "owner_id": str(idea.owner_id),
+            "co_owner_id": str(idea.co_owner_id) if idea.co_owner_id else None,
+            "owner_name": owner.display_name if owner else "",
+            "submitted_at": idea.updated_at.isoformat() if idea.updated_at else None,
+            "reviewers": reviewer_info,
+        }
+
+        if idea.state == "in_review":
+            if user.id in idea_reviewers:
+                assigned_to_me.append(item)
+            elif not idea_reviewers:
+                unassigned.append(item)
+        elif idea.state == "accepted":
+            accepted.append(item)
+        elif idea.state == "rejected":
+            rejected.append(item)
+        elif idea.state == "dropped":
+            dropped.append(item)
+
+    return Response({
+        "assigned_to_me": assigned_to_me,
+        "unassigned": unassigned,
+        "accepted": accepted,
+        "rejected": rejected,
+        "dropped": dropped,
+    })
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def get_idea_reviewers(request: Request, idea_id: str) -> Response:
+    """GET /api/ideas/:id/review/reviewers — Get active reviewers for an idea."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    assignments = ReviewAssignment.objects.filter(idea_id=idea.id, unassigned_at__isnull=True)
+    reviewer_ids = [a.reviewer_id for a in assignments]
+    users_map: dict[uuid.UUID, User] = {}
+    if reviewer_ids:
+        users_map = {u.id: u for u in User.objects.filter(id__in=reviewer_ids)}
+
+    reviewers = [
+        {"id": str(rid), "display_name": users_map[rid].display_name}
+        for rid in reviewer_ids
+        if rid in users_map
+    ]
+    return Response({"reviewers": reviewers})
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def list_reviewer_users(request: Request) -> Response:
+    """GET /api/reviews/reviewers — List users with reviewer role."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    reviewers = User.objects.filter(roles__contains=["reviewer"]).order_by("display_name")
+    data = [
+        {"id": str(r.id), "display_name": r.display_name, "email": r.email}
+        for r in reviewers
+    ]
+    return Response(data)
+
+
+def _serialize_timeline_entry(entry: ReviewTimelineEntry, author_map: dict) -> dict:
+    """Serialize a single timeline entry to dict."""
+    author = None
+    if entry.author_id and entry.author_id in author_map:
+        u = author_map[entry.author_id]
+        author = {"id": str(u.id), "display_name": u.display_name}
+
+    return {
+        "id": str(entry.id),
+        "entry_type": entry.entry_type,
+        "author": author,
+        "content": entry.content,
+        "parent_entry_id": str(entry.parent_entry_id) if entry.parent_entry_id else None,
+        "old_state": entry.old_state,
+        "new_state": entry.new_state,
+        "old_version_id": str(entry.old_version_id) if entry.old_version_id else None,
+        "new_version_id": str(entry.new_version_id) if entry.new_version_id else None,
+        "created_at": entry.created_at.isoformat() if entry.created_at else None,
+    }
+
+
+@api_view(["GET", "POST"])
+@authentication_classes([MiddlewareAuthentication])
+def review_timeline(request: Request, idea_id: str) -> Response:
+    """GET/POST /api/ideas/:id/review/timeline — Get or add timeline entries."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    if request.method == "GET":
+        return _get_timeline(idea)
+    else:
+        return _post_timeline_comment(request, idea, user)
+
+
+def _get_timeline(idea: Idea) -> Response:
+    """Return chronological list of timeline entries for the idea."""
+    entries = ReviewTimelineEntry.objects.filter(idea_id=idea.id).order_by("created_at")
+
+    # Batch-load authors
+    author_ids = {e.author_id for e in entries if e.author_id}
+    author_map = {}
+    if author_ids:
+        authors = User.objects.filter(id__in=author_ids)
+        author_map = {u.id: u for u in authors}
+
+    data = [_serialize_timeline_entry(e, author_map) for e in entries]
+    return Response(data)
+
+
+def _post_timeline_comment(request: Request, idea: Idea, user) -> Response:
+    """Create a comment entry on the timeline."""
+    serializer = TimelineCommentSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {"error": "VALIDATION_ERROR", "message": "Content is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    content = serializer.validated_data["content"]
+    parent_entry_id = serializer.validated_data.get("parent_entry_id")
+
+    # Validate parent_entry_id if provided
+    if parent_entry_id:
+        try:
+            ReviewTimelineEntry.objects.get(id=parent_entry_id, idea_id=idea.id)
+        except ReviewTimelineEntry.DoesNotExist:
+            return Response(
+                {"error": "NOT_FOUND", "message": "Parent entry not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    entry = ReviewTimelineEntry.objects.create(
+        idea_id=idea.id,
+        entry_type="comment",
+        author_id=user.id,
+        content=content,
+        parent_entry_id=parent_entry_id,
+    )
+
+    author_map = {user.id: user}
+    data = _serialize_timeline_entry(entry, author_map)
+    return Response(data, status=status.HTTP_201_CREATED)

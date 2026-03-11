@@ -6,7 +6,7 @@
 - **Last updated:** 2026-03-11
 
 ## Current Review
-- **Milestone:** 9 — BRD & PDF Generation
+- **Milestone:** 10 — Review Workflow
 - **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 0
 - **Status:** passed
@@ -23,6 +23,7 @@
 | M7 — AI Chat | `qa-m7-ai-chat.md` | 0 | PASS | 2026-03-11 |
 | M8 — AI Context | `qa-m8-ai-context.md` | 0 | PASS | 2026-03-11 |
 | M9 — BRD & PDF | `qa-m9-brd-pdf.md` | 0 | PASS | 2026-03-11 |
+| M10 — Review Workflow | `qa-m10-review.md` | 0 | PASS | 2026-03-11 |
 
 ## Input Consumed
 - .ralph/prd.json
@@ -32,27 +33,26 @@
 - docs/02-architecture/data-model.md
 - docs/02-architecture/tech-stack.md
 - docs/03-design/component-specs.md
-- docs/03-ai/agent-architecture.md
-- docs/03-ai/guardrails.md
-- docs/03-ai/system-prompts.md
+- docs/03-design/page-layouts.md
 - docs/04-test-architecture/test-matrix.md
-- docs/04-test-architecture/runtime-safety.md
-- docs/05-milestones/milestone-9.md
-- tasks/prd-m9.json
-- services/ai/agents/summarizing_ai/*.py
-- services/ai/processing/brd_pipeline.py
-- services/ai/processing/fabrication_validator.py
-- services/gateway/apps/brd/*.py
-- services/pdf/generator/*.py
-- services/pdf/grpc_server/servicers/pdf_servicer.py
+- docs/05-milestones/milestone-10.md
+- tasks/prd-m10.json
+- services/gateway/apps/review/*.py
+- services/gateway/apps/review/tests/*.py
+- services/gateway/apps/review/migrations/*.py
+- services/gateway/apps/ideas/urls.py
+- frontend/src/pages/review-page.tsx
+- frontend/src/pages/IdeaWorkspace/index.tsx
+- frontend/src/components/review/*.tsx
 - frontend/src/components/workspace/ReviewTab.tsx
-- frontend/src/components/brd/*.tsx
-- frontend/src/api/brd.ts
+- frontend/src/components/workspace/WorkspaceLayout.tsx
+- frontend/src/api/review.ts
+- frontend/src/api/ideas.ts
 
 ## Handoff
 - **Ready for merge:** true
 - **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m9-brd-pdf.md, docs/08-qa/_status.md
+- **Files produced:** docs/08-qa/qa-m10-review.md, docs/08-qa/_status.md
 - **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
