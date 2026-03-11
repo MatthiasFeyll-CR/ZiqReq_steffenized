@@ -104,3 +104,18 @@ Started: 2026-03-11T15:59:48+0100
   - Notification heartbeat check reads `notification:heartbeat` Redis key and considers healthy if < 120s old
   - Module-level imports (redis as redis_lib, grpc, pika) needed for proper mock patching in tests — local imports can't be patched via `@patch("apps.monitoring.health_checks.redis_lib")`
 ---
+
+## US-007: Alert Configuration + Dispatch — Admin Opt-In & Email
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/monitoring/views.py (added alert_config view for GET/PATCH), services/gateway/apps/monitoring/serializers.py (added MonitoringAlertConfigSerializer + UpdateSerializer), services/gateway/apps/monitoring/urls.py (added admin/monitoring/alerts route), services/gateway/grpc_server/servicers/gateway_servicer.py (implemented GetAlertRecipients to query opted-in admins), services/notification/consumers/monitoring_events.py (added handle_monitoring_alert for email dispatch), services/notification/main.py (added monitoring.alert route handler + binding key), services/gateway/apps/monitoring/tests/test_alert_config.py (new — 14 tests)
+- Tests: 14 passed (TestAlertConfigGet: 5, TestAlertConfigPatch: 7, TestAlertDispatchIntegration: 2), full suite 922 passed
+- Learnings for future iterations:
+  - MonitoringAlertConfig model already existed with migration — no new migration needed, just add views/serializers/tests
+  - Upsert pattern (get_or_create) used for both GET and PATCH to ensure config row exists on first access
+  - GatewayServicer.GetAlertRecipients was a placeholder returning empty — implemented to query MonitoringAlertConfig.objects.filter(is_active=True) and join with User
+  - Notification service routing: monitoring.alert events use routing key "monitoring.alert" (not "notification.monitoring.*"), so a separate binding and handler were needed
+  - The handle_monitoring_alert function queries opted-in admins via gateway gRPC GetAlertRecipients, then sends emails directly (bypasses notify_user since this is a broadcast, not per-user notification)
+  - Email subject format: '[ZiqReq Alert] {service_name} - {alert_type}' as specified
+  - The flaky information-gaps-toggle.test.tsx test continues to fail intermittently in the node suite — pre-existing issue, not related to US-007
+---
