@@ -194,7 +194,7 @@ export function ManualMergeModal({
                 disabled={!isValidInput || submitting}
                 data-testid="submit-uuid-button"
               >
-                {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                {submitting && <Loader2 className="mr-1 h-4 w-4 motion-safe:animate-spin" />}
                 {t("merge.requestMerge")}
               </Button>
             </div>

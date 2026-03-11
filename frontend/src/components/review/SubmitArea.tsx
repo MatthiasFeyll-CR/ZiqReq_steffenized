@@ -120,7 +120,7 @@ export function SubmitArea({ ideaId, ideaState, onSubmitted }: SubmitAreaProps) 
           data-testid="submit-button"
         >
           {submitMutation.isPending && (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 mr-2 motion-safe:animate-spin" />
           )}
           {t("submit.button", "Submit for Review")}
         </Button>

@@ -1,7 +1,7 @@
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { WifiOff } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   selectConnectionState,
@@ -18,15 +18,16 @@ export function OfflineBanner() {
   const reconnect = useWsReconnect();
 
   const isOffline = connectionState === "offline";
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <AnimatePresence>
       {isOffline && (
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
+          initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
           className="overflow-hidden"
           data-testid="offline-banner"
         >

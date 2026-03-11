@@ -139,3 +139,17 @@ Started: 2026-03-11T17:44:30+0100
   - All new i18n keys need to be added to both en.json and de.json in lock-step
   - Pre-existing test failures: information-gaps-toggle.test.tsx (URL.createObjectURL)
 ---
+
+## US-009: Prefers-Reduced-Motion Support
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/app/globals.css (added @media prefers-reduced-motion rule for animate-scale-in), frontend/src/components/ui/skeleton.tsx (animate-pulse → motion-safe:animate-pulse), frontend/src/components/workspace/MergeRequestBanner.tsx (motion-safe:animate-spin + useReducedMotion), frontend/src/components/workspace/InvitationBanner.tsx (useReducedMotion), frontend/src/components/workspace/MergedIdeaBanner.tsx (useReducedMotion), frontend/src/components/workspace/AppendedIdeaBanner.tsx (useReducedMotion), frontend/src/components/workspace/WorkspaceHeader.tsx (useReducedMotion for title animation), frontend/src/components/workspace/ManualMergeModal.tsx (motion-safe:animate-spin), frontend/src/components/workspace/ReviewTab.tsx (motion-safe:animate-spin), frontend/src/components/common/OfflineBanner.tsx (useReducedMotion), frontend/src/components/brd/BRDSectionEditor.tsx (useReducedMotion), frontend/src/components/brd/ProgressIndicator.tsx (motion-safe:animate-pulse), frontend/src/components/brd/SectionField.tsx (motion-safe:animate-spin), frontend/src/components/review/ReviewCard.tsx (motion-safe:animate-spin), frontend/src/components/review/SubmitArea.tsx (motion-safe:animate-spin), frontend/src/components/review/CommentInput.tsx (motion-safe:animate-spin), frontend/src/components/landing/HeroSection.tsx (motion-safe:animate-spin), frontend/src/__tests__/landing-page.test.tsx (updated skeleton selector)
+- Tests: 460 passed, 1 failed (pre-existing idea-workspace fetchIdea). Typecheck clean. Ruff clean.
+- Learnings for future iterations:
+  - Tailwind `motion-safe:` variant is the CSS-level approach — class becomes `motion-safe:animate-spin` in HTML, use `motion-safe\\:animate-spin` in querySelectorAll
+  - framer-motion `useReducedMotion()` hook returns boolean — use for conditional initial/exit/transition props
+  - Pattern for framer-motion reduced motion: `initial={prefersReducedMotion ? false : { ... }}`, `transition={{ duration: prefersReducedMotion ? 0 : N }}`
+  - Several components (LoadingSpinner, AIProcessingIndicator, ChatMessageList, ChatInput, board nodes) already used motion-safe: from earlier milestones
+  - Skeleton component is used across many pages — changing its class requires updating test selectors that match by class name
+  - Pre-existing test failures: idea-workspace.test.tsx (fetchIdea called with extra undefined arg)
+---

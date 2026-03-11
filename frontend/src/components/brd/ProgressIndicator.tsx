@@ -63,7 +63,7 @@ export function ProgressIndicator({
                   <div
                     className={`h-2 flex-1 rounded-full ${
                       loading
-                        ? "bg-muted animate-pulse"
+                        ? "bg-muted motion-safe:animate-pulse"
                         : isReady
                           ? "bg-green-500"
                           : "bg-gray-300"

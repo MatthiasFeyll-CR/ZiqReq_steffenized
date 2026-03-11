@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GitMerge, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const busy = accepting || declining;
+  const prefersReducedMotion = useReducedMotion();
 
   async function handleAccept() {
     setAccepting(true);
@@ -58,10 +59,10 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
     <>
       <AnimatePresence>
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
+          initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
           data-testid="merge-request-banner"
         >
           <div className="border-b bg-warning/5 px-4 py-3 flex items-center justify-between" role="alert" aria-live="polite">
@@ -81,7 +82,7 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
                 disabled={busy}
                 data-testid="merge-accept-button"
               >
-                {accepting && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                {accepting && <Loader2 className="mr-1 h-3 w-3 motion-safe:animate-spin" />}
                 {t("merge.accept")}
               </Button>
               <Button
@@ -91,7 +92,7 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
                 disabled={busy}
                 data-testid="merge-decline-button"
               >
-                {declining && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                {declining && <Loader2 className="mr-1 h-3 w-3 motion-safe:animate-spin" />}
                 {t("merge.decline")}
               </Button>
             </div>

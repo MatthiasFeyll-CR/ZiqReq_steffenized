@@ -151,7 +151,7 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
             data-testid={category === "assigned" ? "unassign-button" : "assign-button"}
             onClick={handleActionClick}
           >
-            {isLoading && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+            {isLoading && <Loader2 className="mr-1 h-3 w-3 motion-safe:animate-spin" />}
             {category === "assigned" ? t("review.unassign") : t("review.assign")}
           </Button>
         )

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { acceptInvitation, declineInvitation } from "@/api/collaboration";
@@ -23,6 +23,7 @@ export function InvitationBanner({ ideaId }: InvitationBannerProps) {
   });
 
   const invitation = data?.invitations?.find((inv) => inv.idea_id === ideaId);
+  const prefersReducedMotion = useReducedMotion();
 
   const acceptMut = useMutation({
     mutationFn: acceptInvitation,
@@ -46,10 +47,10 @@ export function InvitationBanner({ ideaId }: InvitationBannerProps) {
       {invitation && (
         <motion.div
           key={invitation.id}
-          initial={{ height: 0, opacity: 0 }}
+          initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
           data-testid="invitation-banner"
         >
           <div className="border-b bg-primary/5 px-4 py-3 border-l-4 border-l-primary flex items-center justify-between" role="alert" aria-live="polite">
