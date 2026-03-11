@@ -6,6 +6,10 @@ vi.mock("@/components/board/BoardCanvas", () => ({
   BoardCanvas: () => <div data-testid="board-canvas">BoardCanvas</div>,
 }));
 
+vi.mock("@/components/workspace/ReviewTab", () => ({
+  ReviewTab: () => <div data-testid="review-tab">ReviewTab</div>,
+}));
+
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 
 beforeAll(async () => {

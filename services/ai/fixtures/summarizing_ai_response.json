@@ -1,1 +1,16 @@
-{"mock": true}
+{
+  "section_title": "Automated Invoice Processing System",
+  "section_short_description": "A system to automate the manual invoice processing workflow at Commerz Real, reducing processing time and human errors in the accounts payable department.",
+  "section_current_workflow": "Currently, invoices arrive via email and are manually downloaded by AP clerks. Each invoice is printed, stamped, and routed to the responsible cost center manager for approval. Approved invoices are then manually entered into SAP. Pain points include: (1) average processing time of 5 days per invoice, (2) frequent data entry errors causing payment delays, (3) lost invoices during physical routing.",
+  "section_affected_department": "Accounts Payable (primary), Finance Controlling, all cost center managers across Property Management and Asset Management divisions.",
+  "section_core_capabilities": "Users will be able to: (1) upload invoices via a web portal with automatic OCR extraction, (2) route invoices digitally to approvers with configurable approval chains, (3) auto-populate SAP entries from extracted data with human review step, (4) track invoice status in real-time through a dashboard.",
+  "section_success_criteria": "Success is measured by: (1) invoice processing time reduced from 5 days to under 2 days, (2) data entry error rate below 2%, (3) 100% invoice traceability with audit trail, (4) 90% user adoption within 6 months of rollout.",
+  "readiness_evaluation": {
+    "title": "ready",
+    "short_description": "ready",
+    "current_workflow": "ready",
+    "affected_department": "ready",
+    "core_capabilities": "ready",
+    "success_criteria": "insufficient"
+  }
+}

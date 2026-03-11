@@ -395,6 +395,214 @@
     "T-2.14.02": {
       "file": "frontend/src/__tests__/context-window-indicator.test.tsx",
       "function": "shows tooltip with context details on hover"
+    },
+    "T-4.1.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_full_generation_returns_all_sections"
+    },
+    "T-4.1.02": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_output_contains_all_six_section_fields"
+    },
+    "T-4.2.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_fallback_on_parse_failure"
+    },
+    "T-4.2.02": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_prompt_no_todo_when_gaps_false"
+    },
+    "T-4.8.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_readiness_in_full_generation"
+    },
+    "T-4.9.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_prompt_instructs_todo_markers_when_gaps_true"
+    },
+    "AI-4.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_execute_calls_sk_and_returns_parsed"
+    },
+    "AI-4.02": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_selective_regeneration_skips_locked"
+    },
+    "AI-4.03": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_section_regeneration_only_target"
+    },
+    "T-4.1.03": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_assembles_all_fields"
+    },
+    "T-4.2.03": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_flags_ungrounded_content"
+    },
+    "AI-4.04": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_extract_keywords_from_brd_section"
+    },
+    "AI-4.05": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_pipeline_generated_event_has_all_fields"
+    },
+    "T-4.4.01": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_auto_lock_on_section_edit"
+    },
+    "T-4.4.02": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_lock_toggle"
+    },
+    "T-4.4.03": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_auto_lock_multiple_sections"
+    },
+    "T-4.9.02": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_gaps_toggle"
+    },
+    "API-4.01": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_get_returns_all_fields"
+    },
+    "API-4.02": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_patch_updates_section"
+    },
+    "API-4.03": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_auto_lock_on_current_workflow_edit"
+    },
+    "API-4.04": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_get_403_if_not_collaborator"
+    },
+    "T-4.7.01": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_generate_pdf_all_sections_in_output"
+    },
+    "T-4.7.02": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_build_html_contains_all_sections"
+    },
+    "PDF-4.01": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_render_pdf_returns_bytes"
+    },
+    "PDF-4.02": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_gotham_font_in_css"
+    },
+    "PDF-4.03": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_generate_pdf_returns_bytes"
+    },
+    "T-4.3.01": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_post_generate_triggers_ai"
+    },
+    "T-4.3.02": {
+      "file": "services/gateway/apps/websocket/tests/test_ai_consumer.py",
+      "function": "test_brd_ready_persists_and_broadcasts"
+    },
+    "API-4.05": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_post_generate_returns_202"
+    },
+    "API-4.06": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_post_generate_selective_regeneration"
+    },
+    "T-1.2.01": {
+      "file": "frontend/src/__tests__/section-visibility.test.tsx",
+      "function": "shows Review tab when idea state is open"
+    },
+    "T-1.2.02": {
+      "file": "frontend/src/__tests__/section-visibility.test.tsx",
+      "function": "shows Review tab when idea is in_review"
+    },
+    "T-4.5.01": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "shows BRD content state when draft has content"
+    },
+    "T-4.5.02": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "shows Download PDF and Generate buttons"
+    },
+    "T-4.5.03": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "calls triggerBrdGeneration on click"
+    },
+    "UI-4.01": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "renders the review tab container"
+    },
+    "UI-4.02": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "shows empty state message when no BRD content exists"
+    },
+    "T-4.4.04": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls PATCH when lock icon is toggled"
+    },
+    "T-4.4.05": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls POST /generate with section_regeneration when regenerate clicked"
+    },
+    "T-4.4.06": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls PATCH on textarea blur"
+    },
+    "T-4.8.02": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "shows progress indicator with correct readiness count"
+    },
+    "T-4.9.03": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "calls PATCH with allow_information_gaps when toggled"
+    },
+    "UI-4.03": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "opens BRD section editor when Edit Document is clicked"
+    },
+    "UI-4.04": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "shows all 6 section fields with labels"
+    },
+    "UI-4.05": {
+      "file": "frontend/src/__tests__/brd-section-editor.test.tsx",
+      "function": "does not show regenerate icon for locked sections"
+    },
+    "T-4.8.03": {
+      "file": "frontend/src/__tests__/readiness-evaluation.test.tsx",
+      "function": "shows 1 green segment and 5 gray for 1/6 ready"
+    },
+    "T-4.8.04": {
+      "file": "frontend/src/__tests__/readiness-evaluation.test.tsx",
+      "function": "shows '4/6 sections ready' when 4 sections are ready"
+    },
+    "UI-4.06": {
+      "file": "frontend/src/__tests__/readiness-evaluation.test.tsx",
+      "function": "renders progress indicator below editor header"
+    },
+    "T-4.9.04": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "when allow_information_gaps=true, progress label shows 'Gaps allowed'"
+    },
+    "T-4.9.05": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "when allow_information_gaps=false, progress label shows section count"
+    },
+    "T-4.9.06": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "shows warning dialog when section contains /TODO markers"
+    },
+    "UI-4.07": {
+      "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
+      "function": "shows the Allow information gaps toggle switch in the editor"
     }
   }
 }

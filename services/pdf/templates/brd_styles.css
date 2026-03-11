@@ -1,0 +1,101 @@
+/* BRD PDF Styles — Commerz Real Branding */
+@page {
+  size: A4 portrait;
+  margin: 25mm 20mm 30mm 20mm;
+
+  @bottom-center {
+    content: counter(page);
+    font-family: Gotham, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 9pt;
+    color: #666;
+  }
+
+  @bottom-left {
+    content: "Commerz Real — ZiqReq";
+    font-family: Gotham, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 8pt;
+    color: #999;
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Gotham, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+
+/* Header */
+.brd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 3px solid #c8a951;
+  padding-bottom: 12pt;
+  margin-bottom: 24pt;
+}
+
+.brand-name {
+  display: block;
+  font-size: 18pt;
+  font-weight: 700;
+  color: #003366;
+  letter-spacing: 0.5pt;
+}
+
+.brand-sub {
+  display: block;
+  font-size: 10pt;
+  color: #666;
+  margin-top: 2pt;
+}
+
+.generated-date {
+  font-size: 9pt;
+  color: #666;
+}
+
+/* Main Title */
+.idea-title {
+  font-size: 22pt;
+  font-weight: 700;
+  color: #003366;
+  margin-bottom: 20pt;
+  line-height: 1.3;
+}
+
+/* Sections */
+.brd-section {
+  margin-bottom: 18pt;
+  page-break-inside: avoid;
+}
+
+.brd-section h2 {
+  font-size: 13pt;
+  font-weight: 700;
+  color: #003366;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4pt;
+  margin-bottom: 8pt;
+}
+
+.section-content {
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #333;
+}
+
+.section-content p {
+  margin-bottom: 4pt;
+}
+
+/* Footer — handled by @page rules, hide in body */
+.brd-footer {
+  display: none;
+}

@@ -28,6 +28,9 @@ vi.mock("@/components/chat/ChatInput", () => ({
     </div>
   ),
 }));
+vi.mock("@/components/workspace/ReviewTab", () => ({
+  ReviewTab: () => <div data-testid="review-tab">ReviewTab</div>,
+}));
 
 // Mock fetchIdea
 vi.mock("@/api/ideas", async () => {
@@ -84,8 +87,8 @@ function renderWorkspace(idea: Idea) {
   );
 }
 
-describe("T-1.2.01: review hidden when never-submitted (open state)", () => {
-  it("hides Review tab when idea state is open", async () => {
+describe("T-1.2.01: review visible for open state (BRD generation available)", () => {
+  it("shows Review tab when idea state is open", async () => {
     renderWorkspace(makeIdea("open"));
 
     await waitFor(() => {
@@ -93,7 +96,7 @@ describe("T-1.2.01: review hidden when never-submitted (open state)", () => {
     });
 
     expect(screen.getByTestId("tab-board")).toBeInTheDocument();
-    expect(screen.queryByTestId("tab-review")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
   });
 });
 
@@ -149,14 +152,14 @@ describe("T-1.2.03: review visibility persists across all states", () => {
     });
   }
 
-  it("hides Review tab only in open state", async () => {
+  it("shows Review tab in open state (BRD generation)", async () => {
     renderWorkspace(makeIdea("open"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId("tab-review")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
   });
 });
 
