@@ -102,3 +102,34 @@ Started: 2026-03-11T13:38:26+0100
   - Edge case: if co_owner_id matches a triggering owner (e.g., co-owner of idea A is also owner of idea B), they are NOT demoted
   - Both core and gateway mirrors must be updated in sync
 ---
+
+## US-006: Old Idea References — Read-Only Link
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, frontend/src/api/ideas.ts, frontend/src/components/workspace/MergedIdeaBanner.tsx (new), frontend/src/components/workspace/AppendedIdeaBanner.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx, 9 test files updated
+- Tests: 809 Python tests passed, 403 Node tests passed (1 pre-existing flaky: information-gaps-toggle.test.tsx), tsc clean, ruff clean
+- Learnings for future iterations:
+  - When adding fields to the Idea TypeScript interface, ALL test mock objects across test files must be updated
+  - merged_idea_ref and appended_idea_ref are mutually exclusive in the API response
+  - LockOverlay already existed — reused for merged/appended ideas alongside merge-pending state
+  - Banner pattern: AnimatePresence slide-down, full-width strip below header with border-b bg-primary/5
+  - Closed ideas (merged/appended) make the entire workspace read-only: header, chat panel, board all disabled
+  - Docker compose build gate check fails due to pre-existing missing nginx.conf — not a blocker
+---
+
+## US-007: Merge Notification Events — Wire All
+- Status: PASS
+- Attempts: 1
+- Changes: services/notification/consumers/similarity_events.py, services/gateway/apps/ideas/views.py, services/gateway/apps/websocket/consumers.py, services/gateway/grpc_server/servicers/gateway_servicer.py, services/gateway/apps/similarity/merge_service.py, services/gateway/apps/similarity/append_service.py, frontend/src/hooks/use-websocket.ts
+- Tests: 809 Python tests passed, 403 Node tests passed (1 pre-existing flaky: information-gaps-toggle.test.tsx), tsc clean, ruff clean
+- Learnings for future iterations:
+  - Notification service's handle_similarity_event routes based on event_type field from publish_event() payloads
+  - Legacy pre-formatted events (with user_id, title, body) coexist with new routing-key-based events (merge_request_created, etc.)
+  - notify_user() handles both in-app (gRPC CreateNotification) and email (render + send) — checks email_notification_preferences
+  - WebSocket broadcasting pattern: channel_layer.group_send to idea_{idea_id} groups, IdeaConsumer forwards to clients
+  - CreateNotification gRPC handler now broadcasts WS notification events to idea groups for real-time toasts
+  - Gateway views broadcast WS merge_request events on create/consent for immediate UI updates
+  - merge_service and append_service broadcast WS merge_complete/append_complete after RabbitMQ publish
+  - Frontend dispatches ws:merge_complete and ws:append_complete as CustomEvents (alongside existing ws:merge_request, ws:notification)
+  - No production docker-compose.yml exists — docker compose build gate check skipped (pre-existing)
+---
