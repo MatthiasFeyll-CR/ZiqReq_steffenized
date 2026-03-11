@@ -76,3 +76,19 @@ Started: 2026-03-11T09:17:48+0100
   - GatewayClient already implemented in US-002 with `create_notification()` and `get_user_preferences()` methods
   - mypy errors for pika/grpc/proto stubs are pre-existing and not gating (mypy is optional gate)
 ---
+
+## US-004: Email Notification Preferences API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/authentication/views.py, services/gateway/apps/authentication/user_urls.py, services/gateway/apps/authentication/tests/test_notification_prefs.py (new), services/gateway/grpc_server/servicers/gateway_servicer.py, services/notification/main.py (removed unused sys import), .ralph/test-manifest.json, .ralph/prd.json
+- Tests: 7 passed (test_get_preferences_default, test_get_preferences_with_stored_values, test_get_preferences_unauthenticated, test_admin_sees_admin_category, test_update_preferences, test_partial_merge_preserves_existing, test_update_unauthenticated). Full suite: 639 passed.
+- Learnings for future iterations:
+  - GET and PATCH on same URL path handled via single view with `@api_view(["GET", "PATCH"])` and `request.method` check
+  - Notification preference categories are role-gated: empty roles list = all users, ["reviewer"] = reviewer-only, ["admin"] = admin-only
+  - Preference storage: only explicitly-set booleans stored in jsonb. Missing keys default to True (absence = enabled)
+  - PATCH uses partial merge: only boolean values from request.data are merged into existing prefs dict
+  - GetUserPreferences gRPC servicer fetches User model and returns email_notification_preferences as map<string, bool>
+  - Docker python-tests container requires rebuild after adding new test files (`docker compose -f docker-compose.test.yml build python-tests`)
+  - Test path inside container: `services/gateway/apps/authentication/tests/test_notification_prefs.py` (full path from /app)
+  - Pre-existing ruff error in services/notification/main.py (unused `sys` import from US-003) — fixed as part of this story
+---

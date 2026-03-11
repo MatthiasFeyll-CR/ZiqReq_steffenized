@@ -49,11 +49,26 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
         request: gateway_pb2.UserPreferencesRequest,
         context: grpc.ServicerContext,
     ) -> gateway_pb2.UserPreferencesResponse:
+        from apps.authentication.models import User
+
+        try:
+            user = User.objects.get(id=uuid.UUID(request.user_id))
+        except (ValueError, User.DoesNotExist):
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("User not found")
+            return gateway_pb2.UserPreferencesResponse()
+
+        stored_prefs = user.email_notification_preferences or {}
+        # Convert to map<string, bool> — only include explicitly set preferences
+        prefs_map = {
+            k: bool(v) for k, v in stored_prefs.items() if isinstance(v, bool)
+        }
+
         return gateway_pb2.UserPreferencesResponse(
-            user_id="",
-            email="",
-            display_name="",
-            email_notification_preferences={},
+            user_id=str(user.id),
+            email=user.email,
+            display_name=user.display_name,
+            email_notification_preferences=prefs_map,
         )
 
     def GetAlertRecipients(

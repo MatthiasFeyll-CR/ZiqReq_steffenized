@@ -6,7 +6,6 @@ import json
 import logging
 import os
 import signal
-import sys
 from typing import Any
 
 import pika

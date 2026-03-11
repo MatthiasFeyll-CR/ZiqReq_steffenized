@@ -132,6 +132,98 @@ def dev_switch(request: Request) -> Response:
     return Response(serializer.data)
 
 
+# Notification preference categories and their event types
+NOTIFICATION_PREFERENCE_CATEGORIES: dict[str, dict[str, list[str]]] = {
+    "Collaboration": {
+        "roles": [],  # all users
+        "types": [
+            "collaboration_invitation",
+            "collaborator_joined",
+            "collaborator_left",
+            "removed_from_idea",
+            "ownership_transferred",
+        ],
+    },
+    "Review": {
+        "roles": [],
+        "types": [
+            "review_state_changed",
+            "review_comment",
+        ],
+    },
+    "Chat": {
+        "roles": [],
+        "types": [
+            "chat_mention",
+        ],
+    },
+    "Similarity": {
+        "roles": [],
+        "types": [
+            "similarity_alert",
+            "merge_request_received",
+            "merge_accepted",
+            "merge_declined",
+            "idea_closed_append",
+        ],
+    },
+    "Review Management": {
+        "roles": ["reviewer"],
+        "types": [
+            "idea_submitted",
+            "idea_assigned",
+            "idea_resubmitted",
+            "append_request_received",
+        ],
+    },
+    "Admin": {
+        "roles": ["admin"],
+        "types": [
+            "monitoring_alert",
+        ],
+    },
+}
+
+
+def _build_preferences_response(user) -> dict:
+    """Build categorized preferences response from user's stored prefs."""
+    stored = user.email_notification_preferences or {}
+    user_roles = getattr(user, "roles", []) or []
+    categories = {}
+    for cat_name, cat_info in NOTIFICATION_PREFERENCE_CATEGORIES.items():
+        required_roles = cat_info["roles"]
+        if required_roles and not any(r in user_roles for r in required_roles):
+            continue
+        prefs = {}
+        for pref_type in cat_info["types"]:
+            # Missing key defaults to True (enabled)
+            prefs[pref_type] = stored.get(pref_type, True)
+        categories[cat_name] = prefs
+    return {"categories": categories}
+
+
+@api_view(["GET", "PATCH"])
+@authentication_classes([MiddlewareAuthentication])
+def notification_preferences(request: Request) -> Response:
+    """GET/PATCH /api/users/me/notification-preferences."""
+    user = getattr(request, "user", None)
+    if user is None or not getattr(user, "id", None):
+        return Response(
+            {"error": "UNAUTHORIZED", "message": "Authentication required"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    if request.method == "PATCH":
+        prefs = user.email_notification_preferences or {}
+        for key, value in request.data.items():
+            if isinstance(value, bool):
+                prefs[key] = value
+        user.email_notification_preferences = prefs
+        user.save(update_fields=["email_notification_preferences", "updated_at"])
+
+    return Response(_build_preferences_response(user))
+
+
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
 def search_users(request: Request) -> Response:

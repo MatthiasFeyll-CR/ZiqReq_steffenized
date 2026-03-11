@@ -759,6 +759,14 @@
     "API-NOTIF.04": {
       "file": "services/gateway/apps/notifications/tests/test_notification_api.py",
       "function": "test_mark_all_read"
+    },
+    "API-USER.02": {
+      "file": "services/gateway/apps/authentication/tests/test_notification_prefs.py",
+      "function": "test_get_preferences_default"
+    },
+    "API-USER.03": {
+      "file": "services/gateway/apps/authentication/tests/test_notification_prefs.py",
+      "function": "test_update_preferences"
     }
   }
 }

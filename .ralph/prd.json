@@ -85,7 +85,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-USER.02", "API-USER.03"],
       "notes": "Architecture: docs/02-architecture/api-design.md § User endpoints — GET/PATCH notification-preferences. Users table has email_notification_preferences jsonb column.\nDesign: docs/03-design/component-inventory.md § EmailPreferencesPanel — grouped toggles, role-based sections.\nTesting: docs/04-test-architecture/test-matrix.md § API-USER.02-03\nFiles: services/gateway/apps/authentication/views.py (add notification-preferences endpoints), services/gateway/apps/authentication/user_urls.py (mount routes), services/gateway/apps/authentication/tests/test_notification_prefs.py (new), services/gateway/gateway_service.py (implement GetUserPreferences gRPC)\nGotchas: Preferences are stored as jsonb on users table. Use JSONB field merge pattern for PATCH. Gateway already has GetUserPreferences gRPC stub from proto/gateway.proto — implement it. Default to all enabled (absence = enabled).",
       "context": {
