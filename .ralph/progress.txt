@@ -80,3 +80,16 @@ Started: 2026-03-11T07:34:47+0100
   - Transient DB connection error between test classes persists — re-run resolves (known issue from US-002)
   - URL route: `<idea_id>/share-link` added to ideas URLs alongside collaboration routes
 ---
+
+## US-005: Visibility Mode Transitions
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/collaboration/tests/test_visibility.py, .ralph/test-manifest.json
+- Tests: 620 Python tests passed (6 new), 361 Node tests passed. 1 pre-existing node error (PDFPreview).
+- Learnings for future iterations:
+  - Visibility transition logic was already implemented in US-001's accept_invitation (transaction.atomic with collaborator count check)
+  - IdeaPatchSerializer already only allows `title` and `agent_mode` — but added explicit 400 rejection if `visibility` in request.data for defense-in-depth
+  - Removing collaborators (DELETE or leave) never touches visibility — implicit no-revert behavior confirmed by tests
+  - Test file placed in gateway collaboration tests (not core) since all API tests use gateway test infrastructure
+  - Transient DB connection error between test classes persists — re-run resolves (known issue)
+---
