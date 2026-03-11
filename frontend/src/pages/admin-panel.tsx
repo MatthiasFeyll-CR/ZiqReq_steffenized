@@ -5,6 +5,8 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AIContextTab } from "@/features/admin/AIContextTab";
 import { ParametersTab } from "@/features/admin/ParametersTab";
+import { MonitoringTab } from "@/features/admin/MonitoringTab";
+import { UsersTab } from "@/features/admin/UsersTab";
 
 export default function AdminPanel() {
   const { hasRole } = useAuth();
@@ -55,14 +57,10 @@ export default function AdminPanel() {
             <ParametersTab />
           </TabsContent>
           <TabsContent value="monitoring">
-            <div className="py-6">
-              <p className="text-muted-foreground">Monitoring dashboard</p>
-            </div>
+            <MonitoringTab />
           </TabsContent>
           <TabsContent value="users">
-            <div className="py-6">
-              <p className="text-muted-foreground">User search</p>
-            </div>
+            <UsersTab />
           </TabsContent>
         </Tabs>
       </div>

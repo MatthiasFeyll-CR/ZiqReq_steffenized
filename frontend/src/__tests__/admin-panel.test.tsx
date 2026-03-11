@@ -108,10 +108,10 @@ describe("AdminPanel — UI-ADMIN.01: 4 tabs render", () => {
     expect(parametersTab).toHaveAttribute("data-state", "active");
 
     await user.click(screen.getByRole("tab", { name: /Monitoring/i }));
-    expect(screen.getByText("Monitoring dashboard")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Monitoring/i })).toHaveAttribute("data-state", "active");
 
     await user.click(screen.getByRole("tab", { name: /Users/i }));
-    expect(screen.getByText("User search")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Users/i })).toHaveAttribute("data-state", "active");
   });
 });
 

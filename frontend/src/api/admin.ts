@@ -107,3 +107,96 @@ export async function patchParameter(key: string, value: string): Promise<AdminP
   }
   return res.json();
 }
+
+// ---------- Monitoring ----------
+
+export interface ServiceHealth {
+  status: "healthy" | "unhealthy";
+  last_check: string;
+}
+
+export interface MonitoringData {
+  active_connections: number;
+  ideas_by_state: {
+    open: number;
+    in_review: number;
+    accepted: number;
+    dropped: number;
+    rejected: number;
+  };
+  active_users: number;
+  online_users: number;
+  ai_processing: {
+    request_count: number;
+    success_count: number;
+    failure_count: number;
+  };
+  system_health: Record<string, ServiceHealth>;
+}
+
+export interface AlertConfig {
+  user_id: string;
+  is_active: boolean;
+}
+
+export async function fetchMonitoringData(): Promise<MonitoringData> {
+  const res = await fetch(`${env.apiBaseUrl}/admin/monitoring`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchAlertConfig(): Promise<AlertConfig> {
+  const res = await fetch(`${env.apiBaseUrl}/admin/monitoring/alerts`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function patchAlertConfig(is_active: boolean): Promise<AlertConfig> {
+  const res = await fetch(`${env.apiBaseUrl}/admin/monitoring/alerts`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ is_active }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+// ---------- Users ----------
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  display_name: string;
+  roles: string[];
+  idea_count: number;
+  review_count: number;
+  contribution_count: number;
+}
+
+export async function searchUsers(query: string): Promise<AdminUser[]> {
+  const params = query ? `?q=${encodeURIComponent(query)}` : "";
+  const res = await fetch(`${env.apiBaseUrl}/admin/users/search${params}`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
