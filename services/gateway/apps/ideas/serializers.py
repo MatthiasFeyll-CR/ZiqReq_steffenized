@@ -41,6 +41,7 @@ class MergeRequestSerializer(serializers.Serializer):
     status = serializers.CharField()
     requesting_owner_consent = serializers.CharField()
     target_owner_consent = serializers.CharField()
+    reviewer_consent = serializers.CharField()
     created_at = serializers.DateTimeField()
     resolved_at = serializers.DateTimeField(allow_null=True)
 

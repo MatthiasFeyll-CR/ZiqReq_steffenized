@@ -745,27 +745,59 @@ def create_merge_request(request: Request, idea_id: str) -> Response:
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    # Auto-detect merge_type based on target state
+    from apps.review.models import ReviewAssignment
+
+    if target_idea.state == "in_review":
+        merge_type = "append"
+        # Append requires at least one active reviewer assignment
+        active_reviewers = ReviewAssignment.objects.filter(
+            idea_id=target_idea.id, unassigned_at__isnull=True
+        )
+        if not active_reviewers.exists():
+            return Response(
+                {"error": "REVIEWER_REQUIRED", "message": "Target idea has no assigned reviewers"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        reviewer_consent = "pending"
+        reviewer_ids = list(active_reviewers.values_list("reviewer_id", flat=True))
+    else:
+        merge_type = "merge"
+        reviewer_consent = "not_required"
+        reviewer_ids = []
+
     merge_request = MergeRequestModel.objects.create(
         requesting_idea_id=requesting_idea.id,
         target_idea_id=target_idea.id,
-        merge_type="merge",
+        merge_type=merge_type,
         requested_by=user.id,
         status="pending",
         requesting_owner_consent="accepted",
         target_owner_consent="pending",
+        reviewer_consent=reviewer_consent,
     )
 
-    # Publish merge_request.created event
-    _publish_event(
-        "notification.similarity.merge_request_created",
-        {
+    # Publish event based on merge type
+    if merge_type == "append":
+        event_type = "notification.similarity.append_request_created"
+        payload = {
             "merge_request_id": str(merge_request.id),
             "requesting_idea_id": str(requesting_idea.id),
             "target_idea_id": str(target_idea.id),
             "requesting_owner_id": str(requesting_idea.owner_id),
             "target_owner_id": str(target_idea.owner_id),
-        },
-    )
+            "reviewer_ids": [str(rid) for rid in reviewer_ids],
+        }
+    else:
+        event_type = "notification.similarity.merge_request_created"
+        payload = {
+            "merge_request_id": str(merge_request.id),
+            "requesting_idea_id": str(requesting_idea.id),
+            "target_idea_id": str(target_idea.id),
+            "requesting_owner_id": str(requesting_idea.owner_id),
+            "target_owner_id": str(target_idea.owner_id),
+        }
+    _publish_event(event_type, payload)
 
     result = MergeRequestSerializer(merge_request).data
     return Response(result, status=status.HTTP_201_CREATED)
@@ -812,9 +844,18 @@ def consent_merge_request(request: Request, merge_request_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if target_idea.owner_id != user.id:
+    # Determine if user is target owner or assigned reviewer
+    is_target_owner = target_idea.owner_id == user.id
+
+    from apps.review.models import ReviewAssignment
+
+    is_reviewer = ReviewAssignment.objects.filter(
+        idea_id=target_idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+    ).exists()
+
+    if not (is_target_owner or (is_reviewer and merge_request.merge_type == "append")):
         return Response(
-            {"error": "ACCESS_DENIED", "message": "Only the target idea owner can consent"},
+            {"error": "FORBIDDEN", "message": "Only the target idea owner or assigned reviewer can consent"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -825,36 +866,70 @@ def consent_merge_request(request: Request, merge_request_id: str) -> Response:
     consent = serializer.validated_data["consent"]
 
     if consent == "accept":
-        merge_request.target_owner_consent = "accepted"
-        # Both consents are now accepted
-        if merge_request.requesting_owner_consent == "accepted":
+        if is_target_owner:
+            merge_request.target_owner_consent = "accepted"
+        if is_reviewer and merge_request.merge_type == "append":
+            merge_request.reviewer_consent = "accepted"
+
+        # Check if all required consents are in
+        all_accepted = (
+            merge_request.requesting_owner_consent == "accepted"
+            and merge_request.target_owner_consent == "accepted"
+        )
+        if merge_request.merge_type == "append":
+            all_accepted = all_accepted and merge_request.reviewer_consent == "accepted"
+
+        if all_accepted:
             merge_request.status = "accepted"
             merge_request.resolved_at = timezone.now()
         merge_request.save()
 
         if merge_request.status == "accepted":
+            if merge_request.merge_type == "append":
+                _publish_event(
+                    "notification.similarity.append_accepted",
+                    {
+                        "merge_request_id": str(merge_request.id),
+                        "requesting_idea_id": str(merge_request.requesting_idea_id),
+                        "target_idea_id": str(merge_request.target_idea_id),
+                    },
+                )
+            else:
+                _publish_event(
+                    "notification.similarity.merge_request_accepted",
+                    {
+                        "merge_request_id": str(merge_request.id),
+                        "requesting_idea_id": str(merge_request.requesting_idea_id),
+                        "target_idea_id": str(merge_request.target_idea_id),
+                    },
+                )
+    else:
+        merge_request.status = "declined"
+        merge_request.resolved_at = timezone.now()
+        if is_target_owner:
+            merge_request.target_owner_consent = "declined"
+        if is_reviewer and merge_request.merge_type == "append":
+            merge_request.reviewer_consent = "declined"
+        merge_request.save()
+
+        if merge_request.merge_type == "append":
             _publish_event(
-                "notification.similarity.merge_request_accepted",
+                "notification.similarity.append_declined",
                 {
                     "merge_request_id": str(merge_request.id),
                     "requesting_idea_id": str(merge_request.requesting_idea_id),
                     "target_idea_id": str(merge_request.target_idea_id),
                 },
             )
-    else:
-        merge_request.status = "declined"
-        merge_request.target_owner_consent = "declined"
-        merge_request.resolved_at = timezone.now()
-        merge_request.save()
-
-        _publish_event(
-            "notification.similarity.merge_request_declined",
-            {
-                "merge_request_id": str(merge_request.id),
-                "requesting_idea_id": str(merge_request.requesting_idea_id),
-                "target_idea_id": str(merge_request.target_idea_id),
-            },
-        )
+        else:
+            _publish_event(
+                "notification.similarity.merge_request_declined",
+                {
+                    "merge_request_id": str(merge_request.id),
+                    "requesting_idea_id": str(merge_request.requesting_idea_id),
+                    "target_idea_id": str(merge_request.target_idea_id),
+                },
+            )
 
     result = MergeRequestSerializer(merge_request).data
     return Response(result, status=status.HTTP_200_OK)

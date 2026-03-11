@@ -1,0 +1,40 @@
+# Ralph Progress Log — M14 (merge-advanced)
+Started: 2026-03-11T13:38:26+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Append Flow Backend — 3-Way Consent
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/serializers.py, services/gateway/apps/ideas/tests/test_append_flow.py (new)
+- Tests: 775 Python tests passed, 14 new append flow tests (all pass)
+- Learnings for future iterations:
+  - Auto-detect merge_type from target idea state: in_review → append, else → merge
+  - Append requires reviewer_consent='pending' (3-way), merge uses reviewer_consent='not_required' (2-way)
+  - Consent endpoint allows both target_owner AND assigned reviewer for append type; only target_owner for merge type
+  - MergeRequestSerializer now includes reviewer_consent field
+  - Events: append uses append_request_created/append_accepted/append_declined; merge uses merge_request_created/merge_request_accepted/merge_request_declined
+  - ReviewAssignment model is managed=False (mirror of Core table). Creating test ReviewAssignment records works fine in test DB.
+  - Transient DB errors with unique constraint uq_active_merge_request across test classes — resolved by rebuilding test container or re-running
+  - In tests, avoid creating multiple pending MergeRequests for same (requesting_idea_id, target_idea_id) pair — use different idea pairs
+---

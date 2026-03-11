@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: data-model.md § merge_requests.reviewer_consent, review_assignments\nTesting: integration-scenarios.md § Append Flow (F-5.4, F-5.5)\nFiles: gateway/apps/ideas/views.py, gateway/apps/similarity/views.py, test_append_flow.py\nGotchas: 3-way consent for append, 2-way for merge. Events: append_request.created, append.accepted, append.declined",
       "context": {
