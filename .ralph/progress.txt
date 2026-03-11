@@ -95,3 +95,19 @@ Started: 2026-03-11T03:48:23+0100
   - WeasyPrint `HTML(string=html).write_pdf()` returns bytes directly, no BytesIO needed
   - Frontend Docker build fails pre-existing (missing nginx.conf) — not related to PDF changes
 ---
+
+## US-005: BRD Generation Trigger — REST POST Triggers gRPC to AI
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/brd/views.py, services/gateway/apps/brd/serializers.py, services/gateway/apps/brd/urls.py, services/gateway/grpc_clients/ai_client.py, services/ai/grpc_server/servicers/processing_servicer.py, services/gateway/events/consumers.py, services/gateway/apps/brd/tests/test_views.py, services/gateway/apps/websocket/tests/test_ai_consumer.py, .ralph/test-manifest.json
+- Tests: 495 passed, 0 failed (14 new BRD generate tests, full suite 495 passed, frontend 265 passed)
+- Learnings for future iterations:
+  - Gateway grpc_clients and AI service grpc_clients share namespace — top-level imports cause collisions in full test suite. Use lazy imports (inside functions) for cross-service gRPC clients
+  - _create_ai_client() helper pattern: define a module-level function that does the lazy import, mock that function in tests (mockable at apps.brd.views._create_ai_client)
+  - BrdGenerateSerializer validates mode (3 choices) + section_name (required only for section_regeneration, must be one of 6 valid names)
+  - POST /generate returns 202 Accepted (async pattern like chat processing), 400 for validation errors, 403 for access, 503 for gRPC failures
+  - Idea state validation: only 'open' ideas can trigger BRD generation (400 INVALID_STATE otherwise)
+  - AIEventConsumer._handle_brd_ready() persists via CoreClient.update_brd_draft() stub and broadcasts brd_ready WebSocket event
+  - AI processing servicer TriggerBrdGeneration: extracts fields from request (dict or gRPC object), launches BrdGenerationPipeline async, publishes ai.brd.ready event on completion
+  - setUp/tearDown mock pattern for class-wide mocks: self._ai_patcher = unittest.mock.patch(...); self._ai_patcher.start() in setUp, self._ai_patcher.stop() in tearDown
+---

@@ -306,6 +306,59 @@ class TestAIEventConsumerMalformed(TestCase):
         assert len(self.consumer.dead_letter_queue) == 1
 
 
+class TestAIEventConsumerBrdReady(TestCase):
+    """T-4.3.02: ai.brd.ready → persist BRD sections + broadcast brd_ready."""
+
+    def setUp(self):
+        self.core_client = MagicMock()
+        self.core_client.update_brd_draft.return_value = {"success": True}
+        self.consumer = AIEventConsumer(core_client=self.core_client)
+
+    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @patch.object(_gw_consumers, "get_channel_layer")
+    def test_brd_ready_persists_and_broadcasts(self, mock_gcl):
+        """T-4.3.02: ai.brd.ready event persists sections to DB and broadcasts."""
+        mock_layer = MagicMock()
+        mock_layer.group_send = AsyncMock()
+        mock_gcl.return_value = mock_layer
+
+        sections = {
+            "section_title": "Test Title",
+            "section_short_description": "Test desc",
+            "section_current_workflow": "Test workflow",
+            "section_affected_department": "IT",
+            "section_core_capabilities": "Test caps",
+            "section_success_criteria": "Test criteria",
+        }
+        readiness = {"title": "ready", "short_description": "insufficient"}
+        fabrication_flags = [{"section": "section_title", "ungrounded_keywords": ["SAP"], "match_ratio": 0.3}]
+
+        event = _make_event(
+            "ai.brd.ready",
+            sections=sections,
+            readiness_evaluation=readiness,
+            fabrication_flags=fabrication_flags,
+            mode="full_generation",
+        )
+
+        result = asyncio.get_event_loop().run_until_complete(
+            self.consumer.process_event(event)
+        )
+
+        assert result is True
+        self.core_client.update_brd_draft.assert_called_once_with(
+            idea_id=event["idea_id"],
+            sections=sections,
+            readiness_evaluation_json=str(readiness),
+        )
+        ws_event = mock_layer.group_send.call_args[0][1]
+        assert ws_event["type"] == "brd_ready"
+        assert ws_event["payload"]["sections"] == sections
+        assert ws_event["payload"]["readiness_evaluation"] == readiness
+        assert ws_event["payload"]["fabrication_flags"] == fabrication_flags
+        assert ws_event["payload"]["mode"] == "full_generation"
+
+
 class TestAIEventConsumerLifecycle(TestCase):
     """Start/stop lifecycle."""
 

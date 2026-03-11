@@ -1,3 +1,4 @@
+import unittest.mock
 import uuid
 
 from django.test import TestCase, override_settings
@@ -250,3 +251,190 @@ class TestBrdDraftAPI(TestCase):
             format="json",
         )
         assert response.status_code == 400
+
+
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+class TestBrdGenerateAPI(TestCase):
+    """Integration tests for POST /api/ideas/:id/brd/generate."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user1 = _create_user(
+            uuid.UUID("00000000-0000-0000-0000-000000000021"),
+            "gen1@test.local",
+            "Gen User1",
+        )
+        self.user2 = _create_user(
+            uuid.UUID("00000000-0000-0000-0000-000000000022"),
+            "gen2@test.local",
+            "Gen User2",
+        )
+        self.idea = Idea.objects.create(owner_id=self.user1.id, state="open")
+        self._login_as(self.user1)
+
+        # Mock the AI client by default to avoid namespace collisions in full suite
+        self._ai_patcher = unittest.mock.patch("apps.brd.views._create_ai_client")
+        self.mock_create_ai_client = self._ai_patcher.start()
+        self.mock_ai_client = self.mock_create_ai_client.return_value
+        self.mock_ai_client.trigger_brd_generation.return_value = {
+            "status": "accepted",
+            "generation_id": "mock-gen-id",
+        }
+
+    def tearDown(self):
+        self._ai_patcher.stop()
+
+    def _login_as(self, user):
+        self.client.post(
+            "/api/auth/dev-login",
+            {"user_id": str(user.id)},
+            format="json",
+        )
+
+    def _url(self, idea_id=None):
+        return f"/api/ideas/{idea_id or self.idea.id}/brd/generate"
+
+    # --- API-4.05: POST returns 202 ---
+
+    def test_post_generate_returns_202(self):
+        """API-4.05: POST /generate with mode='full_generation' returns 202 Accepted."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "full_generation"},
+            format="json",
+        )
+        assert response.status_code == 202
+        data = response.json()
+        assert data["status"] == "accepted"
+
+    # --- T-4.3.01: POST triggers AI generation ---
+
+    def test_post_generate_triggers_ai(self):
+        """T-4.3.01: POST /generate triggers AI service invocation."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "full_generation"},
+            format="json",
+        )
+        assert response.status_code == 202
+        self.mock_ai_client.trigger_brd_generation.assert_called_once_with(
+            idea_id=str(self.idea.id),
+            mode="full_generation",
+            section_name="",
+        )
+
+    # --- API-4.06: gRPC call succeeds ---
+
+    def test_post_generate_selective_regeneration(self):
+        """API-4.06: POST /generate with selective_regeneration mode."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "selective_regeneration"},
+            format="json",
+        )
+        assert response.status_code == 202
+
+    def test_post_generate_section_regeneration(self):
+        """POST /generate with section_regeneration and section_name."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "section_regeneration", "section_name": "title"},
+            format="json",
+        )
+        assert response.status_code == 202
+
+    # --- Validation ---
+
+    def test_section_regeneration_requires_section_name(self):
+        """section_regeneration without section_name returns 400."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "section_regeneration"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_invalid_section_name_returns_400(self):
+        """section_regeneration with invalid section_name returns 400."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "section_regeneration", "section_name": "invalid_section"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_full_generation_with_section_name_returns_400(self):
+        """full_generation with section_name returns 400."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "full_generation", "section_name": "title"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_invalid_mode_returns_400(self):
+        """Invalid mode returns 400."""
+        response = self.client.post(
+            self._url(),
+            {"mode": "invalid_mode"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_missing_mode_returns_400(self):
+        """Missing mode field returns 400."""
+        response = self.client.post(
+            self._url(),
+            {},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    # --- Access control ---
+
+    def test_403_if_not_collaborator(self):
+        """POST returns 403 if user is not owner/co-owner/collaborator."""
+        self._login_as(self.user2)
+        response = self.client.post(
+            self._url(),
+            {"mode": "full_generation"},
+            format="json",
+        )
+        assert response.status_code == 403
+
+    def test_404_if_idea_not_found(self):
+        """POST returns 404 for non-existent idea."""
+        fake_id = uuid.uuid4()
+        response = self.client.post(
+            self._url(idea_id=fake_id),
+            {"mode": "full_generation"},
+            format="json",
+        )
+        assert response.status_code == 404
+
+    # --- State validation ---
+
+    def test_non_open_idea_returns_400(self):
+        """POST returns 400 if idea state is not 'open'."""
+        self.idea.state = "in_review"
+        self.idea.save(update_fields=["state"])
+        response = self.client.post(
+            self._url(),
+            {"mode": "full_generation"},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.json()["error"] == "INVALID_STATE"
+
+    # --- gRPC failure returns 503 ---
+
+    def test_grpc_failure_returns_503(self):
+        """POST returns 503 if AI gRPC call fails."""
+        self.mock_create_ai_client.side_effect = Exception("gRPC connection refused")
+        response = self.client.post(
+            self._url(),
+            {"mode": "full_generation"},
+            format="json",
+        )
+        assert response.status_code == 503
+        assert response.json()["error"] == "SERVICE_UNAVAILABLE"

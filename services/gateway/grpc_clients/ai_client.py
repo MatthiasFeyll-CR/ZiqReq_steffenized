@@ -27,10 +27,8 @@ class AiClient:
     def trigger_brd_generation(
         self,
         idea_id: str,
-        mode: str = "full",
-        sections_to_regenerate: list[str] | None = None,
-        instruction: str = "",
-        allow_information_gaps: bool = False,
+        mode: str = "full_generation",
+        section_name: str = "",
     ) -> dict[str, Any]:
         logger.warning("AiClient.trigger_brd_generation stub called")
         return {"status": "accepted", "generation_id": ""}

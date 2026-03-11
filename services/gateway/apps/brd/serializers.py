@@ -42,3 +42,39 @@ class BrdDraftPatchSerializer(serializers.Serializer):
         if not attrs:
             raise serializers.ValidationError("At least one field must be provided.")
         return attrs
+
+
+VALID_MODES = {"full_generation", "selective_regeneration", "section_regeneration"}
+VALID_SECTION_NAMES = {
+    "title",
+    "short_description",
+    "current_workflow",
+    "affected_department",
+    "core_capabilities",
+    "success_criteria",
+}
+
+
+class BrdGenerateSerializer(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=list(VALID_MODES))
+    section_name = serializers.CharField(required=False, allow_blank=False)
+
+    def validate(self, attrs):  # type: ignore[override]
+        mode = attrs.get("mode")
+        section_name = attrs.get("section_name")
+
+        if mode == "section_regeneration":
+            if not section_name:
+                raise serializers.ValidationError(
+                    {"section_name": "section_name is required for section_regeneration mode."}
+                )
+            if section_name not in VALID_SECTION_NAMES:
+                raise serializers.ValidationError(
+                    {"section_name": f"Invalid section_name. Must be one of: {', '.join(sorted(VALID_SECTION_NAMES))}"}
+                )
+        elif section_name:
+            raise serializers.ValidationError(
+                {"section_name": "section_name should only be provided for section_regeneration mode."}
+            )
+
+        return attrs

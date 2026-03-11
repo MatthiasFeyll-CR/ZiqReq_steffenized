@@ -29,6 +29,7 @@ _EVENT_HANDLERS = {
     "ai.reaction.ready": "_handle_reaction",
     "ai.title.updated": "_handle_title_update",
     "ai.processing.complete": "_handle_processing_complete",
+    "ai.brd.ready": "_handle_brd_ready",
 }
 
 
@@ -166,6 +167,31 @@ class AIEventConsumer:
         }
 
         await self._broadcast(idea_id, "title_update", payload)
+
+    async def _handle_brd_ready(self, event: dict[str, Any]) -> None:
+        """ai.brd.ready → persist BRD sections to brd_drafts + broadcast brd_ready."""
+        idea_id = event["idea_id"]
+        sections = event.get("sections", {})
+        readiness_evaluation = event.get("readiness_evaluation", {})
+        fabrication_flags = event.get("fabrication_flags", [])
+        mode = event.get("mode", "full_generation")
+
+        # Persist via CoreClient gRPC (stub in M9)
+        self._core_client.update_brd_draft(
+            idea_id=idea_id,
+            sections=sections,
+            readiness_evaluation_json=str(readiness_evaluation),
+        )
+
+        payload = {
+            "idea_id": idea_id,
+            "mode": mode,
+            "sections": sections,
+            "readiness_evaluation": readiness_evaluation,
+            "fabrication_flags": fabrication_flags,
+        }
+
+        await self._broadcast(idea_id, "brd_ready", payload)
 
     async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
         """ai.processing.complete → reset rate limit counter + broadcast ai_processing {state: completed}."""

@@ -499,6 +499,22 @@
     "PDF-4.03": {
       "file": "services/pdf/tests/test_pdf_service.py",
       "function": "test_generate_pdf_returns_bytes"
+    },
+    "T-4.3.01": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_post_generate_triggers_ai"
+    },
+    "T-4.3.02": {
+      "file": "services/gateway/apps/websocket/tests/test_ai_consumer.py",
+      "function": "test_brd_ready_persists_and_broadcasts"
+    },
+    "API-4.05": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_post_generate_returns_202"
+    },
+    "API-4.06": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_post_generate_selective_regeneration"
     }
   }
 }
