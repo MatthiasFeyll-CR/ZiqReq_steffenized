@@ -1,5 +1,6 @@
 from django.urls import include, path
 
+from apps.collaboration import views as collab_views
 from apps.review import views as review_views
 
 from . import views
@@ -19,4 +20,5 @@ urlpatterns = [
     path("<str:idea_id>/review/undo", review_views.undo_review),
     path("<str:idea_id>/review/timeline", review_views.review_timeline),
     path("<str:idea_id>/review/reviewers", review_views.get_idea_reviewers),
+    path("<str:idea_id>/collaborators/invite", collab_views.send_invitation),
 ]
