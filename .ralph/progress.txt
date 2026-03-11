@@ -59,3 +59,39 @@ Started: 2026-03-11T03:48:23+0100
   - Pipeline test file targeting doesn't work in Docker (Django settings module import issue) — must run full pytest suite
   - _MATCH_THRESHOLD=0.75 for fuzzy matching, _FLAG_RATIO_THRESHOLD=0.5 for flagging sections
 ---
+
+## US-003: BRD Draft REST API — GET Draft, PATCH Sections/Locks/Gaps Toggle
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/brd/models.py (new mirror model), services/gateway/apps/brd/serializers.py, services/gateway/apps/brd/views.py, services/gateway/apps/brd/urls.py, services/gateway/apps/brd/migrations/0001_create_brd_drafts.py (new), services/gateway/apps/brd/tests/test_views.py (new, 17 tests), services/gateway/apps/ideas/urls.py, .ralph/test-manifest.json
+- Tests: 461 passed, 0 failed (17 new BRD API tests, full suite 461 passed, frontend 265 passed)
+- Learnings for future iterations:
+  - Mirror model pattern for BrdDraft: managed=False, db_table='brd_drafts' — same as AdminParameter and ChatContextSummary
+  - Unmanaged mirror models need a RunSQL migration with CREATE TABLE IF NOT EXISTS for test DB creation (Django test runner skips unmanaged models)
+  - Auto-lock on edit: view update logic checks which section fields were modified and adds corresponding lock keys to section_locks dict
+  - SECTION_LOCK_KEYS maps field names to lock keys by stripping 'section_' prefix (e.g. section_title → title)
+  - BRD URL routing: nested under ideas URLs as path("<str:idea_id>/brd", include("apps.brd.urls"))
+  - GET creates empty draft via get_or_create if none exists (all sections NULL, locks={}, gaps=false)
+  - readiness_evaluation is read-only in PATCH — only AI pipeline updates it
+  - Access control: owner, co-owner, or collaborator can access BRD draft (same pattern as ideas views)
+  - Docker test container must be rebuilt (--build) when adding new migrations
+---
+
+## US-004: PDF Generation Service — WeasyPrint gRPC Service
+- Status: PASS
+- Attempts: 1
+- Changes: services/pdf/generator/builder.py, services/pdf/generator/renderer.py, services/pdf/grpc_server/servicers/pdf_servicer.py, services/pdf/main.py, services/pdf/Dockerfile, services/pdf/requirements.txt, services/pdf/templates/brd_styles.css, services/pdf/tests/test_pdf_service.py (new, 20 tests), infra/docker/Dockerfile.test-python, requirements-dev.txt, pyproject.toml, .ralph/test-manifest.json
+- Tests: 481 passed, 0 failed (20 new PDF tests, full suite 481 passed, frontend 265 passed)
+- Learnings for future iterations:
+  - pydyf 0.12.x broke WeasyPrint 62.x (removed `transform` method from Stream class). Must pin `pydyf>=0.10,<0.12` alongside weasyprint 62.x
+  - PDF service Dockerfile needs `COPY . ./services/pdf/` with `PYTHONPATH=/app` to maintain `services.pdf` import structure
+  - libgdk-pixbuf package is named `libgdk-pixbuf-2.0-0` (with hyphens) not `libgdk-pixbuf2.0-0` in python:3.12-slim
+  - WeasyPrint needs libcairo2 system package in addition to libpango and libgdk-pixbuf
+  - PDF tests must NOT have `__init__.py` in tests directory — causes namespace collision with other `tests/` packages when `services/ai` is on PYTHONPATH
+  - Do NOT add `services/pdf` to PYTHONPATH (same namespace collision issue). Use absolute imports (`from services.pdf.generator...`) in tests
+  - HTML builder uses `html.escape()` for XSS protection in user-provided BRD content
+  - /TODO marker validation is a simple string search in section content (case-sensitive)
+  - CSS uses `@page` rules for A4 portrait with page numbers and footer branding
+  - WeasyPrint `HTML(string=html).write_pdf()` returns bytes directly, no BytesIO needed
+  - Frontend Docker build fails pre-existing (missing nginx.conf) — not related to PDF changes
+---

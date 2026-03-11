@@ -479,6 +479,26 @@
     "API-4.04": {
       "file": "services/gateway/apps/brd/tests/test_views.py",
       "function": "test_get_403_if_not_collaborator"
+    },
+    "T-4.7.01": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_generate_pdf_all_sections_in_output"
+    },
+    "T-4.7.02": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_build_html_contains_all_sections"
+    },
+    "PDF-4.01": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_render_pdf_returns_bytes"
+    },
+    "PDF-4.02": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_gotham_font_in_css"
+    },
+    "PDF-4.03": {
+      "file": "services/pdf/tests/test_pdf_service.py",
+      "function": "test_generate_pdf_returns_bytes"
     }
   }
 }
