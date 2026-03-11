@@ -9,8 +9,18 @@ import grpc
 logger = logging.getLogger(__name__)
 
 # Ensure proto directory is on sys.path for generated imports
-_proto_dir = str(Path(__file__).resolve().parents[4] / "proto")
-if _proto_dir not in sys.path:
+def _find_proto_dir() -> str:
+    """Search upward from this file for a 'proto' directory."""
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        candidate = current / "proto"
+        if candidate.is_dir():
+            return str(candidate)
+        current = current.parent
+    return ""
+
+_proto_dir = _find_proto_dir()
+if _proto_dir and _proto_dir not in sys.path:
     sys.path.insert(0, _proto_dir)
 
 import gateway_pb2  # noqa: E402

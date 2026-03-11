@@ -7,6 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+ENV PYTHONPATH="/app"
+
 EXPOSE 50051
 
 CMD ["python", "grpc_server/server.py"]

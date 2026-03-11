@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
-from email.renderer import render_email
-from email.sender import send_email
+from mailer.renderer import render_email
+from mailer.sender import send_email
 from typing import Any
 
 from grpc_clients.gateway_client import GatewayClient

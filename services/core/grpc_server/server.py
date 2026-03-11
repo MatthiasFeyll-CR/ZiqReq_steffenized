@@ -8,7 +8,10 @@ import logging
 from concurrent import futures
 
 import grpc
-from services.core.grpc_server.servicers.core_servicer import CoreServicer
+try:
+    from services.core.grpc_server.servicers.core_servicer import CoreServicer
+except ModuleNotFoundError:
+    from grpc_server.servicers.core_servicer import CoreServicer
 
 logger = logging.getLogger(__name__)
 

@@ -8,12 +8,12 @@ import logging
 from concurrent import futures
 
 import grpc
-from services.ai.grpc_server.servicers.context_servicer import (
-    AiContextServicer,
-)
-from services.ai.grpc_server.servicers.processing_servicer import (
-    AiProcessingServicer,
-)
+try:
+    from services.ai.grpc_server.servicers.context_servicer import AiContextServicer
+    from services.ai.grpc_server.servicers.processing_servicer import AiProcessingServicer
+except ModuleNotFoundError:
+    from grpc_server.servicers.context_servicer import AiContextServicer
+    from grpc_server.servicers.processing_servicer import AiProcessingServicer
 
 logger = logging.getLogger(__name__)
 
