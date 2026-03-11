@@ -147,3 +147,17 @@ Started: 2026-03-11T15:59:48+0100
   - Radix TabsContent renders content lazily when tab is activated — tests that click to a tab and check content need the component to be self-contained (no unmocked API calls that break)
   - Spreading array elements in TypeScript loses required property types — construct mock return values explicitly rather than using spread
 ---
+
+## US-010: Monitoring + Users Tabs — Dashboard & Search
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/admin.ts (added monitoring + users API functions), frontend/src/components/admin/KPICard.tsx (new), frontend/src/components/admin/ServiceHealthTable.tsx (new), frontend/src/components/admin/UserCard.tsx (new), frontend/src/features/admin/MonitoringTab.tsx (new — KPI cards + health table + alert toggle), frontend/src/features/admin/UsersTab.tsx (new — search input + user card grid), frontend/src/pages/admin-panel.tsx (replaced placeholder content with MonitoringTab + UsersTab), frontend/src/__tests__/admin-panel.test.tsx (updated placeholder text assertions), frontend/src/__tests__/monitoring-tab.test.tsx (new — 5 tests for UI-ADMIN.03)
+- Tests: 16 passed (admin-panel: 5, monitoring-tab: 5, parameters-tab: 6), Python 922 passed, Node 419 passed + 1 pre-existing flaky failure
+- Learnings for future iterations:
+  - useRef() without initial value causes TS2554 in strict mode — pass `undefined` explicitly: useRef<T>(undefined)
+  - KPI card label becomes the data-testid via lowercase + hyphen replacement — avoid duplicate text between KPI card labels and section headings, or use getAllByText in tests
+  - MonitoringTab uses setInterval(15s) for live polling — tests should mock the API calls or they'll fire during test cleanup
+  - User search debounce (300ms) uses useRef for timeout — cleanup happens automatically when component unmounts
+  - Alert toggle uses role="switch" + aria-checked pattern — testable via getByTestId + getAttribute("aria-checked")
+  - The pre-existing flaky test (information-gaps-toggle.test.tsx) continues to fail in full suite — not related to this story
+---
