@@ -448,45 +448,44 @@
   ```
 
 #### POST /api/ideas/:id/brd/generate
-- **Purpose:** Generate initial BRD skeleton with `/TODO` placeholders for unlocked sections. Gateway-orchestrated: gets current draft, writes `/TODO` markers to unlocked sections, calls `UpdateBrdDraft`.
-- **Auth:** Owner, co-owner, or collaborator
-- **Response (200):**
-  ```json
-  { "message": "Skeleton generated" }
-  ```
-- **Notes:** No dedicated gRPC RPC — gateway implements skeleton generation by reading the draft, inserting `/TODO` placeholders into unlocked sections, and updating the draft via gRPC `UpdateBrdDraft`. This is a synchronous operation.
-
-#### POST /api/ideas/:id/brd/regenerate
-- **Purpose:** Regenerate unlocked BRD sections with optional instructions
+- **Purpose:** Trigger BRD generation via Summarizing AI agent with 3 modes
 - **Auth:** Owner, co-owner, or collaborator
 - **Request:**
   ```json
   {
-    "instruction": "string — optional instruction for the AI"
+    "mode": "full_generation | selective_regeneration | section_regeneration",
+    "section_name": "string — required for section_regeneration, must be one of: title, short_description, current_workflow, affected_department, core_capabilities, success_criteria"
   }
   ```
-- **Response (202):**
+- **Modes:**
+  - **full_generation:** Generate all 6 BRD sections (initial generation or complete regeneration)
+  - **selective_regeneration:** Regenerate only unlocked sections (respects section_locks)
+  - **section_regeneration:** Regenerate a single specified section (requires `section_name`)
+- **Response (202 Accepted):**
   ```json
-  { "message": "BRD regeneration started", "job_id": "uuid" }
+  { "message": "BRD generation started" }
   ```
-- **Side effects:** Summarizing AI regenerates only unlocked sections. Automatically triggers PDF regeneration. Result via WebSocket.
-- **Notes:** Gateway always sends `mode='selective'` to the gRPC RPC. With all sections unlocked (first generation), this is functionally equivalent to `mode='full'` — the agent regenerates all unlocked sections regardless.
-
-#### POST /api/ideas/:id/brd/regenerate-section
-- **Purpose:** Regenerate a single BRD section by key
-- **Auth:** Owner, co-owner, or collaborator
-- **Request:**
-  ```json
-  {
-    "section_key": "string — e.g. 'core_capabilities'",
-    "instruction": "string — optional instruction for the AI"
-  }
-  ```
-- **Response (202):**
-  ```json
-  { "message": "Section regeneration started", "job_id": "uuid" }
-  ```
-- **Side effects:** Convenience endpoint. Internally calls `TriggerBrdGeneration` gRPC RPC with `mode='selective'` and `sections_to_regenerate=[section_key]`. Result via WebSocket.
+- **Validation:**
+  - Idea state must be 'open' (BRD generation only available during brainstorming)
+  - `section_name` required for `section_regeneration` mode, must be valid section key
+- **Side effects:**
+  - Gateway invokes AI service `TriggerBrdGeneration` gRPC method
+  - AI service publishes `ai.brd.generated` event after completion
+  - Gateway `AIEventConsumer` handles event and persists BRD sections via CoreClient gRPC
+  - Result delivered via WebSocket `brd_ready` event
+- **Errors:**
+  | Status | Code | When |
+  |--------|------|------|
+  | 400 | INVALID_MODE | Invalid mode value |
+  | 400 | SECTION_NAME_REQUIRED | section_name missing for section_regeneration |
+  | 400 | INVALID_SECTION | section_name not in valid section keys |
+  | 400 | INVALID_STATE | Idea not in 'open' state |
+  | 403 | FORBIDDEN | User not owner/co-owner/collaborator |
+  | 503 | SERVICE_UNAVAILABLE | AI service gRPC call failed |
+- **Notes:**
+  - **M9 API consolidation:** This single endpoint replaces previous multi-endpoint design (/generate, /regenerate, /regenerate-section)
+  - Async operation pattern: REST returns 202 immediately, AI processing happens in background, result via WebSocket
+  - Follows ChatProcessing pattern: mode-based invocation with gRPC delegation
 
 #### PATCH /api/ideas/:id/brd
 - **Purpose:** User edits BRD sections
@@ -526,15 +525,20 @@
   |--------|------|------|
   | 404 | PDF_NOT_FOUND | PDF not yet generated for this version |
 
-#### POST /api/ideas/:id/brd/generate-pdf
+#### GET /api/ideas/:id/brd/pdf
 - **Purpose:** Generate and download PDF from current BRD draft
 - **Auth:** Owner, co-owner, or collaborator
-- **Response (200):** PDF file bytes (Content-Type: application/pdf). Client receives the file directly.
+- **Response (200):** PDF file bytes (Content-Type: application/pdf). Binary PDF data returned directly.
 - **Errors:**
   | Status | Code | When |
   |--------|------|------|
-  | 400 | TODO_MARKERS_REMAINING | `/TODO` markers still present in sections (unless `allow_information_gaps` is true). Frontend can determine affected sections from draft data. |
-- **Notes:** Synchronous — gateway calls PDF service gRPC `GeneratePdf`, receives rendered PDF bytes, and returns them to the client. PDF is also persisted at `{PDF_STORAGE_PATH}/{idea_id}/{version_id}.pdf` for version downloads.
+  | 400 | TODO_MARKERS_REMAINING | `/TODO` markers still present in sections. PDF generation blocked until gaps filled or allow_information_gaps toggle used. |
+- **Notes:**
+  - **M9 Implementation:** PDF generated on-demand via Gateway → PDF Service gRPC call (`GeneratePdf`)
+  - Frontend uses `<object type="application/pdf" data="/api/ideas/:id/brd/pdf">` for preview
+  - Download button creates temporary `<a>` element with blob URL from fetch response
+  - `/TODO` validation: Frontend shows warning dialog if markers present (hasTodoMarkers() utility), PDF service rejects generation with TodoMarkerError
+  - PDF not persisted for drafts — only for submitted versions (via POST /submit)
 
 ---
 
@@ -1732,7 +1736,11 @@ message BrdGenerationResponse {
 }
 ```
 
-**Async result delivery:** BRD generation is async. The AI service publishes an `ai.brd.generation_complete` event when done. The gateway updates the BRD draft via Core gRPC and notifies the frontend via WebSocket.
+**Async result delivery:** BRD generation is async. The AI service publishes **dual events** when done:
+1. `ai.brd.generated` — main event with full payload (sections, readiness_evaluation, fabrication_flags)
+2. `ai.security.fabrication_flag` — per-section monitoring events for flagged sections (consumed by admin monitoring dashboard)
+
+The gateway `AIEventConsumer` handles `ai.brd.generated`, persists sections via Core gRPC `UpdateBrdDraft`, and notifies frontend via WebSocket `brd_ready` event.
 
 #### TriggerContextReindex
 
@@ -2118,7 +2126,7 @@ message AlertRecipient {
 | `ai.delegation.complete` | Context Agent finishes and Facilitator delivers contextualized response | Gateway (broadcast response, de-emphasize delegation message) | `{ idea_id, delegation_id, response_content, delegation_message_id }` |
 | `ai.processing.complete` | Full pipeline cycle finishes | Core (reset rate limit counter), Gateway (hide "AI is processing") | `{ idea_id, processing_id, status }` |
 | `ai.processing.failed` | Pipeline fails after retries exhausted | Gateway (show error toast), Monitoring | `{ idea_id, processing_id, error_code, agent }` |
-| `ai.brd.generation_complete` | Summarizing AI finishes BRD generation | Gateway (update BRD draft via Core gRPC, notify frontend) | `{ idea_id, generation_id, sections: { ... }, readiness_evaluation: { ... } }` |
+| `ai.brd.generated` | Summarizing AI finishes BRD generation (M9: replaces ai.brd.generation_complete) | Gateway (update BRD draft via Core gRPC, notify frontend via WebSocket brd_ready) | `{ idea_id, mode, sections: { title, short_description, current_workflow, affected_department, core_capabilities, success_criteria }, readiness_evaluation: { title: 'ready', ... }, fabrication_flags: [ { section, reason }, ... ] }` |
 | `ai.keywords.updated` | Keyword Agent produces updated keywords | Core (persist keywords, trigger similarity pipeline) | `{ idea_id, keywords: [...] }` |
 | `ai.embedding.updated` | Idea embedding updated | Core (trigger vector similarity search) | `{ idea_id }` |
 | `ai.similarity.confirmed` | Deep Comparison confirms similarity | Core (create merge suggestion), Notification service | `{ idea_id_1, idea_id_2, confidence, explanation }` |
@@ -2134,7 +2142,7 @@ message AlertRecipient {
 | `ai.security.content_filter_triggered` | Azure content filter blocks input/output | Monitoring | `{ idea_id, user_id, filter_category, filter_action, timestamp }` |
 | `ai.security.jailbreak_detected` | Azure jailbreak detection fires | Monitoring | `{ idea_id, user_id, timestamp }` |
 | `ai.security.injection_pattern` | Known injection pattern detected in input | Monitoring | `{ idea_id, user_id, pattern_type, timestamp }` |
-| `ai.security.fabrication_flag` | Post-processing flags potential fabrication | Monitoring | `{ idea_id, agent, section, flag_reason, timestamp }` |
+| `ai.security.fabrication_flag` | Post-processing flags potential fabrication (M9: per-section events published alongside ai.brd.generated) | Monitoring | `{ idea_id, agent, section, flag_reason, timestamp }` |
 | `ai.security.extension_fabrication_flag` | Context Extension output contains claims not matchable to chat history | Monitoring | `{ idea_id, query, flagged_quotes: [...], timestamp }` |
 | `ai.security.tool_rejection` | Tool plugin rejects an invalid operation | Monitoring | `{ idea_id, agent, tool_name, error_code, timestamp }` |
 | `ai.security.output_validation_fail` | Agent output fails format or constraint validation | Monitoring | `{ idea_id, agent, validation_type, timestamp }` |

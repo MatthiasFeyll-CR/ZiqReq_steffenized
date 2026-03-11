@@ -679,6 +679,8 @@ See `page-layouts.md` Section 11. Component-level spec:
 
 ### 12.1 Embedded PDF View (Review Tab)
 
+**Tab Visibility:** Review tab is visible when idea state is 'open' (M9: always visible during brainstorming). Previous spec required first submission; M9 simplified to show tab immediately for better UX — users can view/prepare BRD content before first submit.
+
 | Property | Value |
 |----------|-------|
 | Container | `bg-white` (always white — document rendering), `border`, `rounded-md`, `shadow-sm` |

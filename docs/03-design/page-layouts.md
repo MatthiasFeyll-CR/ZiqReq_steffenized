@@ -343,6 +343,10 @@ This is the most complex page. It has two vertical zones:
 +---------------------------------------------------------------+
 ```
 
+**M9 Tab Visibility Update:**
+- **Board tab:** Always visible
+- **Review tab:** Visible when idea state is 'open' (always visible during brainstorming). Previous spec required first submission; M9 simplified UX — users can view/prepare BRD before submitting.
+
 - Tab bar: `border-b`, Gotham Medium `text-sm`
 - Active tab: gold underline (`border-b-2 border-primary`), `text-primary`
 - Inactive tab: `text-muted`, hover: `text-secondary`

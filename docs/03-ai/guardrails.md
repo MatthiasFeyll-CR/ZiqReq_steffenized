@@ -223,6 +223,17 @@ After the Summarizing AI generates a BRD, a post-processing validation step chec
 
 > **Architecture integration:** This post-processing step is implemented in `services/ai/processing/fabrication_validator.py` (see `docs/02-architecture/project-structure.md`). Fabrication flags are published as `ai.security.fabrication_flag` events (see `docs/02-architecture/api-design.md` — Message Broker Event Contracts).
 
+**M9 Implementation Details (FabricationValidator):**
+- **Purely heuristic approach** — No AI models, no spaCy, no external NLP libraries
+- **Keyword extraction:** Simple tokenization (Python str.split + stopword filtering)
+- **Fuzzy matching:** Python stdlib `difflib.SequenceMatcher` for string similarity
+- **Thresholds:**
+  - `_MATCH_THRESHOLD = 0.75` — minimum similarity ratio for keyword-to-source matching
+  - `_FLAG_RATIO_THRESHOLD = 0.5` — if >50% of keywords fail matching, flag the section
+- **Source material:** Combined chat messages content + board node titles/bodies (via `build_source_material()`)
+- **Performance:** Synchronous validation, no AI invocation overhead, negligible latency
+- **Philosophy:** Fast, deterministic, catches obvious fabrication (invented company names, departments, metrics) without false positives from nuanced language
+
 **Layer 5: User Editing and Section Locking**
 Users review and edit every BRD section before submission. Locked sections are excluded from AI regeneration. This human-in-the-loop review is the ultimate safety net.
 

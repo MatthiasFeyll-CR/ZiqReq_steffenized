@@ -28,7 +28,7 @@
 | Authentication (Backend) | Azure AD token validation | — | Token validation at API edge and WebSocket handshake (NFR-S2) |
 | AI Provider | Azure OpenAI | managed | All AI features (Constraint #3). Model selection and agent architecture defined by AI Engineer in `docs/03-ai/` |
 | AI Orchestration | Semantic Kernel (Python SDK) | latest | Azure-native, automatic function calling for Facilitator/Board Agent, unified base layer across all 9 agents. See `docs/03-ai/` |
-| PDF Generation | WeasyPrint | 62.x | Python-native HTML-to-PDF; runs in container, no headless browser dependency (F-4.7) |
+| PDF Generation | WeasyPrint | 62.x | Python-native HTML-to-PDF; runs in container, no headless browser dependency (F-4.7). **Requires pydyf>=0.10,<0.12** (0.12.x breaks Stream.transform). System dependencies: libcairo2, libpango-1.0-0, libgdk-pixbuf-2.0-0 (Debian package names with hyphens). |
 | File Storage (Dev) | Local Docker volume | — | Mounted volume for storing generated PDF files during development |
 | File Storage (Prod) | Azure Blob Storage | managed | PDF file storage in production. `brd_versions.pdf_file_path` stores the blob path. |
 | Reverse Proxy (Dev) | Nginx | latest | Docker container; routes frontend, API, and WebSocket under single origin |
