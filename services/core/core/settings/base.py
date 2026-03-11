@@ -40,7 +40,16 @@ ROOT_URLCONF = "core.urls"
 # Celery
 CELERY_BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@localhost:5672/")
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
-CELERY_BEAT_SCHEDULE = {}
+CELERY_BEAT_SCHEDULE = {
+    "keyword-matching-sweep": {
+        "task": "similarity.keyword_matching_sweep",
+        "schedule": 300.0,  # every 5 minutes
+    },
+    "vector-similarity-sweep": {
+        "task": "similarity.vector_similarity_sweep",
+        "schedule": 300.0,  # every 5 minutes
+    },
+}
 
 # gRPC addresses
 GATEWAY_GRPC_ADDRESS = os.environ.get("GATEWAY_GRPC_ADDRESS", "localhost:50054")

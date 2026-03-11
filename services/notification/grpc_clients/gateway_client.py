@@ -83,6 +83,24 @@ class GatewayClient:
             ]
         }
 
+    def get_idea_details(
+        self,
+        idea_id: str,
+        ensure_share_link_token: bool = False,
+    ) -> dict[str, Any]:
+        stub = self._ensure_channel()
+        request = gateway_pb2.IdeaDetailsRequest(
+            idea_id=idea_id,
+            ensure_share_link_token=ensure_share_link_token,
+        )
+        response = stub.GetIdeaDetails(request)
+        return {
+            "idea_id": response.idea_id,
+            "title": response.title,
+            "owner_id": response.owner_id,
+            "share_link_token": response.share_link_token,
+        }
+
     def close(self) -> None:
         if self._channel is not None:
             self._channel.close()

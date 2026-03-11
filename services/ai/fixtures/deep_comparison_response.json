@@ -1,1 +1,6 @@
-{"mock": true}
+{
+  "is_similar": true,
+  "confidence": 0.85,
+  "explanation": "Both ideas address the same core problem of automated code review and propose similar AI-driven solutions for detecting code quality issues.",
+  "overlap_areas": ["code review", "AI automation", "quality detection"]
+}

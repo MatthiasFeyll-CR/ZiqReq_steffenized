@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.2.01", "T-5.2.02", "T-5.2.03"],
       "notes": "Architecture: docs/02-architecture/data-model.md § idea_keywords, merge_requests — keyword array, declined pairs tracking\nArchitecture: docs/02-architecture/tech-stack.md § Background Keyword Matching Service — Celery periodic task design, data access, performance\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § similarity.detected — event payload schema\nTesting: docs/04-test-architecture/test-matrix.md § T-5.2.01, T-5.2.02, T-5.2.03 — threshold trigger, dismissed pair exclusion, time window filter\nFiles: services/core/background/keyword_matching.py (new), services/core/celeryconfig.py (add task registration)\nGotchas: Celery task scheduling uses crontab() or interval() syntax. Time window filter uses ideas.updated_at. Dismissed pairs are merge_requests with status='declined'. Admin parameters read from admin_parameters table.",
       "context": {
@@ -51,7 +51,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § idea_embeddings — embedding vector(1536), source_text_hash, HNSW index\nArchitecture: docs/02-architecture/tech-stack.md § pgvector — vector similarity search, HNSW index\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § similarity.detected\nAI: docs/03-ai/agent-architecture.md § S6.4 Embedding Generation — idea embedding source text composition\nTesting: No specific test IDs assigned (vector similarity is secondary to keyword matching)\nFiles: services/core/background/vector_similarity.py (new), services/core/celeryconfig.py (add task registration)\nGotchas: pgvector uses <=> operator for cosine similarity. HNSW index already created in migrations. similarity_vector_threshold stored in admin_parameters. Embedding updates happen after keyword generation (handled by AI service).",
       "context": {
@@ -79,7 +79,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.3.01", "T-5.3.02"],
       "notes": "AI: docs/03-ai/agent-architecture.md § S3.7 Deep Comparison — purpose, model tier, I/O\nAI: docs/03-ai/system-prompts.md § Deep Comparison — full system prompt, output format instructions\nAI: docs/03-ai/guardrails.md § Output Validation § 11.6 Deep Comparison — Pydantic schema, retry on malformed output\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § ai.similarity.confirmed — event payload schema\nTesting: docs/04-test-architecture/test-matrix.md § T-5.3.01, T-5.3.02 — structured output validation, Pydantic enforcement\nFiles: services/ai/agents/deep_comparison/agent.py (new), services/ai/agents/deep_comparison/prompt.py (new), services/ai/consumers/similarity_consumer.py (new)\nGotchas: Agent is non-interactive (no tools). Uses Semantic Kernel basic chat completion. Output Pydantic model: DeepComparisonOutput with is_similar, confidence (0-1), explanation, overlap_areas. Confidence threshold 0.7 is hardcoded (not admin-configurable).",
       "context": {
@@ -110,7 +110,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § ai.similarity.confirmed — event payload\nArchitecture: docs/02-architecture/data-model.md § notifications, ideas.share_link_token — notification storage, read-only link mechanism\nTesting: No specific test IDs (notification flow validated by M12 tests)\nFiles: services/notification/consumers/similarity_events.py (new or extend existing), services/notification/email/templates/similarity_detected.html (new)\nGotchas: Read-only access uses share_link_token from ideas table (generated on-demand if not exists). Email preference group: 'similarity'. Notification service uses gateway_client.create_notification() gRPC call. Both owners see the other's name (similarity detection is not anonymous).\nDeviations: Milestone scope says 'notify both users (in-app + email)' but doesn't specify read-only link generation — this is inferred from F-5.5 step 2 'both users receive read-only access'.",
       "context": {
@@ -138,7 +138,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-4.12.01"],
       "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/ideas/:id/similar — query params, response schema, auth\nArchitecture: docs/02-architecture/data-model.md § merge_requests, idea_embeddings — declined pairs, vector similarity scores\nDesign: docs/03-design/component-specs.md § 11.3 Empty States — 'No similar ideas found' when list is empty\nTesting: docs/04-test-architecture/test-matrix.md § T-4.12.01 — API integration test\nFiles: services/gateway/apps/ideas/views.py (add get_similar_ideas view), services/gateway/apps/ideas/urls.py (add similar/ route), services/gateway/apps/ideas/serializers.py (add SimilarIdeaSerializer), services/gateway/apps/ideas/tests/test_similar_ideas.py (new)\nGotchas: 'Near-threshold' matches are ideas with cosine similarity between 0.65 and 0.75 (below confirmation threshold but close). Declined merges are queried from merge_requests table. Requires permission check (same as idea detail endpoint). DRF pagination uses PageNumberPagination.",
       "context": {
@@ -170,7 +170,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § ideas.state — state enum values, state transition rules\nDesign: Feature spec F-5.4 — state-aware match behavior rules (open/rejected→merge, in_review→append, accepted/dropped→informational)\nTesting: No specific test IDs (state-aware logic validated by notification service tests)\nFiles: services/notification/consumers/similarity_events.py (extend from US-004 with state-aware logic)\nGotchas: Append flow (open → in_review) is mentioned in milestone notes as coming in M14. This story only handles the notification differentiation — actual append request API comes in M14. For now, in_review target ideas get informational notification similar to accepted/dropped.\nDeviations: Milestone scope says 'state-aware match behavior' but the actual append flow API is deferred to M14. This story implements the notification differentiation only.",
       "context": {
@@ -202,7 +202,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.5.01", "T-5.5.02", "T-5.5.04"],
       "notes": "Architecture: docs/02-architecture/api-design.md § POST /api/ideas/:id/merge-request, POST /api/merge-requests/:id/consent — request/response schemas\nArchitecture: docs/02-architecture/data-model.md § merge_requests — dual consent tracking, unique constraint on active requests\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge_request.created, merge_request.accepted, merge_request.declined\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.01, T-5.5.02, T-5.5.04 — merge request creation, target locking, decline dismissal\nFiles: services/gateway/apps/ideas/views.py (add create_merge_request view), services/gateway/apps/merge/views.py (new, add consent view), services/gateway/apps/merge/urls.py (new), services/gateway/apps/merge/serializers.py (new), services/gateway/apps/merge/tests/test_merge_request.py (new)\nGotchas: Requesting owner implicitly consents (requesting_owner_consent='accepted' on creation). Unique constraint uq_active_merge_request enforced at DB level. Event publishing uses gateway events/publisher.py pattern from M12.",
       "context": {
@@ -240,7 +240,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: docs/03-design/component-specs.md § 11.5 Banners — workspace-integrated banner variant (border-b bg-warning/5), framer-motion slide-down\nDesign: docs/03-design/component-specs.md § 5.8 Chat Input Area — LockOverlay pattern for idea locking\nArchitecture: docs/02-architecture/api-design.md § GET /api/ideas/:id — merge_request_pending field in response\nTesting: No specific test IDs (UI component validated by frontend unit tests)\nFiles: frontend/src/components/workspace/MergeRequestBanner.tsx (new), frontend/src/pages/IdeaWorkspace.tsx (integrate banner + lock overlay), frontend/src/hooks/use-websocket.ts (add ws:merge_request event handler)\nGotchas: Banner is persistent (not dismissible) until resolved. Lock overlay prevents all editing (chat input disabled, board canvas read-only). Confirmation dialog for decline uses Dialog component (not AlertDialog — none exists per component-specs.md § 17). merge_request_pending is a nested object: {id, requesting_idea_id, requesting_owner_name, requesting_idea_title}.",
       "context": {
@@ -272,7 +272,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.5.05"],
       "notes": "AI: docs/03-ai/agent-architecture.md § S3.9 Merge Synthesizer — purpose, model tier, I/O, tool-free agent\nAI: docs/03-ai/system-prompts.md § Merge Synthesizer — full system prompt, synthesis instructions, board deduplication rules\nAI: docs/03-ai/tools-and-functions.md § request_board_changes — board instruction format (used as output template)\nAI: docs/03-ai/guardrails.md § Output Validation § 11.6 Merge Synthesizer — Pydantic schema\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge_synthesizer.complete\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.05 — synthesis + board instructions output\nFiles: services/ai/agents/merge_synthesizer/agent.py (new), services/ai/agents/merge_synthesizer/prompt.py (new), services/ai/consumers/merge_consumer.py (new)\nGotchas: Agent is non-interactive (no tools). Output Pydantic model: MergeSynthesizerOutput with synthesis_message (string) and board_instructions (list[dict]). board_instructions use same schema as Facilitator's request_board_changes tool (intent, description, suggested_title, etc.).",
       "context": {
@@ -306,7 +306,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.5.03", "T-5.5.06"],
       "notes": "Architecture: docs/02-architecture/data-model.md § ideas — merged_from_idea_1_id, merged_from_idea_2_id, closed_by_merge_id, co_owner_id (dual ownership for merged ideas)\nArchitecture: docs/02-architecture/data-model.md § idea_collaborators — transfer all collaborators, deduplicate by user_id\nArchitecture: docs/02-architecture/data-model.md § chat_messages — synthesis message as first AI message\nAI: docs/03-ai/agent-architecture.md § S4.4 Board Agent — processes board instructions from Merge Synthesizer\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge.complete — notify all users\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.03, T-5.5.06 — synthesis trigger, full E2E merge flow\nFiles: services/core/consumers/merge_consumer.py (new), services/core/services/merge_service.py (new)\nGotchas: Atomic transaction required (Django transaction.atomic() or gRPC transaction). Board Agent invoked in-process (not via message broker). Old ideas remain accessible via read-only link (share_link_token). Collaborator transfer uses UNION of both idea_collaborators sets, excluding the two owners (they become co-owners). Title 'Merged:' prefix indicates merged idea.\nDeviations: Milestone scope says 'AI synthesizes a summary of merged context as the first chat message' — implemented as synthesis_message from Merge Synthesizer agent.",
       "context": {

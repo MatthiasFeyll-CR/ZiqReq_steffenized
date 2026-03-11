@@ -11,6 +11,8 @@ import { ChatPanel } from "@/components/workspace/ChatPanel";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
+import { MergeRequestBanner } from "@/components/workspace/MergeRequestBanner";
+import { LockOverlay } from "@/components/workspace/LockOverlay";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useSelector } from "react-redux";
@@ -144,6 +146,8 @@ function IdeaWorkspaceContent({
   const brainstormingRef = useRef<HTMLDivElement>(null);
   const prevStateRef = useRef(idea.state);
 
+  const hasMergePending = !!idea.merge_request_pending;
+
   // has_been_submitted heuristic: state !== 'open' means it was submitted at least once
   const hasBeenSubmitted = idea.state !== "open";
 
@@ -157,6 +161,23 @@ function IdeaWorkspaceContent({
     };
     window.addEventListener("ws:title_update", handler);
     return () => window.removeEventListener("ws:title_update", handler);
+  }, []);
+
+  // Listen for WebSocket merge_request events — refetch idea to update merge_request_pending
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const targetId = detail?.target_idea_id ?? detail?.idea_id;
+      if (targetId === ideaRef.current.id) {
+        fetchIdea(ideaRef.current.id).then((updated) => {
+          onIdeaUpdateRef.current(updated);
+        }).catch(() => {
+          // Silently ignore refetch errors
+        });
+      }
+    };
+    window.addEventListener("ws:merge_request", handler);
+    return () => window.removeEventListener("ws:merge_request", handler);
   }, []);
 
   // Auto-scroll based on state transitions
@@ -173,21 +194,39 @@ function IdeaWorkspaceContent({
     }
   }, [idea.state]);
 
-  const effectiveChatLocked = chatLocked || !isOnline || readOnly;
+  // Refetch idea after merge request resolved to clear merge_request_pending
+  const handleMergeResolved = useCallback(() => {
+    fetchIdea(idea.id).then((updated) => {
+      onIdeaUpdate(updated);
+    }).catch(() => {
+      // Optimistically clear merge_request_pending
+      onIdeaUpdate({ ...idea, merge_request_pending: null });
+    });
+  }, [idea, onIdeaUpdate]);
+
+  const effectiveChatLocked = chatLocked || !isOnline || readOnly || hasMergePending;
   const effectiveLockReason = readOnly
     ? "Viewing shared idea — chat is read-only"
     : !isOnline
       ? "You are currently offline. Chat is disabled."
-      : lockReason;
+      : hasMergePending
+        ? "This idea has a pending merge request. Accept or decline to continue editing."
+        : lockReason;
   const effectiveReadOnly = allReadOnly || readOnly;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
-      <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={effectiveReadOnly} />
+      <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={effectiveReadOnly || hasMergePending} />
       {readOnly && <ReadOnlyBanner />}
+      {!readOnly && idea.merge_request_pending && (
+        <MergeRequestBanner mergeRequest={idea.merge_request_pending} onResolved={handleMergeResolved} />
+      )}
       {!readOnly && <InvitationBanner ideaId={idea.id} />}
       <OfflineBanner />
-      <div ref={brainstormingRef} className="flex-1 min-h-0 flex flex-col" style={{ minHeight: hasBeenSubmitted ? "calc(100vh - 64px)" : undefined }}>
+      <div ref={brainstormingRef} className="relative flex-1 min-h-0 flex flex-col" style={{ minHeight: hasBeenSubmitted ? "calc(100vh - 64px)" : undefined }}>
+        {hasMergePending && (
+          <LockOverlay reason="This idea has a pending merge request. Accept or decline to continue editing." />
+        )}
         <WorkspaceLayout
           chatPanel={
             <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly} />
@@ -195,7 +234,7 @@ function IdeaWorkspaceContent({
           reviewVisible={reviewVisible}
           ideaId={idea.id}
           ideaState={idea.state}
-          disabled={!isOnline || readOnly}
+          disabled={!isOnline || readOnly || hasMergePending}
           readOnly={readOnly}
         />
       </div>

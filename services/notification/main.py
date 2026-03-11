@@ -14,7 +14,10 @@ from consumers.chat_events import handle_chat_event
 from consumers.collaboration_events import handle_collaboration_event
 from consumers.monitoring_events import handle_monitoring_event
 from consumers.review_events import handle_review_event
-from consumers.similarity_events import handle_similarity_event
+from consumers.similarity_events import (
+    handle_ai_similarity_confirmed,
+    handle_similarity_event,
+)
 from grpc_clients.gateway_client import GatewayClient
 from pika.adapters.blocking_connection import BlockingChannel
 
@@ -30,6 +33,7 @@ _ROUTE_HANDLERS: dict[str, Any] = {
     "notification.chat": handle_chat_event,
     "notification.ai": handle_ai_event,
     "notification.similarity": handle_similarity_event,
+    "ai.similarity": handle_ai_similarity_confirmed,
     "notification.monitoring": handle_monitoring_event,
 }
 
@@ -111,6 +115,7 @@ def main() -> None:
         "notification.ai.*",
         "notification.similarity.*",
         "notification.monitoring.*",
+        "ai.similarity.*",
     ]
     for key in binding_keys:
         channel.queue_bind(

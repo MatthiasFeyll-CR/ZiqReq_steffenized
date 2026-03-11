@@ -94,3 +94,42 @@ def publish_notification_event(
             event_type,
             user_id,
         )
+
+
+def publish_event(event_type: str, payload: dict) -> None:
+    """Publish a generic event to RabbitMQ.
+
+    Parameters
+    ----------
+    event_type:
+        Event type used as the routing key, e.g. ``similarity.detected``.
+    payload:
+        Arbitrary JSON-serializable dict.
+    """
+    message = {
+        **payload,
+        "event_type": event_type,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    try:
+        connection = _get_connection()
+        channel = connection.channel()
+        channel.exchange_declare(
+            exchange=EXCHANGE_NAME,
+            exchange_type="topic",
+            durable=True,
+        )
+        channel.basic_publish(
+            exchange=EXCHANGE_NAME,
+            routing_key=event_type,
+            body=json.dumps(message),
+            properties=pika.BasicProperties(
+                delivery_mode=2,
+                content_type="application/json",
+            ),
+        )
+        connection.close()
+        logger.info("Published event %s", event_type)
+    except Exception:
+        logger.exception("Failed to publish event %s", event_type)

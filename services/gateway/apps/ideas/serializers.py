@@ -17,6 +17,34 @@ class IdeaPatchSerializer(serializers.Serializer):
         return attrs
 
 
+class SimilarIdeaSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+    keywords = serializers.ListField(child=serializers.CharField(), default=list)
+    similarity_type = serializers.ChoiceField(choices=["declined_merge", "near_threshold"])
+    similarity_score = serializers.FloatField(allow_null=True, default=None)
+
+
+class MergeRequestCreateSerializer(serializers.Serializer):
+    target_idea_id = serializers.UUIDField()
+
+
+class MergeRequestConsentSerializer(serializers.Serializer):
+    consent = serializers.ChoiceField(choices=["accept", "decline"])
+
+
+class MergeRequestSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    requesting_idea_id = serializers.UUIDField()
+    target_idea_id = serializers.UUIDField()
+    merge_type = serializers.CharField()
+    status = serializers.CharField()
+    requesting_owner_consent = serializers.CharField()
+    target_owner_consent = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    resolved_at = serializers.DateTimeField(allow_null=True)
+
+
 class IdeaDetailSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()
