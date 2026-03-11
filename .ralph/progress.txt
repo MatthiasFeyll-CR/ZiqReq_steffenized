@@ -37,3 +37,17 @@ Started: 2026-03-11T11:27:20+0100
   - Celery @shared_task with lazy imports inside function body works well with unittest.mock.patch at class level
   - Docker compose -v flag needed when restarting test DB to avoid "database already exists" errors
 ---
+
+## US-002: Vector Similarity Detection — pgvector Cosine Similarity
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/similarity/vector_similarity.py (new), services/gateway/apps/similarity/vector_similarity.py (new), services/core/apps/similarity/tasks.py, services/gateway/apps/similarity/tasks.py, services/core/core/settings/base.py, services/gateway/apps/similarity/tests/test_vector_similarity.py (new)
+- Tests: 6 passed (above threshold triggers event, below threshold no event, declined pairs excluded, declined reverse pair excluded, multiple matches, payload includes similarity_score). Full suite: 651 Python tests passed, 403 Node tests passed.
+- Learnings for future iterations:
+  - pgvector not installed in gateway — use raw SQL with `<=>` operator for cosine similarity queries instead of Django ORM VectorField
+  - Raw SQL approach: `1 - (a.embedding <=> b.embedding)` gives cosine similarity (pgvector <=> returns distance)
+  - Mock `connection` cursor in tests since test DB is SQLite without pgvector extension
+  - Task placed in separate vector_similarity.py file, imported via tasks.py noqa F401 for Celery autodiscover
+  - `a.idea_id < b.idea_id` in SQL prevents duplicate pairs (same technique as keyword matching's `range(i+1, ...)`)
+  - Time window and soft-delete filtering done in SQL JOINs for efficiency, declined pair filtering done in Python
+---
