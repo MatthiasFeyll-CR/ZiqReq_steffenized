@@ -48,3 +48,18 @@ Started: 2026-03-11T17:44:30+0100
   - Support contact: support@commerzreal.de (hardcoded as SUPPORT_EMAIL constant)
   - Dialog component from shadcn/ui uses Radix primitives — data-testid passes through via spread props
 ---
+
+## US-003: Idle Detection — Mouse Inactivity & Tab Visibility
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/hooks/useIdleDetection.ts (new), frontend/src/__tests__/idle-detection.test.tsx (new), .ralph/test-manifest.json (added T-15.1.01, T-15.1.02)
+- Tests: 7 passed (T-15.1.01, T-15.1.02 covered + mouse reset, active on return, default timeout, tab focus recovery). Typecheck clean. No regressions.
+- Learnings for future iterations:
+  - useIdleDetection hook takes ideaId and optional idleTimeout (default 300s), uses useWsSend to send presence_update messages
+  - Mouse movement throttled at 500ms to avoid flooding
+  - Tab visibility uses document.visibilityState + visibilitychange event — sets idle immediately on hidden
+  - Presence slice already supports "idle" state, PresenceIndicators already renders opacity-50 + grayscale for idle users
+  - WebSocket consumer handle_presence_update already maps state='active' to 'online' for broadcast
+  - No backend changes needed — the consumer already handles presence_update messages with idle state
+  - Pre-existing test failure in information-gaps-toggle.test.tsx unrelated to M16
+---

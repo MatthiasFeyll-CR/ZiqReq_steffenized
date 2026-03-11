@@ -863,6 +863,14 @@
     "T-14.1.04": {
       "file": "frontend/src/__tests__/error-toast.test.tsx",
       "function": "disables Retry button and shows Max retries reached when max retries exhausted"
+    },
+    "T-15.1.01": {
+      "file": "frontend/src/__tests__/idle-detection.test.tsx",
+      "function": "marks user idle after no mouse movement for idle_timeout seconds"
+    },
+    "T-15.1.02": {
+      "file": "frontend/src/__tests__/idle-detection.test.tsx",
+      "function": "sets idle immediately when tab becomes hidden"
     }
   }
 }
