@@ -41,6 +41,8 @@ def execute_merge(
     from apps.ideas.models import Idea
     from apps.similarity.models import MergeRequest
 
+    demoted_co_owner_ids: list[uuid.UUID] = []
+
     with transaction.atomic():
         # 1. Fetch both ideas
         idea_a = Idea.objects.get(id=requesting_idea_id, deleted_at__isnull=True)
@@ -49,7 +51,16 @@ def execute_merge(
         # 2. Fetch merge request
         merge_req = MergeRequest.objects.select_for_update().get(id=merge_request_id)
 
-        # 3. Create new merged idea
+        # 3. Determine triggering owners and demoted co-owners (recursive merge)
+        # Triggering owners: requesting idea owner + target idea owner → co-owners
+        triggering_owner_ids = {idea_a.owner_id, idea_b.owner_id}
+
+        # Non-triggering co-owners get demoted to collaborators
+        for co_owner_id in (idea_a.co_owner_id, idea_b.co_owner_id):
+            if co_owner_id is not None and co_owner_id not in triggering_owner_ids:
+                demoted_co_owner_ids.append(co_owner_id)
+
+        # 4. Create new merged idea (max 2 owners enforced)
         merged_idea = Idea.objects.create(
             title=f"Merged: {idea_a.title} + {idea_b.title}",
             state="open",
@@ -60,7 +71,7 @@ def execute_merge(
             merged_from_idea_2_id=idea_b.id,
         )
 
-        # 4. First chat message: synthesis_message from Merge Synthesizer
+        # 5. First chat message: synthesis_message from Merge Synthesizer
         ChatMessage.objects.create(
             idea_id=merged_idea.id,
             sender_type="ai",
@@ -68,21 +79,39 @@ def execute_merge(
             content=synthesis_message,
         )
 
-        # 5. Process board instructions — create board nodes
+        # 6. Process board instructions — create board nodes
         _process_board_instructions(merged_idea.id, board_instructions)
 
-        # 6. Transfer collaborators from both ideas (deduplicated, excluding owners)
-        owner_ids = {idea_a.owner_id, idea_b.owner_id}
+        # 7. Transfer collaborators from both ideas (deduplicated, excluding new owners)
+        owner_ids = triggering_owner_ids
         collaborator_ids = _transfer_collaborators(
             merged_idea.id, idea_a.id, idea_b.id, owner_ids
         )
 
-        # 7. Update original ideas: closed_by_merge_id
+        # 8. Add demoted co-owners as collaborators (deduplicated)
+        if demoted_co_owner_ids:
+            from apps.ideas.models import IdeaCollaborator
+
+            IdeaCollaborator.objects.bulk_create(
+                [
+                    IdeaCollaborator(idea_id=merged_idea.id, user_id=uid)
+                    for uid in demoted_co_owner_ids
+                ],
+                ignore_conflicts=True,
+            )
+            # Add demoted to collaborator list (deduplicated)
+            existing = set(collaborator_ids)
+            for uid in demoted_co_owner_ids:
+                if uid not in existing:
+                    collaborator_ids.append(uid)
+                    existing.add(uid)
+
+        # 9. Update original ideas: closed_by_merge_id
         Idea.objects.filter(id__in=[idea_a.id, idea_b.id]).update(
             closed_by_merge_id=merged_idea.id,
         )
 
-        # 8. Update merge_request: status='accepted', resulting_idea_id, resolved_at
+        # 10. Update merge_request: status='accepted', resulting_idea_id, resolved_at
         merge_req.status = "accepted"
         merge_req.resulting_idea_id = merged_idea.id
         merge_req.resolved_at = dj_timezone.now()
@@ -90,7 +119,7 @@ def execute_merge(
             update_fields=["status", "resulting_idea_id", "resolved_at"]
         )
 
-    # 9. Publish merge.complete event (outside transaction)
+    # 11. Publish merge.complete event (outside transaction)
     all_collaborator_ids = [str(uid) for uid in collaborator_ids]
     _publish_merge_complete(
         merge_request_id=merge_request_id,
@@ -99,6 +128,7 @@ def execute_merge(
         original_idea_2_id=target_idea_id,
         all_collaborators=all_collaborator_ids,
         owner_ids=[str(uid) for uid in owner_ids],
+        demoted_co_owners=[str(uid) for uid in demoted_co_owner_ids],
     )
 
     logger.info(
@@ -178,6 +208,7 @@ def _publish_merge_complete(
     original_idea_2_id: str,
     all_collaborators: list[str],
     owner_ids: list[str],
+    demoted_co_owners: list[str] | None = None,
 ) -> None:
     """Publish merge.complete event for notifications."""
     from events.publisher import publish_event
@@ -191,5 +222,6 @@ def _publish_merge_complete(
             "original_idea_2_id": original_idea_2_id,
             "all_collaborators": all_collaborators,
             "owner_ids": owner_ids,
+            "demoted_co_owners": demoted_co_owners or [],
         },
     )

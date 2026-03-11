@@ -767,6 +767,18 @@
     "API-USER.03": {
       "file": "services/gateway/apps/authentication/tests/test_notification_prefs.py",
       "function": "test_update_preferences"
+    },
+    "T-5.8.01": {
+      "file": "services/gateway/apps/ideas/tests/test_manual_merge.py",
+      "function": "test_manual_merge_via_uuid"
+    },
+    "T-5.8.02": {
+      "file": "services/gateway/apps/ideas/tests/test_manual_merge.py",
+      "function": "test_404_target_not_found"
+    },
+    "T-5.8.03": {
+      "file": "services/gateway/apps/ideas/tests/test_manual_merge.py",
+      "function": "test_400_cannot_merge_self"
     }
   }
 }

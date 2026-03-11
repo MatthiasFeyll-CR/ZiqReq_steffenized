@@ -91,6 +91,8 @@ const MOCK_IDEA: Idea = {
   updated_at: "2024-01-01T00:00:00Z",
   collaborators: [],
   merge_request_pending: null,
+  merged_idea_ref: null,
+  appended_idea_ref: null,
 };
 
 const TOKEN = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";

@@ -1,3 +1,4 @@
+import logging
 import secrets
 import uuid
 
@@ -21,6 +22,8 @@ from .serializers import (
     MergeRequestSerializer,
     SimilarIdeaSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
@@ -262,6 +265,27 @@ def _get_idea(request: Request, idea_id: str) -> Response:
         }
     else:
         data["merge_request_pending"] = None
+
+    # Attach merged_idea_ref / appended_idea_ref for old ideas
+    if idea.closed_by_merge_id:
+        ref_idea = Idea.objects.filter(id=idea.closed_by_merge_id, deleted_at__isnull=True).first()
+        data["merged_idea_ref"] = {
+            "id": str(ref_idea.id),
+            "title": ref_idea.title,
+            "url": f"/idea/{ref_idea.id}",
+        } if ref_idea else None
+    else:
+        data["merged_idea_ref"] = None
+
+    if idea.closed_by_append_id:
+        ref_idea = Idea.objects.filter(id=idea.closed_by_append_id, deleted_at__isnull=True).first()
+        data["appended_idea_ref"] = {
+            "id": str(ref_idea.id),
+            "title": ref_idea.title,
+            "url": f"/idea/{ref_idea.id}",
+        } if ref_idea else None
+    else:
+        data["appended_idea_ref"] = None
 
     return Response(data)
 
@@ -670,6 +694,22 @@ def _publish_notification(**kwargs) -> None:
     publish_notification_event(**kwargs)
 
 
+def _broadcast_ws_event(group_name: str, event_type: str, payload: dict) -> None:
+    """Broadcast a WebSocket event to a channel group."""
+    try:
+        from asgiref.sync import async_to_sync
+        from channels.layers import get_channel_layer
+
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {"type": event_type, "payload": payload},
+            )
+    except Exception:
+        logger.exception("Failed to broadcast WS event %s to %s", event_type, group_name)
+
+
 def _get_idea_or_404(idea_id: str):
     """Validate UUID and return Idea or a 404 Response."""
     try:
@@ -710,22 +750,47 @@ def create_merge_request(request: Request, idea_id: str) -> Response:
 
     serializer = MergeRequestCreateSerializer(data=request.data)
     if not serializer.is_valid():
+        # Surface INVALID_UUID for URL parsing failures
+        errors = serializer.errors
+        if "target_idea_url" in errors and errors["target_idea_url"] == ["INVALID_UUID"]:
+            return Response(
+                {"error": "INVALID_UUID", "message": "Could not extract a valid UUID from the URL"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     target_idea_id = serializer.validated_data["target_idea_id"]
+    is_manual = serializer.validated_data.get("_manual_request", False)
+
+    # Validate target UUID format
+    try:
+        uuid.UUID(str(target_idea_id))
+    except ValueError:
+        return Response(
+            {"error": "INVALID_UUID", "message": "Malformed UUID"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Validate target idea exists
-    target_idea, err = _get_idea_or_404(str(target_idea_id))
-    if err:
+    try:
+        target_idea = Idea.objects.get(id=target_idea_id, deleted_at__isnull=True)
+    except Idea.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Target idea not found"},
+            {"error": "TARGET_NOT_FOUND", "message": "Target idea not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     # Cannot merge with self
     if requesting_idea.id == target_idea.id:
         return Response(
-            {"error": "BAD_REQUEST", "message": "Cannot create merge request with the same idea"},
+            {"error": "CANNOT_MERGE_SELF", "message": "Cannot create merge request with the same idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Validate target state
+    if target_idea.state not in ("open", "in_review", "rejected"):
+        return Response(
+            {"error": "INVALID_STATE", "message": "Target idea is in an incompatible state"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -745,25 +810,71 @@ def create_merge_request(request: Request, idea_id: str) -> Response:
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    # Auto-detect merge_type based on target state
+    from apps.review.models import ReviewAssignment
+
+    if target_idea.state == "in_review":
+        merge_type = "append"
+        # Append requires at least one active reviewer assignment
+        active_reviewers = ReviewAssignment.objects.filter(
+            idea_id=target_idea.id, unassigned_at__isnull=True
+        )
+        if not active_reviewers.exists():
+            return Response(
+                {"error": "REVIEWER_REQUIRED", "message": "Target idea has no assigned reviewers"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        reviewer_consent = "pending"
+        reviewer_ids = list(active_reviewers.values_list("reviewer_id", flat=True))
+    else:
+        merge_type = "merge"
+        reviewer_consent = "not_required"
+        reviewer_ids = []
+
     merge_request = MergeRequestModel.objects.create(
         requesting_idea_id=requesting_idea.id,
         target_idea_id=target_idea.id,
-        merge_type="merge",
+        merge_type=merge_type,
         requested_by=user.id,
         status="pending",
         requesting_owner_consent="accepted",
         target_owner_consent="pending",
+        reviewer_consent=reviewer_consent,
+        manual_request=is_manual,
     )
 
-    # Publish merge_request.created event
-    _publish_event(
-        "notification.similarity.merge_request_created",
-        {
+    # Publish event based on merge type
+    if merge_type == "append":
+        event_type = "notification.similarity.append_request_created"
+        payload = {
             "merge_request_id": str(merge_request.id),
             "requesting_idea_id": str(requesting_idea.id),
             "target_idea_id": str(target_idea.id),
             "requesting_owner_id": str(requesting_idea.owner_id),
             "target_owner_id": str(target_idea.owner_id),
+            "reviewer_ids": [str(rid) for rid in reviewer_ids],
+        }
+    else:
+        event_type = "notification.similarity.merge_request_created"
+        payload = {
+            "merge_request_id": str(merge_request.id),
+            "requesting_idea_id": str(requesting_idea.id),
+            "target_idea_id": str(target_idea.id),
+            "requesting_owner_id": str(requesting_idea.owner_id),
+            "target_owner_id": str(target_idea.owner_id),
+        }
+    _publish_event(event_type, payload)
+
+    # Broadcast WebSocket event to target idea group
+    _broadcast_ws_event(
+        f"idea_{target_idea.id}",
+        "merge_request",
+        {
+            "merge_request_id": str(merge_request.id),
+            "merge_type": merge_type,
+            "requesting_idea_id": str(requesting_idea.id),
+            "target_idea_id": str(target_idea.id),
+            "status": "pending",
         },
     )
 
@@ -812,9 +923,18 @@ def consent_merge_request(request: Request, merge_request_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if target_idea.owner_id != user.id:
+    # Determine if user is target owner or assigned reviewer
+    is_target_owner = target_idea.owner_id == user.id
+
+    from apps.review.models import ReviewAssignment
+
+    is_reviewer = ReviewAssignment.objects.filter(
+        idea_id=target_idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+    ).exists()
+
+    if not (is_target_owner or (is_reviewer and merge_request.merge_type == "append")):
         return Response(
-            {"error": "ACCESS_DENIED", "message": "Only the target idea owner can consent"},
+            {"error": "FORBIDDEN", "message": "Only the target idea owner or assigned reviewer can consent"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -825,36 +945,90 @@ def consent_merge_request(request: Request, merge_request_id: str) -> Response:
     consent = serializer.validated_data["consent"]
 
     if consent == "accept":
-        merge_request.target_owner_consent = "accepted"
-        # Both consents are now accepted
-        if merge_request.requesting_owner_consent == "accepted":
+        if is_target_owner:
+            merge_request.target_owner_consent = "accepted"
+        if is_reviewer and merge_request.merge_type == "append":
+            merge_request.reviewer_consent = "accepted"
+
+        # Check if all required consents are in
+        all_accepted = (
+            merge_request.requesting_owner_consent == "accepted"
+            and merge_request.target_owner_consent == "accepted"
+        )
+        if merge_request.merge_type == "append":
+            all_accepted = all_accepted and merge_request.reviewer_consent == "accepted"
+
+        if all_accepted:
             merge_request.status = "accepted"
             merge_request.resolved_at = timezone.now()
         merge_request.save()
 
         if merge_request.status == "accepted":
+            if merge_request.merge_type == "append":
+                _publish_event(
+                    "notification.similarity.append_accepted",
+                    {
+                        "merge_request_id": str(merge_request.id),
+                        "requesting_idea_id": str(merge_request.requesting_idea_id),
+                        "target_idea_id": str(merge_request.target_idea_id),
+                    },
+                )
+            else:
+                _publish_event(
+                    "notification.similarity.merge_request_accepted",
+                    {
+                        "merge_request_id": str(merge_request.id),
+                        "requesting_idea_id": str(merge_request.requesting_idea_id),
+                        "target_idea_id": str(merge_request.target_idea_id),
+                    },
+                )
+    else:
+        merge_request.status = "declined"
+        merge_request.resolved_at = timezone.now()
+        if is_target_owner:
+            merge_request.target_owner_consent = "declined"
+        if is_reviewer and merge_request.merge_type == "append":
+            merge_request.reviewer_consent = "declined"
+        merge_request.save()
+
+        if merge_request.merge_type == "append":
             _publish_event(
-                "notification.similarity.merge_request_accepted",
+                "notification.similarity.append_declined",
                 {
                     "merge_request_id": str(merge_request.id),
                     "requesting_idea_id": str(merge_request.requesting_idea_id),
                     "target_idea_id": str(merge_request.target_idea_id),
                 },
             )
-    else:
-        merge_request.status = "declined"
-        merge_request.target_owner_consent = "declined"
-        merge_request.resolved_at = timezone.now()
-        merge_request.save()
+        else:
+            _publish_event(
+                "notification.similarity.merge_request_declined",
+                {
+                    "merge_request_id": str(merge_request.id),
+                    "requesting_idea_id": str(merge_request.requesting_idea_id),
+                    "target_idea_id": str(merge_request.target_idea_id),
+                },
+            )
 
-        _publish_event(
-            "notification.similarity.merge_request_declined",
-            {
-                "merge_request_id": str(merge_request.id),
-                "requesting_idea_id": str(merge_request.requesting_idea_id),
-                "target_idea_id": str(merge_request.target_idea_id),
-            },
-        )
+    # Broadcast WebSocket event for merge request status change
+    ws_payload = {
+        "merge_request_id": str(merge_request.id),
+        "merge_type": merge_request.merge_type,
+        "requesting_idea_id": str(merge_request.requesting_idea_id),
+        "target_idea_id": str(merge_request.target_idea_id),
+        "status": merge_request.status,
+    }
+    # Notify both idea groups
+    _broadcast_ws_event(
+        f"idea_{merge_request.requesting_idea_id}",
+        "merge_request",
+        ws_payload,
+    )
+    _broadcast_ws_event(
+        f"idea_{merge_request.target_idea_id}",
+        "merge_request",
+        ws_payload,
+    )
 
     result = MergeRequestSerializer(merge_request).data
     return Response(result, status=status.HTTP_200_OK)

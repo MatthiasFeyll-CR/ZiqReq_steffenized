@@ -1,4 +1,4 @@
-"""Similarity event consumer — handles similarity alerts and merge events."""
+"""Similarity event consumer — handles similarity alerts and merge/append events."""
 
 from __future__ import annotations
 
@@ -23,14 +23,33 @@ SIMILARITY_EVENT_TYPES = {
     "idea_closed_append",
 }
 
+# Routing-key-based event types from publish_event()
+MERGE_APPEND_EVENT_TYPES = {
+    "notification.similarity.merge_request_created",
+    "notification.similarity.append_request_created",
+    "notification.similarity.merge_request_accepted",
+    "notification.similarity.append_accepted",
+    "notification.similarity.merge_request_declined",
+    "notification.similarity.append_declined",
+    "notification.similarity.merge_complete",
+    "notification.similarity.append_complete",
+}
+
 
 def handle_similarity_event(
     gateway_client: GatewayClient,
     event: dict[str, Any],
 ) -> None:
     """Process a similarity notification event."""
-    user_id = event.get("user_id", "")
     event_type = event.get("event_type", "")
+
+    # Route merge/append events to dedicated handler
+    if event_type in MERGE_APPEND_EVENT_TYPES:
+        _handle_merge_append_event(gateway_client, event_type, event)
+        return
+
+    # Legacy pre-formatted notification events
+    user_id = event.get("user_id", "")
     title = event.get("title", "")
     body = event.get("body", "")
     reference_id = event.get("reference_id", "")
@@ -53,6 +72,301 @@ def handle_similarity_event(
         reference_id=reference_id,
         reference_type=reference_type,
     )
+
+
+def _handle_merge_append_event(
+    gateway_client: GatewayClient,
+    event_type: str,
+    event: dict[str, Any],
+) -> None:
+    """Route merge/append events to appropriate handlers."""
+    handler_map = {
+        "notification.similarity.merge_request_created": _handle_merge_request_created,
+        "notification.similarity.append_request_created": _handle_append_request_created,
+        "notification.similarity.merge_request_accepted": _handle_merge_accepted,
+        "notification.similarity.append_accepted": _handle_append_accepted,
+        "notification.similarity.merge_request_declined": _handle_merge_declined,
+        "notification.similarity.append_declined": _handle_append_declined,
+        "notification.similarity.merge_complete": _handle_merge_complete,
+        "notification.similarity.append_complete": _handle_append_complete,
+    }
+
+    handler = handler_map.get(event_type)
+    if handler is None:
+        logger.warning("No handler for merge/append event type: %s", event_type)
+        return
+
+    try:
+        handler(gateway_client, event)
+    except Exception:
+        logger.exception("Error handling merge/append event %s: %s", event_type, event)
+
+
+def _get_idea_title(gateway_client: GatewayClient, idea_id: str) -> str:
+    """Fetch idea title via gRPC, returning 'Untitled' on failure."""
+    try:
+        details = gateway_client.get_idea_details(idea_id)
+        return details.get("title", "Untitled") or "Untitled"
+    except Exception:
+        logger.exception("Failed to fetch idea title for %s", idea_id)
+        return "Untitled"
+
+
+def _handle_merge_request_created(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """merge_request.created → notify target owner."""
+    target_owner_id = event.get("target_owner_id", "")
+    requesting_idea_id = event.get("requesting_idea_id", "")
+    target_idea_id = event.get("target_idea_id", "")
+
+    if not target_owner_id:
+        logger.error("merge_request_created missing target_owner_id: %s", event)
+        return
+
+    requesting_title = _get_idea_title(gateway_client, requesting_idea_id)
+    target_title = _get_idea_title(gateway_client, target_idea_id)
+
+    notify_user(
+        gateway_client=gateway_client,
+        user_id=target_owner_id,
+        event_type="merge_request_received",
+        title="Merge request received",
+        body=f'A merge has been requested between your idea "{target_title}" and "{requesting_title}".',
+        reference_id=target_idea_id,
+        reference_type="idea",
+    )
+
+
+def _handle_append_request_created(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """append_request.created → notify target owner + reviewer(s)."""
+    target_owner_id = event.get("target_owner_id", "")
+    requesting_idea_id = event.get("requesting_idea_id", "")
+    target_idea_id = event.get("target_idea_id", "")
+    reviewer_ids: list[str] = event.get("reviewer_ids", [])
+
+    if not target_owner_id:
+        logger.error("append_request_created missing target_owner_id: %s", event)
+        return
+
+    requesting_title = _get_idea_title(gateway_client, requesting_idea_id)
+    target_title = _get_idea_title(gateway_client, target_idea_id)
+
+    # Notify target owner
+    notify_user(
+        gateway_client=gateway_client,
+        user_id=target_owner_id,
+        event_type="merge_request_received",
+        title="Append request received",
+        body=f'An append has been requested to your idea "{target_title}" from "{requesting_title}".',
+        reference_id=target_idea_id,
+        reference_type="idea",
+    )
+
+    # Notify each reviewer
+    for reviewer_id in reviewer_ids:
+        notify_user(
+            gateway_client=gateway_client,
+            user_id=reviewer_id,
+            event_type="merge_request_received",
+            title="Append request — reviewer approval needed",
+            body=f'An append request to "{target_title}" from "{requesting_title}" requires your review.',
+            reference_id=target_idea_id,
+            reference_type="idea",
+        )
+
+
+def _handle_merge_accepted(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """merge.accepted → notify requesting owner."""
+    requesting_idea_id = event.get("requesting_idea_id", "")
+    target_idea_id = event.get("target_idea_id", "")
+
+    # Look up requesting idea to find owner
+    try:
+        requesting_idea = gateway_client.get_idea_details(requesting_idea_id)
+    except Exception:
+        logger.exception("Failed to fetch requesting idea %s for merge_accepted", requesting_idea_id)
+        return
+
+    requesting_owner_id = requesting_idea.get("owner_id", "")
+    if not requesting_owner_id:
+        logger.error("merge_accepted: no owner_id for requesting idea %s", requesting_idea_id)
+        return
+
+    requesting_title = requesting_idea.get("title", "Untitled")
+    target_title = _get_idea_title(gateway_client, target_idea_id)
+
+    notify_user(
+        gateway_client=gateway_client,
+        user_id=requesting_owner_id,
+        event_type="merge_accepted",
+        title="Merge request accepted",
+        body=f'Your merge request between "{requesting_title}" and "{target_title}" has been accepted.',
+        reference_id=requesting_idea_id,
+        reference_type="idea",
+    )
+
+
+def _handle_append_accepted(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """append.accepted → notify requesting owner."""
+    requesting_idea_id = event.get("requesting_idea_id", "")
+    target_idea_id = event.get("target_idea_id", "")
+
+    try:
+        requesting_idea = gateway_client.get_idea_details(requesting_idea_id)
+    except Exception:
+        logger.exception("Failed to fetch requesting idea %s for append_accepted", requesting_idea_id)
+        return
+
+    requesting_owner_id = requesting_idea.get("owner_id", "")
+    if not requesting_owner_id:
+        logger.error("append_accepted: no owner_id for requesting idea %s", requesting_idea_id)
+        return
+
+    requesting_title = requesting_idea.get("title", "Untitled")
+    target_title = _get_idea_title(gateway_client, target_idea_id)
+
+    notify_user(
+        gateway_client=gateway_client,
+        user_id=requesting_owner_id,
+        event_type="merge_accepted",
+        title="Append request accepted",
+        body=f'Your append request from "{requesting_title}" to "{target_title}" has been accepted.',
+        reference_id=requesting_idea_id,
+        reference_type="idea",
+    )
+
+
+def _handle_merge_declined(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """merge.declined → notify requesting owner."""
+    requesting_idea_id = event.get("requesting_idea_id", "")
+    target_idea_id = event.get("target_idea_id", "")
+
+    try:
+        requesting_idea = gateway_client.get_idea_details(requesting_idea_id)
+    except Exception:
+        logger.exception("Failed to fetch requesting idea %s for merge_declined", requesting_idea_id)
+        return
+
+    requesting_owner_id = requesting_idea.get("owner_id", "")
+    if not requesting_owner_id:
+        logger.error("merge_declined: no owner_id for requesting idea %s", requesting_idea_id)
+        return
+
+    requesting_title = requesting_idea.get("title", "Untitled")
+    target_title = _get_idea_title(gateway_client, target_idea_id)
+
+    notify_user(
+        gateway_client=gateway_client,
+        user_id=requesting_owner_id,
+        event_type="merge_declined",
+        title="Merge request declined",
+        body=f'Your merge request between "{requesting_title}" and "{target_title}" has been declined.',
+        reference_id=requesting_idea_id,
+        reference_type="idea",
+    )
+
+
+def _handle_append_declined(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """append.declined → notify requesting owner."""
+    requesting_idea_id = event.get("requesting_idea_id", "")
+    target_idea_id = event.get("target_idea_id", "")
+
+    try:
+        requesting_idea = gateway_client.get_idea_details(requesting_idea_id)
+    except Exception:
+        logger.exception("Failed to fetch requesting idea %s for append_declined", requesting_idea_id)
+        return
+
+    requesting_owner_id = requesting_idea.get("owner_id", "")
+    if not requesting_owner_id:
+        logger.error("append_declined: no owner_id for requesting idea %s", requesting_idea_id)
+        return
+
+    requesting_title = requesting_idea.get("title", "Untitled")
+    target_title = _get_idea_title(gateway_client, target_idea_id)
+
+    notify_user(
+        gateway_client=gateway_client,
+        user_id=requesting_owner_id,
+        event_type="merge_declined",
+        title="Append request declined",
+        body=f'Your append request from "{requesting_title}" to "{target_title}" has been declined.',
+        reference_id=requesting_idea_id,
+        reference_type="idea",
+    )
+
+
+def _handle_merge_complete(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """merge.complete → notify all collaborators + co-owners."""
+    resulting_idea_id = event.get("resulting_idea_id", "")
+    all_collaborators: list[str] = event.get("all_collaborators", [])
+    owner_ids: list[str] = event.get("owner_ids", [])
+    demoted_co_owners: list[str] = event.get("demoted_co_owners", [])
+
+    resulting_title = _get_idea_title(gateway_client, resulting_idea_id)
+
+    # Notify all owners, collaborators, and demoted co-owners
+    all_recipients = set(owner_ids) | set(all_collaborators) | set(demoted_co_owners)
+
+    for user_id in all_recipients:
+        notify_user(
+            gateway_client=gateway_client,
+            user_id=user_id,
+            event_type="merge_accepted",
+            title="Merge complete",
+            body=f'A merge has been completed. View the new idea: "{resulting_title}".',
+            reference_id=resulting_idea_id,
+            reference_type="idea",
+        )
+
+
+def _handle_append_complete(
+    gateway_client: GatewayClient,
+    event: dict[str, Any],
+) -> None:
+    """append.complete → notify all collaborators + co-owners."""
+    target_idea_id = event.get("target_idea_id", "")
+    requesting_owner_id = event.get("requesting_owner_id", "")
+    target_owner_id = event.get("target_owner_id", "")
+    target_collaborator_ids: list[str] = event.get("target_collaborator_ids", [])
+
+    target_title = _get_idea_title(gateway_client, target_idea_id)
+
+    # Notify all: target owner, requesting owner, all target collaborators
+    all_recipients = {requesting_owner_id, target_owner_id} | set(target_collaborator_ids)
+
+    for user_id in all_recipients:
+        if not user_id:
+            continue
+        notify_user(
+            gateway_client=gateway_client,
+            user_id=user_id,
+            event_type="merge_accepted",
+            title="Append complete",
+            body=f'An append has been completed on "{target_title}".',
+            reference_id=target_idea_id,
+            reference_type="idea",
+        )
 
 
 def _classify_match_behavior(

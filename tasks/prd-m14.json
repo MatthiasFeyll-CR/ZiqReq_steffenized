@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: data-model.md § merge_requests.reviewer_consent, review_assignments\nTesting: integration-scenarios.md § Append Flow (F-5.4, F-5.5)\nFiles: gateway/apps/ideas/views.py, gateway/apps/similarity/views.py, test_append_flow.py\nGotchas: 3-way consent for append, 2-way for merge. Events: append_request.created, append.accepted, append.declined",
       "context": {
@@ -43,7 +43,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: data-model.md § ideas.closed_by_append_id, idea_collaborators\nFiles: core/apps/similarity/append_service.py (new), core/events/consumers.py\nGotchas: No new idea. State stays 'open', just flagged",
       "context": {
@@ -66,7 +66,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.8.01", "T-5.8.02", "T-5.8.03"],
       "notes": "Architecture: data-model.md § merge_requests (add manual_request bool)\nTesting: test-matrix.md § T-5.8.01-03, integration-scenarios.md § Manual Merge Recovery\nFiles: gateway/apps/ideas/views.py (extend), ManualMergeRequestSerializer, test_manual_merge.py, migration 0003_add_manual_request_flag.py\nGotchas: URL regex `/idea/([0-9a-f-]{36})/`. Bypasses dismissed pairs",
       "context": {
@@ -90,7 +90,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 17 Modal, § 4.1 Text Input\nFiles: frontend/components/workspace/ManualMergeModal.tsx, api/similarity.ts, __tests__/manual-merge-modal.test.tsx\nGotchas: UUID regex `/^[0-9a-f-]{36}$/i`. Clipboard API needs HTTPS/localhost",
       "context": {
@@ -113,7 +113,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: data-model.md § ideas.co_owner_id, 2-owner model notes\nTesting: integration-scenarios.md § Recursive Merge, runtime-safety.md § INTEGRITY-009\nFiles: core/apps/similarity/merge_service.py (extend execute_merge), test_recursive_merge.py\nGotchas: Triggerers = requesting owner + target owner. Demoted = all other original owners",
       "context": {
@@ -135,7 +135,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 11.5 Banners, § 5.8 LockOverlay\nFiles: gateway/apps/ideas/views.py (extend response), MergedIdeaBanner.tsx, AppendedIdeaBanner.tsx, IdeaWorkspace.tsx\nGotchas: merged_idea_ref and appended_idea_ref are mutually exclusive",
       "context": {
@@ -160,7 +160,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: api-design.md § Message Broker Events\nDesign: page-layouts.md § 12 Toast Notifications\nFiles: notification/consumers/similarity_events.py (extend), email/templates/merge_*.html, gateway/apps/websocket/routing.py\nGotchas: append_request.created notifies 2 parties. merge.complete notifies many",
       "context": {
