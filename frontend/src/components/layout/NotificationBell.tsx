@@ -1,7 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 import { fetchUnreadCount } from "@/api/notifications";
+
+function getToastType(eventType: string): "info" | "success" | "warning" {
+  if (eventType.startsWith("review_state")) return "warning";
+  if (eventType === "review_comment") return "info";
+  if (
+    eventType === "collaborator_joined" ||
+    eventType === "merge_accepted" ||
+    eventType.startsWith("ai_delegation")
+  )
+    return "success";
+  if (
+    eventType === "removed_from_idea" ||
+    eventType === "merge_declined" ||
+    eventType === "monitoring_alert"
+  )
+    return "warning";
+  return "info";
+}
 
 interface NotificationBellProps {
   onTogglePanel: () => void;
@@ -28,13 +47,32 @@ export function NotificationBell({ onTogglePanel }: NotificationBellProps) {
     prevCountRef.current = count;
   }, [count]);
 
-  const handleNotificationEvent = useCallback(() => {
-    queryClient.setQueryData<{ unread_count: number }>(
-      ["notificationUnreadCount"],
-      (old) => ({ unread_count: (old?.unread_count ?? 0) + 1 }),
-    );
-    queryClient.invalidateQueries({ queryKey: ["notificationUnreadCount"] });
-  }, [queryClient]);
+  const handleNotificationEvent = useCallback(
+    (e: Event) => {
+      const detail = (e as CustomEvent).detail as {
+        event_type?: string;
+        title?: string;
+        body?: string;
+      } | undefined;
+
+      // Optimistic count update + server reconciliation
+      queryClient.setQueryData<{ unread_count: number }>(
+        ["notificationUnreadCount"],
+        (old) => ({ unread_count: (old?.unread_count ?? 0) + 1 }),
+      );
+      queryClient.invalidateQueries({ queryKey: ["notificationUnreadCount"] });
+
+      // Display toast with severity based on event type
+      if (detail?.title) {
+        const toastType = getToastType(detail.event_type ?? "");
+        const message = detail.body
+          ? `${detail.title}: ${detail.body}`
+          : detail.title;
+        toast[toastType](message, { autoClose: 5000 });
+      }
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
     window.addEventListener("ws:notification", handleNotificationEvent);
