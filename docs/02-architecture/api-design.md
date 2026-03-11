@@ -909,6 +909,25 @@
 - **Auth:** Invitation inviter (idea owner)
 - **Response (204):** No content
 
+#### GET /api/ideas/:id/invitations
+- **Purpose:** List pending invitations for a specific idea (for Pending Invitations tab in CollaboratorModal)
+- **Auth:** Owner only
+- **Response (200):**
+  ```json
+  {
+    "invitations": [
+      {
+        "id": "uuid",
+        "invitee_id": "uuid",
+        "invitee_display_name": "string",
+        "created_at": "iso8601",
+        "status": "pending"
+      }
+    ]
+  }
+  ```
+- **Notes:** Added in M11 (US-006). Complements `GET /api/invitations` which returns invitations *to* the current user. This endpoint returns invitations *from* the owner for a specific idea.
+
 ---
 
 ### Similarity & Merge
