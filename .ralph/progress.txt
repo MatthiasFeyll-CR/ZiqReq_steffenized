@@ -1,0 +1,38 @@
+# Ralph Progress Log — M15 (admin)
+Started: 2026-03-11T15:59:48+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Admin AI Context Endpoints — GET/PATCH
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/admin_ai_context/models.py (new), services/gateway/apps/admin_ai_context/serializers.py (new), services/gateway/apps/admin_ai_context/views.py (replaced placeholder), services/gateway/apps/admin_ai_context/urls.py (wired routes), services/gateway/apps/admin_ai_context/apps.py (new), services/gateway/apps/admin_ai_context/migrations/0001_create_ai_context_tables.py (new), services/gateway/apps/admin_ai_context/tests/__init__.py (new), services/gateway/apps/admin_ai_context/tests/test_ai_context.py (new), .ralph/test-manifest.json (updated)
+- Tests: 11 passed (TestFacilitatorContext: 5, TestCompanyContext: 6), full suite 820 passed
+- Learnings for future iterations:
+  - managed=False mirror models need a RunSQL migration (CREATE TABLE IF NOT EXISTS) for the test DB, since Django's test runner won't create tables for unmanaged models
+  - The admin_ai_context app needed an apps.py with name="apps.admin_ai_context" for Django to discover migrations
+  - Admin role check pattern: use MiddlewareAuthentication + check user.roles for "admin", return 403 if missing
+  - Singleton tables (FacilitatorContextBucket, ContextAgentBucket) use get_or_create with no filter args to ensure single row
+  - Docker image must be rebuilt (docker compose build) after adding new migration files for tests to pick them up
+  - The node test suite has a flaky test (information-gaps-toggle.test.tsx) that fails in full suite but passes in isolation — pre-existing issue
+---

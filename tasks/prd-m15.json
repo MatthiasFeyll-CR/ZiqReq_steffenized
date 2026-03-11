@@ -1,11 +1,11 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m15-admin",
-  "description": "Admin Panel — 4-tab admin dashboard (AI Context, Parameters, Monitoring, Users) with full CRUD for system configuration, monitoring backend service with health checks and alerting, and admin user search.",
+  "description": "Admin Panel \u2014 4-tab admin dashboard (AI Context, Parameters, Monitoring, Users) with full CRUD for system configuration, monitoring backend service with health checks and alerting, and admin user search.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Admin AI Context Endpoints — GET/PATCH",
+      "title": "Admin AI Context Endpoints \u2014 GET/PATCH",
       "description": "As an admin, I want to view and update the facilitator context bucket and company context bucket so that I can manage AI context for the system.",
       "acceptanceCriteria": [
         "GET /api/admin/ai-context/facilitator returns {id, content, updated_by, updated_at}",
@@ -17,19 +17,26 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": ["T-11.2.01", "T-11.2.02", "API-ADMIN.03", "API-ADMIN.04", "API-ADMIN.05", "API-ADMIN.06"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § Admin → AI Context endpoints\nArchitecture: docs/02-architecture/data-model.md § facilitator_context_bucket, context_agent_bucket\nAI: docs/03-ai/agent-architecture.md § Context Agent RAG — re-indexing trigger after company context update\nTesting: docs/04-test-architecture/test-matrix.md § T-11.2.01, T-11.2.02 (Integration: AI context CRUD), API-ADMIN.03-06 (API happy path + authz)\nFiles: services/gateway/apps/admin_ai_context/views.py, services/gateway/apps/admin_ai_context/serializers.py (new), services/gateway/apps/admin_ai_context/tests/test_ai_context.py (new)\nGotchas: FacilitatorContextBucket and ContextAgentBucket are singletons in AI service — use get_or_create pattern. AI service gRPC client already exists (services/gateway/grpc_clients/ai_client.py).",
+      "passes": true,
+      "testIds": [
+        "T-11.2.01",
+        "T-11.2.02",
+        "API-ADMIN.03",
+        "API-ADMIN.04",
+        "API-ADMIN.05",
+        "API-ADMIN.06"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin \u2192 AI Context endpoints\nArchitecture: docs/02-architecture/data-model.md \u00a7 facilitator_context_bucket, context_agent_bucket\nAI: docs/03-ai/agent-architecture.md \u00a7 Context Agent RAG \u2014 re-indexing trigger after company context update\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-11.2.01, T-11.2.02 (Integration: AI context CRUD), API-ADMIN.03-06 (API happy path + authz)\nFiles: services/gateway/apps/admin_ai_context/views.py, services/gateway/apps/admin_ai_context/serializers.py (new), services/gateway/apps/admin_ai_context/tests/test_ai_context.py (new)\nGotchas: FacilitatorContextBucket and ContextAgentBucket are singletons in AI service \u2014 use get_or_create pattern. AI service gRPC client already exists (services/gateway/grpc_clients/ai_client.py).",
       "context": {
         "data_model": [
-          "facilitator_context_bucket: content text, updated_by uuid FK, updated_at timestamptz — singleton table of contents for facilitator AI",
-          "context_agent_bucket: sections jsonb, free_text text, updated_by uuid FK, updated_at timestamptz — singleton detailed company info"
+          "facilitator_context_bucket: content text, updated_by uuid FK, updated_at timestamptz \u2014 singleton table of contents for facilitator AI",
+          "context_agent_bucket: sections jsonb, free_text text, updated_by uuid FK, updated_at timestamptz \u2014 singleton detailed company info"
         ],
         "api_endpoints": [
-          "GET /api/admin/ai-context/facilitator — returns facilitator bucket → 200 {id, content, updated_by, updated_at}",
-          "PATCH /api/admin/ai-context/facilitator {content} — updates facilitator bucket → 200 {id, content, updated_by, updated_at}",
-          "GET /api/admin/ai-context/company — returns context agent bucket → 200 {id, sections, free_text, updated_by, updated_at}",
-          "PATCH /api/admin/ai-context/company {sections, free_text} — updates context agent bucket → 200 + triggers re-indexing"
+          "GET /api/admin/ai-context/facilitator \u2014 returns facilitator bucket \u2192 200 {id, content, updated_by, updated_at}",
+          "PATCH /api/admin/ai-context/facilitator {content} \u2014 updates facilitator bucket \u2192 200 {id, content, updated_by, updated_at}",
+          "GET /api/admin/ai-context/company \u2014 returns context agent bucket \u2192 200 {id, sections, free_text, updated_by, updated_at}",
+          "PATCH /api/admin/ai-context/company {sections, free_text} \u2014 updates context agent bucket \u2192 200 + triggers re-indexing"
         ],
         "test_cases": [
           "T-11.2.01 | Integration | Facilitator context CRUD | PUT /api/admin/ai-context/facilitator | Content updated",
@@ -40,13 +47,13 @@
           "API-ADMIN.06 | PATCH /api/admin/ai-context/company | Happy path | 200"
         ],
         "ai_specs": [
-          "Context Agent RAG — M8 implemented UpdateContextAgentBucket gRPC which re-chunks + re-embeds company context. Trigger this via AI gRPC client after PATCH to context_agent_bucket."
+          "Context Agent RAG \u2014 M8 implemented UpdateContextAgentBucket gRPC which re-chunks + re-embeds company context. Trigger this via AI gRPC client after PATCH to context_agent_bucket."
         ]
       }
     },
     {
       "id": "US-002",
-      "title": "Admin Parameters Endpoints — GET List, PATCH Individual",
+      "title": "Admin Parameters Endpoints \u2014 GET List, PATCH Individual",
       "description": "As an admin, I want to view all system parameters and update individual parameter values so that I can configure runtime behavior without restarting services.",
       "acceptanceCriteria": [
         "GET /api/admin/parameters returns array of all parameters {key, value, default_value, description, data_type, category, updated_by, updated_at}",
@@ -59,20 +66,26 @@
       ],
       "priority": 2,
       "passes": false,
-      "testIds": ["T-11.3.01", "API-ADMIN.01", "API-ADMIN.02", "API-ADMIN.07", "API-ADMIN.08"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § Admin → Parameters endpoints\nArchitecture: docs/02-architecture/data-model.md § admin_parameters table — runtime-configurable system parameters\nTesting: docs/04-test-architecture/test-matrix.md § T-11.3.01 (Integration: parameter update applies immediately), API-ADMIN.01-02, 07-08\nFiles: services/gateway/apps/admin_config/views.py (replace placeholder), services/gateway/apps/admin_config/serializers.py (new), services/gateway/apps/admin_config/tests/test_parameters.py (new)\nGotchas: AdminParameter table is already seeded with defaults from migration 0002_seed_parameters. Admin parameters are read by various services at runtime via core service (not cached). Data type validation: use serializer field validators for int/float/bool parsing.",
+      "testIds": [
+        "T-11.3.01",
+        "API-ADMIN.01",
+        "API-ADMIN.02",
+        "API-ADMIN.07",
+        "API-ADMIN.08"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin \u2192 Parameters endpoints\nArchitecture: docs/02-architecture/data-model.md \u00a7 admin_parameters table \u2014 runtime-configurable system parameters\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-11.3.01 (Integration: parameter update applies immediately), API-ADMIN.01-02, 07-08\nFiles: services/gateway/apps/admin_config/views.py (replace placeholder), services/gateway/apps/admin_config/serializers.py (new), services/gateway/apps/admin_config/tests/test_parameters.py (new)\nGotchas: AdminParameter table is already seeded with defaults from migration 0002_seed_parameters. Admin parameters are read by various services at runtime via core service (not cached). Data type validation: use serializer field validators for int/float/bool parsing.",
       "context": {
         "data_model": [
           "admin_parameters: key varchar(100) PK, value varchar(500), default_value varchar(500), description text, data_type varchar(20) CHECK (string|integer|float|boolean), category varchar(50), updated_by uuid FK, updated_at timestamptz"
         ],
         "api_endpoints": [
-          "GET /api/admin/parameters — list all parameters → 200 [{key, value, default_value, description, data_type, category, updated_by, updated_at}]",
-          "PATCH /api/admin/parameters/:key {value} — update parameter → 200 {key, value, ...} | 400 INVALID_VALUE | 404 PARAMETER_NOT_FOUND"
+          "GET /api/admin/parameters \u2014 list all parameters \u2192 200 [{key, value, default_value, description, data_type, category, updated_by, updated_at}]",
+          "PATCH /api/admin/parameters/:key {value} \u2014 update parameter \u2192 200 {key, value, ...} | 400 INVALID_VALUE | 404 PARAMETER_NOT_FOUND"
         ],
         "test_cases": [
           "T-11.3.01 | Integration | Parameter update applies immediately | PATCH /api/admin/parameters/debounce_timer {value: '5'} | Value updated runtime",
           "API-ADMIN.01 | GET /api/admin/parameters | Happy path | 200 + array",
-          "API-ADMIN.02 | GET /api/admin/parameters | Authz | Non-admin → 403",
+          "API-ADMIN.02 | GET /api/admin/parameters | Authz | Non-admin \u2192 403",
           "API-ADMIN.07 | PATCH /api/admin/parameters/:key | Happy path | 200",
           "API-ADMIN.08 | PATCH /api/admin/parameters/:key | Invalid data_type | 400"
         ],
@@ -84,7 +97,7 @@
     },
     {
       "id": "US-003",
-      "title": "Admin Monitoring Dashboard Endpoint — GET Aggregate Stats",
+      "title": "Admin Monitoring Dashboard Endpoint \u2014 GET Aggregate Stats",
       "description": "As an admin, I want to view a monitoring dashboard with active connections, ideas by state, user counts, AI processing stats, and system health so that I can monitor system status.",
       "acceptanceCriteria": [
         "GET /api/admin/monitoring returns {active_connections, ideas_by_state, active_users, online_users, ai_processing, system_health}",
@@ -99,16 +112,20 @@
       ],
       "priority": 3,
       "passes": false,
-      "testIds": ["T-11.4.01", "API-ADMIN.09", "API-ADMIN.10"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § Admin → Monitoring endpoints\nArchitecture: docs/02-architecture/tech-stack.md § Monitoring Service Design — health checks, DLQ depth, AI stats aggregation\nTesting: docs/04-test-architecture/test-matrix.md § T-11.4.01 (Integration: dashboard returns data), API-ADMIN.09-10\nFiles: services/gateway/apps/monitoring/views.py (new), services/gateway/apps/monitoring/serializers.py (new), services/gateway/apps/monitoring/services.py (new), services/gateway/apps/monitoring/tests/test_monitoring.py (new)\nGotchas: Active connections tracked by WebSocket consumer in Redis (check channels layer presence). AI stats available via AI gRPC client. System health is last known status from monitoring service (stored in Redis or DB). DLQ depth queries message broker (RabbitMQ management API or Azure Service Bus SDK).",
+      "testIds": [
+        "T-11.4.01",
+        "API-ADMIN.09",
+        "API-ADMIN.10"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin \u2192 Monitoring endpoints\nArchitecture: docs/02-architecture/tech-stack.md \u00a7 Monitoring Service Design \u2014 health checks, DLQ depth, AI stats aggregation\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-11.4.01 (Integration: dashboard returns data), API-ADMIN.09-10\nFiles: services/gateway/apps/monitoring/views.py (new), services/gateway/apps/monitoring/serializers.py (new), services/gateway/apps/monitoring/services.py (new), services/gateway/apps/monitoring/tests/test_monitoring.py (new)\nGotchas: Active connections tracked by WebSocket consumer in Redis (check channels layer presence). AI stats available via AI gRPC client. System health is last known status from monitoring service (stored in Redis or DB). DLQ depth queries message broker (RabbitMQ management API or Azure Service Bus SDK).",
       "context": {
         "api_endpoints": [
-          "GET /api/admin/monitoring — dashboard data → 200 {active_connections, ideas_by_state: {open, in_review, accepted, dropped, rejected}, active_users, online_users, ai_processing: {request_count, success_count, failure_count}, system_health: {gateway, ai, pdf, notification, database, redis, broker, dlq}}"
+          "GET /api/admin/monitoring \u2014 dashboard data \u2192 200 {active_connections, ideas_by_state: {open, in_review, accepted, dropped, rejected}, active_users, online_users, ai_processing: {request_count, success_count, failure_count}, system_health: {gateway, ai, pdf, notification, database, redis, broker, dlq}}"
         ],
         "test_cases": [
           "T-11.4.01 | Integration | Monitoring dashboard returns data | GET /api/admin/monitoring | All fields populated",
           "API-ADMIN.09 | GET /api/admin/monitoring | Happy path | 200 + stats object",
-          "API-ADMIN.10 | GET /api/admin/monitoring | Authz | Non-admin → 403"
+          "API-ADMIN.10 | GET /api/admin/monitoring | Authz | Non-admin \u2192 403"
         ],
         "existing_code": [
           "services/gateway/apps/monitoring/models.py: MonitoringAlertConfig already exists",
@@ -118,7 +135,7 @@
     },
     {
       "id": "US-004",
-      "title": "Admin Users Search Endpoint — GET with Stats",
+      "title": "Admin Users Search Endpoint \u2014 GET with Stats",
       "description": "As an admin, I want to search for users by name or email and view their stats (idea count, review count, contribution count) so that I can find user information quickly.",
       "acceptanceCriteria": [
         "GET /api/admin/users/search?q=query returns filtered user list",
@@ -133,22 +150,25 @@
       ],
       "priority": 4,
       "passes": false,
-      "testIds": ["API-ADMIN.11", "API-ADMIN.12"],
-      "notes": "Architecture: docs/02-architecture/api-design.md § Admin → Users search endpoint\nArchitecture: docs/02-architecture/data-model.md § users table — display_name, email, roles. Stats computed from ideas, review_timeline_entries, chat_messages, board_nodes\nTesting: docs/04-test-architecture/test-matrix.md § API-ADMIN.11-12\nFiles: services/gateway/apps/authentication/views.py (add admin_users_search view), services/gateway/apps/authentication/serializers.py (add AdminUserSearchSerializer), services/gateway/apps/authentication/tests/test_admin_users.py (new)\nGotchas: User stats require joins/aggregations across multiple tables. Use Django ORM annotations (Count, Q filters). Search query is optional (empty = return all users). The users table is in gateway service (owned), so direct DB access is fine.",
+      "testIds": [
+        "API-ADMIN.11",
+        "API-ADMIN.12"
+      ],
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin \u2192 Users search endpoint\nArchitecture: docs/02-architecture/data-model.md \u00a7 users table \u2014 display_name, email, roles. Stats computed from ideas, review_timeline_entries, chat_messages, board_nodes\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 API-ADMIN.11-12\nFiles: services/gateway/apps/authentication/views.py (add admin_users_search view), services/gateway/apps/authentication/serializers.py (add AdminUserSearchSerializer), services/gateway/apps/authentication/tests/test_admin_users.py (new)\nGotchas: User stats require joins/aggregations across multiple tables. Use Django ORM annotations (Count, Q filters). Search query is optional (empty = return all users). The users table is in gateway service (owned), so direct DB access is fine.",
       "context": {
         "data_model": [
-          "users: id uuid PK, email varchar UNIQUE, first_name varchar, last_name varchar, display_name varchar, roles varchar[] — user directory",
-          "ideas: owner_id uuid FK, co_owner_id uuid FK — count ideas owned",
-          "review_timeline_entries: author_id uuid FK — count review actions",
-          "chat_messages: sender_id uuid FK, sender_type varchar — count user messages (sender_type='user')",
-          "board_nodes: created_by varchar — count nodes where created_by='user' (no user ID link, infer from idea ownership)"
+          "users: id uuid PK, email varchar UNIQUE, first_name varchar, last_name varchar, display_name varchar, roles varchar[] \u2014 user directory",
+          "ideas: owner_id uuid FK, co_owner_id uuid FK \u2014 count ideas owned",
+          "review_timeline_entries: author_id uuid FK \u2014 count review actions",
+          "chat_messages: sender_id uuid FK, sender_type varchar \u2014 count user messages (sender_type='user')",
+          "board_nodes: created_by varchar \u2014 count nodes where created_by='user' (no user ID link, infer from idea ownership)"
         ],
         "api_endpoints": [
-          "GET /api/admin/users/search?q=query — search users → 200 [{id, email, first_name, last_name, display_name, roles, idea_count, review_count, contribution_count}]"
+          "GET /api/admin/users/search?q=query \u2014 search users \u2192 200 [{id, email, first_name, last_name, display_name, roles, idea_count, review_count, contribution_count}]"
         ],
         "test_cases": [
           "API-ADMIN.11 | GET /api/admin/users/search | Happy path | 200 + results",
-          "API-ADMIN.12 | GET /api/admin/users/search | Authz | Non-admin → 403"
+          "API-ADMIN.12 | GET /api/admin/users/search | Authz | Non-admin \u2192 403"
         ],
         "existing_code": [
           "services/gateway/apps/authentication/models.py: User model (unmanaged mirror of users table)"
@@ -157,7 +177,7 @@
     },
     {
       "id": "US-005",
-      "title": "Context Re-Indexing Trigger — PATCH Company Context → AI gRPC",
+      "title": "Context Re-Indexing Trigger \u2014 PATCH Company Context \u2192 AI gRPC",
       "description": "As the system, when an admin updates the company context bucket, I want to trigger re-indexing (re-chunk + re-embed) so that the Context Agent RAG has up-to-date information.",
       "acceptanceCriteria": [
         "PATCH /api/admin/ai-context/company triggers AI gRPC UpdateContextAgentBucket after successful update",
@@ -170,10 +190,10 @@
       "priority": 5,
       "passes": false,
       "testIds": [],
-      "notes": "Architecture: docs/02-architecture/api-design.md § Admin AI context endpoints — re-indexing on company context update\nAI: docs/03-ai/agent-architecture.md § Context Agent RAG pipeline — UpdateContextAgentBucket gRPC implemented in M8\nTesting: No dedicated test IDs — integration covered by T-11.2.02 (context agent bucket CRUD)\nFiles: services/gateway/apps/admin_ai_context/views.py (update company_context_update view to call gRPC), services/gateway/grpc_clients/ai_client.py (use existing UpdateContextAgentBucket stub)\nGotchas: AI service gRPC stub already exists from M8. The gRPC method is async (returns 202), so don't block the HTTP response. Use try/except around gRPC call, return 500 if it fails. The AI service handles DELETE + re-chunk + re-embed internally.",
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin AI context endpoints \u2014 re-indexing on company context update\nAI: docs/03-ai/agent-architecture.md \u00a7 Context Agent RAG pipeline \u2014 UpdateContextAgentBucket gRPC implemented in M8\nTesting: No dedicated test IDs \u2014 integration covered by T-11.2.02 (context agent bucket CRUD)\nFiles: services/gateway/apps/admin_ai_context/views.py (update company_context_update view to call gRPC), services/gateway/grpc_clients/ai_client.py (use existing UpdateContextAgentBucket stub)\nGotchas: AI service gRPC stub already exists from M8. The gRPC method is async (returns 202), so don't block the HTTP response. Use try/except around gRPC call, return 500 if it fails. The AI service handles DELETE + re-chunk + re-embed internally.",
       "context": {
         "ai_specs": [
-          "UpdateContextAgentBucket gRPC — accepts {bucket_id, sections, free_text} → returns 202 ACCEPTED. AI service deletes all context_chunks for bucket_id, re-chunks content, embeds chunks, inserts new context_chunks rows."
+          "UpdateContextAgentBucket gRPC \u2014 accepts {bucket_id, sections, free_text} \u2192 returns 202 ACCEPTED. AI service deletes all context_chunks for bucket_id, re-chunks content, embeds chunks, inserts new context_chunks rows."
         ],
         "existing_code": [
           "services/gateway/grpc_clients/ai_client.py: AIClient with stub methods for AI gRPC calls",
@@ -183,7 +203,7 @@
     },
     {
       "id": "US-006",
-      "title": "Monitoring Backend Service — Celery Periodic Task",
+      "title": "Monitoring Backend Service \u2014 Celery Periodic Task",
       "description": "As the system, I want a periodic background task that checks service health and sends alerts when issues are detected so that admins are notified of problems.",
       "acceptanceCriteria": [
         "Celery periodic task runs on configurable interval (admin_parameter: health_check_interval, default 60s)",
@@ -196,11 +216,13 @@
       ],
       "priority": 6,
       "passes": false,
-      "testIds": ["T-11.5.01"],
-      "notes": "Architecture: docs/02-architecture/tech-stack.md § Monitoring Service Design — Celery periodic task, health checks, DLQ monitoring\nDesign: docs/03-design/component-specs.md § ServiceHealthTable — status dots + latency + last check\nTesting: docs/04-test-architecture/test-matrix.md § T-11.5.01 (Integration: monitoring service detects unhealthy service)\nFiles: services/core/apps/monitoring/tasks.py (new), services/core/apps/monitoring/health_checks.py (new), services/core/apps/monitoring/tests/test_monitoring_service.py (new)\nGotchas: Store health check results in Redis with key prefix 'monitoring:health:{service_name}' and TTL = 2 * health_check_interval. Use Celery beat schedule to run task. DLQ depth check requires broker management API (RabbitMQ) or SDK (Azure Service Bus).",
+      "testIds": [
+        "T-11.5.01"
+      ],
+      "notes": "Architecture: docs/02-architecture/tech-stack.md \u00a7 Monitoring Service Design \u2014 Celery periodic task, health checks, DLQ monitoring\nDesign: docs/03-design/component-specs.md \u00a7 ServiceHealthTable \u2014 status dots + latency + last check\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 T-11.5.01 (Integration: monitoring service detects unhealthy service)\nFiles: services/core/apps/monitoring/tasks.py (new), services/core/apps/monitoring/health_checks.py (new), services/core/apps/monitoring/tests/test_monitoring_service.py (new)\nGotchas: Store health check results in Redis with key prefix 'monitoring:health:{service_name}' and TTL = 2 * health_check_interval. Use Celery beat schedule to run task. DLQ depth check requires broker management API (RabbitMQ) or SDK (Azure Service Bus).",
       "context": {
         "data_model": [
-          "admin_parameters: health_check_interval integer (default 60), dlq_alert_threshold integer (default 10) — configurable monitoring params"
+          "admin_parameters: health_check_interval integer (default 60), dlq_alert_threshold integer (default 10) \u2014 configurable monitoring params"
         ],
         "test_cases": [
           "T-11.5.01 | Integration | Monitoring service detects unhealthy service | Health check fails for one service | Alert email sent to opted-in admins"
@@ -213,7 +235,7 @@
     },
     {
       "id": "US-007",
-      "title": "Alert Configuration + Dispatch — Admin Opt-In & Email",
+      "title": "Alert Configuration + Dispatch \u2014 Admin Opt-In & Email",
       "description": "As an admin, I want to opt in or out of monitoring alerts, and when an alert is triggered, I want to receive an email if I'm opted in so that I'm notified of system issues.",
       "acceptanceCriteria": [
         "GET /api/admin/monitoring/alerts returns {user_id, is_active} for current admin user",
@@ -227,14 +249,14 @@
       "priority": 7,
       "passes": false,
       "testIds": [],
-      "notes": "Architecture: docs/02-architecture/api-design.md § Admin → Monitoring alerts endpoints\nArchitecture: docs/02-architecture/data-model.md § monitoring_alert_configs table — admin opt-in to alerts\nTesting: No dedicated test IDs — integration covered by T-11.5.01 (alert email sent)\nFiles: services/gateway/apps/monitoring/views.py (add alert config endpoints), services/gateway/apps/monitoring/serializers.py, services/notification/consumers.py (add monitoring_alert_consumer), services/notification/email_templates/monitoring_alert.html (new), services/gateway/apps/monitoring/tests/test_alert_config.py (new)\nGotchas: MonitoringAlertConfig table already exists (gateway service owns it). Create config row on first GET if none exists (upsert pattern). Notification service already has email dispatch infrastructure from M12.",
+      "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin \u2192 Monitoring alerts endpoints\nArchitecture: docs/02-architecture/data-model.md \u00a7 monitoring_alert_configs table \u2014 admin opt-in to alerts\nTesting: No dedicated test IDs \u2014 integration covered by T-11.5.01 (alert email sent)\nFiles: services/gateway/apps/monitoring/views.py (add alert config endpoints), services/gateway/apps/monitoring/serializers.py, services/notification/consumers.py (add monitoring_alert_consumer), services/notification/email_templates/monitoring_alert.html (new), services/gateway/apps/monitoring/tests/test_alert_config.py (new)\nGotchas: MonitoringAlertConfig table already exists (gateway service owns it). Create config row on first GET if none exists (upsert pattern). Notification service already has email dispatch infrastructure from M12.",
       "context": {
         "data_model": [
-          "monitoring_alert_configs: id uuid PK, user_id uuid UNIQUE, is_active boolean (default false), created_at, updated_at — admin alert opt-in"
+          "monitoring_alert_configs: id uuid PK, user_id uuid UNIQUE, is_active boolean (default false), created_at, updated_at \u2014 admin alert opt-in"
         ],
         "api_endpoints": [
-          "GET /api/admin/monitoring/alerts — get current admin's alert config → 200 {user_id, is_active}",
-          "PATCH /api/admin/monitoring/alerts {is_active} — update alert config → 200 {user_id, is_active}"
+          "GET /api/admin/monitoring/alerts \u2014 get current admin's alert config \u2192 200 {user_id, is_active}",
+          "PATCH /api/admin/monitoring/alerts {is_active} \u2014 update alert config \u2192 200 {user_id, is_active}"
         ],
         "existing_code": [
           "services/gateway/apps/monitoring/models.py: MonitoringAlertConfig model",
@@ -244,7 +266,7 @@
     },
     {
       "id": "US-008",
-      "title": "Admin Panel Layout — /admin Route with 4 Tabs",
+      "title": "Admin Panel Layout \u2014 /admin Route with 4 Tabs",
       "description": "As an admin, I want to navigate to /admin and see a 4-tab layout (AI Context, Parameters, Monitoring, Users) so that I can manage system configuration.",
       "acceptanceCriteria": [
         "Route /admin renders AdminPanel page component",
@@ -257,12 +279,15 @@
       ],
       "priority": 8,
       "passes": false,
-      "testIds": ["UI-ADMIN.01", "UI-ADMIN.04"],
-      "notes": "Design: docs/03-design/page-layouts.md § S4 Admin Panel — 4 tabs with icons\nDesign: docs/03-design/component-specs.md § Tabs — horizontal tabs with icons\nTesting: docs/04-test-architecture/test-matrix.md § UI-ADMIN.01 (4 tabs render), UI-ADMIN.04 (non-admin access denied)\nFiles: frontend/src/pages/admin-panel.tsx (replace placeholder), frontend/src/components/layout/Navbar.tsx (add Admin link with role gate)\nGotchas: Use shadcn Tabs component (@radix-ui/react-tabs). Lucide icons: Brain, Settings, BarChart3, Users. Role check uses useAuth hook (admin role in roles array).",
+      "testIds": [
+        "UI-ADMIN.01",
+        "UI-ADMIN.04"
+      ],
+      "notes": "Design: docs/03-design/page-layouts.md \u00a7 S4 Admin Panel \u2014 4 tabs with icons\nDesign: docs/03-design/component-specs.md \u00a7 Tabs \u2014 horizontal tabs with icons\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 UI-ADMIN.01 (4 tabs render), UI-ADMIN.04 (non-admin access denied)\nFiles: frontend/src/pages/admin-panel.tsx (replace placeholder), frontend/src/components/layout/Navbar.tsx (add Admin link with role gate)\nGotchas: Use shadcn Tabs component (@radix-ui/react-tabs). Lucide icons: Brain, Settings, BarChart3, Users. Role check uses useAuth hook (admin role in roles array).",
       "context": {
         "components": [
-          "Tabs — horizontal tabs with shadcn Tabs, TabsList, TabsTrigger, TabsContent",
-          "Navbar — global navigation, role-gated links"
+          "Tabs \u2014 horizontal tabs with shadcn Tabs, TabsList, TabsTrigger, TabsContent",
+          "Navbar \u2014 global navigation, role-gated links"
         ],
         "test_cases": [
           "UI-ADMIN.01 | Unit | 4 tabs render: AI Context, Parameters, Monitoring, Users | Admin role | All tabs visible",
@@ -276,7 +301,7 @@
     },
     {
       "id": "US-009",
-      "title": "AI Context + Parameters Tabs — Editors & Table",
+      "title": "AI Context + Parameters Tabs \u2014 Editors & Table",
       "description": "As an admin, I want to edit facilitator and company context, and view/edit system parameters in a table so that I can configure AI context and runtime parameters.",
       "acceptanceCriteria": [
         "AI Context tab: 2 sections (Facilitator + Company Context) with textarea editors",
@@ -291,20 +316,22 @@
       ],
       "priority": 9,
       "passes": false,
-      "testIds": ["UI-ADMIN.02"],
-      "notes": "Design: docs/03-design/page-layouts.md § S4 Admin Panel — AI Context editors, parameters table\nDesign: docs/03-design/component-specs.md § Textarea — auto-grow variant\nTesting: docs/04-test-architecture/test-matrix.md § UI-ADMIN.02 (parameters tab shows editable fields)\nFiles: frontend/src/features/admin/AIContextTab.tsx (new), frontend/src/features/admin/ParametersTab.tsx (new), frontend/src/api/admin.ts (new), frontend/src/pages/admin-panel.tsx (wire tabs)\nGotchas: Company context sections field is JSONB — use JSON editor or structured inputs. For MVP, use textarea with JSON.parse validation. Parameters table uses shadcn Table component. Inline editing pattern: double-click row to edit, Enter to save, Escape to cancel.",
+      "testIds": [
+        "UI-ADMIN.02"
+      ],
+      "notes": "Design: docs/03-design/page-layouts.md \u00a7 S4 Admin Panel \u2014 AI Context editors, parameters table\nDesign: docs/03-design/component-specs.md \u00a7 Textarea \u2014 auto-grow variant\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 UI-ADMIN.02 (parameters tab shows editable fields)\nFiles: frontend/src/features/admin/AIContextTab.tsx (new), frontend/src/features/admin/ParametersTab.tsx (new), frontend/src/api/admin.ts (new), frontend/src/pages/admin-panel.tsx (wire tabs)\nGotchas: Company context sections field is JSONB \u2014 use JSON editor or structured inputs. For MVP, use textarea with JSON.parse validation. Parameters table uses shadcn Table component. Inline editing pattern: double-click row to edit, Enter to save, Escape to cancel.",
       "context": {
         "components": [
-          "Textarea — auto-grow variant, used for AI context editors",
-          "ParametersTable — inline-editable table with gold modified indicator"
+          "Textarea \u2014 auto-grow variant, used for AI context editors",
+          "ParametersTable \u2014 inline-editable table with gold modified indicator"
         ],
         "api_endpoints": [
-          "GET /api/admin/ai-context/facilitator → {id, content, updated_by, updated_at}",
-          "PATCH /api/admin/ai-context/facilitator {content} → 200",
-          "GET /api/admin/ai-context/company → {id, sections, free_text, updated_by, updated_at}",
-          "PATCH /api/admin/ai-context/company {sections, free_text} → 200",
-          "GET /api/admin/parameters → [{key, value, default_value, description, data_type, category, updated_by, updated_at}]",
-          "PATCH /api/admin/parameters/:key {value} → 200"
+          "GET /api/admin/ai-context/facilitator \u2192 {id, content, updated_by, updated_at}",
+          "PATCH /api/admin/ai-context/facilitator {content} \u2192 200",
+          "GET /api/admin/ai-context/company \u2192 {id, sections, free_text, updated_by, updated_at}",
+          "PATCH /api/admin/ai-context/company {sections, free_text} \u2192 200",
+          "GET /api/admin/parameters \u2192 [{key, value, default_value, description, data_type, category, updated_by, updated_at}]",
+          "PATCH /api/admin/parameters/:key {value} \u2192 200"
         ],
         "test_cases": [
           "UI-ADMIN.02 | Unit | Parameters tab shows editable fields | Parameter data | Input fields with current values"
@@ -313,7 +340,7 @@
     },
     {
       "id": "US-010",
-      "title": "Monitoring + Users Tabs — Dashboard & Search",
+      "title": "Monitoring + Users Tabs \u2014 Dashboard & Search",
       "description": "As an admin, I want to view monitoring stats (KPI cards, service health, alert config) and search for users so that I can monitor system health and find user information.",
       "acceptanceCriteria": [
         "Monitoring tab: KPI cards (Active Connections, Ideas by State, Active Users, AI Requests)",
@@ -326,19 +353,21 @@
       ],
       "priority": 10,
       "passes": false,
-      "testIds": ["UI-ADMIN.03"],
-      "notes": "Design: docs/03-design/page-layouts.md § S4 Admin Panel — monitoring dashboard, user search\nDesign: docs/03-design/component-specs.md § KPICard, UserCard, ServiceHealthTable\nTesting: docs/04-test-architecture/test-matrix.md § UI-ADMIN.03 (monitoring dashboard renders stats)\nFiles: frontend/src/features/admin/MonitoringTab.tsx (new), frontend/src/features/admin/UsersTab.tsx (new), frontend/src/components/admin/KPICard.tsx (new), frontend/src/components/admin/ServiceHealthTable.tsx (new), frontend/src/components/admin/UserCard.tsx (new), frontend/src/api/admin.ts (add endpoints)\nGotchas: KPI cards use TanStack Query with refetchInterval for live updates. Service health status: green dot (healthy), red dot (unhealthy). User search debounced (300ms) to avoid excessive API calls.",
+      "testIds": [
+        "UI-ADMIN.03"
+      ],
+      "notes": "Design: docs/03-design/page-layouts.md \u00a7 S4 Admin Panel \u2014 monitoring dashboard, user search\nDesign: docs/03-design/component-specs.md \u00a7 KPICard, UserCard, ServiceHealthTable\nTesting: docs/04-test-architecture/test-matrix.md \u00a7 UI-ADMIN.03 (monitoring dashboard renders stats)\nFiles: frontend/src/features/admin/MonitoringTab.tsx (new), frontend/src/features/admin/UsersTab.tsx (new), frontend/src/components/admin/KPICard.tsx (new), frontend/src/components/admin/ServiceHealthTable.tsx (new), frontend/src/components/admin/UserCard.tsx (new), frontend/src/api/admin.ts (add endpoints)\nGotchas: KPI cards use TanStack Query with refetchInterval for live updates. Service health status: green dot (healthy), red dot (unhealthy). User search debounced (300ms) to avoid excessive API calls.",
       "context": {
         "components": [
-          "KPICard — label, value, optional trend indicator",
-          "UserCard — avatar, name, email, role badges, stats",
-          "ServiceHealthTable — service, status dots, last check timestamp"
+          "KPICard \u2014 label, value, optional trend indicator",
+          "UserCard \u2014 avatar, name, email, role badges, stats",
+          "ServiceHealthTable \u2014 service, status dots, last check timestamp"
         ],
         "api_endpoints": [
-          "GET /api/admin/monitoring → {active_connections, ideas_by_state, active_users, online_users, ai_processing, system_health}",
-          "GET /api/admin/monitoring/alerts → {user_id, is_active}",
-          "PATCH /api/admin/monitoring/alerts {is_active} → 200",
-          "GET /api/admin/users/search?q=query → [{id, email, first_name, last_name, display_name, roles, idea_count, review_count, contribution_count}]"
+          "GET /api/admin/monitoring \u2192 {active_connections, ideas_by_state, active_users, online_users, ai_processing, system_health}",
+          "GET /api/admin/monitoring/alerts \u2192 {user_id, is_active}",
+          "PATCH /api/admin/monitoring/alerts {is_active} \u2192 200",
+          "GET /api/admin/users/search?q=query \u2192 [{id, email, first_name, last_name, display_name, roles, idea_count, review_count, contribution_count}]"
         ],
         "test_cases": [
           "UI-ADMIN.03 | Unit | Monitoring dashboard renders stats | Monitoring data | Charts/numbers displayed"

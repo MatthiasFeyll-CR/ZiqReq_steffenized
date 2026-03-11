@@ -779,6 +779,30 @@
     "T-5.8.03": {
       "file": "services/gateway/apps/ideas/tests/test_manual_merge.py",
       "function": "test_400_cannot_merge_self"
+    },
+    "T-11.2.01": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_facilitator_context"
+    },
+    "T-11.2.02": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_company_context"
+    },
+    "API-ADMIN.03": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_get_facilitator_context"
+    },
+    "API-ADMIN.04": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_facilitator_context"
+    },
+    "API-ADMIN.05": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_get_company_context"
+    },
+    "API-ADMIN.06": {
+      "file": "services/gateway/apps/admin_ai_context/tests/test_ai_context.py",
+      "function": "test_patch_company_context"
     }
   }
 }
