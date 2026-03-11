@@ -603,6 +603,30 @@
     "UI-4.07": {
       "file": "frontend/src/__tests__/information-gaps-toggle.test.tsx",
       "function": "shows the Allow information gaps toggle switch in the editor"
+    },
+    "API-INVITE.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_send_invitation_success"
+    },
+    "API-INVITE.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_accept_invitation_success"
+    },
+    "API-INVITE.03": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_decline_invitation_success"
+    },
+    "API-INVITE.04": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_revoke_invitation_success"
+    },
+    "API-INVITE.05": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_reinvite_after_decline"
+    },
+    "T-8.1.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
+      "function": "test_first_accept_transitions_visibility"
     }
   }
 }

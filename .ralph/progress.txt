@@ -1,0 +1,39 @@
+# Ralph Progress Log — M11 (collaboration)
+Started: 2026-03-11T07:34:47+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Invitation REST API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/collaboration/views.py, services/gateway/apps/collaboration/urls.py, services/gateway/apps/ideas/urls.py, services/gateway/apps/collaboration/tests/test_invitation_api.py
+- Tests: 581 Python tests passed, 361 Node tests passed (45 files). 1 pre-existing node error (PDFPreview unrelated).
+- Learnings for future iterations:
+  - send_invitation is mounted under ideas URLs at `<idea_id>/collaborators/invite` while accept/decline/revoke are under collaboration URLs at `api/invitations/<id>/<action>`
+  - IdeaCollaborator uses ForeignKey to Idea (not raw UUID) — use `idea=idea` or `idea_id=idea.id` for create
+  - `_require_auth` and `_unauthorized_response` helper pattern used in ideas views — replicated in collaboration views
+  - Auth bypass with `override_settings(DEBUG=True, AUTH_BYPASS=True)` and dev-login for tests
+  - Docker build gate check has pre-existing failure (missing nginx.conf) — not caused by M11 changes
+  - Visibility transition uses `Idea.objects.filter(..., visibility="private").update(visibility="collaborating")` — only updates if still private, safe for idempotency
+  - `transaction.atomic()` wraps accept flow: invitation status + collaborator create + visibility transition
+---
