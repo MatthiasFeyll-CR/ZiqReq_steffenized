@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-INVITE.01", "API-INVITE.02", "API-INVITE.03", "API-INVITE.04", "API-INVITE.05", "T-8.1.01"],
       "notes": "Architecture: docs/02-architecture/api-design.md § Collaboration Endpoints, docs/02-architecture/data-model.md § collaboration_invitations, idea_collaborators, ideas.visibility\nTesting: docs/04-test-architecture/test-matrix.md § API-INVITE.01-05, T-8.1.01\nFiles: services/gateway/apps/collaboration/views.py, serializers.py, urls.py, tests/test_invitation_api.py\nGotchas: Use transaction.atomic() for visibility transition + collaborator creation. Check collaborator count before visibility update.",
       "context": {
@@ -41,7 +41,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-COLLAB.01", "API-COLLAB.02", "API-COLLAB.03", "API-COLLAB.04", "T-8.4.01", "T-8.4.02"],
       "notes": "Architecture: docs/02-architecture/api-design.md § Collaboration Endpoints, docs/02-architecture/data-model.md § ideas.owner_id, co_owner_id\nTesting: docs/04-test-architecture/test-matrix.md § API-COLLAB.01-04, T-8.4.01-02\nFiles: services/gateway/apps/collaboration/views.py, tests/test_collaborator_mgmt.py\nGotchas: Single-owner constraint: co_owner_id IS NULL. Transfer updates owner_id, previous owner becomes collaborator.",
       "context": {
@@ -63,7 +63,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-USERS.01", "API-USERS.02", "API-USERS.03"],
       "notes": "Architecture: docs/02-architecture/api-design.md § User Search, docs/02-architecture/data-model.md § users\nTesting: docs/04-test-architecture/test-matrix.md § API-USERS.01-03\nFiles: services/gateway/apps/authentication/views.py (users owned by auth), tests/test_user_search.py\nGotchas: Use Q(display_name__icontains=...) | Q(email__icontains=...). Exclude request.user.id.",
       "context": {
@@ -85,7 +85,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": ["API-SHARE.01", "API-SHARE.02", "T-8.3.01", "T-8.3.02"],
       "notes": "Architecture: docs/02-architecture/api-design.md § Share Link, docs/02-architecture/data-model.md § ideas.share_link_token\nTesting: docs/04-test-architecture/test-matrix.md § API-SHARE.01-02, T-8.3.01-02\nFiles: services/gateway/apps/ideas/views.py, services/gateway/middleware/share_link.py (new), tests/test_share_link.py\nGotchas: Token: secrets.token_hex(32). Middleware adds 'share_link_viewer' to user.roles for read-only enforcement.",
       "context": {

@@ -25,4 +25,5 @@ urlpatterns = [
     path("<str:idea_id>/collaborators/<str:user_id_param>", collab_views.remove_collaborator),
     path("<str:idea_id>/transfer-ownership", collab_views.transfer_ownership),
     path("<str:idea_id>/leave", collab_views.leave_idea),
+    path("<str:idea_id>/share-link", views.generate_share_link),
 ]

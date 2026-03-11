@@ -35,6 +35,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "apps.authentication.middleware.AuthenticationMiddleware",
+    "middleware.share_link.ShareLinkMiddleware",
     "middleware.error_handling.ErrorHandlingMiddleware",
 ]
 
