@@ -17,6 +17,14 @@ class IdeaPatchSerializer(serializers.Serializer):
         return attrs
 
 
+class SimilarIdeaSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    title = serializers.CharField()
+    keywords = serializers.ListField(child=serializers.CharField(), default=list)
+    similarity_type = serializers.ChoiceField(choices=["declined_merge", "near_threshold"])
+    similarity_score = serializers.FloatField(allow_null=True, default=None)
+
+
 class IdeaDetailSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()

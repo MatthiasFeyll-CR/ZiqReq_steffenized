@@ -12,7 +12,7 @@ from apps.authentication.models import User
 
 from .authentication import MiddlewareAuthentication
 from .models import ChatContextSummary, ChatMessage, Idea, IdeaCollaborator
-from .serializers import IdeaCreateSerializer, IdeaDetailSerializer, IdeaPatchSerializer
+from .serializers import IdeaCreateSerializer, IdeaDetailSerializer, IdeaPatchSerializer, SimilarIdeaSerializer
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
@@ -452,4 +452,175 @@ def generate_share_link(request: Request, idea_id: str) -> Response:
             "share_url": f"/idea/{idea_id}?token={token}",
         },
         status=status.HTTP_201_CREATED,
+    )
+
+
+SIMILAR_DEFAULT_PAGE_SIZE = 10
+SIMILAR_MAX_PAGE_SIZE = 50
+
+_NEAR_THRESHOLD_SQL = """
+    SELECT
+        b.idea_id AS other_idea_id,
+        1 - (a.embedding <=> b.embedding) AS similarity_score
+    FROM idea_embeddings a
+    JOIN idea_embeddings b ON a.idea_id <> b.idea_id
+    JOIN ideas ib ON ib.id = b.idea_id
+        AND ib.deleted_at IS NULL
+    WHERE a.idea_id = %s
+        AND (1 - (a.embedding <=> b.embedding)) >= 0.65
+        AND (1 - (a.embedding <=> b.embedding)) < 0.75
+    ORDER BY similarity_score DESC
+"""
+
+
+def _get_near_threshold_matches(idea_id: uuid.UUID) -> list[dict]:
+    """Query pgvector for near-threshold cosine similarity matches (0.65–0.75)."""
+    from django.db import connection, transaction
+
+    matches: list[dict] = []
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(_NEAR_THRESHOLD_SQL, [str(idea_id)])
+                for row in cursor.fetchall():
+                    matches.append(
+                        {
+                            "idea_id": row[0],
+                            "similarity_type": "near_threshold",
+                            "similarity_score": round(float(row[1]), 4),
+                        }
+                    )
+    except Exception:
+        # pgvector / idea_embeddings table may not be available
+        pass
+    return matches
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def get_similar_ideas(request: Request, idea_id: str) -> Response:
+    """GET /api/ideas/:id/similar — declined merges + near-threshold vector matches."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_id)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Permission check: owner, co-owner, collaborator, or assigned reviewer
+    is_owner = idea.owner_id == user.id
+    is_co_owner = idea.co_owner_id == user.id
+    is_collaborator = IdeaCollaborator.objects.filter(idea_id=idea.id, user_id=user.id).exists()
+
+    from apps.review.models import ReviewAssignment
+
+    is_reviewer = ReviewAssignment.objects.filter(
+        idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+    ).exists()
+
+    if not (is_owner or is_co_owner or is_collaborator or is_reviewer):
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Pagination
+    page = max(int(request.query_params.get("page", 1)), 1)
+    page_size = min(
+        int(request.query_params.get("page_size", SIMILAR_DEFAULT_PAGE_SIZE)),
+        SIMILAR_MAX_PAGE_SIZE,
+    )
+
+    results = []
+
+    # 1. Declined merges where this idea is involved
+    from apps.similarity.models import MergeRequest
+
+    declined_merges = MergeRequest.objects.filter(
+        status="declined",
+    ).filter(Q(requesting_idea_id=idea.id) | Q(target_idea_id=idea.id))
+
+    for mr in declined_merges:
+        other_idea_id = mr.target_idea_id if mr.requesting_idea_id == idea.id else mr.requesting_idea_id
+        results.append(
+            {
+                "idea_id": other_idea_id,
+                "similarity_type": "declined_merge",
+                "similarity_score": None,
+            }
+        )
+
+    # 2. Near-threshold vector matches (cosine similarity 0.65–0.75)
+    near_threshold_matches = _get_near_threshold_matches(idea.id)
+    for match in near_threshold_matches:
+        if not any(r["idea_id"] == match["idea_id"] for r in results):
+            results.append(match)
+
+    # Deduplicate by idea_id (keep first occurrence)
+    seen = set()
+    unique_results = []
+    for r in results:
+        if r["idea_id"] not in seen:
+            seen.add(r["idea_id"])
+            unique_results.append(r)
+    results = unique_results
+
+    # Fetch idea details for all results
+    other_idea_ids = [r["idea_id"] for r in results]
+    other_ideas = {i.id: i for i in Idea.objects.filter(id__in=other_idea_ids, deleted_at__isnull=True)}
+
+    # Fetch keywords for other ideas
+    from apps.similarity.models import IdeaKeywords
+
+    keywords_map = {
+        kw.idea_id: kw.keywords
+        for kw in IdeaKeywords.objects.filter(idea_id__in=other_idea_ids)
+    }
+
+    # Build final results
+    final_results = []
+    for r in results:
+        other_idea = other_ideas.get(r["idea_id"])
+        if other_idea is None:
+            continue
+        final_results.append(
+            {
+                "id": other_idea.id,
+                "title": other_idea.title,
+                "keywords": keywords_map.get(r["idea_id"], []),
+                "similarity_type": r["similarity_type"],
+                "similarity_score": r["similarity_score"],
+            }
+        )
+
+    # Paginate
+    total_count = len(final_results)
+    offset = (page - 1) * page_size
+    page_results = final_results[offset : offset + page_size]
+
+    serializer = SimilarIdeaSerializer(page_results, many=True)
+
+    next_page = page + 1 if offset + page_size < total_count else None
+    previous_page = page - 1 if page > 1 else None
+
+    return Response(
+        {
+            "results": serializer.data,
+            "count": total_count,
+            "next": next_page,
+            "previous": previous_page,
+        }
     )
