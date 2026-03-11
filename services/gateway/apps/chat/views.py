@@ -1,4 +1,5 @@
 import logging
+import re
 import threading
 import uuid
 
@@ -21,6 +22,14 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _publish_notification(**kwargs) -> None:
+    """Lazy-import wrapper to avoid module-collection ordering issues in tests."""
+    from events.publisher import publish_notification_event
+
+    publish_notification_event(**kwargs)
+
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
@@ -227,7 +236,40 @@ def _create_message(request: Request, idea_id: str) -> Response:
     # Broadcast chat.message.created to WebSocket subscribers
     _broadcast_chat_message(message, user)
 
+    # Detect @mentions and publish notification events
+    _publish_mention_notifications(message, user, idea)
+
     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+_MENTION_PATTERN = re.compile(r"@user\[([0-9a-fA-F-]{36})\]")
+
+
+def _publish_mention_notifications(message: ChatMessage, sender, idea: Idea) -> None:
+    """Detect @user[<uuid>] mentions in message content and publish notification events."""
+    matches = _MENTION_PATTERN.findall(message.content)
+    seen: set[str] = set()
+    for mentioned_id in matches:
+        if mentioned_id in seen:
+            continue
+        seen.add(mentioned_id)
+        # Don't notify the sender about their own mention
+        if mentioned_id == str(sender.id):
+            continue
+        try:
+            _publish_notification(
+                routing_key="notification.chat.mention",
+                user_id=mentioned_id,
+                event_type="chat_mention",
+                title="You were mentioned",
+                body=f"{sender.display_name} mentioned you in \"{idea.title}\"",
+                reference_id=str(idea.id),
+                reference_type="idea",
+            )
+        except Exception:
+            logger.exception(
+                "Failed to publish mention notification for user %s", mentioned_id
+            )
 
 
 def _list_messages(request: Request, idea_id: str) -> Response:

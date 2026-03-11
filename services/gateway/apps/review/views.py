@@ -19,6 +19,14 @@ from .serializers import ReviewActionCommentSerializer, SubmitIdeaSerializer, Ti
 
 logger = logging.getLogger(__name__)
 
+
+def _publish_notification(**kwargs) -> None:
+    """Lazy-import wrapper to avoid module-collection ordering issues in tests."""
+    from events.publisher import publish_notification_event
+
+    publish_notification_event(**kwargs)
+
+
 def _create_pdf_client():
     """Create a PdfClient instance (lazy import to avoid namespace collisions)."""
     from grpc_clients.pdf_client import PdfClient
@@ -198,6 +206,18 @@ def submit_idea(request: Request, idea_id: str) -> Response:
 
     pdf_url = f"/api/ideas/{idea.id}/brd/versions/{next_version}/pdf"
 
+    # Notify assigned reviewers about submission
+    for reviewer_id in reviewer_ids:
+        _publish_notification(
+            routing_key="notification.review.submitted",
+            user_id=str(reviewer_id),
+            event_type="idea_submitted",
+            title="Idea Submitted for Review",
+            body=f'"{idea.title}" was submitted for review by {user.display_name}',
+            reference_id=str(idea.id),
+            reference_type="idea",
+        )
+
     return Response({
         "version_number": next_version,
         "pdf_url": pdf_url,
@@ -367,6 +387,28 @@ def _handle_review_action(request: Request, idea_id: str, action: str) -> Respon
             content=content,
             old_state=old_state,
             new_state=new_state,
+        )
+
+    # Notify idea owner of state change
+    _publish_notification(
+        routing_key="notification.review.state_changed",
+        user_id=str(idea.owner_id),
+        event_type="review_state_changed",
+        title=f"Idea {action.capitalize()}ed",
+        body=f'"{idea.title}" was {action}ed by {user.display_name}',
+        reference_id=str(idea.id),
+        reference_type="idea",
+    )
+    # Also notify co-owner if present
+    if idea.co_owner_id and idea.co_owner_id != idea.owner_id:
+        _publish_notification(
+            routing_key="notification.review.state_changed",
+            user_id=str(idea.co_owner_id),
+            event_type="review_state_changed",
+            title=f"Idea {action.capitalize()}ed",
+            body=f'"{idea.title}" was {action}ed by {user.display_name}',
+            reference_id=str(idea.id),
+            reference_type="idea",
         )
 
     return Response({"state": new_state})
@@ -611,6 +653,29 @@ def _post_timeline_comment(request: Request, idea: Idea, user) -> Response:
         content=content,
         parent_entry_id=parent_entry_id,
     )
+
+    # Notify idea owner of new review comment (unless they posted it)
+    if idea.owner_id != user.id:
+        _publish_notification(
+            routing_key="notification.review.comment",
+            user_id=str(idea.owner_id),
+            event_type="review_comment",
+            title="New Review Comment",
+            body=f'{user.display_name} commented on "{idea.title}"',
+            reference_id=str(idea.id),
+            reference_type="idea",
+        )
+    # Also notify co-owner if present and not the commenter
+    if idea.co_owner_id and idea.co_owner_id != user.id:
+        _publish_notification(
+            routing_key="notification.review.comment",
+            user_id=str(idea.co_owner_id),
+            event_type="review_comment",
+            title="New Review Comment",
+            body=f'{user.display_name} commented on "{idea.title}"',
+            reference_id=str(idea.id),
+            reference_type="idea",
+        )
 
     author_map = {user.id: user}
     data = _serialize_timeline_entry(entry, author_map)

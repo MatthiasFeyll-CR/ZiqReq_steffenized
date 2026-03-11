@@ -129,3 +129,14 @@
   fill: var(--border-strong) !important;
   stroke: none !important;
 }
+
+/* Notification badge scale-in animation */
+@keyframes scale-in {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.animate-scale-in {
+  animation: scale-in 200ms ease-out;
+}

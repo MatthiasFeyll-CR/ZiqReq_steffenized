@@ -743,6 +743,30 @@
     "T-8.4.07": {
       "file": "frontend/src/__tests__/multi-user-awareness.test.tsx",
       "function": "shows disabled Leave button with tooltip for single owner"
+    },
+    "API-NOTIF.01": {
+      "file": "services/gateway/apps/notifications/tests/test_notification_api.py",
+      "function": "test_list_notifications"
+    },
+    "API-NOTIF.02": {
+      "file": "services/gateway/apps/notifications/tests/test_notification_api.py",
+      "function": "test_unread_count"
+    },
+    "API-NOTIF.03": {
+      "file": "services/gateway/apps/notifications/tests/test_notification_api.py",
+      "function": "test_mark_as_read"
+    },
+    "API-NOTIF.04": {
+      "file": "services/gateway/apps/notifications/tests/test_notification_api.py",
+      "function": "test_mark_all_read"
+    },
+    "API-USER.02": {
+      "file": "services/gateway/apps/authentication/tests/test_notification_prefs.py",
+      "function": "test_get_preferences_default"
+    },
+    "API-USER.03": {
+      "file": "services/gateway/apps/authentication/tests/test_notification_prefs.py",
+      "function": "test_update_preferences"
     }
   }
 }

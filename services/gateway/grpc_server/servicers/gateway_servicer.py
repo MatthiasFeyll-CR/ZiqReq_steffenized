@@ -1,23 +1,79 @@
+import logging
+import sys
 import uuid
+from pathlib import Path
+
+import grpc
+
+logger = logging.getLogger(__name__)
+
+# Ensure proto directory is on sys.path for generated imports
+_proto_dir = str(Path(__file__).resolve().parents[4] / "proto")
+if _proto_dir not in sys.path:
+    sys.path.insert(0, _proto_dir)
+
+import gateway_pb2  # noqa: E402
+import gateway_pb2_grpc  # noqa: E402
 
 
-class GatewayServicer:
-    """gRPC servicer stub for the Gateway service.
+class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
+    """gRPC servicer for the Gateway service."""
 
-    All methods return valid placeholder responses.
-    Full implementations will be added in later milestones.
-    """
+    def CreateNotification(
+        self,
+        request: gateway_pb2.CreateNotificationRequest,
+        context: grpc.ServicerContext,
+    ) -> gateway_pb2.CreateNotificationResponse:
+        from apps.notifications.models import Notification
 
-    def CreateNotification(self, request, context):  # type: ignore[no-untyped-def]
-        return {"notification_id": str(uuid.uuid4())}
+        try:
+            ref_id = uuid.UUID(request.reference_id) if request.reference_id else None
+        except ValueError:
+            ref_id = None
 
-    def GetUserPreferences(self, request, context):  # type: ignore[no-untyped-def]
-        return {
-            "user_id": "",
-            "email": "",
-            "display_name": "",
-            "email_notification_preferences": {},
+        notification = Notification.objects.create(
+            user_id=uuid.UUID(request.user_id),
+            event_type=request.event_type,
+            title=request.title,
+            body=request.body,
+            reference_id=ref_id,
+            reference_type=request.reference_type or None,
+        )
+
+        return gateway_pb2.CreateNotificationResponse(
+            notification_id=str(notification.id),
+        )
+
+    def GetUserPreferences(
+        self,
+        request: gateway_pb2.UserPreferencesRequest,
+        context: grpc.ServicerContext,
+    ) -> gateway_pb2.UserPreferencesResponse:
+        from apps.authentication.models import User
+
+        try:
+            user = User.objects.get(id=uuid.UUID(request.user_id))
+        except (ValueError, User.DoesNotExist):
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("User not found")
+            return gateway_pb2.UserPreferencesResponse()
+
+        stored_prefs = user.email_notification_preferences or {}
+        # Convert to map<string, bool> — only include explicitly set preferences
+        prefs_map = {
+            k: bool(v) for k, v in stored_prefs.items() if isinstance(v, bool)
         }
 
-    def GetAlertRecipients(self, request, context):  # type: ignore[no-untyped-def]
-        return {"recipients": []}
+        return gateway_pb2.UserPreferencesResponse(
+            user_id=str(user.id),
+            email=user.email,
+            display_name=user.display_name,
+            email_notification_preferences=prefs_map,
+        )
+
+    def GetAlertRecipients(
+        self,
+        request: gateway_pb2.AlertRecipientsRequest,
+        context: grpc.ServicerContext,
+    ) -> gateway_pb2.AlertRecipientsResponse:
+        return gateway_pb2.AlertRecipientsResponse(recipients=[])

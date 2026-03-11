@@ -132,6 +132,12 @@ export function useWebSocket() {
                 detail: { idea_id: data.idea_id },
               }),
             );
+          } else if (data.type === "notification" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:notification", {
+                detail: data.payload,
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&
