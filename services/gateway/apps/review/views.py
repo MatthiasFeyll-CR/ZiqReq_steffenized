@@ -400,6 +400,90 @@ def undo_review(request: Request, idea_id: str) -> Response:
     return _handle_review_action(request, idea_id, "undo")
 
 
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def list_reviews(request: Request) -> Response:
+    """GET /api/reviews — Categorized review lists for Reviewer role."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    role_error = _require_reviewer(user)
+    if role_error:
+        return role_error
+
+    # Fetch all non-open ideas (open ideas are not in review workflow)
+    ideas = list(
+        Idea.objects.filter(
+            state__in=["in_review", "accepted", "rejected", "dropped"],
+            deleted_at__isnull=True,
+        )
+    )
+
+    # Batch-load active assignments for all ideas
+    idea_ids = [i.id for i in ideas]
+    active_assignments = ReviewAssignment.objects.filter(
+        idea_id__in=idea_ids, unassigned_at__isnull=True
+    )
+
+    # Build assignment map: idea_id -> list of reviewer_ids
+    assignments_by_idea: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for a in active_assignments:
+        assignments_by_idea.setdefault(a.idea_id, []).append(a.reviewer_id)
+
+    # Batch-load owner and reviewer user info
+    all_user_ids: set[uuid.UUID] = {i.owner_id for i in ideas}
+    for reviewer_ids in assignments_by_idea.values():
+        all_user_ids.update(reviewer_ids)
+    users_map: dict[uuid.UUID, User] = {}
+    if all_user_ids:
+        users_map = {u.id: u for u in User.objects.filter(id__in=all_user_ids)}
+
+    # Categorize ideas
+    assigned_to_me: list[dict] = []
+    unassigned: list[dict] = []
+    accepted: list[dict] = []
+    rejected: list[dict] = []
+    dropped: list[dict] = []
+
+    for idea in ideas:
+        idea_reviewers = assignments_by_idea.get(idea.id, [])
+        reviewer_info = [
+            {"id": str(rid), "display_name": users_map[rid].display_name}
+            for rid in idea_reviewers
+            if rid in users_map
+        ]
+        owner = users_map.get(idea.owner_id)
+        item = {
+            "id": str(idea.id),
+            "title": idea.title,
+            "state": idea.state,
+            "owner_name": owner.display_name if owner else "",
+            "submitted_at": idea.updated_at.isoformat() if idea.updated_at else None,
+            "reviewers": reviewer_info,
+        }
+
+        if idea.state == "in_review":
+            if user.id in idea_reviewers:
+                assigned_to_me.append(item)
+            elif not idea_reviewers:
+                unassigned.append(item)
+        elif idea.state == "accepted":
+            accepted.append(item)
+        elif idea.state == "rejected":
+            rejected.append(item)
+        elif idea.state == "dropped":
+            dropped.append(item)
+
+    return Response({
+        "assigned_to_me": assigned_to_me,
+        "unassigned": unassigned,
+        "accepted": accepted,
+        "rejected": rejected,
+        "dropped": dropped,
+    })
+
+
 def _serialize_timeline_entry(entry: ReviewTimelineEntry, author_map: dict) -> dict:
     """Serialize a single timeline entry to dict."""
     author = None
