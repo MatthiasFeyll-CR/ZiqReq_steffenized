@@ -21,4 +21,8 @@ urlpatterns = [
     path("<str:idea_id>/review/timeline", review_views.review_timeline),
     path("<str:idea_id>/review/reviewers", review_views.get_idea_reviewers),
     path("<str:idea_id>/collaborators/invite", collab_views.send_invitation),
+    path("<str:idea_id>/collaborators", collab_views.list_collaborators),
+    path("<str:idea_id>/collaborators/<str:user_id_param>", collab_views.remove_collaborator),
+    path("<str:idea_id>/transfer-ownership", collab_views.transfer_ownership),
+    path("<str:idea_id>/leave", collab_views.leave_idea),
 ]

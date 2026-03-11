@@ -627,6 +627,30 @@
     "T-8.1.01": {
       "file": "services/gateway/apps/collaboration/tests/test_invitation_api.py",
       "function": "test_first_accept_transitions_visibility"
+    },
+    "API-COLLAB.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_list_collaborators_returns_owner_and_collaborators"
+    },
+    "API-COLLAB.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_remove_collaborator_success"
+    },
+    "API-COLLAB.03": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_transfer_ownership_success"
+    },
+    "API-COLLAB.04": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_collaborator_can_leave"
+    },
+    "T-8.4.01": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_single_owner_cannot_leave"
+    },
+    "T-8.4.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
+      "function": "test_co_owner_can_leave"
     }
   }
 }

@@ -296,3 +296,238 @@ def revoke_invitation(request: Request, invitation_id: str) -> Response:
     invitation.save(update_fields=["status", "responded_at"])
 
     return Response({"message": "Invitation revoked"})
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def list_collaborators(request: Request, idea_id: str) -> Response:
+    """GET /api/ideas/:id/collaborators — List owner, co-owner, and collaborators."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        idea_uuid = uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_uuid)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Batch-load all relevant users
+    user_ids = {idea.owner_id}
+    if idea.co_owner_id:
+        user_ids.add(idea.co_owner_id)
+
+    collab_entries = IdeaCollaborator.objects.filter(idea_id=idea_uuid)
+    for c in collab_entries:
+        user_ids.add(c.user_id)
+
+    users_map = {u.id: u for u in User.objects.filter(id__in=user_ids)}
+
+    def _user_dict(u):
+        return {
+            "id": str(u.id),
+            "display_name": u.display_name,
+            "email": u.email,
+        }
+
+    owner_user = users_map.get(idea.owner_id)
+    owner_data = _user_dict(owner_user) if owner_user else {"id": str(idea.owner_id)}
+
+    co_owner_data = None
+    if idea.co_owner_id:
+        co_owner_user = users_map.get(idea.co_owner_id)
+        co_owner_data = _user_dict(co_owner_user) if co_owner_user else {"id": str(idea.co_owner_id)}
+
+    collaborators_data = []
+    for c in collab_entries:
+        u = users_map.get(c.user_id)
+        entry = _user_dict(u) if u else {"id": str(c.user_id)}
+        entry["joined_at"] = c.joined_at.isoformat()
+        collaborators_data.append(entry)
+
+    return Response({
+        "owner": owner_data,
+        "co_owner": co_owner_data,
+        "collaborators": collaborators_data,
+    })
+
+
+@api_view(["DELETE"])
+@authentication_classes([MiddlewareAuthentication])
+def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> Response:
+    """DELETE /api/ideas/:id/collaborators/:userId — Remove collaborator (owner only)."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        idea_uuid = uuid.UUID(idea_id)
+        target_uuid = uuid.UUID(user_id_param)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_uuid)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if idea.owner_id != user.id:
+        return Response(
+            {"error": "FORBIDDEN", "message": "Only the idea owner can remove collaborators"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    deleted_count, _ = IdeaCollaborator.objects.filter(
+        idea_id=idea_uuid, user_id=target_uuid
+    ).delete()
+
+    if deleted_count == 0:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Collaborator not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def transfer_ownership(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/transfer-ownership — Transfer ownership to a collaborator."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        idea_uuid = uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_uuid)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if idea.owner_id != user.id:
+        return Response(
+            {"error": "FORBIDDEN", "message": "Only the idea owner can transfer ownership"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    new_owner_id = request.data.get("new_owner_id")
+    if not new_owner_id:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "new_owner_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        new_owner_uuid = uuid.UUID(str(new_owner_id))
+    except ValueError:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Invalid new_owner_id"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if new_owner_uuid == user.id:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Cannot transfer ownership to yourself"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # New owner must be an existing collaborator
+    if not IdeaCollaborator.objects.filter(idea_id=idea_uuid, user_id=new_owner_uuid).exists():
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Target user is not a collaborator"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    with transaction.atomic():
+        # Remove new owner from collaborators table
+        IdeaCollaborator.objects.filter(idea_id=idea_uuid, user_id=new_owner_uuid).delete()
+
+        # Add previous owner as collaborator
+        IdeaCollaborator.objects.get_or_create(
+            idea_id=idea_uuid,
+            user_id=user.id,
+            defaults={"joined_at": timezone.now()},
+        )
+
+        # Transfer ownership
+        idea.owner_id = new_owner_uuid
+        idea.save(update_fields=["owner_id"])
+
+    return Response({"message": "Ownership transferred"})
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def leave_idea(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/leave — Leave idea (collaborator or co-owner)."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        idea_uuid = uuid.UUID(idea_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        idea = Idea.objects.get(id=idea_uuid)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Single owner cannot leave
+    if idea.owner_id == user.id and idea.co_owner_id is None:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Single owner cannot leave without transferring ownership"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Co-owner leaves: set co_owner_id to NULL
+    if idea.co_owner_id == user.id:
+        idea.co_owner_id = None
+        idea.save(update_fields=["co_owner_id"])
+        return Response({"message": "You have left the idea"})
+
+    # Regular collaborator leaves
+    deleted_count, _ = IdeaCollaborator.objects.filter(
+        idea_id=idea_uuid, user_id=user.id
+    ).delete()
+
+    if deleted_count == 0:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "You are not a collaborator on this idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return Response({"message": "You have left the idea"})
