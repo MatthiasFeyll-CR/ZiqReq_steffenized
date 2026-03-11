@@ -1,0 +1,208 @@
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m11-collaboration",
+  "description": "Collaboration & Sharing — invitation flow, collaborator management, read-only link sharing, visibility modes, and multi-user awareness.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Invitation REST API",
+      "description": "As a backend developer, I need REST endpoints for sending invitations, accepting/declining invitations, revoking invitations, and re-inviting after decline.",
+      "acceptanceCriteria": [
+        "POST /api/ideas/:id/collaborators/invite sends invitation (owner only, 201)",
+        "POST /api/invitations/:id/accept accepts invitation (invitee only, creates idea_collaborators)",
+        "POST /api/invitations/:id/decline declines invitation",
+        "POST /api/invitations/:id/revoke revokes pending invitation (owner only)",
+        "Re-inviting after decline creates new pending invitation",
+        "Visibility transitions to 'collaborating' on first accept",
+        "Responded_at timestamp set on accept/decline/revoke",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "testIds": ["API-INVITE.01", "API-INVITE.02", "API-INVITE.03", "API-INVITE.04", "API-INVITE.05", "T-8.1.01"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Collaboration Endpoints, docs/02-architecture/data-model.md § collaboration_invitations, idea_collaborators, ideas.visibility\nTesting: docs/04-test-architecture/test-matrix.md § API-INVITE.01-05, T-8.1.01\nFiles: services/gateway/apps/collaboration/views.py, serializers.py, urls.py, tests/test_invitation_api.py\nGotchas: Use transaction.atomic() for visibility transition + collaborator creation. Check collaborator count before visibility update.",
+      "context": {
+        "data_model": ["collaboration_invitations: status(pending/accepted/declined/revoked), responded_at", "idea_collaborators: idea_id, user_id, joined_at UNIQUE", "ideas: visibility(private/collaborating)"],
+        "api_endpoints": ["POST /api/ideas/:id/collaborators/invite", "POST /api/invitations/:id/accept", "POST /api/invitations/:id/decline", "POST /api/invitations/:id/revoke"],
+        "test_cases": ["API-INVITE.01-05 | API | Invite/accept/decline/revoke/re-invite flows"]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "Collaborator Management API",
+      "description": "As a backend developer, I need REST endpoints for listing collaborators, removing collaborators, transferring ownership, and leaving ideas.",
+      "acceptanceCriteria": [
+        "GET /api/ideas/:id/collaborators returns owner, co-owner, collaborators",
+        "DELETE /api/ideas/:id/collaborators/:userId removes collaborator (owner only)",
+        "POST /api/ideas/:id/transfer-ownership transfers ownership",
+        "POST /api/ideas/:id/leave allows collaborator/co-owner to leave",
+        "Single owner cannot leave without transfer (400)",
+        "Co-owner can leave without transfer",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "testIds": ["API-COLLAB.01", "API-COLLAB.02", "API-COLLAB.03", "API-COLLAB.04", "T-8.4.01", "T-8.4.02"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Collaboration Endpoints, docs/02-architecture/data-model.md § ideas.owner_id, co_owner_id\nTesting: docs/04-test-architecture/test-matrix.md § API-COLLAB.01-04, T-8.4.01-02\nFiles: services/gateway/apps/collaboration/views.py, tests/test_collaborator_mgmt.py\nGotchas: Single-owner constraint: co_owner_id IS NULL. Transfer updates owner_id, previous owner becomes collaborator.",
+      "context": {
+        "data_model": ["ideas: owner_id(always set), co_owner_id(merged only)", "idea_collaborators: joined_at"],
+        "api_endpoints": ["GET /api/ideas/:id/collaborators", "DELETE /api/ideas/:id/collaborators/:userId", "POST /api/ideas/:id/transfer-ownership", "POST /api/ideas/:id/leave"],
+        "test_cases": ["API-COLLAB.01-04 | API | List/remove/transfer/leave flows", "T-8.4.01-02 | Unit | Single owner constraint, co-owner leave"]
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "User Directory Search API",
+      "description": "As a backend developer, I need a user directory search endpoint for the invite flow.",
+      "acceptanceCriteria": [
+        "GET /api/users/search?q=<query> returns matching users",
+        "Search matches display_name and email (case-insensitive)",
+        "Min query length 2 chars (400 if shorter)",
+        "Excludes current user from results",
+        "Max 20 results, ordered by display_name ASC",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "testIds": ["API-USERS.01", "API-USERS.02", "API-USERS.03"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § User Search, docs/02-architecture/data-model.md § users\nTesting: docs/04-test-architecture/test-matrix.md § API-USERS.01-03\nFiles: services/gateway/apps/authentication/views.py (users owned by auth), tests/test_user_search.py\nGotchas: Use Q(display_name__icontains=...) | Q(email__icontains=...). Exclude request.user.id.",
+      "context": {
+        "data_model": ["users: display_name, email, roles"],
+        "api_endpoints": ["GET /api/users/search?q=<query>"],
+        "test_cases": ["API-USERS.01-03 | API | Search by name/email, min length"]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "Read-Only Link Sharing API",
+      "description": "As a backend developer, I need endpoints for generating read-only share links and validating share link access.",
+      "acceptanceCriteria": [
+        "POST /api/ideas/:id/share-link generates 64-char hex token (owner only)",
+        "Token stored in ideas.share_link_token (unique)",
+        "Regenerate overwrites existing token",
+        "Middleware validates ?token= query param, adds 'share_link_viewer' role",
+        "Invalid token returns 403",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "testIds": ["API-SHARE.01", "API-SHARE.02", "T-8.3.01", "T-8.3.02"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Share Link, docs/02-architecture/data-model.md § ideas.share_link_token\nTesting: docs/04-test-architecture/test-matrix.md § API-SHARE.01-02, T-8.3.01-02\nFiles: services/gateway/apps/ideas/views.py, services/gateway/middleware/share_link.py (new), tests/test_share_link.py\nGotchas: Token: secrets.token_hex(32). Middleware adds 'share_link_viewer' to user.roles for read-only enforcement.",
+      "context": {
+        "data_model": ["ideas: share_link_token varchar(64) UNIQUE NULL"],
+        "api_endpoints": ["POST /api/ideas/:id/share-link"],
+        "test_cases": ["API-SHARE.01-02 | API | Generate/regenerate token", "T-8.3.01-02 | Integration | Valid/invalid token access"]
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "Visibility Mode Transitions",
+      "description": "As a backend developer, I need to implement automatic visibility mode transitions when collaboration state changes.",
+      "acceptanceCriteria": [
+        "New ideas default to 'private'",
+        "First accepted invitation transitions to 'collaborating'",
+        "Removing all collaborators does NOT revert to 'private'",
+        "Visibility field read-only (cannot be manually set)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "testIds": ["T-8.1.01", "T-8.1.02"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § ideas.visibility\nTesting: docs/04-test-architecture/test-matrix.md § T-8.1.01-02\nFiles: services/gateway/apps/collaboration/views.py (accept_invitation — add transition), services/core/apps/collaboration/tests/test_visibility.py\nGotchas: Transition ONLY on first accept. Check IdeaCollaborator.count() before insert. Use transaction.atomic().",
+      "context": {
+        "data_model": ["ideas: visibility varchar CHECK(private/collaborating) default private"],
+        "test_cases": ["T-8.1.01-02 | Unit | Default private, transition on first accept, no revert"]
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "CollaboratorModal Frontend",
+      "description": "As a user, I want a collaborator management modal with invite search, collaborator list, pending invitations, and transfer ownership.",
+      "acceptanceCriteria": [
+        "Modal opens from 'Manage' button (workspace header)",
+        "3 tabs: Invite, Collaborators, Pending Invitations",
+        "Invite tab: search (debounced 300ms), results, invite button",
+        "Collaborators tab: list with remove/transfer actions",
+        "Pending tab: list with revoke button",
+        "Success toasts on all mutations",
+        "Typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 6,
+      "passes": false,
+      "testIds": ["UI-COLLAB.01", "UI-COLLAB.02", "UI-COLLAB.03", "UI-COLLAB.04"],
+      "notes": "Design: docs/03-design/component-inventory.md § CollaboratorModal, docs/03-design/component-specs.md § 17 Modal\nTesting: docs/04-test-architecture/test-matrix.md § UI-COLLAB.01-04\nFiles: frontend/src/components/collaboration/CollaboratorModal.tsx (new), frontend/src/api/collaboration.ts (new), frontend/src/__tests__/collaborator-modal.test.tsx\nGotchas: Nested Dialog for transfer confirmation. TanStack Query invalidateQueries(['collaborators', ideaId], ['invitations', ideaId]).",
+      "context": {
+        "components": ["Dialog max-w-2xl, Tabs, Input (search), Button (invite/remove)"],
+        "api_endpoints": ["GET /api/users/search", "POST /api/ideas/:id/collaborators/invite", "GET /api/ideas/:id/collaborators", "DELETE /api/ideas/:id/collaborators/:userId", "POST /api/ideas/:id/transfer-ownership"],
+        "test_cases": ["UI-COLLAB.01-04 | Integration | Modal tabs, invite, remove, transfer"]
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "Invitation Display — Banner & Card",
+      "description": "As an invitee, I want to see my pending invitations on the landing page and as a banner in the workspace.",
+      "acceptanceCriteria": [
+        "Landing page shows InvitationCard with inviter, idea, accept/decline",
+        "Workspace shows InvitationBanner when pending invite exists for current idea",
+        "Accept/decline calls API, removes invitation, shows toast",
+        "Banner slides down with framer-motion",
+        "Typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 7,
+      "passes": false,
+      "testIds": ["UI-INVITE.01", "UI-INVITE.02", "UI-INVITE.03", "T-12.3.01"],
+      "notes": "Design: docs/03-design/component-inventory.md § InvitationCard, InvitationBanner, docs/03-design/component-specs.md § 11.5 Banners\nTesting: docs/04-test-architecture/test-matrix.md § UI-INVITE.01-03, T-12.3.01\nFiles: frontend/src/components/landing/InvitationCard.tsx (enhance), frontend/src/components/workspace/InvitationBanner.tsx (new), frontend/src/__tests__/invitation-display.test.tsx\nGotchas: InvitationCard exists (static) — wire API. Banner: AnimatePresence slide-down, border-l-4 border-primary.",
+      "context": {
+        "components": ["InvitationCard — gold border, accept/decline", "InvitationBanner — full-width strip, framer-motion slide"],
+        "api_endpoints": ["GET /api/invitations", "POST /api/invitations/:id/accept", "POST /api/invitations/:id/decline"],
+        "test_cases": ["UI-INVITE.01-03 | Integration | Card/banner render, accept, decline"]
+      }
+    },
+    {
+      "id": "US-008",
+      "title": "Read-Only View Mode",
+      "description": "As a user accessing an idea via share link, I want to see the workspace in read-only mode with no edit controls.",
+      "acceptanceCriteria": [
+        "Detect ?token= param, validate via middleware",
+        "Read-only mode hides: chat input, board toolbar, edit actions",
+        "Read-only banner at workspace top",
+        "Board nodes not draggable/editable",
+        "Typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 8,
+      "passes": false,
+      "testIds": ["UI-SHARE.01", "UI-SHARE.02", "T-8.3.03", "T-8.3.04"],
+      "notes": "Design: docs/01-requirements/features.md § F-8.3, docs/03-design/page-layouts.md § 7 Workspace\nTesting: docs/04-test-architecture/test-matrix.md § UI-SHARE.01-02, T-8.3.03-04\nFiles: frontend/src/pages/IdeaWorkspace/index.tsx (detect token, pass readOnly), frontend/src/components/workspace/ReadOnlyBanner.tsx (new), frontend/src/__tests__/read-only-view.test.tsx\nGotchas: useSearchParams for ?token=. Middleware adds 'share_link_viewer' role. Disable ReactFlow: nodesDraggable={false}, nodesConnectable={false}.",
+      "context": {
+        "components": ["ChatPanel — conditional input", "BoardCanvas — disable interactions", "ReadOnlyBanner"],
+        "test_cases": ["UI-SHARE.01-02 | Integration | Detect token, hide edit controls"]
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "Multi-User Awareness — Sender Names & Co-Owner Rules",
+      "description": "As a user in a collaborative idea, I want to see sender names below chat bubbles in multi-user mode and understand co-owner leave constraints.",
+      "acceptanceCriteria": [
+        "Chat messages show sender display_name when collaborators > 0",
+        "Single-user ideas do NOT show sender names",
+        "Sender name: text-xs, text-muted-foreground, right-aligned for user messages",
+        "Co-owner can leave without transfer (co_owner_id set NULL)",
+        "Single owner cannot leave (frontend shows tooltip)",
+        "Typecheck passes",
+        "Verify in browser"
+      ],
+      "priority": 9,
+      "passes": false,
+      "testIds": ["UI-CHAT.05", "T-2.5.01", "T-8.4.07"],
+      "notes": "Design: docs/01-requirements/features.md § F-2.5, F-8.4, docs/03-design/component-specs.md § 5.1 User Message Bubble\nTesting: docs/04-test-architecture/test-matrix.md § UI-CHAT.05, T-2.5.01, T-8.4.07\nFiles: frontend/src/components/chat/UserMessageBubble.tsx (add sender name), frontend/src/components/collaboration/CollaboratorModal.tsx (add Leave button — enhance US-006), frontend/src/__tests__/multi-user-awareness.test.tsx\nGotchas: Multi-user detection: collaborators.length > 0. Batch load users for chat. Leave API from US-002.",
+      "context": {
+        "components": ["UserMessageBubble — sender name below bubble", "CollaboratorModal — Leave button with constraints"],
+        "api_endpoints": ["GET /api/ideas/:id/collaborators", "POST /api/ideas/:id/leave"],
+        "test_cases": ["UI-CHAT.05, T-2.5.01 | Integration/Unit | Sender names multi-user, single-user hides", "T-8.4.07 | Unit | Co-owner leave, single owner disabled"]
+      }
+    }
+  ]
+}
