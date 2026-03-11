@@ -1,11 +1,14 @@
 from django.urls import include, path
 
+from apps.review import views as review_views
+
 from . import views
 
 urlpatterns = [
     path("", views.ideas_root),
     path("<str:idea_id>", views.ideas_detail),
     path("<str:idea_id>/restore", views.restore_idea),
+    path("<str:idea_id>/submit", review_views.submit_idea),
     path("<str:idea_id>/chat", include("apps.chat.urls")),
     path("<str:idea_id>/board/", include("apps.board.urls")),
     path("<str:idea_id>/context-window", views.context_window),
