@@ -113,3 +113,19 @@ Started: 2026-03-11T11:27:20+0100
   - No new test file needed — notification bodies tested implicitly via existing consumer patterns
   - Docker compose build gate check has pre-existing nginx.conf failure (not related to M13)
 ---
+
+## US-007: Merge Request API — Create Request & Dual Consent Flow
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/serializers.py, services/gateway/apps/ideas/urls.py, services/gateway/gateway/urls.py, services/gateway/apps/ideas/tests/test_merge_request.py (new)
+- Tests: 22 new tests passed (10 create, 12 consent). Full suite: 718 Python tests passed, 403 Node tests passed (1 pre-existing failure in information-gaps-toggle.test.tsx).
+- Learnings for future iterations:
+  - MergeRequest model already existed in apps/similarity/models.py — no new model needed
+  - Consent endpoint at /api/merge-requests/:id/consent requires top-level URL in gateway/urls.py (not nested under ideas app)
+  - Lazy import `from apps.similarity.models import MergeRequest as MergeRequestModel` inside view functions to avoid circular imports
+  - _publish_event and _publish_notification wrapper functions use lazy imports to avoid pytest collection issues with pika
+  - Duplicate check covers both directions (A→B and B→A) using Q objects with | operator
+  - Requesting owner implicitly consents (requesting_owner_consent='accepted' on creation)
+  - Only 'pending' status merge requests are checked for duplicates — declined/accepted pairs can create new requests
+  - .ralph/prd.json is a symlink to tasks/prd-m13.json — commit the real file via `git add tasks/prd-m13.json`
+---
