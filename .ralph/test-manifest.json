@@ -879,6 +879,18 @@
     "T-15.3.01": {
       "file": "frontend/src/__tests__/idle-recovery.test.tsx",
       "function": "triggers reconnect on mouse move when idle-disconnected"
+    },
+    "T-16.1.01": {
+      "file": "frontend/src/__tests__/i18n.test.tsx",
+      "function": "de.json and en.json have identical key sets"
+    },
+    "T-16.2.01": {
+      "file": "frontend/src/__tests__/i18n.test.tsx",
+      "function": "switching language changes translated output"
+    },
+    "T-16.2.02": {
+      "file": "frontend/src/__tests__/i18n.test.tsx",
+      "function": "language preference persists in localStorage"
     }
   }
 }

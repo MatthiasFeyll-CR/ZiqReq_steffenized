@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +24,6 @@ const STATE_DOT_COLORS: Record<string, string> = {
   rejected: "#F97316",
 };
 
-const STATE_LABELS: Record<string, string> = {
-  open: "Open",
-  in_review: "In Review",
-  accepted: "Accepted",
-  dropped: "Dropped",
-  rejected: "Rejected",
-};
 
 export interface ReviewCardProps {
   idea: ReviewIdea;
@@ -37,6 +31,7 @@ export interface ReviewCardProps {
 }
 
 export function ReviewCard({ idea, category }: ReviewCardProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -53,7 +48,7 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
     onError: (error: Error) => {
       toast.error(
         <div className="flex items-center justify-between gap-4">
-          <span>{error.message || "Failed to assign"}</span>
+          <span>{error.message || t("review.failedToAssign")}</span>
           <button
             className="shrink-0 font-medium text-primary underline"
             onClick={() => assignMutation.mutate()}
@@ -73,7 +68,7 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
     onError: (error: Error) => {
       toast.error(
         <div className="flex items-center justify-between gap-4">
-          <span>{error.message || "Failed to unassign"}</span>
+          <span>{error.message || t("review.failedToUnassign")}</span>
           <button
             className="shrink-0 font-medium text-primary underline"
             onClick={() => unassignMutation.mutate()}
@@ -112,20 +107,20 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
           height: 8,
           backgroundColor: STATE_DOT_COLORS[idea.state] ?? "#9CA3AF",
         }}
-        aria-label={STATE_LABELS[idea.state] ?? idea.state}
+        aria-label={t(`review.stateLabels.${idea.state}`, idea.state)}
       />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-base font-medium text-foreground">
-          {idea.title || "Untitled idea"}
+          {idea.title || t("review.untitledIdea")}
         </p>
         <p className="text-sm text-text-secondary">
-          by {idea.owner_name} &bull; Submitted {formatRelativeTime(idea.submitted_at)}
+          {t("review.byOwner", { owner: idea.owner_name, time: formatRelativeTime(idea.submitted_at) })}
         </p>
       </div>
 
       <Badge variant={idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected"} className="shrink-0">
-        {STATE_LABELS[idea.state] ?? idea.state}
+        {t(`review.stateLabels.${idea.state}`, idea.state)}
       </Badge>
 
       {showActionButton && (
@@ -141,11 +136,11 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
                     data-testid="assign-button"
                     onClick={handleActionClick}
                   >
-                    Assign
+                    {t("review.assign")}
                   </Button>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>Cannot review own idea</TooltipContent>
+              <TooltipContent>{t("review.cannotReviewOwn")}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         ) : (
@@ -157,7 +152,7 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
             onClick={handleActionClick}
           >
             {isLoading && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-            {category === "assigned" ? "Unassign" : "Assign"}
+            {category === "assigned" ? t("review.unassign") : t("review.assign")}
           </Button>
         )
       )}

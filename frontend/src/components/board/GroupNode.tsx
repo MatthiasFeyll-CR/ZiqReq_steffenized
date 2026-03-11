@@ -1,6 +1,7 @@
 import { memo, useCallback } from "react";
 import { Handle, Position, NodeResizer, type NodeProps, type Node } from "@xyflow/react";
 import { Lock, Unlock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { getUserColor } from "@/store/selections-slice";
 
@@ -18,6 +19,7 @@ export type GroupNodeType = Node<GroupNodeData, "group">;
 function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
   const { title, is_locked, ai_modified_indicator, onToggleLock, _dropTarget, _selectedBy } = data;
   const selectedBy = _selectedBy as { user_id: string; display_name: string } | null;
+  const { t } = useTranslation();
 
   const handleToggleLock = useCallback(() => {
     onToggleLock?.(id, !is_locked);
@@ -87,7 +89,7 @@ function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
           size="icon-sm"
           className="h-6 w-6"
           onClick={handleToggleLock}
-          aria-label={is_locked ? "Unlock node" : "Lock node"}
+          aria-label={is_locked ? t("board.unlockNode") : t("board.lockNode")}
           data-testid="lock-toggle"
         >
           {is_locked ? (

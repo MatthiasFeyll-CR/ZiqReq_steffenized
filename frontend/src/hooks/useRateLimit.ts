@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import i18n from "@/i18n/config";
 
 /**
  * Tracks rate limit state for a specific idea's chat.
@@ -13,7 +14,7 @@ export function useRateLimit(ideaId: string) {
       const detail = (e as CustomEvent<{ idea_id: string }>).detail;
       if (detail?.idea_id !== ideaId) return;
       setIsLimited(true);
-      toast.warning("Chat input is locked. Please wait for AI to complete processing.");
+      toast.warning(i18n.t("chat.rateLimited"));
     };
 
     const handleAiProcessing = (e: Event) => {

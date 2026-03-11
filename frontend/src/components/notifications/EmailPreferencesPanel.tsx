@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useTranslation } from "react-i18next"
 import { toast } from "react-toastify"
 import { Minus } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
@@ -78,10 +79,20 @@ interface EmailPreferencesPanelProps {
   onOpenChange: (open: boolean) => void
 }
 
+const groupLabelKey: Record<string, string> = {
+  Collaboration: "collaboration",
+  Review: "review",
+  Chat: "chat",
+  Similarity: "similarity",
+  "Review Management": "reviewManagement",
+  System: "system",
+}
+
 export function EmailPreferencesPanel({
   open,
   onOpenChange,
 }: EmailPreferencesPanelProps) {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [localPrefs, setLocalPrefs] = useState<Record<string, boolean>>({})
@@ -119,12 +130,12 @@ export function EmailPreferencesPanel({
   const mutation = useMutation({
     mutationFn: updateEmailPreferences,
     onSuccess: () => {
-      toast.success("Email preferences saved")
+      toast.success(t("emailPrefs.saved"))
       queryClient.invalidateQueries({ queryKey: ["emailPreferences"] })
       setDirty(false)
     },
     onError: () => {
-      toast.error("Failed to save preferences")
+      toast.error(t("emailPrefs.failedToSave"))
     },
   })
 
@@ -167,9 +178,9 @@ export function EmailPreferencesPanel({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[480px] max-w-[90vw]">
         <DialogHeader>
-          <DialogTitle>Email Notification Preferences</DialogTitle>
+          <DialogTitle>{t("emailPrefs.title")}</DialogTitle>
           <DialogDescription>
-            Choose which events send you email notifications.
+            {t("emailPrefs.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -190,7 +201,7 @@ export function EmailPreferencesPanel({
                     <Minus className="pointer-events-none absolute h-3 w-3 text-current" />
                   )}
                   <span className="text-sm font-semibold">
-                    {group.label}
+                    {t(`emailPrefs.groups.${groupLabelKey[group.label]}`)}
                   </span>
                 </div>
                 <div className="ml-6 space-y-1.5">
@@ -203,7 +214,7 @@ export function EmailPreferencesPanel({
                         htmlFor={`pref-${item.key}`}
                         className="text-sm text-muted-foreground"
                       >
-                        {item.label}
+                        {t(`emailPrefs.items.${item.key}`, item.label)}
                       </label>
                       <Switch
                         id={`pref-${item.key}`}
@@ -227,7 +238,7 @@ export function EmailPreferencesPanel({
             onClick={handleSave}
             disabled={!dirty || mutation.isPending}
           >
-            {mutation.isPending ? "Saving..." : "Save"}
+            {mutation.isPending ? t("common.saving") : t("common.save")}
           </button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,7 @@
 import { memo, useCallback } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Pin, Bot, Lock, Unlock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { UserSelectionHighlight } from "./UserSelectionHighlight";
 
@@ -20,6 +21,7 @@ export type BoxNodeType = Node<BoxNodeData, "box">;
 function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
   const { title, body, created_by, is_locked, ai_modified_indicator, onToggleLock, _selectedBy } = data;
   const selectedBy = _selectedBy as { user_id: string; display_name: string } | null;
+  const { t } = useTranslation();
 
   const handleReference = useCallback(() => {
     const nodeId = data.nodeId ?? id;
@@ -66,7 +68,7 @@ function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
             size="icon-sm"
             className="h-6 w-6 shrink-0"
             onClick={handleReference}
-            aria-label="Reference node"
+            aria-label={t("board.referenceNode")}
             data-testid="reference-button"
           >
             <Pin className="h-3.5 w-3.5" />
@@ -89,7 +91,7 @@ function BoxNodeComponent({ data, id }: NodeProps<BoxNodeType>) {
             size="icon-sm"
             className="h-6 w-6"
             onClick={handleToggleLock}
-            aria-label={is_locked ? "Unlock node" : "Lock node"}
+            aria-label={is_locked ? t("board.unlockNode") : t("board.lockNode")}
             data-testid="lock-toggle"
           >
             {is_locked ? (

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast"
 import { Button } from "@/components/ui/button"
 
@@ -12,7 +13,7 @@ interface ErrorToastProps {
 }
 
 function ErrorToast({
-  title = "Error",
+  title,
   message,
   onClose,
   onShowLogs,
@@ -20,11 +21,12 @@ function ErrorToast({
   retryCount = 0,
   maxRetries = 3,
 }: ErrorToastProps) {
+  const { t } = useTranslation()
   const maxRetriesReached = retryCount >= maxRetries
 
   return (
     <Toast variant="error" onClose={onClose} data-testid="error-toast">
-      <ToastTitle>{title}</ToastTitle>
+      <ToastTitle>{title ?? t("errors.title")}</ToastTitle>
       <ToastDescription>{message}</ToastDescription>
       <div className="mt-2 flex gap-2">
         {onShowLogs && (
@@ -34,7 +36,7 @@ function ErrorToast({
             onClick={onShowLogs}
             data-testid="show-logs-button"
           >
-            Show Logs
+            {t("errors.showLogs")}
           </Button>
         )}
         {onRetry && (
@@ -45,7 +47,7 @@ function ErrorToast({
             disabled={maxRetriesReached}
             data-testid="retry-button"
           >
-            {maxRetriesReached ? "Max retries reached" : "Retry"}
+            {maxRetriesReached ? t("errors.maxRetriesReached") : t("common.retry")}
           </Button>
         )}
       </div>

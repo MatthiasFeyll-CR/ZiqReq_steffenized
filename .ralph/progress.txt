@@ -94,3 +94,19 @@ Started: 2026-03-11T17:44:30+0100
   - Banner disappearing, chat/board unlocking, and presence returning to online all happen automatically via existing store selectors when connectionState goes 'online' (setConnectionState also clears isIdleDisconnected)
   - Pre-existing test failures: idea-workspace fetchIdea extra undefined arg, information-gaps-toggle.test.tsx
 ---
+
+## US-006: i18n Completion — Full Coverage
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/i18n/locales/{de,en}.json (292+ keys each), 25+ component files updated to use t(), frontend/src/__tests__/i18n.test.tsx (new), frontend/src/test-setup.ts (i18n init), services/notification/email/renderer.py (bilingual email), .ralph/test-manifest.json, tasks/prd-m16.json
+- Tests: 460 passed, 1 failed (pre-existing URL.createObjectURL in information-gaps-toggle), 1 error (pre-existing). i18n tests T-16.1.01, T-16.2.01, T-16.2.02 all pass. Typecheck clean. Ruff clean.
+- Learnings for future iterations:
+  - Tests MUST be run from frontend/ directory (cd frontend && npx vitest run), not project root
+  - ES import hoisting means localStorage.setItem runs AFTER import statements — use explicit i18n.changeLanguage() in test-setup.ts
+  - Class components (ErrorBoundary) can't use useTranslation hook — import i18n directly and use i18n.t()
+  - Non-component files (hooks like useRateLimit) also need direct i18n import
+  - idea-workspace.test.tsx failure is pre-existing (module resolution), not caused by i18n changes
+  - When subagents generate i18n key names, verify them against the actual JSON — mismatches are common
+  - Email renderer uses Python with _EMAIL_STRINGS dict pattern for bilingual support
+  - Language switcher already existed in UserDropdown.tsx via i18n.changeLanguage + localStorage
+---

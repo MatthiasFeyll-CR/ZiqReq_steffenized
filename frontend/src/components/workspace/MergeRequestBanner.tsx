@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
 import { GitMerge, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -19,6 +20,7 @@ interface MergeRequestBannerProps {
 }
 
 export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBannerProps) {
+  const { t } = useTranslation();
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -29,10 +31,10 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
     setAccepting(true);
     try {
       await consentMergeRequest(mergeRequest.id, "accept");
-      toast.success("Merge request accepted. Creating merged idea...");
+      toast.success(t("merge.mergeAccepted"));
       onResolved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to accept merge request");
+      toast.error(err instanceof Error ? err.message : t("merge.failedToAccept"));
     } finally {
       setAccepting(false);
     }
@@ -43,10 +45,10 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
     setConfirmOpen(false);
     try {
       await consentMergeRequest(mergeRequest.id, "decline");
-      toast.success("Merge request declined");
+      toast.success(t("merge.mergeDeclined"));
       onResolved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to decline merge request");
+      toast.error(err instanceof Error ? err.message : t("merge.failedToDecline"));
     } finally {
       setDeclining(false);
     }
@@ -80,7 +82,7 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
                 data-testid="merge-accept-button"
               >
                 {accepting && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                Accept
+                {t("merge.accept")}
               </Button>
               <Button
                 variant="ghost"
@@ -90,7 +92,7 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
                 data-testid="merge-decline-button"
               >
                 {declining && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                Decline
+                {t("merge.decline")}
               </Button>
             </div>
           </div>
@@ -100,18 +102,17 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Decline merge request?</DialogTitle>
+            <DialogTitle>{t("merge.declineTitle")}</DialogTitle>
             <DialogDescription>
-              This will permanently dismiss the merge suggestion between your idea and &quot;
-              {mergeRequest.requesting_idea_title}&quot;. This pair will not be suggested again.
+              {t("merge.declineDescription", { title: mergeRequest.requesting_idea_title })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button variant="destructive" onClick={handleDecline}>
-              Decline
+              {t("merge.decline")}
             </Button>
           </DialogFooter>
         </DialogContent>

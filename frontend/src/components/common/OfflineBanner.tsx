@@ -1,4 +1,5 @@
 import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { WifiOff } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
 import { useWsReconnect } from "@/app/providers";
 
 export function OfflineBanner() {
+  const { t } = useTranslation();
   const connectionState = useSelector(selectConnectionState);
   const countdown = useSelector(selectReconnectCountdown);
   const isIdleDisconnected = useSelector(selectIsIdleDisconnected);
@@ -32,12 +34,12 @@ export function OfflineBanner() {
             <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
             <p className="text-sm text-foreground flex-1">
               {isIdleDisconnected
-                ? "Connection closed due to inactivity. Move your mouse to reconnect."
+                ? t("offline.idleDisconnected")
                 : <>
-                    Currently offline.
+                    {t("offline.currentlyOffline")}
                     {countdown !== null && countdown > 0
-                      ? ` Retrying in ${countdown} seconds`
-                      : " Attempting to reconnect\u2026"}
+                      ? ` ${t("offline.retryingIn", { countdown })}`
+                      : ` ${t("offline.attemptingReconnect")}`}
                   </>
               }
             </p>
@@ -48,7 +50,7 @@ export function OfflineBanner() {
                 onClick={reconnect}
                 data-testid="reconnect-button"
               >
-                Reconnect
+                {t("offline.reconnect")}
               </Button>
             )}
           </div>

@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react";
 import { Lock, LockOpen, RefreshCw, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface SectionFieldProps {
   label: string;
@@ -28,6 +29,7 @@ export function SectionField({
   onToggleLock,
   onRegenerate,
 }: SectionFieldProps) {
+  const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleInput = useCallback(() => {
@@ -72,7 +74,7 @@ export function SectionField({
               className="p-1 rounded hover:bg-muted text-muted-foreground"
               onClick={() => onRegenerate(sectionKey)}
               disabled={regenerating}
-              title="Regenerate section"
+              title={t("board.regenerateSection")}
               data-testid={`regenerate-${sectionKey}`}
             >
               {regenerating ? (
@@ -86,7 +88,7 @@ export function SectionField({
             type="button"
             className="p-1 rounded hover:bg-muted text-muted-foreground"
             onClick={() => onToggleLock(sectionKey, !locked)}
-            title={locked ? "Unlock section" : "Lock section"}
+            title={locked ? t("board.unlockSection") : t("board.lockSection")}
             data-testid={`lock-toggle-${sectionKey}`}
           >
             {locked ? (

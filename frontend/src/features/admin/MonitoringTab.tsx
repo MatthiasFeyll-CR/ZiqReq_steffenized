@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { KPICard } from "@/components/admin/KPICard";
 import { ServiceHealthTable } from "@/components/admin/ServiceHealthTable";
@@ -11,6 +12,7 @@ import {
 } from "@/api/admin";
 
 export function MonitoringTab() {
+  const { t } = useTranslation();
   const [data, setData] = useState<MonitoringData | null>(null);
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,7 @@ export function MonitoringTab() {
         setData(monData);
         setAlertConfig(alertData);
       })
-      .catch((err) => toast.error(`Failed to load monitoring data: ${err.message}`))
+      .catch((err) => toast.error(`${t("admin.failedLoadMonitoring")}: ${err.message}`))
       .finally(() => setLoading(false));
 
     const interval = setInterval(() => {
@@ -40,9 +42,9 @@ export function MonitoringTab() {
     try {
       const updated = await patchAlertConfig(!alertConfig.is_active);
       setAlertConfig(updated);
-      toast.success(updated.is_active ? "Alert notifications enabled" : "Alert notifications disabled");
+      toast.success(updated.is_active ? t("admin.alertsEnabled") : t("admin.alertsDisabled"));
     } catch (err) {
-      toast.error(`Failed to update alert config: ${(err as Error).message}`);
+      toast.error(`${t("admin.failedUpdateAlert")}: ${(err as Error).message}`);
     } finally {
       setToggling(false);
     }
@@ -51,7 +53,7 @@ export function MonitoringTab() {
   if (loading) {
     return (
       <div className="py-6">
-        <p className="text-sm text-muted-foreground">Loading monitoring data...</p>
+        <p className="text-sm text-muted-foreground">{t("admin.loadingMonitoring")}</p>
       </div>
     );
   }
@@ -59,7 +61,7 @@ export function MonitoringTab() {
   if (!data) {
     return (
       <div className="py-6">
-        <p className="text-sm text-muted-foreground">Failed to load monitoring data.</p>
+        <p className="text-sm text-muted-foreground">{t("admin.failedLoadMonitoring")}</p>
       </div>
     );
   }
@@ -70,15 +72,15 @@ export function MonitoringTab() {
     <div className="space-y-6 py-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KPICard label="Active Connections" value={data.active_connections} />
-        <KPICard label="Ideas by State" value={totalIdeas} />
-        <KPICard label="Active Users" value={data.active_users} />
-        <KPICard label="AI Requests" value={data.ai_processing.request_count} />
+        <KPICard label={t("admin.activeConnections")} value={data.active_connections} />
+        <KPICard label={t("admin.ideasByState")} value={totalIdeas} />
+        <KPICard label={t("admin.activeUsers")} value={data.active_users} />
+        <KPICard label={t("admin.aiRequests")} value={data.ai_processing.request_count} />
       </div>
 
       {/* Ideas by state breakdown */}
       <div className="rounded-md border bg-card p-4">
-        <h4 className="mb-3 text-sm font-medium">Ideas by State</h4>
+        <h4 className="mb-3 text-sm font-medium">{t("admin.ideasByState")}</h4>
         <div className="flex flex-wrap gap-4 text-sm">
           {Object.entries(data.ideas_by_state).map(([state, count]) => (
             <span key={state} className="flex items-center gap-1.5">
@@ -91,13 +93,13 @@ export function MonitoringTab() {
 
       {/* Service Health Table */}
       <section>
-        <h4 className="mb-3 text-sm font-medium">Service Health</h4>
+        <h4 className="mb-3 text-sm font-medium">{t("admin.serviceHealth")}</h4>
         <ServiceHealthTable health={data.system_health} />
       </section>
 
       {/* Alert Configuration */}
       <section className="rounded-md border bg-card p-4">
-        <h4 className="mb-3 text-sm font-medium">Alert Configuration</h4>
+        <h4 className="mb-3 text-sm font-medium">{t("admin.alertConfiguration")}</h4>
         <label className="flex items-center gap-3" data-testid="alert-toggle">
           <button
             type="button"
@@ -116,7 +118,7 @@ export function MonitoringTab() {
               }`}
             />
           </button>
-          <span className="text-sm">Receive monitoring alerts</span>
+          <span className="text-sm">{t("admin.receiveAlerts")}</span>
         </label>
       </section>
     </div>

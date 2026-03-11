@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import {
   Dialog,
   DialogContent,
@@ -36,24 +37,26 @@ function ErrorLogModal({
   networkResponse = null,
   technicalDetails = null,
 }: ErrorLogModalProps) {
+  const { t } = useTranslation()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="error-log-modal">
         <DialogHeader>
-          <DialogTitle>Error Log</DialogTitle>
+          <DialogTitle>{t("errorLog.title")}</DialogTitle>
           <DialogDescription>
-            Recent errors encountered during this session.
+            {t("errorLog.description")}
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-96 space-y-4 overflow-y-auto">
           {/* Console Log Section */}
           <section data-testid="console-log-section">
             <h3 className="mb-2 text-sm font-semibold text-foreground">
-              Console Log
+              {t("errorLog.consoleLog")}
             </h3>
             {consoleLogs.length === 0 && errors.length === 0 ? (
               <p className="text-sm text-text-secondary">
-                No console errors recorded.
+                {t("errorLog.noConsoleErrors")}
               </p>
             ) : (
               <ul className="space-y-1">
@@ -86,18 +89,18 @@ function ErrorLogModal({
           {/* Network Response Section */}
           <section data-testid="network-response-section">
             <h3 className="mb-2 text-sm font-semibold text-foreground">
-              Network Response
+              {t("errorLog.networkResponse")}
             </h3>
             {networkResponse ? (
               <div className="rounded border border-border p-2 text-xs font-mono space-y-1">
                 <p>
-                  <span className="text-text-secondary">HTTP Status:</span>{" "}
+                  <span className="text-text-secondary">{t("errorLog.httpStatus")}</span>{" "}
                   <span data-testid="network-status">
                     {networkResponse.status} {networkResponse.statusText}
                   </span>
                 </p>
                 <p>
-                  <span className="text-text-secondary">Body:</span>{" "}
+                  <span className="text-text-secondary">{t("errorLog.body")}</span>{" "}
                   <span data-testid="network-body">
                     {networkResponse.body}
                   </span>
@@ -105,7 +108,7 @@ function ErrorLogModal({
               </div>
             ) : (
               <p className="text-sm text-text-secondary">
-                No network response data.
+                {t("errorLog.noNetworkData")}
               </p>
             )}
           </section>
@@ -113,30 +116,30 @@ function ErrorLogModal({
           {/* Technical Details Section */}
           <section data-testid="technical-details-section">
             <h3 className="mb-2 text-sm font-semibold text-foreground">
-              Technical Details
+              {t("errorLog.technicalDetails")}
             </h3>
             {technicalDetails ? (
               <div className="rounded border border-border p-2 text-xs font-mono space-y-1">
                 <p>
-                  <span className="text-text-secondary">Error Code:</span>{" "}
+                  <span className="text-text-secondary">{t("errorLog.errorCode")}</span>{" "}
                   <span data-testid="error-code">
                     {technicalDetails.errorCode}
                   </span>
                 </p>
                 <p>
-                  <span className="text-text-secondary">Timestamp:</span>{" "}
+                  <span className="text-text-secondary">{t("errorLog.timestamp")}</span>{" "}
                   <span data-testid="error-timestamp">
                     {technicalDetails.timestamp}
                   </span>
                 </p>
                 <p>
-                  <span className="text-text-secondary">User Agent:</span>{" "}
+                  <span className="text-text-secondary">{t("errorLog.userAgent")}</span>{" "}
                   <span data-testid="error-user-agent">
                     {technicalDetails.userAgent}
                   </span>
                 </p>
                 <p>
-                  <span className="text-text-secondary">URL:</span>{" "}
+                  <span className="text-text-secondary">{t("errorLog.url")}</span>{" "}
                   <span data-testid="error-url">
                     {technicalDetails.url}
                   </span>
@@ -144,7 +147,7 @@ function ErrorLogModal({
               </div>
             ) : (
               <p className="text-sm text-text-secondary">
-                No technical details available.
+                {t("errorLog.noTechnicalDetails")}
               </p>
             )}
           </section>
@@ -152,7 +155,7 @@ function ErrorLogModal({
           {/* Support Contact Section */}
           <section data-testid="support-contact-section">
             <p className="text-sm text-text-secondary">
-              If this issue persists, contact support at{" "}
+              {t("errorLog.supportContact")}{" "}
               <a
                 href={`mailto:${SUPPORT_EMAIL}`}
                 className="text-primary underline"

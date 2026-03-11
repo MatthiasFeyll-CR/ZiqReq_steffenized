@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { UserCard } from "@/components/admin/UserCard";
 import { searchUsers, type AdminUser } from "@/api/admin";
 
 export function UsersTab() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -14,7 +16,7 @@ export function UsersTab() {
     setLoading(true);
     searchUsers("")
       .then(setUsers)
-      .catch((err) => toast.error(`Failed to load users: ${err.message}`))
+      .catch((err) => toast.error(`${t("admin.failedLoadUsers")}: ${err.message}`))
       .finally(() => setLoading(false));
   }, []);
 
@@ -25,7 +27,7 @@ export function UsersTab() {
       setLoading(true);
       searchUsers(value)
         .then(setUsers)
-        .catch((err) => toast.error(`Failed to search users: ${err.message}`))
+        .catch((err) => toast.error(`${t("admin.failedSearchUsers")}: ${err.message}`))
         .finally(() => setLoading(false));
     }, 300);
   }
@@ -36,15 +38,15 @@ export function UsersTab() {
         type="text"
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
-        placeholder="Search users by name or email..."
+        placeholder={t("admin.searchUsersPlaceholder")}
         className="w-full rounded-md border border-border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         data-testid="user-search-input"
       />
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Searching...</p>
+        <p className="text-sm text-muted-foreground">{t("common.searching")}</p>
       ) : users.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No users found.</p>
+        <p className="text-sm text-muted-foreground">{t("admin.noUsersFound")}</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="user-card-grid">
           {users.map((user) => (

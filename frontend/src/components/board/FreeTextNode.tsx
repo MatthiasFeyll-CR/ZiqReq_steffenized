@@ -1,6 +1,7 @@
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import { Lock, Unlock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { UserSelectionHighlight } from "./UserSelectionHighlight";
 
@@ -18,6 +19,7 @@ export type FreeTextNodeType = Node<FreeTextNodeData, "free_text">;
 function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
   const { body, is_locked, ai_modified_indicator, onToggleLock, _selectedBy } = data;
   const selectedBy = _selectedBy as { user_id: string; display_name: string } | null;
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(body ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -110,7 +112,7 @@ function FreeTextNodeComponent({ data, id }: NodeProps<FreeTextNodeType>) {
           size="icon-sm"
           className="h-6 w-6"
           onClick={handleToggleLock}
-          aria-label={is_locked ? "Unlock node" : "Lock node"}
+          aria-label={is_locked ? t("board.unlockNode") : t("board.lockNode")}
           data-testid="lock-toggle"
         >
           {is_locked ? (

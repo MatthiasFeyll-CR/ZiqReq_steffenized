@@ -1,5 +1,6 @@
 import { Plus, Trash2, Maximize2, Undo2, Redo2 } from "lucide-react";
 import { useReactFlow } from "@xyflow/react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 interface BoardToolbarProps {
@@ -26,6 +27,7 @@ export function BoardToolbar({
   redoTopSource,
 }: BoardToolbarProps) {
   const { fitView, screenToFlowPosition } = useReactFlow();
+  const { t } = useTranslation();
 
   const handleAddBox = () => {
     const centerX = window.innerWidth / 2;
@@ -47,7 +49,7 @@ export function BoardToolbar({
         variant="ghost"
         size="icon-sm"
         onClick={handleAddBox}
-        title="Add Box"
+        title={t("board.addBox")}
         data-testid="toolbar-add-box"
       >
         <Plus className="h-4 w-4" />
@@ -60,7 +62,7 @@ export function BoardToolbar({
         size="icon-sm"
         onClick={onDeleteSelected}
         disabled={selectedCount === 0}
-        title="Delete Selected"
+        title={t("board.deleteSelected")}
         data-testid="toolbar-delete"
       >
         <Trash2 className="h-4 w-4" />
@@ -72,7 +74,7 @@ export function BoardToolbar({
         variant="ghost"
         size="icon-sm"
         onClick={handleFitView}
-        title="Fit View"
+        title={t("board.fitView")}
         data-testid="toolbar-fit-view"
       >
         <Maximize2 className="h-4 w-4" />
@@ -85,7 +87,7 @@ export function BoardToolbar({
         size="icon-sm"
         onClick={onUndo}
         disabled={!canUndo}
-        title={undoTopSource === "ai" ? "Undo AI Action" : "Undo"}
+        title={undoTopSource === "ai" ? t("board.undoAi") : t("board.undo")}
         data-testid="toolbar-undo"
       >
         <Undo2 className="h-4 w-4" />
@@ -96,7 +98,7 @@ export function BoardToolbar({
         size="icon-sm"
         onClick={onRedo}
         disabled={!canRedo}
-        title={redoTopSource === "ai" ? "Redo AI Action" : "Redo"}
+        title={redoTopSource === "ai" ? t("board.redoAi") : t("board.redo")}
         data-testid="toolbar-redo"
       >
         <Redo2 className="h-4 w-4" />

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { ArrowRight, Download, MessageCircle, RefreshCw, Reply, User } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ interface CommentEntryProps {
 }
 
 function CommentEntry({ entry, onReply }: CommentEntryProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start gap-3">
       <div className="w-2 h-2 mt-2 rounded-full bg-sky-400 shrink-0" />
@@ -79,7 +81,7 @@ function CommentEntry({ entry, onReply }: CommentEntryProps) {
           data-testid={`reply-button-${entry.id}`}
         >
           <Reply className="h-3 w-3" />
-          Reply
+          {t("timeline.reply")}
         </button>
       </div>
     </div>
@@ -87,13 +89,14 @@ function CommentEntry({ entry, onReply }: CommentEntryProps) {
 }
 
 function ResubmissionEntry({ entry }: { entry: TimelineEntry }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-start gap-3">
       <div className="w-2 h-2 mt-2 rounded-full bg-primary shrink-0" />
       <div>
         <div className="flex items-center gap-2 text-sm">
           <RefreshCw className="h-3 w-3 text-muted-foreground" />
-          <span>Resubmitted</span>
+          <span>{t("timeline.resubmitted")}</span>
           {entry.old_version_id && entry.new_version_id && (
             <span className="text-muted-foreground flex items-center gap-1">
               <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" data-testid="download-old-version">
@@ -138,6 +141,7 @@ function TimelineEntryItem({
   isReplyPending,
   onCancelReply,
 }: TimelineEntryItemProps) {
+  const { t } = useTranslation();
   const isNested = !!entry.parent_entry_id;
   const style = isNested ? { marginLeft: 24 } : undefined;
 
@@ -151,7 +155,7 @@ function TimelineEntryItem({
           <CommentInput
             onSubmit={(content) => onSubmitReply(content, entry.id)}
             isPending={isReplyPending}
-            placeholder="Write a reply..."
+            placeholder={t("timeline.replyPlaceholder")}
             autoFocus
             onCancel={onCancelReply}
           />
@@ -167,6 +171,7 @@ interface ReviewTimelineProps {
 }
 
 export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
@@ -182,7 +187,7 @@ export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
     onError: (error: Error) => {
       toast.error(
         <div className="flex items-center justify-between gap-4">
-          <span>{error.message || "Failed to post comment"}</span>
+          <span>{error.message || t("timeline.failedToPost")}</span>
         </div>,
       );
     },
@@ -227,7 +232,7 @@ export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
     return (
       <div className="flex items-center justify-center py-8 text-sm text-muted-foreground" data-testid="timeline-empty">
         <MessageCircle className="h-4 w-4 mr-2" />
-        No timeline entries yet
+        {t("timeline.noEntries")}
       </div>
     );
   }
@@ -237,7 +242,7 @@ export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
       {entries.length === 0 ? (
         <div className="flex items-center justify-center py-8 text-sm text-muted-foreground" data-testid="timeline-empty">
           <MessageCircle className="h-4 w-4 mr-2" />
-          No timeline entries yet
+          {t("timeline.noEntries")}
         </div>
       ) : (
         <div className="relative pl-4 border-l-2 border-border space-y-4">

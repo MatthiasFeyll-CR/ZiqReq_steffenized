@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Clipboard, GitMerge, Loader2, Search } from "lucide-react";
 import { toast } from "react-toastify";
 import { useQuery } from "@tanstack/react-query";
@@ -51,6 +52,7 @@ export function ManualMergeModal({
   onOpenChange,
   onSuccess,
 }: ManualMergeModalProps) {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export function ManualMergeModal({
 
   async function handleSubmitUuid() {
     if (!parsed) {
-      setError("Enter a valid UUID or idea URL");
+      setError(t("merge.invalidUuid"));
       return;
     }
 
@@ -90,12 +92,12 @@ export function ManualMergeModal({
         ? { target_idea_url: parsed.url }
         : { target_idea_id: parsed.uuid };
       await createManualMergeRequest(ideaId, target);
-      toast.success("Merge request sent");
+      toast.success(t("merge.mergeRequestSent"));
       setInputValue("");
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create merge request";
+      const message = err instanceof Error ? err.message : t("merge.failedToCreate");
       setError(message);
     } finally {
       setSubmitting(false);
@@ -107,11 +109,11 @@ export function ManualMergeModal({
     setError(null);
     try {
       await createManualMergeRequest(ideaId, { target_idea_id: targetId });
-      toast.success("Merge request sent");
+      toast.success(t("merge.mergeRequestSent"));
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create merge request";
+      const message = err instanceof Error ? err.message : t("merge.failedToCreate");
       setError(message);
     } finally {
       setSubmitting(false);
@@ -133,20 +135,20 @@ export function ManualMergeModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <GitMerge className="h-5 w-5" />
-            Request Merge
+            {t("merge.requestTitle")}
           </DialogTitle>
           <DialogDescription>
-            Enter a UUID or idea URL, or browse similar ideas to request a merge.
+            {t("merge.requestDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="uuid" className="mt-2">
           <TabsList className="w-full">
             <TabsTrigger value="uuid" className="flex-1" data-testid="tab-uuid">
-              Enter UUID/URL
+              {t("merge.tabUuid")}
             </TabsTrigger>
             <TabsTrigger value="browse" className="flex-1" data-testid="tab-browse">
-              Browse Similar
+              {t("merge.tabBrowse")}
             </TabsTrigger>
           </TabsList>
 
@@ -159,7 +161,7 @@ export function ManualMergeModal({
                     setInputValue(e.target.value);
                     setError(null);
                   }}
-                  placeholder="Paste UUID or idea URL..."
+                  placeholder={t("merge.uuidPlaceholder")}
                   data-testid="uuid-input"
                   className="flex-1"
                 />
@@ -176,7 +178,7 @@ export function ManualMergeModal({
 
               {inputValue && !isValidInput && (
                 <p className="text-sm text-destructive" data-testid="validation-error">
-                  Enter a valid UUID or idea URL containing /idea/uuid
+                  {t("merge.invalidUuidUrl")}
                 </p>
               )}
 
@@ -193,7 +195,7 @@ export function ManualMergeModal({
                 data-testid="submit-uuid-button"
               >
                 {submitting && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                Request Merge
+                {t("merge.requestMerge")}
               </Button>
             </div>
           </TabsContent>
@@ -211,7 +213,7 @@ export function ManualMergeModal({
               {!similarLoading && (!similarData || similarData.results.length === 0) && (
                 <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground" data-testid="similar-empty">
                   <Search className="h-8 w-8" />
-                  <p className="text-sm">No similar ideas found</p>
+                  <p className="text-sm">{t("merge.noSimilar")}</p>
                 </div>
               )}
 
@@ -246,6 +248,7 @@ function SimilarIdeaRow({
   onRequestMerge: () => void;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="flex items-center justify-between gap-3 rounded-md border p-3"
@@ -259,7 +262,7 @@ function SimilarIdeaRow({
               className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
               data-testid="declined-badge"
             >
-              Previously declined
+              {t("merge.previouslyDeclined")}
             </span>
           )}
         </div>
@@ -277,7 +280,7 @@ function SimilarIdeaRow({
         data-testid={`merge-button-${idea.id}`}
       >
         <GitMerge className="mr-1 h-3 w-3" />
-        Request Merge
+        {t("merge.requestMerge")}
       </Button>
     </div>
   );

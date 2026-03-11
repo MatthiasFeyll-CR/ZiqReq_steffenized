@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { fetchParameters, patchParameter, type AdminParameter } from "@/api/admin";
 
 export function ParametersTab() {
+  const { t } = useTranslation();
   const [parameters, setParameters] = useState<AdminParameter[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -12,7 +14,7 @@ export function ParametersTab() {
   useEffect(() => {
     fetchParameters()
       .then(setParameters)
-      .catch((err) => toast.error(`Failed to load parameters: ${err.message}`))
+      .catch((err) => toast.error(`${t("admin.failedLoadParameters")}: ${err.message}`))
       .finally(() => setLoading(false));
   }, []);
 
@@ -32,9 +34,9 @@ export function ParametersTab() {
       const updated = await patchParameter(key, editValue);
       setParameters((prev) => prev.map((p) => (p.key === key ? updated : p)));
       setEditingKey(null);
-      toast.success(`Parameter "${key}" updated`);
+      toast.success(t("admin.parameterUpdated", { key }));
     } catch (err) {
-      toast.error(`Failed to update parameter: ${(err as Error).message}`);
+      toast.error(`${t("admin.failedUpdateParameter")}: ${(err as Error).message}`);
     }
   }
 
@@ -54,7 +56,7 @@ export function ParametersTab() {
   if (loading) {
     return (
       <div className="py-6">
-        <p className="text-sm text-muted-foreground">Loading parameters...</p>
+        <p className="text-sm text-muted-foreground">{t("admin.loadingParameters")}</p>
       </div>
     );
   }
@@ -65,11 +67,11 @@ export function ParametersTab() {
         <table className="w-full text-sm" data-testid="parameters-table">
           <thead>
             <tr className="border-b bg-muted/50">
-              <th className="px-4 py-3 text-left font-medium">Key</th>
-              <th className="px-4 py-3 text-left font-medium">Value</th>
-              <th className="px-4 py-3 text-left font-medium">Default</th>
-              <th className="px-4 py-3 text-left font-medium">Description</th>
-              <th className="px-4 py-3 text-left font-medium">Category</th>
+              <th className="px-4 py-3 text-left font-medium">{t("admin.tableKey")}</th>
+              <th className="px-4 py-3 text-left font-medium">{t("admin.tableValue")}</th>
+              <th className="px-4 py-3 text-left font-medium">{t("admin.tableDefault")}</th>
+              <th className="px-4 py-3 text-left font-medium">{t("admin.tableDescription")}</th>
+              <th className="px-4 py-3 text-left font-medium">{t("admin.tableCategory")}</th>
             </tr>
           </thead>
           <tbody>
@@ -85,7 +87,7 @@ export function ParametersTab() {
                         <span
                           className="inline-block h-2 w-2 rounded-full bg-primary"
                           data-testid={`modified-indicator-${param.key}`}
-                          title="Modified from default"
+                          title={t("admin.modifiedFromDefault")}
                         />
                       )}
                       {param.key}
