@@ -98,3 +98,20 @@ Started: 2026-03-11T05:56:48+0100
   - submitted_at uses idea.updated_at as proxy (set when state changes to in_review)
   - Open ideas are excluded from all categories (state not in filter)
 ---
+
+## US-006: Review Page Layout — Frontend
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/review.ts (new — API client with fetchReviews), frontend/src/components/review/ReviewCard.tsx (new — card component matching IdeaCard pattern), frontend/src/pages/review-page.tsx (replaced placeholder with full page), frontend/src/app/router.tsx (imported ReviewPage component), frontend/src/__tests__/review-page.test.tsx (new — 9 tests)
+- Tests: 9 passed, 0 failed — covers T-10.2.02 (categories render with counts), T-10.2.03 (collapsible categories), UI-REVIEW.01 (page navigation with Navbar), UI-REVIEW.02 (empty states)
+- Learnings for future iterations:
+  - ReviewCard follows same pattern as IdeaCard: button wrapper, state dot, Badge, click navigates to /idea/:id
+  - Collapsible categories use simple useState toggle — no shadcn Collapsible needed
+  - Default open state: Assigned to me and Unassigned expanded, Accepted/Rejected/Dropped collapsed
+  - vi.mock factory hoisting issue: use vi.hoisted() to create mock functions that vi.mock factory references
+  - "Reviews" text appears in both navbar link and h1 — use getByRole("heading") to disambiguate in tests
+  - Navbar already has role-gated Reviews link (hasRole("reviewer")) — no changes needed
+  - Router had placeholder <div>Review Page</div> — replaced with actual ReviewPage import
+  - docker compose build node-tests required when adding new test files (container copies at build time)
+  - fetchReviews API client follows same pattern as fetchIdeas: credentials include, error handling with status attachment
+---
