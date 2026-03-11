@@ -486,6 +486,32 @@ def list_reviews(request: Request) -> Response:
     })
 
 
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def get_idea_reviewers(request: Request, idea_id: str) -> Response:
+    """GET /api/ideas/:id/review/reviewers — Get active reviewers for an idea."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    assignments = ReviewAssignment.objects.filter(idea_id=idea.id, unassigned_at__isnull=True)
+    reviewer_ids = [a.reviewer_id for a in assignments]
+    users_map: dict[uuid.UUID, User] = {}
+    if reviewer_ids:
+        users_map = {u.id: u for u in User.objects.filter(id__in=reviewer_ids)}
+
+    reviewers = [
+        {"id": str(rid), "display_name": users_map[rid].display_name}
+        for rid in reviewer_ids
+        if rid in users_map
+    ]
+    return Response({"reviewers": reviewers})
+
+
 def _serialize_timeline_entry(entry: ReviewTimelineEntry, author_map: dict) -> dict:
     """Serialize a single timeline entry to dict."""
     author = None

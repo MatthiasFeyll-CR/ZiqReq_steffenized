@@ -48,6 +48,50 @@ export async function assignReview(ideaId: string): Promise<{ message: string }>
   return res.json();
 }
 
+export interface TimelineEntry {
+  id: string;
+  entry_type: "comment" | "state_change" | "resubmission";
+  author: { id: string; display_name: string } | null;
+  content: string | null;
+  parent_entry_id: string | null;
+  old_state: string | null;
+  new_state: string | null;
+  old_version_id: string | null;
+  new_version_id: string | null;
+  created_at: string;
+}
+
+export interface ReviewerInfo {
+  id: string;
+  display_name: string;
+}
+
+export async function fetchTimeline(ideaId: string): Promise<TimelineEntry[]> {
+  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/review/timeline`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+export async function fetchIdeaReviewers(ideaId: string): Promise<{ reviewers: ReviewerInfo[] }> {
+  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/review/reviewers`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 export async function unassignReview(ideaId: string): Promise<{ message: string }> {
   const res = await fetch(`${env.apiBaseUrl}/reviews/${ideaId}/unassign`, {
     method: "POST",

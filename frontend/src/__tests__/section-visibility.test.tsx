@@ -31,6 +31,9 @@ vi.mock("@/components/chat/ChatInput", () => ({
 vi.mock("@/components/workspace/ReviewTab", () => ({
   ReviewTab: () => <div data-testid="review-tab">ReviewTab</div>,
 }));
+vi.mock("@/components/review/ReviewSection", () => ({
+  ReviewSection: () => <div data-testid="review-section">ReviewSection</div>,
+}));
 
 // Mock fetchIdea
 vi.mock("@/api/ideas", async () => {

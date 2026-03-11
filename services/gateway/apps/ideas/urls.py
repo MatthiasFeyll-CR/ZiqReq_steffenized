@@ -18,4 +18,5 @@ urlpatterns = [
     path("<str:idea_id>/review/drop", review_views.drop_review),
     path("<str:idea_id>/review/undo", review_views.undo_review),
     path("<str:idea_id>/review/timeline", review_views.review_timeline),
+    path("<str:idea_id>/review/reviewers", review_views.get_idea_reviewers),
 ]
