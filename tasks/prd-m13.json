@@ -272,7 +272,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.5.05"],
       "notes": "AI: docs/03-ai/agent-architecture.md § S3.9 Merge Synthesizer — purpose, model tier, I/O, tool-free agent\nAI: docs/03-ai/system-prompts.md § Merge Synthesizer — full system prompt, synthesis instructions, board deduplication rules\nAI: docs/03-ai/tools-and-functions.md § request_board_changes — board instruction format (used as output template)\nAI: docs/03-ai/guardrails.md § Output Validation § 11.6 Merge Synthesizer — Pydantic schema\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge_synthesizer.complete\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.05 — synthesis + board instructions output\nFiles: services/ai/agents/merge_synthesizer/agent.py (new), services/ai/agents/merge_synthesizer/prompt.py (new), services/ai/consumers/merge_consumer.py (new)\nGotchas: Agent is non-interactive (no tools). Output Pydantic model: MergeSynthesizerOutput with synthesis_message (string) and board_instructions (list[dict]). board_instructions use same schema as Facilitator's request_board_changes tool (intent, description, suggested_title, etc.).",
       "context": {
