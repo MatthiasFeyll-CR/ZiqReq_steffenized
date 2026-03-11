@@ -327,6 +327,10 @@
     "T-2.10.02": {
       "file": "services/ai/tests/test_debouncer.py",
       "function": "test_debounce_resets_on_new_message"
+    },
+    "T-2.7.02-gw": {
+      "file": "services/gateway/apps/websocket/tests/test_ai_consumer.py",
+      "function": "test_reaction_persists_and_broadcasts"
     }
   }
 }
