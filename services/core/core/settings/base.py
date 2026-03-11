@@ -45,6 +45,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "similarity.keyword_matching_sweep",
         "schedule": 300.0,  # every 5 minutes
     },
+    "vector-similarity-sweep": {
+        "task": "similarity.vector_similarity_sweep",
+        "schedule": 300.0,  # every 5 minutes
+    },
 }
 
 # gRPC addresses

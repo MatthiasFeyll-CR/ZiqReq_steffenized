@@ -1,4 +1,4 @@
-"""Celery tasks: keyword matching sweep."""
+"""Celery tasks: similarity detection sweeps."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from datetime import timedelta
 
 from celery import shared_task
 from django.utils import timezone
+
+from apps.similarity.vector_similarity import vector_similarity_sweep  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
