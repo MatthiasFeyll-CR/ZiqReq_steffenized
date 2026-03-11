@@ -247,7 +247,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin \u2192 Monitoring alerts endpoints\nArchitecture: docs/02-architecture/data-model.md \u00a7 monitoring_alert_configs table \u2014 admin opt-in to alerts\nTesting: No dedicated test IDs \u2014 integration covered by T-11.5.01 (alert email sent)\nFiles: services/gateway/apps/monitoring/views.py (add alert config endpoints), services/gateway/apps/monitoring/serializers.py, services/notification/consumers.py (add monitoring_alert_consumer), services/notification/email_templates/monitoring_alert.html (new), services/gateway/apps/monitoring/tests/test_alert_config.py (new)\nGotchas: MonitoringAlertConfig table already exists (gateway service owns it). Create config row on first GET if none exists (upsert pattern). Notification service already has email dispatch infrastructure from M12.",
       "context": {
@@ -278,7 +278,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "UI-ADMIN.01",
         "UI-ADMIN.04"
