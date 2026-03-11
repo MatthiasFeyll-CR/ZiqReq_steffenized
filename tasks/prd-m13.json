@@ -202,7 +202,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.5.01", "T-5.5.02", "T-5.5.04"],
       "notes": "Architecture: docs/02-architecture/api-design.md § POST /api/ideas/:id/merge-request, POST /api/merge-requests/:id/consent — request/response schemas\nArchitecture: docs/02-architecture/data-model.md § merge_requests — dual consent tracking, unique constraint on active requests\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge_request.created, merge_request.accepted, merge_request.declined\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.01, T-5.5.02, T-5.5.04 — merge request creation, target locking, decline dismissal\nFiles: services/gateway/apps/ideas/views.py (add create_merge_request view), services/gateway/apps/merge/views.py (new, add consent view), services/gateway/apps/merge/urls.py (new), services/gateway/apps/merge/serializers.py (new), services/gateway/apps/merge/tests/test_merge_request.py (new)\nGotchas: Requesting owner implicitly consents (requesting_owner_consent='accepted' on creation). Unique constraint uq_active_merge_request enforced at DB level. Event publishing uses gateway events/publisher.py pattern from M12.",
       "context": {
