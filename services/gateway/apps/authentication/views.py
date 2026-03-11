@@ -3,11 +3,14 @@ import uuid
 
 import jwt
 from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
+
+from apps.ideas.authentication import MiddlewareAuthentication
 
 from .azure_ad import extract_user_data, validate_azure_ad_token
 from .models import User
@@ -126,4 +129,34 @@ def dev_switch(request: Request) -> Response:
     request.session["user_id"] = str(user.id)
 
     serializer = UserSerializer(user)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def search_users(request: Request) -> Response:
+    """GET /api/users/search?q=<query> — Search user directory."""
+    user = getattr(request, "user", None)
+    if user is None or not getattr(user, "id", None):
+        return Response(
+            {"error": "UNAUTHORIZED", "message": "Authentication required"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    query = request.query_params.get("q", "").strip()
+    if len(query) < 2:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Query must be at least 2 characters"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    users = (
+        User.objects.filter(
+            Q(display_name__icontains=query) | Q(email__icontains=query)
+        )
+        .exclude(id=user.id)
+        .order_by("display_name")[:20]
+    )
+
+    serializer = UserSerializer(users, many=True)
     return Response(serializer.data)

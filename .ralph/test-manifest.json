@@ -651,6 +651,18 @@
     "T-8.4.02": {
       "file": "services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py",
       "function": "test_co_owner_can_leave"
+    },
+    "API-USERS.01": {
+      "file": "services/gateway/apps/authentication/tests/test_user_search.py",
+      "function": "test_search_by_display_name"
+    },
+    "API-USERS.02": {
+      "file": "services/gateway/apps/authentication/tests/test_user_search.py",
+      "function": "test_query_too_short_returns_400"
+    },
+    "API-USERS.03": {
+      "file": "services/gateway/apps/authentication/tests/test_user_search.py",
+      "function": "test_max_20_results"
     }
   }
 }
