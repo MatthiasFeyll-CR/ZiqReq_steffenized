@@ -1,7 +1,9 @@
-import { LogOut, Moon, Sun, Languages } from "lucide-react"
+import { useState } from "react"
+import { LogOut, Moon, Sun, Languages, Mail } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
 import { useTheme } from "@/hooks/use-theme"
+import { EmailPreferencesPanel } from "@/components/notifications/EmailPreferencesPanel"
 import {
   Avatar,
   AvatarFallback,
@@ -20,6 +22,7 @@ export function UserDropdown() {
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { t, i18n } = useTranslation()
+  const [emailPrefsOpen, setEmailPrefsOpen] = useState(false)
 
   if (!user) return null
 
@@ -32,6 +35,7 @@ export function UserDropdown() {
   }
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -63,6 +67,10 @@ export function UserDropdown() {
           <Languages className="mr-2 h-4 w-4" />
           {t("user.language")} ({i18n.language === "de" ? "DE" : "EN"})
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => { setEmailPrefsOpen(true) }}>
+          <Mail className="mr-2 h-4 w-4" />
+          Email Preferences
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => { logout() }}>
           <LogOut className="mr-2 h-4 w-4" />
@@ -70,5 +78,7 @@ export function UserDropdown() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+    <EmailPreferencesPanel open={emailPrefsOpen} onOpenChange={setEmailPrefsOpen} />
+    </>
   )
 }

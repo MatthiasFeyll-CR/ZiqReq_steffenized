@@ -155,3 +155,20 @@ Started: 2026-03-11T09:17:48+0100
   - react-toastify mock pattern: vi.mock with toast.info/success/warning/error as vi.fn() — import after mock
   - autoClose: 5000 used for notification toasts (5 seconds)
 ---
+
+## US-009: EmailPreferencesPanel Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/notifications.ts, frontend/src/components/notifications/EmailPreferencesPanel.tsx (new), frontend/src/components/layout/UserDropdown.tsx, .ralph/prd.json
+- Tests: 639 passed (Python), 403 passed (Node, 1 pre-existing failure in information-gaps-toggle.test.tsx). Typecheck passes.
+- Learnings for future iterations:
+  - EmailPreferencesPanel uses Dialog (not Popover) — opened from UserDropdown via state, not tied to a trigger element
+  - UserDropdown needed Fragment wrapper (<></>) to render both DropdownMenu and Dialog as siblings
+  - PREFERENCE_GROUPS constant defines all notification type groups with requiredRole for role-based visibility
+  - Group toggle uses Checkbox with "indeterminate" checked state (radix-ui supports string "indeterminate" value)
+  - Individual toggles use Switch component for on/off per notification type
+  - Local state pattern: fetch server prefs → sync to local state → track dirty flag → save only when dirty
+  - Missing preference keys default to true (absence = enabled) — consistent with backend pattern
+  - TanStack Query enabled: open flag ensures preferences only fetched when dialog is visible
+  - useMutation with queryClient.invalidateQueries for server reconciliation after save
+---

@@ -209,7 +209,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § PATCH /api/users/me/notification-preferences updates preferences.\nDesign: docs/03-design/component-inventory.md § EmailPreferencesPanel — grouped toggles, role-based sections. docs/03-design/component-specs.md § 4.4 Switch — toggle styling, 4.5 Checkbox — indeterminate state for group toggles. docs/01-requirements/features.md § FA-13 — role-based notification groups table.\nTesting: No test matrix entry — manual verification.\nFiles: frontend/src/components/notifications/EmailPreferencesPanel.tsx (new), frontend/src/components/layout/Navbar.tsx (add link to user dropdown), frontend/src/api/notifications.ts (add fetchEmailPreferences, updateEmailPreferences), frontend/src/__tests__/email-preferences-panel.test.tsx (new)\nGotchas: Grouped toggles pattern: parent checkbox controls all children, indeterminate when some enabled. Use shadcn Dialog or Popover for floating panel. Notification type mapping from features.md FA-13.3 table. Role-based sections: check user.roles array for 'reviewer' and 'admin'. Save uses PATCH with partial object (only changed preferences). TanStack Query mutation + invalidation.",
       "context": {

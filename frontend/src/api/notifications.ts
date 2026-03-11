@@ -65,3 +65,35 @@ export async function markNotificationActioned(
   );
   return handleResponse(res);
 }
+
+export interface EmailPreferencesCategory {
+  label: string;
+  preferences: Record<string, boolean>;
+}
+
+export interface EmailPreferencesResponse {
+  categories: Record<string, EmailPreferencesCategory>;
+}
+
+export async function fetchEmailPreferences(): Promise<EmailPreferencesResponse> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/users/me/notification-preferences`,
+    { credentials: "include" },
+  );
+  return handleResponse(res);
+}
+
+export async function updateEmailPreferences(
+  preferences: Record<string, boolean>,
+): Promise<EmailPreferencesResponse> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/users/me/notification-preferences`,
+    {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(preferences),
+    },
+  );
+  return handleResponse(res);
+}
