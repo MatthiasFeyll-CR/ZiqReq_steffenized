@@ -263,7 +263,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § chat_context_summaries — compression tracking table\nAI: docs/03-ai/tools-and-functions.md § 5. delegate_to_context_extension — exact tool schema\nAI: docs/03-ai/agent-architecture.md § S4.1 Step 3b — Context Extension delegation flow\nTesting: No dedicated test IDs (infrastructure for future features)\nFiles: services/ai/agents/facilitator/plugins.py, services/ai/processing/pipeline.py\nGotchas: Context Extension is only useful if compression has occurred. If no chat_context_summaries row exists, the tool should return an error (all messages are already in recent_messages, no need for extension). Timeout for Context Extension is longer (90s) than default (60s).",
       "context": {
