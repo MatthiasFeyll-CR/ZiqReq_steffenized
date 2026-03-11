@@ -21,7 +21,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-2.17.01", "T-2.17.02", "T-2.17.03"],
       "notes": "Architecture: docs/02-architecture/data-model.md § board_nodes, board_connections — table schemas for nodes and edges\nDesign: docs/03-design/component-specs.md § 6.1, 6.2, 6.3, 6.4 — visual specs for Box, Group, Free Text, Connections\nAI: docs/03-ai/agent-architecture.md § S3.2 — Board Agent architecture, spatial reasoning mode, model tier\nAI: docs/03-ai/tools-and-functions.md § Board Agent Plugin — all 8 tool definitions with exact schemas\nAI: docs/03-ai/system-prompts.md § 3. Board Agent — full system prompt template\nTesting: docs/04-test-architecture/test-matrix.md § T-2.17.01, T-2.17.02, T-2.17.03 — Board Agent test cases\nFiles: services/ai/agents/board_agent/agent.py, services/ai/agents/board_agent/prompt.py, services/ai/agents/board_agent/plugins.py, services/ai/fixtures/board_agent_response.json\nGotchas: Board Agent uses SK function calling loop with higher max_auto_invoke_attempts (10) than Facilitator (3) because complex reorganizations need many rounds. Tool execution is sequential — model decides tool order based on dependencies.",
       "context": {

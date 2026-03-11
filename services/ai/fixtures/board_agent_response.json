@@ -1,1 +1,23 @@
-{"mock": true}
+{
+  "mutations": [
+    {
+      "action": "create_node",
+      "node_type": "box",
+      "title": "Manual Approvals",
+      "node_id": "mock-node-001"
+    },
+    {
+      "action": "create_node",
+      "node_type": "box",
+      "title": "Digital Signatures",
+      "node_id": "mock-node-002"
+    },
+    {
+      "action": "create_node",
+      "node_type": "group",
+      "title": "Pain Points",
+      "node_id": "mock-group-001"
+    }
+  ],
+  "mutation_count": 3
+}

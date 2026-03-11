@@ -40,3 +40,83 @@ class CoreClient:
     def get_rate_limit_status(self, idea_id: str) -> dict[str, Any]:
         logger.warning("AI CoreClient.get_rate_limit_status stub called")
         return {"current_count": 0, "cap": 100, "is_locked": False}
+
+    # ── Board operations (stubs — gRPC wire-up in later milestones) ──
+
+    def get_board_state(self, idea_id: str) -> dict[str, Any]:
+        logger.warning("AI CoreClient.get_board_state stub called")
+        return {"nodes": [], "connections": []}
+
+    def create_board_node(
+        self,
+        idea_id: str,
+        node_type: str,
+        title: str,
+        body: str = "",
+        position_x: float = 0.0,
+        position_y: float = 0.0,
+        width: float | None = None,
+        height: float | None = None,
+        parent_id: str | None = None,
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.create_board_node stub called")
+        import uuid
+
+        return {"node_id": str(uuid.uuid4()), "created_at": None}
+
+    def update_board_node(
+        self,
+        node_id: str,
+        title: str | None = None,
+        body: str | None = None,
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.update_board_node stub called")
+        updated = [k for k in ("title", "body") if locals()[k] is not None]
+        return {"updated_fields": updated}
+
+    def delete_board_node(self, node_id: str) -> dict[str, Any]:
+        logger.warning("AI CoreClient.delete_board_node stub called")
+        return {"success": True, "detached_children": []}
+
+    def move_board_node(
+        self,
+        node_id: str,
+        position_x: float,
+        position_y: float,
+        new_parent_id: str | None = None,
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.move_board_node stub called")
+        return {"parent_changed": new_parent_id is not None}
+
+    def resize_board_group(
+        self,
+        node_id: str,
+        width: float,
+        height: float,
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.resize_board_group stub called")
+        return {"success": True}
+
+    def create_board_connection(
+        self,
+        idea_id: str,
+        source_node_id: str,
+        target_node_id: str,
+        label: str = "",
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.create_board_connection stub called")
+        import uuid
+
+        return {"connection_id": str(uuid.uuid4())}
+
+    def update_board_connection(
+        self,
+        connection_id: str,
+        label: str,
+    ) -> dict[str, Any]:
+        logger.warning("AI CoreClient.update_board_connection stub called")
+        return {"success": True}
+
+    def delete_board_connection(self, connection_id: str) -> dict[str, Any]:
+        logger.warning("AI CoreClient.delete_board_connection stub called")
+        return {"success": True}
