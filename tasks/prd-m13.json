@@ -51,7 +51,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § idea_embeddings — embedding vector(1536), source_text_hash, HNSW index\nArchitecture: docs/02-architecture/tech-stack.md § pgvector — vector similarity search, HNSW index\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § similarity.detected\nAI: docs/03-ai/agent-architecture.md § S6.4 Embedding Generation — idea embedding source text composition\nTesting: No specific test IDs assigned (vector similarity is secondary to keyword matching)\nFiles: services/core/background/vector_similarity.py (new), services/core/celeryconfig.py (add task registration)\nGotchas: pgvector uses <=> operator for cosine similarity. HNSW index already created in migrations. similarity_vector_threshold stored in admin_parameters. Embedding updates happen after keyword generation (handled by AI service).",
       "context": {
@@ -79,7 +79,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.3.01", "T-5.3.02"],
       "notes": "AI: docs/03-ai/agent-architecture.md § S3.7 Deep Comparison — purpose, model tier, I/O\nAI: docs/03-ai/system-prompts.md § Deep Comparison — full system prompt, output format instructions\nAI: docs/03-ai/guardrails.md § Output Validation § 11.6 Deep Comparison — Pydantic schema, retry on malformed output\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § ai.similarity.confirmed — event payload schema\nTesting: docs/04-test-architecture/test-matrix.md § T-5.3.01, T-5.3.02 — structured output validation, Pydantic enforcement\nFiles: services/ai/agents/deep_comparison/agent.py (new), services/ai/agents/deep_comparison/prompt.py (new), services/ai/consumers/similarity_consumer.py (new)\nGotchas: Agent is non-interactive (no tools). Uses Semantic Kernel basic chat completion. Output Pydantic model: DeepComparisonOutput with is_similar, confidence (0-1), explanation, overlap_areas. Confidence threshold 0.7 is hardcoded (not admin-configurable).",
       "context": {
