@@ -182,7 +182,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-2.15.01", "T-2.15.02"],
       "notes": "Architecture: docs/02-architecture/api-design.md § AI gRPC — no new RPC needed, pipeline internal\nAI: docs/03-ai/tools-and-functions.md § 4. delegate_to_context_agent — exact tool schema\nAI: docs/03-ai/agent-architecture.md § S4.1 Step 3a — Context Agent delegation flow\nDesign: docs/03-design/component-specs.md § 5.3 — delegation message de-emphasis\nTesting: docs/04-test-architecture/test-matrix.md § T-2.15.01, T-2.15.02 — delegation trigger and UI feedback\nFiles: services/ai/agents/facilitator/plugins.py, services/ai/processing/pipeline.py\nGotchas: Delegation is a two-pass process — first Facilitator call uses send_chat_message(message_type='delegation'), second call receives Context Agent findings. The original delegation message is de-emphasized after the second pass via ai.delegation.complete event.\nDeviations: M7 stubbed delegation with logs. This story implements the real Context Agent invocation and second Facilitator pass.",
       "context": {

@@ -534,10 +534,13 @@ class TestDelegation:
     @pytest.mark.asyncio
     async def test_delegate_to_context_agent(self):
         """T-2.15.01: delegate_to_context_agent publishes ai.delegation.started."""
+        from unittest.mock import patch
+
         plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.delegate_to_context_agent(
-            query="What document management system does Commerz Real use?"
-        )
+        with patch.object(plugin, "_context_bucket_has_content", return_value=True):
+            result = await plugin.delegate_to_context_agent(
+                query="What document management system does Commerz Real use?"
+            )
         assert result["status"] == "queued"
         assert "delegation_id" in result
 
@@ -567,6 +570,38 @@ class TestDelegation:
         plugin = FacilitatorPlugin(idea_id="idea-1")
         result = await plugin.delegate_to_context_agent(query="")
         assert "error" in result
+
+    @pytest.mark.asyncio
+    async def test_delegation_empty_bucket_rejected(self):
+        """T-2.15.02: delegate_to_context_agent returns error when bucket is empty."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_context_bucket_has_content", return_value=False):
+            result = await plugin.delegate_to_context_agent(
+                query="What system does the company use?"
+            )
+        assert "error" in result
+        assert result["error"]["code"] == "no_context_available"
+        assert len(get_published_events()) == 0
+
+    @pytest.mark.asyncio
+    async def test_delegation_with_bucket_content_succeeds(self):
+        """delegate_to_context_agent succeeds when bucket has content."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_context_bucket_has_content", return_value=True):
+            result = await plugin.delegate_to_context_agent(
+                query="What document management system is used?"
+            )
+        assert result["status"] == "queued"
+        assert "delegation_id" in result
+        assert plugin.delegations[0]["delegation_type"] == "context_agent"
+
+        events = get_published_events()
+        assert len(events) == 1
+        assert events[0]["event_type"] == "ai.delegation.started"
 
 
 # ── request_board_changes ──

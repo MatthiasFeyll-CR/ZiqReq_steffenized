@@ -222,13 +222,13 @@ class TestVersionTracking:
             pipeline._check_abort("idea-1", expected_version=3, step=2)
 
 
-# ── Delegation stub (M7) ──
+# ── Context Agent delegation (M8) ──
 
 
-class TestDelegationStub:
+class TestContextAgentDelegation:
     @pytest.mark.asyncio
     async def test_delegation_reinvokes_facilitator(self, _clear_pipeline_state, settings):
-        """When Facilitator requests delegation, pipeline re-invokes with stub results."""
+        """When Facilitator requests context_agent delegation, pipeline re-invokes with results."""
         settings.AI_MOCK_MODE = True
         from pathlib import Path
         settings.BASE_DIR = Path(__file__).resolve().parent.parent
@@ -236,18 +236,20 @@ class TestDelegationStub:
         core_client = _mock_core_client()
         pipeline = ChatProcessingPipeline(core_client=core_client)
 
-        # Mock the facilitator to return delegations on first call, none on second
         call_count = 0
+        received_delegation_results = None
+
         async def mock_process(input_data):
-            nonlocal call_count
+            nonlocal call_count, received_delegation_results
             call_count += 1
             if call_count == 1:
                 return {
-                    "delegations": [{"delegation_type": "context_agent", "query": "test"}],
+                    "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "test"}],
                     "board_instructions": [],
                     "response": "Let me check...",
                     "token_usage": {"input": 100, "output": 20},
                 }
+            received_delegation_results = input_data.get("delegation_results")
             return {
                 "delegations": [],
                 "board_instructions": [],
@@ -262,6 +264,170 @@ class TestDelegationStub:
 
         assert result["status"] == "completed"
         assert call_count == 2  # Facilitator invoked twice
+        # In mock mode, delegation results contain mock message
+        assert received_delegation_results is not None
+        assert "mock mode" in received_delegation_results.lower()
+
+    @pytest.mark.asyncio
+    async def test_delegation_publishes_complete_event(self, _clear_pipeline_state, settings):
+        """Pipeline publishes ai.delegation.complete after delegation handling."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        async def mock_process(input_data):
+            if input_data.get("delegation_results") is None:
+                return {
+                    "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "test"}],
+                    "board_instructions": [],
+                    "response": "Checking...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "Done.",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
+            MockAgent.return_value.process = mock_process
+            await pipeline.execute("idea-1")
+
+        events = get_published_events()
+        delegation_complete = [e for e in events if e["event_type"] == "ai.delegation.complete"]
+        assert len(delegation_complete) == 1
+        assert delegation_complete[0]["idea_id"] == "idea-1"
+        assert delegation_complete[0]["delegation_type"] == "context_agent"
+
+    @pytest.mark.asyncio
+    async def test_no_delegation_no_reinvocation(self, _clear_pipeline_state, settings):
+        """Pipeline does not re-invoke when no delegations requested."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        call_count = 0
+
+        async def mock_process(input_data):
+            nonlocal call_count
+            call_count += 1
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "No delegation needed.",
+                "token_usage": {"input": 100, "output": 20},
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
+            MockAgent.return_value.process = mock_process
+            await pipeline.execute("idea-1")
+
+        assert call_count == 1  # Only one Facilitator invocation
+
+        events = get_published_events()
+        delegation_complete = [e for e in events if e["event_type"] == "ai.delegation.complete"]
+        assert len(delegation_complete) == 0
+
+    @pytest.mark.asyncio
+    async def test_context_agent_invoked_in_non_mock_mode(self, _clear_pipeline_state, settings):
+        """In non-mock mode, pipeline invokes Context Agent with query."""
+        settings.AI_MOCK_MODE = False
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        context_agent_called = False
+        context_agent_input = {}
+
+        async def mock_facilitator_process(input_data):
+            if input_data.get("delegation_results") is None:
+                return {
+                    "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "What ERP?"}],
+                    "board_instructions": [],
+                    "response": "Let me check...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "Based on findings...",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        async def mock_context_process(input_data):
+            nonlocal context_agent_called, context_agent_input
+            context_agent_called = True
+            context_agent_input = input_data
+            return {
+                "response": "The company uses SAP for ERP.",
+                "chunks_used": ["chunk-1", "chunk-2"],
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.context_agent.agent.ContextAgent") as MockContextAgent:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockContextAgent.return_value.process = mock_context_process
+            result = await pipeline.execute("idea-1")
+
+        assert result["status"] == "completed"
+        assert context_agent_called is True
+        assert context_agent_input["query"] == "What ERP?"
+        assert context_agent_input["idea_id"] == "idea-1"
+
+    @pytest.mark.asyncio
+    async def test_context_agent_results_injected_into_facilitator(self, _clear_pipeline_state, settings):
+        """Context Agent response is injected into second Facilitator invocation."""
+        settings.AI_MOCK_MODE = False
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        received_delegation_results = None
+
+        async def mock_facilitator_process(input_data):
+            nonlocal received_delegation_results
+            if input_data.get("delegation_results") is None:
+                return {
+                    "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "What ERP?"}],
+                    "board_instructions": [],
+                    "response": "Checking...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            received_delegation_results = input_data["delegation_results"]
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "SAP is the ERP.",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        async def mock_context_process(input_data):
+            return {
+                "response": "The company uses SAP for ERP.",
+                "chunks_used": ["chunk-1"],
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.context_agent.agent.ContextAgent") as MockContextAgent:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockContextAgent.return_value.process = mock_context_process
+            await pipeline.execute("idea-1")
+
+        assert received_delegation_results is not None
+        assert "context_agent_findings" in received_delegation_results
+        assert "SAP for ERP" in received_delegation_results
+        assert "1 knowledge base chunks" in received_delegation_results
 
 
 # ── Board Agent invocation (M8) ──

@@ -179,8 +179,8 @@ class ChatProcessingPipeline:
     ) -> dict[str, Any]:
         """Step 4: Handle delegation if requested.
 
-        In M7, delegation agents are stubs — log 'not available' and
-        re-invoke Facilitator with empty delegation results.
+        Routes delegation to the appropriate agent (Context Agent or
+        Context Extension) and re-invokes Facilitator with results.
         """
         delegations = facilitator_result.get("delegations", [])
         if not delegations:
@@ -190,22 +190,94 @@ class ChatProcessingPipeline:
         for delegation in delegations:
             d_type = delegation.get("delegation_type", "unknown")
             d_query = delegation.get("query", "")
-            logger.warning(
-                "Step 4: Delegation '%s' requested for idea %s (query: %s) — "
-                "agent not available in M7, returning empty results",
-                d_type, idea_id, d_query,
-            )
 
-        # Re-invoke Facilitator with empty delegation results
-        input_data["delegation_results"] = (
-            "(Delegation agents are not available in this milestone. "
-            "No additional context could be retrieved.)"
-        )
+            if d_type == "context_agent":
+                delegation_results = await self._invoke_context_agent(
+                    idea_id, d_query,
+                )
+                input_data["delegation_results"] = delegation_results
+            elif d_type == "context_extension":
+                # Context Extension not yet implemented — return empty
+                logger.warning(
+                    "Step 4: Delegation 'context_extension' for idea %s — "
+                    "agent not available yet, returning empty results",
+                    idea_id,
+                )
+                input_data["extension_results"] = (
+                    "(Context Extension agent is not available in this milestone. "
+                    "No additional context could be retrieved.)"
+                )
+            else:
+                logger.warning(
+                    "Step 4: Unknown delegation type '%s' for idea %s",
+                    d_type, idea_id,
+                )
+
+        # Re-invoke Facilitator with delegation results
         from agents.facilitator.agent import FacilitatorAgent
 
-        logger.info("Step 4: Re-invoking Facilitator with delegation stub results")
+        logger.info("Step 4: Re-invoking Facilitator with delegation results")
         agent = FacilitatorAgent()
-        return await agent.process(input_data)
+        result = await agent.process(input_data)
+
+        # Publish delegation complete event
+        for delegation in delegations:
+            await publish_event("ai.delegation.complete", {
+                "idea_id": idea_id,
+                "delegation_id": delegation.get("delegation_id", ""),
+                "delegation_type": delegation.get("delegation_type", "unknown"),
+            })
+
+        return result
+
+    async def _invoke_context_agent(
+        self, idea_id: str, query: str,
+    ) -> str:
+        """Invoke the Context Agent with a query and return formatted results.
+
+        In mock mode, returns empty findings without invoking the agent.
+        """
+        from django.conf import settings as django_settings
+
+        if getattr(django_settings, "AI_MOCK_MODE", False):
+            logger.info(
+                "Step 4: Context Agent delegation for idea %s in mock mode — "
+                "returning empty findings",
+                idea_id,
+            )
+            return "(No context findings available in mock mode.)"
+
+        logger.info(
+            "Step 4: Invoking Context Agent for idea %s",
+            idea_id,
+        )
+
+        try:
+            from agents.context_agent.agent import ContextAgent
+
+            agent = ContextAgent()
+            result = await agent.process({
+                "query": query,
+                "idea_id": idea_id,
+            })
+
+            response = result.get("response", "")
+            chunks_used = result.get("chunks_used", [])
+
+            if response:
+                return (
+                    f"<context_agent_findings>\n"
+                    f"{response}\n"
+                    f"(Based on {len(chunks_used)} knowledge base chunks)\n"
+                    f"</context_agent_findings>"
+                )
+            return "(Context Agent found no relevant information.)"
+
+        except Exception:
+            logger.exception(
+                "Step 4: Context Agent failed for idea %s", idea_id,
+            )
+            return "(Context Agent encountered an error. No findings available.)"
 
     async def _step_board_agent(
         self, idea_id: str, facilitator_result: dict[str, Any],

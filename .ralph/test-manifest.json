@@ -367,6 +367,10 @@
     "T-2.15.03": {
       "file": "services/ai/tests/test_context_agent.py",
       "function": "test_no_chunks_returns_refusal"
+    },
+    "T-2.15.02": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_delegation_empty_bucket_rejected"
     }
   }
 }
