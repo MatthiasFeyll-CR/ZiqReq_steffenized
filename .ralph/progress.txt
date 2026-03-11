@@ -38,3 +38,18 @@ Started: 2026-03-11T13:38:26+0100
   - Transient DB errors with unique constraint uq_active_merge_request across test classes — resolved by rebuilding test container or re-running
   - In tests, avoid creating multiple pending MergeRequests for same (requesting_idea_id, target_idea_id) pair — use different idea pairs
 ---
+
+## US-002: Append Execution — Close & Collaborator Add
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/similarity/append_service.py (new), services/core/events/consumers.py, services/gateway/apps/similarity/append_service.py (new mirror), services/gateway/events/append_consumer.py (new mirror), services/gateway/apps/ideas/tests/test_append_execution.py (new)
+- Tests: 787 Python tests passed, 12 new append execution tests (all pass), 403 Node tests passed
+- Learnings for future iterations:
+  - Gateway mirrors core services for test discoverability (PYTHONPATH has gateway first, so `apps.similarity` resolves to gateway's version)
+  - When creating new service modules in core, also create gateway mirror (same as merge_service.py pattern)
+  - Consumer pattern: separate files per event domain (merge_consumer.py, append_consumer.py) in gateway/events/
+  - execute_append uses get_or_create for idempotent collaborator addition
+  - Append does NOT create new idea, does NOT change state — only flags closed_by_append_id and adds collaborator
+  - _publish_append_complete called outside transaction (same pattern as merge_service)
+  - Pre-existing flaky test: information-gaps-toggle.test.tsx has error after all tests pass (PDFPreview import issue)
+---
