@@ -64,3 +64,28 @@ Started: 2026-03-11T15:59:48+0100
   - Test paths must use `services/gateway/apps/...` prefix (full path from /app root), not `apps/...`
   - ideas_by_state filters out soft-deleted ideas (deleted_at__isnull=True)
 ---
+
+## US-004: Admin Users Search Endpoint — GET with Stats
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/authentication/views.py (added admin_users_search view + _require_admin helper), services/gateway/apps/authentication/serializers.py (added AdminUserSearchSerializer), services/gateway/apps/authentication/admin_urls.py (new — admin user URL routes), services/gateway/apps/authentication/tests/test_admin_users.py (new), services/gateway/gateway/urls.py (added admin_urls include), .ralph/test-manifest.json (updated)
+- Tests: 14 passed (TestAdminUsersSearch: 13, TestAdminUsersSearchAuthz: 1), full suite 861 passed
+- Learnings for future iterations:
+  - board_nodes.created_by is a CharField ('user'/'ai'), not a user FK — need to infer user ownership via idea_id + Idea.owner_id/co_owner_id
+  - Used Django Subquery + Coalesce pattern for computing user stats across multiple tables without N+1 queries
+  - Empty search query (no ?q= param) returns all users — different from the regular /api/users/search which requires min 2 chars
+  - Admin user search URL is at api/admin/users/search, wired via separate admin_urls.py in authentication app to avoid polluting existing auth urls.py
+  - The _require_admin helper is duplicated across admin views (admin_ai_context, admin_config, authentication) — could be extracted to a shared module in a future refactor
+---
+
+## US-005: Context Re-Indexing Trigger — PATCH Company Context → AI gRPC
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/admin_ai_context/views.py (added _get_ai_client helper + gRPC call in company_context PATCH), services/gateway/apps/admin_ai_context/tests/test_ai_context.py (added TestCompanyContextReindexing class with 3 tests, patched existing PATCH tests to mock gRPC client)
+- Tests: 14 passed (TestFacilitatorContext: 5, TestCompanyContext: 6, TestCompanyContextReindexing: 3), full suite 864 passed
+- Learnings for future iterations:
+  - When running the full cross-service test suite, grpc_clients module is only on PYTHONPATH when gateway is the root — existing PATCH tests that trigger the gRPC path must mock _get_ai_client to avoid ModuleNotFoundError
+  - The _get_ai_client pattern (lazy import inside helper function) matches the pattern used in services/gateway/apps/brd/views.py
+  - AiClient.update_context_agent_bucket accepts sections_json (string), free_text (string), updated_by_id (string) — sections must be JSON-serialized before passing
+  - gRPC errors are caught with a broad Exception catch and returned as 500 with REINDEX_FAILED error code — the DB update still persists (fire-and-fail, not transactional rollback)
+---

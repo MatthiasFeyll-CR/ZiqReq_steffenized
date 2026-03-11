@@ -1,9 +1,11 @@
-"""Tests for Admin AI Context endpoints — US-001.
+"""Tests for Admin AI Context endpoints — US-001, US-005.
 
 Test IDs: T-11.2.01, T-11.2.02, API-ADMIN.03, API-ADMIN.04, API-ADMIN.05, API-ADMIN.06
 """
 
+import json
 import uuid
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
@@ -124,8 +126,10 @@ class TestCompanyContext(TestCase):
 
     # --- API-ADMIN.06: PATCH company context (happy path) ---
 
-    def test_patch_company_context(self):
+    @patch("apps.admin_ai_context.views._get_ai_client")
+    def test_patch_company_context(self, mock_get_client):
         """API-ADMIN.06 / T-11.2.02: PATCH updates company context sections + free_text."""
+        mock_get_client.return_value = MagicMock()
         response = self.client.patch(
             "/api/admin/ai-context/company",
             {"sections": {"apps": ["App1", "App2"]}, "free_text": "extra info"},
@@ -137,8 +141,10 @@ class TestCompanyContext(TestCase):
         assert data["free_text"] == "extra info"
         assert data["updated_by"] == str(ADMIN_ID)
 
-    def test_get_after_patch_returns_updated_company_context(self):
+    @patch("apps.admin_ai_context.views._get_ai_client")
+    def test_get_after_patch_returns_updated_company_context(self, mock_get_client):
         """T-11.2.02: Sections + free_text persist after PATCH."""
+        mock_get_client.return_value = MagicMock()
         self.client.patch(
             "/api/admin/ai-context/company",
             {"sections": {"domain": "fintech"}, "free_text": "notes"},
@@ -150,8 +156,10 @@ class TestCompanyContext(TestCase):
         assert data["sections"] == {"domain": "fintech"}
         assert data["free_text"] == "notes"
 
-    def test_patch_partial_update_sections_only(self):
+    @patch("apps.admin_ai_context.views._get_ai_client")
+    def test_patch_partial_update_sections_only(self, mock_get_client):
         """PATCH with only sections updates sections, keeps free_text default."""
+        mock_get_client.return_value = MagicMock()
         response = self.client.patch(
             "/api/admin/ai-context/company",
             {"sections": {"key": "val"}},
@@ -177,3 +185,56 @@ class TestCompanyContext(TestCase):
             format="json",
         )
         assert response.status_code == 403
+
+
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+class TestCompanyContextReindexing(TestCase):
+    """Tests for US-005: Context re-indexing trigger on company context PATCH."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = _create_user(ADMIN_ID, "admin@test.local", "Admin User", ["user", "admin"])
+        self.client.post("/api/auth/dev-login", {"user_id": str(ADMIN_ID)}, format="json")
+
+    @patch("apps.admin_ai_context.views._get_ai_client")
+    def test_patch_triggers_grpc_reindex(self, mock_get_client):
+        """US-005: PATCH company context triggers AI gRPC update_context_agent_bucket."""
+        mock_client = MagicMock()
+        mock_client.update_context_agent_bucket.return_value = {"status": "accepted"}
+        mock_get_client.return_value = mock_client
+
+        response = self.client.patch(
+            "/api/admin/ai-context/company",
+            {"sections": {"domain": "fintech"}, "free_text": "company info"},
+            format="json",
+        )
+        assert response.status_code == 200
+
+        mock_client.update_context_agent_bucket.assert_called_once()
+        call_kwargs = mock_client.update_context_agent_bucket.call_args
+        assert json.loads(call_kwargs.kwargs["sections_json"]) == {"domain": "fintech"}
+        assert call_kwargs.kwargs["free_text"] == "company info"
+        assert call_kwargs.kwargs["updated_by_id"] == str(ADMIN_ID)
+
+    @patch("apps.admin_ai_context.views._get_ai_client")
+    def test_patch_returns_500_on_grpc_failure(self, mock_get_client):
+        """US-005: gRPC failure returns 500 with error details."""
+        mock_client = MagicMock()
+        mock_client.update_context_agent_bucket.side_effect = Exception("gRPC unavailable")
+        mock_get_client.return_value = mock_client
+
+        response = self.client.patch(
+            "/api/admin/ai-context/company",
+            {"sections": {"key": "val"}, "free_text": "text"},
+            format="json",
+        )
+        assert response.status_code == 500
+        data = response.json()
+        assert data["error"] == "REINDEX_FAILED"
+
+    @patch("apps.admin_ai_context.views._get_ai_client")
+    def test_get_does_not_trigger_grpc(self, mock_get_client):
+        """US-005: GET company context does NOT trigger gRPC."""
+        response = self.client.get("/api/admin/ai-context/company")
+        assert response.status_code == 200
+        mock_get_client.assert_not_called()

@@ -1,3 +1,4 @@
+import json
 import logging
 
 from django.utils import timezone
@@ -12,6 +13,13 @@ from .models import ContextAgentBucket, FacilitatorContextBucket
 from .serializers import ContextAgentBucketSerializer, FacilitatorContextSerializer
 
 logger = logging.getLogger(__name__)
+
+
+def _get_ai_client():
+    """Create an AiClient instance (lazy import to avoid namespace collisions)."""
+    from grpc_clients.ai_client import AiClient
+
+    return AiClient()
 
 
 def _require_admin(request: Request) -> Response | None:
@@ -76,5 +84,24 @@ def company_context(request: Request) -> Response:
         bucket.updated_by = request.user.id
         bucket.updated_at = timezone.now()
         bucket.save(update_fields=["sections", "free_text", "updated_by", "updated_at"])
+
+        # Trigger AI gRPC re-indexing (US-005)
+        try:
+            ai_client = _get_ai_client()
+            ai_client.update_context_agent_bucket(
+                sections_json=json.dumps(bucket.sections),
+                free_text=bucket.free_text,
+                updated_by_id=str(bucket.updated_by),
+            )
+            logger.info("Context re-indexing triggered for bucket %s", bucket.id)
+        except Exception:
+            logger.exception("Failed to trigger context re-indexing via AI gRPC")
+            return Response(
+                {
+                    "error": "REINDEX_FAILED",
+                    "message": "Company context updated but re-indexing failed. Please retry.",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     return Response(ContextAgentBucketSerializer(bucket).data)
