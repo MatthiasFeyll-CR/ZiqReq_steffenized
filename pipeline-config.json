@@ -28,140 +28,184 @@
       "slug": "landing",
       "name": "Landing Page & Idea CRUD",
       "stories": 8,
-      "dependencies": [1]
+      "dependencies": [
+        1
+      ]
     },
     {
       "id": 3,
       "slug": "workspace-chat",
       "name": "Idea Workspace - Layout & Chat",
       "stories": 10,
-      "dependencies": [2]
+      "dependencies": [
+        2
+      ]
     },
     {
       "id": 4,
       "slug": "board-core",
       "name": "Digital Board - Core",
       "stories": 9,
-      "dependencies": [3]
+      "dependencies": [
+        3
+      ]
     },
     {
       "id": 5,
       "slug": "board-advanced",
       "name": "Board Interactions & Undo",
       "stories": 8,
-      "dependencies": [4]
+      "dependencies": [
+        4
+      ]
     },
     {
       "id": 6,
       "slug": "websocket",
       "name": "WebSocket & Real-Time",
       "stories": 10,
-      "dependencies": [3]
+      "dependencies": [
+        3
+      ]
     },
     {
       "id": 7,
       "slug": "ai-chat",
       "name": "AI Core - Chat Processing Pipeline",
       "stories": 10,
-      "dependencies": [5, 6]
+      "dependencies": [
+        5,
+        6
+      ]
     },
     {
       "id": 8,
       "slug": "ai-context",
       "name": "AI Board Agent & Context",
       "stories": 10,
-      "dependencies": [7]
+      "dependencies": [
+        7
+      ]
     },
     {
       "id": 9,
       "slug": "brd-pdf",
       "name": "BRD & PDF Generation",
       "stories": 9,
-      "dependencies": [8]
+      "dependencies": [
+        8
+      ]
     },
     {
       "id": 10,
       "slug": "review",
       "name": "Review Workflow",
       "stories": 10,
-      "dependencies": [9]
+      "dependencies": [
+        9
+      ]
     },
     {
       "id": 11,
       "slug": "collaboration",
       "name": "Collaboration & Sharing",
       "stories": 9,
-      "dependencies": [6]
+      "dependencies": [
+        6
+      ]
     },
     {
       "id": 12,
       "slug": "notifications",
       "name": "Notification System",
       "stories": 9,
-      "dependencies": [6]
+      "dependencies": [
+        6
+      ]
     },
     {
       "id": 13,
       "slug": "similarity",
       "name": "Similarity Detection & Merge",
       "stories": 10,
-      "dependencies": [8, 12]
+      "dependencies": [
+        8,
+        12
+      ]
     },
     {
       "id": 14,
       "slug": "merge-advanced",
       "name": "Merge Advanced & Manual",
       "stories": 7,
-      "dependencies": [13]
+      "dependencies": [
+        13
+      ]
     },
     {
       "id": 15,
       "slug": "admin",
       "name": "Admin Panel",
       "stories": 10,
-      "dependencies": [8]
+      "dependencies": [
+        8
+      ]
     },
     {
       "id": 16,
       "slug": "polish",
       "name": "Polish & Cross-Cutting",
       "stories": 10,
-      "dependencies": [10, 11, 12]
+      "dependencies": [
+        10,
+        11,
+        12
+      ]
     },
     {
       "id": 17,
       "slug": "e2e-foundation",
       "name": "E2E Foundation Tests",
       "stories": 5,
-      "dependencies": [16]
+      "dependencies": [
+        16
+      ]
     },
     {
       "id": 18,
       "slug": "e2e-workspace",
       "name": "E2E Workspace, Chat & Board Tests",
       "stories": 10,
-      "dependencies": [17]
+      "dependencies": [
+        17
+      ]
     },
     {
       "id": 19,
       "slug": "e2e-review-collab",
       "name": "E2E BRD, Review & Collaboration",
       "stories": 10,
-      "dependencies": [18]
+      "dependencies": [
+        18
+      ]
     },
     {
       "id": 20,
       "slug": "e2e-similarity-admin",
       "name": "E2E Similarity, Merge & Admin",
       "stories": 9,
-      "dependencies": [19]
+      "dependencies": [
+        19
+      ]
     },
     {
       "id": 21,
       "slug": "e2e-journeys-edge",
       "name": "E2E Error Handling & User Journeys",
       "stories": 8,
-      "dependencies": [20]
+      "dependencies": [
+        20
+      ]
     }
   ],
   "models": {
@@ -238,7 +282,7 @@
     "backoff_seconds": 30
   },
   "cost": {
-    "budget_usd": 750
+    "budget_usd": 1000
   },
   "test_execution": {
     "compose_file": "docker-compose.e2e.yml",
