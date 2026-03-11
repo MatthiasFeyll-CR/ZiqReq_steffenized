@@ -12,7 +12,15 @@ from apps.authentication.models import User
 
 from .authentication import MiddlewareAuthentication
 from .models import ChatContextSummary, ChatMessage, Idea, IdeaCollaborator
-from .serializers import IdeaCreateSerializer, IdeaDetailSerializer, IdeaPatchSerializer, SimilarIdeaSerializer
+from .serializers import (
+    IdeaCreateSerializer,
+    IdeaDetailSerializer,
+    IdeaPatchSerializer,
+    MergeRequestConsentSerializer,
+    MergeRequestCreateSerializer,
+    MergeRequestSerializer,
+    SimilarIdeaSerializer,
+)
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
@@ -624,3 +632,207 @@ def get_similar_ideas(request: Request, idea_id: str) -> Response:
             "previous": previous_page,
         }
     )
+
+
+def _publish_event(event_type: str, payload: dict) -> None:
+    """Lazy-import wrapper to avoid module-collection ordering issues in tests."""
+    from events.publisher import publish_event
+
+    publish_event(event_type, payload)
+
+
+def _publish_notification(**kwargs) -> None:
+    """Lazy-import wrapper for notification events."""
+    from events.publisher import publish_notification_event
+
+    publish_notification_event(**kwargs)
+
+
+def _get_idea_or_404(idea_id: str):
+    """Validate UUID and return Idea or a 404 Response."""
+    try:
+        uuid.UUID(idea_id)
+    except ValueError:
+        return None, Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    try:
+        idea = Idea.objects.get(id=idea_id)
+    except Idea.DoesNotExist:
+        return None, Response(
+            {"error": "NOT_FOUND", "message": "Idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    return idea, None
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def create_merge_request(request: Request, idea_id: str) -> Response:
+    """POST /api/ideas/:id/merge-request — Create a merge request."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    requesting_idea, err = _get_idea_or_404(idea_id)
+    if err:
+        return err
+
+    # Only the idea owner can create a merge request
+    if requesting_idea.owner_id != user.id:
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "Only the idea owner can create a merge request"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = MergeRequestCreateSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    target_idea_id = serializer.validated_data["target_idea_id"]
+
+    # Validate target idea exists
+    target_idea, err = _get_idea_or_404(str(target_idea_id))
+    if err:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Target idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Cannot merge with self
+    if requesting_idea.id == target_idea.id:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Cannot create merge request with the same idea"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from apps.similarity.models import MergeRequest as MergeRequestModel
+
+    # Check for existing active merge request for this pair (either direction)
+    existing = MergeRequestModel.objects.filter(
+        status="pending",
+    ).filter(
+        Q(requesting_idea_id=requesting_idea.id, target_idea_id=target_idea.id)
+        | Q(requesting_idea_id=target_idea.id, target_idea_id=requesting_idea.id)
+    ).exists()
+
+    if existing:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "A merge request already exists for this pair"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    merge_request = MergeRequestModel.objects.create(
+        requesting_idea_id=requesting_idea.id,
+        target_idea_id=target_idea.id,
+        merge_type="merge",
+        requested_by=user.id,
+        status="pending",
+        requesting_owner_consent="accepted",
+        target_owner_consent="pending",
+    )
+
+    # Publish merge_request.created event
+    _publish_event(
+        "notification.similarity.merge_request_created",
+        {
+            "merge_request_id": str(merge_request.id),
+            "requesting_idea_id": str(requesting_idea.id),
+            "target_idea_id": str(target_idea.id),
+            "requesting_owner_id": str(requesting_idea.owner_id),
+            "target_owner_id": str(target_idea.owner_id),
+        },
+    )
+
+    result = MergeRequestSerializer(merge_request).data
+    return Response(result, status=status.HTTP_201_CREATED)
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def consent_merge_request(request: Request, merge_request_id: str) -> Response:
+    """POST /api/merge-requests/:id/consent — Accept or decline a merge request."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        uuid.UUID(merge_request_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Merge request not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    from apps.similarity.models import MergeRequest as MergeRequestModel
+
+    try:
+        merge_request = MergeRequestModel.objects.get(id=merge_request_id)
+    except MergeRequestModel.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Merge request not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if merge_request.status != "pending":
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Merge request is not pending"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Only target idea owner can consent
+    try:
+        target_idea = Idea.objects.get(id=merge_request.target_idea_id)
+    except Idea.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Target idea not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if target_idea.owner_id != user.id:
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "Only the target idea owner can consent"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    serializer = MergeRequestConsentSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    consent = serializer.validated_data["consent"]
+
+    if consent == "accept":
+        merge_request.target_owner_consent = "accepted"
+        # Both consents are now accepted
+        if merge_request.requesting_owner_consent == "accepted":
+            merge_request.status = "accepted"
+            merge_request.resolved_at = timezone.now()
+        merge_request.save()
+
+        if merge_request.status == "accepted":
+            _publish_event(
+                "notification.similarity.merge_request_accepted",
+                {
+                    "merge_request_id": str(merge_request.id),
+                    "requesting_idea_id": str(merge_request.requesting_idea_id),
+                    "target_idea_id": str(merge_request.target_idea_id),
+                },
+            )
+    else:
+        merge_request.status = "declined"
+        merge_request.target_owner_consent = "declined"
+        merge_request.resolved_at = timezone.now()
+        merge_request.save()
+
+        _publish_event(
+            "notification.similarity.merge_request_declined",
+            {
+                "merge_request_id": str(merge_request.id),
+                "requesting_idea_id": str(merge_request.requesting_idea_id),
+                "target_idea_id": str(merge_request.target_idea_id),
+            },
+        )
+
+    result = MergeRequestSerializer(merge_request).data
+    return Response(result, status=status.HTTP_200_OK)
