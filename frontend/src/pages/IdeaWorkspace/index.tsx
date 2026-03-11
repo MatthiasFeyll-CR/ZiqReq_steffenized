@@ -9,6 +9,7 @@ import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
+import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useSelector } from "react-redux";
@@ -175,6 +176,7 @@ function IdeaWorkspaceContent({
   return (
     <div className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={allReadOnly} />
+      <InvitationBanner ideaId={idea.id} />
       <OfflineBanner />
       <div ref={brainstormingRef} className="flex-1 min-h-0 flex flex-col" style={{ minHeight: hasBeenSubmitted ? "calc(100vh - 64px)" : undefined }}>
         <WorkspaceLayout

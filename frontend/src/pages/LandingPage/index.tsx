@@ -10,6 +10,8 @@ import { IdeaCard } from "@/components/landing/IdeaCard";
 import type { IdeaState } from "@/components/landing/IdeaCard";
 import { InvitationCard } from "@/components/landing/InvitationCard";
 import { IdeaCardSkeleton } from "@/components/landing/IdeaCardSkeleton";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { acceptInvitation, declineInvitation } from "@/api/collaboration";
 import { useMyIdeas } from "@/hooks/use-my-ideas";
 import { useCollaboratingIdeas } from "@/hooks/use-collaborating-ideas";
 import { useInvitations } from "@/hooks/use-invitations";
@@ -72,6 +74,34 @@ export default function LandingPage() {
   const trash = useTrash();
   const deleteMutation = useDeleteIdea();
   const restoreMutation = useRestoreIdea();
+  const queryClient = useQueryClient();
+
+  const acceptMutation = useMutation({
+    mutationFn: acceptInvitation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      queryClient.invalidateQueries({ queryKey: ["collaboratingIdeas"] });
+      toast.success(t("landing.invitations.accepted", "Invitation accepted"));
+    },
+  });
+
+  const declineMutation = useMutation({
+    mutationFn: declineInvitation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      toast.success(t("landing.invitations.declined", "Invitation declined"));
+    },
+  });
+
+  const handleAccept = useCallback(
+    (id: string) => acceptMutation.mutate(id),
+    [acceptMutation],
+  );
+
+  const handleDecline = useCallback(
+    (id: string) => declineMutation.mutate(id),
+    [declineMutation],
+  );
 
   const myIdeasData = showMyIdeas ? (myIdeas.data?.results ?? []) : [];
   const collaboratingData = showCollaborating
@@ -209,6 +239,8 @@ export default function LandingPage() {
                     ideaTitle={inv.idea_title}
                     inviterName={inv.inviter.display_name}
                     createdAt={inv.created_at}
+                    onAccept={handleAccept}
+                    onDecline={handleDecline}
                   />
                 ))}
               </div>

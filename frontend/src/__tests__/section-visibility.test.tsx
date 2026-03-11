@@ -45,6 +45,8 @@ vi.mock("@/api/collaboration", () => ({
   transferOwnership: vi.fn(),
   fetchPendingInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
   revokeInvitation: vi.fn(),
+  acceptInvitation: vi.fn(),
+  declineInvitation: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-auth", () => ({
@@ -59,12 +61,13 @@ vi.mock("@/hooks/use-auth", () => ({
   AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));
 
-// Mock fetchIdea
+// Mock fetchIdea and fetchInvitations
 vi.mock("@/api/ideas", async () => {
   const actual = await vi.importActual("@/api/ideas");
   return {
     ...actual,
     fetchIdea: vi.fn(),
+    fetchInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
   };
 });
 

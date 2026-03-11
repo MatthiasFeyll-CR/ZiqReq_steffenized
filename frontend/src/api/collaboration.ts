@@ -126,3 +126,33 @@ export async function revokeInvitation(
   );
   return handleResponse(res);
 }
+
+export async function acceptInvitation(
+  invitationId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/invitations/${invitationId}/accept`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}
+
+export async function declineInvitation(
+  invitationId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/invitations/${invitationId}/decline`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}

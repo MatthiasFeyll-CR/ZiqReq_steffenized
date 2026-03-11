@@ -699,6 +699,22 @@
     "UI-COLLAB.04": {
       "file": "frontend/src/__tests__/collaborator-modal.test.tsx",
       "function": "shows pending invitations and allows revoke"
+    },
+    "UI-INVITE.01": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "renders invitation card with inviter name, idea title, and action buttons"
+    },
+    "UI-INVITE.02": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "shows banner when pending invitation exists for current idea"
+    },
+    "UI-INVITE.03": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "accept calls API and shows success toast"
+    },
+    "T-12.3.01": {
+      "file": "frontend/src/__tests__/invitation-display.test.tsx",
+      "function": "does not show banner when no pending invitation for this idea"
     }
   }
 }
