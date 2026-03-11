@@ -80,6 +80,22 @@ class ChatMessage(models.Model):
         return f"ChatMessage {self.id} ({self.sender_type})"
 
 
+class ChatContextSummary(models.Model):
+    """Unmanaged mirror — reads AI service's chat_context_summaries table."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    idea_id = models.UUIDField()
+    summary_text = models.TextField()
+    messages_covered_up_to_id = models.UUIDField()
+    compression_iteration = models.IntegerField(default=1)
+    context_window_usage_at_compression = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = "chat_context_summaries"
+
+
 class UserReaction(models.Model):
     REACTION_TYPE_CHOICES = [
         ("thumbs_up", "Thumbs Up"),
