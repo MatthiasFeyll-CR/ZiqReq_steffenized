@@ -26,7 +26,7 @@ export function useSectionVisibility(idea: Idea): SectionVisibility {
     switch (state) {
       case "open":
         return {
-          reviewVisible: false,
+          reviewVisible: true,
           chatLocked: false,
           allReadOnly: false,
           lockReason: null,

@@ -515,6 +515,34 @@
     "API-4.06": {
       "file": "services/gateway/apps/brd/tests/test_views.py",
       "function": "test_post_generate_selective_regeneration"
+    },
+    "T-1.2.01": {
+      "file": "frontend/src/__tests__/section-visibility.test.tsx",
+      "function": "shows Review tab when idea state is open"
+    },
+    "T-1.2.02": {
+      "file": "frontend/src/__tests__/section-visibility.test.tsx",
+      "function": "shows Review tab when idea is in_review"
+    },
+    "T-4.5.01": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "shows BRD content state when draft has content"
+    },
+    "T-4.5.02": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "shows Download PDF and Generate buttons"
+    },
+    "T-4.5.03": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "calls triggerBrdGeneration on click"
+    },
+    "UI-4.01": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "renders the review tab container"
+    },
+    "UI-4.02": {
+      "file": "frontend/src/__tests__/review-tab.test.tsx",
+      "function": "shows empty state message when no BRD content exists"
     }
   }
 }
