@@ -89,3 +89,18 @@ Started: 2026-03-11T15:59:48+0100
   - AiClient.update_context_agent_bucket accepts sections_json (string), free_text (string), updated_by_id (string) — sections must be JSON-serialized before passing
   - gRPC errors are caught with a broad Exception catch and returned as 500 with REINDEX_FAILED error code — the DB update still persists (fire-and-fail, not transactional rollback)
 ---
+
+## US-006: Monitoring Backend Service — Celery Periodic Task
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/monitoring/__init__.py (new), services/core/apps/monitoring/health_checks.py (new), services/core/apps/monitoring/tasks.py (new — replaced empty placeholder), services/core/apps/monitoring/tests/__init__.py (new), services/core/apps/monitoring/tests/test_monitoring_service.py (new), services/core/core/settings/base.py (added apps.monitoring to INSTALLED_APPS + health-check-sweep to CELERY_BEAT_SCHEDULE), services/gateway/apps/monitoring/health_checks.py (mirror for test discoverability), services/gateway/apps/monitoring/tasks.py (mirror for test discoverability), services/gateway/apps/monitoring/tests/test_monitoring_service.py (mirror for test runner), .ralph/test-manifest.json (updated)
+- Tests: 22 passed (TestHealthCheckResult: 2, TestIndividualHealthChecks: 11, TestRunAllChecks: 2, TestHealthCheckTask: 6, TestStoreResultInRedis: 1), full suite 908 passed
+- Learnings for future iterations:
+  - Core service `apps.monitoring` namespace conflicts with gateway's `apps.monitoring` — PYTHONPATH puts gateway first, so `apps.monitoring` resolves to gateway. Solution: mirror health_checks.py and tasks.py into gateway's monitoring app for test discoverability (same pattern as similarity app)
+  - Core service monitoring app needs `apps.monitoring` in core's INSTALLED_APPS for Celery autodiscovery, but tests run under gateway settings
+  - Celery task name must match the CELERY_BEAT_SCHEDULE task name — used `monitoring.health_check_task` convention
+  - Health check results stored in Redis with key prefix `monitoring:health:{service_name}` and TTL = 2 * health_check_interval
+  - DLQ health check uses RabbitMQ management API at port 15672 — extracts credentials from BROKER_URL
+  - Notification heartbeat check reads `notification:heartbeat` Redis key and considers healthy if < 120s old
+  - Module-level imports (redis as redis_lib, grpc, pika) needed for proper mock patching in tests — local imports can't be patched via `@patch("apps.monitoring.health_checks.redis_lib")`
+---

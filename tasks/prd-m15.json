@@ -65,7 +65,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-11.3.01",
         "API-ADMIN.01",
@@ -111,7 +111,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-11.4.01",
         "API-ADMIN.09",
@@ -149,7 +149,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "API-ADMIN.11",
         "API-ADMIN.12"
@@ -188,7 +188,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md \u00a7 Admin AI context endpoints \u2014 re-indexing on company context update\nAI: docs/03-ai/agent-architecture.md \u00a7 Context Agent RAG pipeline \u2014 UpdateContextAgentBucket gRPC implemented in M8\nTesting: No dedicated test IDs \u2014 integration covered by T-11.2.02 (context agent bucket CRUD)\nFiles: services/gateway/apps/admin_ai_context/views.py (update company_context_update view to call gRPC), services/gateway/grpc_clients/ai_client.py (use existing UpdateContextAgentBucket stub)\nGotchas: AI service gRPC stub already exists from M8. The gRPC method is async (returns 202), so don't block the HTTP response. Use try/except around gRPC call, return 500 if it fails. The AI service handles DELETE + re-chunk + re-embed internally.",
       "context": {
@@ -215,7 +215,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-11.5.01"
       ],

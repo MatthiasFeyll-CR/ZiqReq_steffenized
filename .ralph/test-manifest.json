@@ -843,6 +843,10 @@
     "API-ADMIN.12": {
       "file": "services/gateway/apps/authentication/tests/test_admin_users.py",
       "function": "test_non_admin_returns_403"
+    },
+    "T-11.5.01": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring_service.py",
+      "function": "test_task_unhealthy_publishes_alert"
     }
   }
 }
