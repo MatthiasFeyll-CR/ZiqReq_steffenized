@@ -198,7 +198,7 @@ def _build_preferences_response(user) -> dict:
         for pref_type in cat_info["types"]:
             # Missing key defaults to True (enabled)
             prefs[pref_type] = stored.get(pref_type, True)
-        categories[cat_name] = prefs
+        categories[cat_name] = {"label": cat_name, "preferences": prefs}
     return {"categories": categories}
 
 

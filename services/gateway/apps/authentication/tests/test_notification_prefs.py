@@ -54,7 +54,7 @@ class TestGetNotificationPreferences(TestCase):
         assert "Review Management" not in cats
         # All values default to True
         for prefs in cats.values():
-            for value in prefs.values():
+            for value in prefs["preferences"].values():
                 assert value is True
 
     def test_get_preferences_with_stored_values(self):
@@ -68,9 +68,9 @@ class TestGetNotificationPreferences(TestCase):
         response = self.client.get("/api/users/me/notification-preferences")
         assert response.status_code == 200
         cats = response.json()["categories"]
-        assert cats["Collaboration"]["collaboration_invitation"] is False
-        assert cats["Collaboration"]["collaborator_joined"] is True
-        assert cats["Chat"]["chat_mention"] is False
+        assert cats["Collaboration"]["preferences"]["collaboration_invitation"] is False
+        assert cats["Collaboration"]["preferences"]["collaborator_joined"] is True
+        assert cats["Chat"]["preferences"]["chat_mention"] is False
 
     def test_get_preferences_unauthenticated(self):
         """Unauthenticated request returns 401."""
@@ -99,8 +99,8 @@ class TestGetNotificationPreferencesAdmin(TestCase):
         assert response.status_code == 200
         cats = response.json()["categories"]
         assert "Admin" in cats
-        assert "monitoring_alert" in cats["Admin"]
-        assert cats["Admin"]["monitoring_alert"] is True
+        assert "monitoring_alert" in cats["Admin"]["preferences"]
+        assert cats["Admin"]["preferences"]["monitoring_alert"] is True
 
 
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
@@ -125,8 +125,8 @@ class TestUpdateNotificationPreferences(TestCase):
         )
         assert response.status_code == 200
         cats = response.json()["categories"]
-        assert cats["Collaboration"]["collaboration_invitation"] is False
-        assert cats["Review"]["review_state_changed"] is True
+        assert cats["Collaboration"]["preferences"]["collaboration_invitation"] is False
+        assert cats["Review"]["preferences"]["review_state_changed"] is True
 
         # Verify persisted
         self.user.refresh_from_db()
