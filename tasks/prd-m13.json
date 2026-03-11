@@ -306,7 +306,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.5.03", "T-5.5.06"],
       "notes": "Architecture: docs/02-architecture/data-model.md § ideas — merged_from_idea_1_id, merged_from_idea_2_id, closed_by_merge_id, co_owner_id (dual ownership for merged ideas)\nArchitecture: docs/02-architecture/data-model.md § idea_collaborators — transfer all collaborators, deduplicate by user_id\nArchitecture: docs/02-architecture/data-model.md § chat_messages — synthesis message as first AI message\nAI: docs/03-ai/agent-architecture.md § S4.4 Board Agent — processes board instructions from Merge Synthesizer\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge.complete — notify all users\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.03, T-5.5.06 — synthesis trigger, full E2E merge flow\nFiles: services/core/consumers/merge_consumer.py (new), services/core/services/merge_service.py (new)\nGotchas: Atomic transaction required (Django transaction.atomic() or gRPC transaction). Board Agent invoked in-process (not via message broker). Old ideas remain accessible via read-only link (share_link_token). Collaborator transfer uses UNION of both idea_collaborators sets, excluding the two owners (they become co-owners). Title 'Merged:' prefix indicates merged idea.\nDeviations: Milestone scope says 'AI synthesizes a summary of merged context as the first chat message' — implemented as synthesis_message from Merge Synthesizer agent.",
       "context": {
