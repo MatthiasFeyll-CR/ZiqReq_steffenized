@@ -1,0 +1,61 @@
+# Ralph Progress Log — M9 (brd-pdf)
+Started: 2026-03-11T03:48:23+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Summarizing AI Agent — 3 Generation Modes
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/agents/summarizing_ai/agent.py, services/ai/agents/summarizing_ai/prompt.py, services/ai/fixtures/summarizing_ai_response.json, services/ai/tests/test_summarizing_ai.py, .ralph/test-manifest.json
+- Tests: 36 passed, 0 failed (all AI agent tests pass, full suite 417 passed, frontend 265 passed)
+- Learnings for future iterations:
+  - SummarizingAIAgent follows exact ContextAgent pattern: BaseAgent → _execute() with SK direct chat completion, _load_mock_response() with fixture
+  - System prompt uses Python f-strings (not Handlebars {{}} from spec) — consistent with all other agents
+  - _apply_mode_logic() is a pure function that handles selective_regeneration (nullify locked sections) and section_regeneration (nullify all except target)
+  - Mock mode _load_mock_response() overridden to apply mode logic on fixture data (so selective/section modes work in mock too)
+  - Docker test container needs --build flag when source files change (cached COPY layer)
+  - AI tests need DJANGO_SETTINGS_MODULE=ai_service.settings.test (not gateway.settings.test)
+  - _make_input_data helper: use `if x is None` instead of `x or default` because empty lists are falsy
+  - The PDF service Docker build fails pre-existing (missing apt packages) — unrelated to AI changes
+  - SECTION_KEYS and SECTION_LABELS exported from prompt.py for reuse in agent.py and tests
+  - _parse_response handles markdown code blocks from LLM output (strips ```json fences)
+  - Fallback on JSON parse failure returns "Not enough information." for all sections with all-insufficient readiness
+---
+
+## US-002: BRD Generation Pipeline — Context Assembly & Fabrication Validation
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/processing/brd_pipeline.py (new), services/ai/processing/fabrication_validator.py, services/ai/grpc_clients/core_client.py, services/ai/tests/test_brd_pipeline.py (new), .ralph/test-manifest.json
+- Tests: 444 passed, 0 failed (27 new BRD pipeline tests, full suite 444 passed, frontend 265 passed)
+- Learnings for future iterations:
+  - BrdGenerationPipeline follows ChatProcessingPipeline pattern: version tracking, abort flags, step-by-step orchestration, lazy agent imports
+  - FabricationValidator is purely heuristic (no AI): keyword extraction + fuzzy matching via difflib.SequenceMatcher
+  - build_source_material() combines chat_summary, recent_messages content, and board node titles/bodies into a single string for validation
+  - Fabrication flags are warnings (not blockers) — content is still returned, user decides
+  - CoreClient.get_brd_draft() stub returns section_locks (dict) and allow_information_gaps (bool)
+  - Context assembly extracts locked_sections by filtering section_locks dict for True values
+  - Pipeline publishes two event types: ai.brd.generated (main event with all data) and ai.security.fabrication_flag (per-section monitoring events)
+  - Error handling: SK/agent failures caught at pipeline level, returned as error status (not raised)
+  - Pipeline test file targeting doesn't work in Docker (Django settings module import issue) — must run full pytest suite
+  - _MATCH_THRESHOLD=0.75 for fuzzy matching, _FLAG_RATIO_THRESHOLD=0.5 for flagging sections
+---

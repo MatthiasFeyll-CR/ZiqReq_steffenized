@@ -431,6 +431,22 @@
     "AI-4.03": {
       "file": "services/ai/tests/test_summarizing_ai.py",
       "function": "test_section_regeneration_only_target"
+    },
+    "T-4.1.03": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_assembles_all_fields"
+    },
+    "T-4.2.03": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_flags_ungrounded_content"
+    },
+    "AI-4.04": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_extract_keywords_from_brd_section"
+    },
+    "AI-4.05": {
+      "file": "services/ai/tests/test_brd_pipeline.py",
+      "function": "test_pipeline_generated_event_has_all_fields"
     }
   }
 }

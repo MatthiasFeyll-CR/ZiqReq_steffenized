@@ -140,6 +140,31 @@ class CoreClient:
         logger.warning("AI CoreClient.upsert_idea_embedding stub called")
         return {"success": True}
 
+    # ── BRD operations (stubs — gRPC wire-up in later milestones) ──
+
+    def get_brd_draft(self, idea_id: str) -> dict[str, Any]:
+        """Fetch the current BRD draft for an idea.
+
+        Returns dict with section_locks (dict) and allow_information_gaps (bool).
+        """
+        logger.warning("AI CoreClient.get_brd_draft stub called for idea_id=%s", idea_id)
+        return {
+            "id": None,
+            "idea_id": idea_id,
+            "section_locks": {},
+            "allow_information_gaps": False,
+        }
+
+    def upsert_brd_draft(
+        self,
+        idea_id: str,
+        sections: dict[str, Any],
+        readiness_evaluation: dict[str, str],
+    ) -> dict[str, Any]:
+        """Create or update a BRD draft for an idea."""
+        logger.warning("AI CoreClient.upsert_brd_draft stub called for idea_id=%s", idea_id)
+        return {"success": True}
+
     # ── Context compression (stubs — gRPC wire-up in later milestones) ──
 
     def upsert_context_summary(
