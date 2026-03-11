@@ -875,6 +875,10 @@
     "T-15.2.01": {
       "file": "frontend/src/__tests__/idle-disconnect.test.tsx",
       "function": "shows idle disconnect message when isIdleDisconnected is true"
+    },
+    "T-15.3.01": {
+      "file": "frontend/src/__tests__/idle-recovery.test.tsx",
+      "function": "triggers reconnect on mouse move when idle-disconnected"
     }
   }
 }

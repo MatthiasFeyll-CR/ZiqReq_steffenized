@@ -63,3 +63,34 @@ Started: 2026-03-11T17:44:30+0100
   - No backend changes needed — the consumer already handles presence_update messages with idle state
   - Pre-existing test failure in information-gaps-toggle.test.tsx unrelated to M16
 ---
+
+## US-004: Connection Disconnect on Prolonged Idle
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/websocket/consumers.py (added idle disconnect timer with asyncio), frontend/src/store/websocket-slice.ts (added isIdleDisconnected state), frontend/src/hooks/use-websocket.ts (detect close code 4008), frontend/src/components/common/OfflineBanner.tsx (idle disconnect message variant), frontend/src/__tests__/idle-disconnect.test.tsx (new, 5 tests), frontend/src/__tests__/use-websocket.test.ts (updated MockWebSocket for CloseEvent), 12 test files updated for isIdleDisconnected field, .ralph/test-manifest.json (added T-15.2.01)
+- Tests: 5 new tests passed (T-15.2.01 covered + idle disconnect banner, no reconnect button, clears on online, store state). 447 total passed, 1 pre-existing failure. Typecheck clean.
+- Learnings for future iterations:
+  - Server uses close code 4008 for idle disconnect — frontend detects this to show idle-specific banner
+  - Server idle timer uses asyncio.ensure_future + asyncio.sleep — cancelled on active presence_update or disconnect
+  - _get_idle_disconnect_seconds() reads admin_parameters.idle_disconnect (default 120)
+  - Adding new fields to websocket-slice requires updating preloadedState in ~14 test files that mock the websocket store
+  - MockWebSocket.simulateClose() must pass a CloseEvent-like object with `code` property since use-websocket reads event.code
+  - Chat/board inputs already locked when offline (selectIsOnline = false) — no additional locking needed
+  - When idle disconnected, auto-reconnect is suppressed (reconnect on mouse move is US-005's responsibility)
+  - Pre-existing test failures: idea-workspace.test.tsx (fetchIdea called with extra undefined), information-gaps-toggle.test.tsx
+---
+
+## US-005: Return from Idle — Reconnection & State Sync
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/hooks/useIdeaSync.ts (new), frontend/src/pages/IdeaWorkspace/index.tsx (integrated useIdeaSync), frontend/src/__tests__/idle-recovery.test.tsx (new, 5 tests), frontend/src/__tests__/idea-workspace.test.tsx (added QueryClientProvider), .ralph/test-manifest.json (added T-15.3.01)
+- Tests: 5 new tests passed (T-15.3.01 covered + reconnect triggering, state sync, error handling). 452 total passed, 1 pre-existing failure (information-gaps-toggle). Typecheck clean.
+- Learnings for future iterations:
+  - useIdeaSync hook monitors isIdleDisconnected from store and listens for mouse movement to trigger reconnectNow()
+  - On mouse move while idle-disconnected: dispatches setIdleDisconnected(false), calls reconnectNow()
+  - After reconnect (connectionState goes 'online' after wasIdleDisconnected): refetches idea via REST and calls queryClient.invalidateQueries()
+  - wasIdleDisconnectedRef tracks the idle disconnect state across renders to detect reconnect-after-idle vs normal reconnect
+  - Adding useQueryClient() to IdeaWorkspaceContent required idea-workspace.test.tsx to wrap with QueryClientProvider (other test files already had it)
+  - Banner disappearing, chat/board unlocking, and presence returning to online all happen automatically via existing store selectors when connectionState goes 'online' (setConnectionState also clears isIdleDisconnected)
+  - Pre-existing test failures: idea-workspace fetchIdea extra undefined arg, information-gaps-toggle.test.tsx
+---
