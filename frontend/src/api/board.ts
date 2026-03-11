@@ -24,7 +24,7 @@ export async function updateBoardNode(
   updates: Partial<Pick<BoardNode, "position_x" | "position_y" | "parent_id" | "is_locked" | "ai_modified_indicator" | "title" | "body" | "width" | "height">>,
 ): Promise<BoardNode> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/board/nodes/${nodeId}/`,
+    `${env.apiBaseUrl}/ideas/${ideaId}/board/nodes/${nodeId}`,
     {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -46,7 +46,7 @@ export async function deleteBoardNode(
   nodeId: string,
 ): Promise<void> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/board/nodes/${nodeId}/`,
+    `${env.apiBaseUrl}/ideas/${ideaId}/board/nodes/${nodeId}`,
     {
       method: "DELETE",
       credentials: "include",

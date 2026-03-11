@@ -13,6 +13,11 @@ from pathlib import Path
 import django
 import grpc
 
+# Ensure the app root is on sys.path so "grpc_server" package is importable
+_app_root = str(Path(__file__).resolve().parent.parent)
+if _app_root not in sys.path:
+    sys.path.insert(0, _app_root)
+
 # Ensure proto directory is on sys.path for generated imports
 def _find_proto_dir() -> str:
     """Search upward from this file for a 'proto' directory."""

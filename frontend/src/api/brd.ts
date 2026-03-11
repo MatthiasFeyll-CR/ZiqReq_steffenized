@@ -22,7 +22,7 @@ export type GenerationMode =
   | "section_regeneration";
 
 export async function fetchBrdDraft(ideaId: string): Promise<BrdDraft> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -60,7 +60,7 @@ export async function patchBrdDraft(
   ideaId: string,
   data: Partial<Pick<BrdDraft, "section_title" | "section_short_description" | "section_current_workflow" | "section_affected_department" | "section_core_capabilities" | "section_success_criteria" | "section_locks" | "allow_information_gaps">>,
 ): Promise<BrdDraft> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

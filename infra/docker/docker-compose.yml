@@ -16,15 +16,15 @@ services:
   postgresql:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: ziqreq
-      POSTGRES_USER: ziqreq
-      POSTGRES_PASSWORD: ziqreq
+      POSTGRES_DB: ${POSTGRES_DB:-ziqreq}
+      POSTGRES_USER: ${POSTGRES_USER:-ziqreq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ziqreq -d ziqreq"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ziqreq} -d ${POSTGRES_DB:-ziqreq}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -42,6 +42,10 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -68,6 +72,9 @@ services:
     build: ../../services/gateway
     ports:
       - "8000:8000"
+      - "50054:50054"
+    volumes:
+      - ../../proto:/app/proto
     command: >
       sh -c "
         echo 'Waiting for core service (migrations)...' &&
@@ -79,18 +86,27 @@ services:
         python manage.py migrate --fake gateway_ideas 2>/dev/null;
         python manage.py migrate --fake review 2>/dev/null;
         python manage.py migrate --noinput &&
+        python grpc_server/server.py &
         daphne -b 0.0.0.0 -p 8000 gateway.asgi:application
       "
     environment:
       DJANGO_SETTINGS_MODULE: gateway.settings.development
-      DB_HOST: postgresql
-      REDIS_URL: redis://redis:6379/0
-      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
-      CORE_GRPC_ADDRESS: core:50051
-      AI_GRPC_ADDRESS: ai:50052
-      PDF_GRPC_ADDRESS: pdf:50053
-      DEBUG: "true"
-      AUTH_BYPASS: "true"
+      SECRET_KEY: ${SECRET_KEY:-insecure-dev-key-change-me}
+      DB_HOST: ${POSTGRES_HOST:-postgresql}
+      DB_NAME: ${POSTGRES_DB:-ziqreq}
+      DB_USER: ${POSTGRES_USER:-ziqreq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      CORE_GRPC_ADDRESS: ${CORE_GRPC_ADDRESS:-core:50051}
+      AI_GRPC_ADDRESS: ${AI_GRPC_ADDRESS:-ai:50052}
+      PDF_GRPC_ADDRESS: ${PDF_GRPC_ADDRESS:-pdf:50053}
+      DEBUG: ${DEBUG:-True}
+      AUTH_BYPASS: ${AUTH_BYPASS:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -113,12 +129,19 @@ services:
       "
     environment:
       DJANGO_SETTINGS_MODULE: core.settings.development
-      DB_HOST: postgresql
-      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
-      GATEWAY_GRPC_ADDRESS: gateway:50054
-      AI_GRPC_ADDRESS: ai:50052
-      PDF_GRPC_ADDRESS: pdf:50053
-      DEBUG: "true"
+      SECRET_KEY: ${SECRET_KEY:-insecure-dev-key-change-me}
+      DB_HOST: ${POSTGRES_HOST:-postgresql}
+      DB_NAME: ${POSTGRES_DB:-ziqreq}
+      DB_USER: ${POSTGRES_USER:-ziqreq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      GATEWAY_GRPC_ADDRESS: ${GATEWAY_GRPC_ADDRESS:-gateway:50054}
+      AI_GRPC_ADDRESS: ${AI_GRPC_ADDRESS:-ai:50052}
+      PDF_GRPC_ADDRESS: ${PDF_GRPC_ADDRESS:-pdf:50053}
+      DEBUG: ${DEBUG:-True}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -129,25 +152,52 @@ services:
     build: ../../services/ai
     ports:
       - "50052:50052"
+    command: >
+      sh -c "
+        echo 'Waiting for core service (migrations)...' &&
+        until python -c \"import socket; s=socket.create_connection(('core',50051),2); s.close()\" 2>/dev/null; do sleep 2; done &&
+        echo 'Core ready. Running AI migrations...' &&
+        python manage.py migrate --noinput &&
+        python main.py
+      "
     environment:
       DJANGO_SETTINGS_MODULE: ai_service.settings.development
-      DB_HOST: postgresql
-      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
-      CORE_GRPC_ADDRESS: core:50051
-      DEBUG: "true"
+      SECRET_KEY: ${SECRET_KEY:-insecure-dev-key-change-me}
+      DB_HOST: ${POSTGRES_HOST:-postgresql}
+      DB_NAME: ${POSTGRES_DB:-ziqreq}
+      DB_USER: ${POSTGRES_USER:-ziqreq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      CORE_GRPC_ADDRESS: ${CORE_GRPC_ADDRESS:-core:50051}
+      DEBUG: ${DEBUG:-True}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
+      AZURE_OPENAI_DEFAULT_DEPLOYMENT: ${AZURE_OPENAI_DEFAULT_DEPLOYMENT:-}
+      AZURE_OPENAI_CHEAP_DEPLOYMENT: ${AZURE_OPENAI_CHEAP_DEPLOYMENT:-}
+      AZURE_OPENAI_ESCALATED_DEPLOYMENT: ${AZURE_OPENAI_ESCALATED_DEPLOYMENT:-}
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-}
     depends_on:
       postgresql:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      core:
+        condition: service_started
 
   notification:
     build: ../../services/notification
     restart: on-failure
     environment:
-      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
-      GATEWAY_GRPC_ADDRESS: gateway:50054
-      CORE_GRPC_ADDRESS: core:50051
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      GATEWAY_GRPC_ADDRESS: ${GATEWAY_GRPC_ADDRESS:-gateway:50054}
+      CORE_GRPC_ADDRESS: ${CORE_GRPC_ADDRESS:-core:50051}
+      SMTP_HOST: ${SMTP_HOST:-localhost}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@ziqreq.com}
     volumes:
       - ../../proto:/app/proto
     depends_on:
@@ -164,9 +214,18 @@ services:
     command: celery -A core worker -l info
     environment:
       DJANGO_SETTINGS_MODULE: core.settings.development
-      DB_HOST: postgresql
-      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SECRET_KEY: ${SECRET_KEY:-insecure-dev-key-change-me}
+      DB_HOST: ${POSTGRES_HOST:-postgresql}
+      DB_NAME: ${POSTGRES_DB:-ziqreq}
+      DB_USER: ${POSTGRES_USER:-ziqreq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      GATEWAY_GRPC_ADDRESS: ${GATEWAY_GRPC_ADDRESS:-gateway:50054}
+      AI_GRPC_ADDRESS: ${AI_GRPC_ADDRESS:-ai:50052}
+      PDF_GRPC_ADDRESS: ${PDF_GRPC_ADDRESS:-pdf:50053}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -180,9 +239,18 @@ services:
     command: celery -A core beat -l info
     environment:
       DJANGO_SETTINGS_MODULE: core.settings.development
-      DB_HOST: postgresql
-      BROKER_URL: amqp://guest:guest@rabbitmq:5672/
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SECRET_KEY: ${SECRET_KEY:-insecure-dev-key-change-me}
+      DB_HOST: ${POSTGRES_HOST:-postgresql}
+      DB_NAME: ${POSTGRES_DB:-ziqreq}
+      DB_USER: ${POSTGRES_USER:-ziqreq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      GATEWAY_GRPC_ADDRESS: ${GATEWAY_GRPC_ADDRESS:-gateway:50054}
+      AI_GRPC_ADDRESS: ${AI_GRPC_ADDRESS:-ai:50052}
+      PDF_GRPC_ADDRESS: ${PDF_GRPC_ADDRESS:-pdf:50053}
     depends_on:
       postgresql:
         condition: service_healthy

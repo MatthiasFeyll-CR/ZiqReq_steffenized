@@ -168,7 +168,7 @@ export async function deleteIdea(id: string): Promise<void> {
 }
 
 export async function restoreIdea(id: string): Promise<void> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/restore/`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/restore`, {
     method: "POST",
     credentials: "include",
   });

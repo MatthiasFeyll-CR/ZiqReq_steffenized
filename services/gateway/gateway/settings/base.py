@@ -76,6 +76,10 @@ PDF_GRPC_ADDRESS = os.environ.get("PDF_GRPC_ADDRESS", "localhost:50053")
 # Message broker
 BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@localhost:5672/")
 
+# Celery
+CELERY_BROKER_URL = BROKER_URL
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+
 # Azure AD authentication
 AZURE_AD_TENANT_ID = os.environ.get("AZURE_AD_TENANT_ID", "")
 AZURE_AD_CLIENT_ID = os.environ.get("AZURE_AD_CLIENT_ID", "")

@@ -4,5 +4,5 @@ from . import views
 
 urlpatterns = [
     path("", views.chat_messages),
-    path("/<str:message_id>/reactions", views.message_reactions),
+    path("<str:message_id>/reactions", views.message_reactions),
 ]

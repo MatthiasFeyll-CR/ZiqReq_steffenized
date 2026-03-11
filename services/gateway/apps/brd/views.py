@@ -1,6 +1,8 @@
 import logging
+import os
 import uuid
 
+from django.http import FileResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
@@ -8,6 +10,7 @@ from rest_framework.response import Response
 
 from apps.ideas.authentication import MiddlewareAuthentication
 from apps.ideas.models import Idea, IdeaCollaborator
+from apps.review.models import BrdVersion
 
 from .models import BrdDraft
 from .serializers import (
@@ -232,4 +235,68 @@ def brd_generate(request: Request, idea_id: str) -> Response:
             "generation_id": result.get("generation_id", ""),
         },
         status=status.HTTP_202_ACCEPTED,
+    )
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def brd_version_pdf(request: Request, idea_id: str, version: str) -> Response:
+    """GET /api/ideas/:id/brd/versions/:version/pdf — Download BRD version PDF."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    access_error = _check_access(user, idea)
+    if access_error:
+        return access_error
+
+    # Resolve "latest" to actual version number
+    if version == "latest":
+        brd_version = (
+            BrdVersion.objects.filter(idea_id=idea.id)
+            .order_by("-version_number")
+            .first()
+        )
+    else:
+        try:
+            version_num = int(version)
+        except ValueError:
+            return Response(
+                {"error": "NOT_FOUND", "message": "Invalid version"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        brd_version = BrdVersion.objects.filter(
+            idea_id=idea.id, version_number=version_num
+        ).first()
+
+    if not brd_version:
+        return Response(
+            {"error": "NOT_FOUND", "message": "BRD version not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if not brd_version.pdf_file_path:
+        return Response(
+            {"error": "NOT_FOUND", "message": "PDF not available for this version"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    storage_root = os.environ.get("PDF_STORAGE_PATH", "/data/pdfs")
+    full_path = os.path.join(storage_root, brd_version.pdf_file_path)
+
+    if not os.path.isfile(full_path):
+        return Response(
+            {"error": "NOT_FOUND", "message": "PDF file not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return FileResponse(
+        open(full_path, "rb"),
+        content_type="application/pdf",
+        as_attachment=False,
+        filename=f"brd-v{brd_version.version_number}.pdf",
     )

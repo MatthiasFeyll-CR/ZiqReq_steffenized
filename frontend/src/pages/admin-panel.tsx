@@ -14,7 +14,7 @@ export default function AdminPanel() {
   const { hasRole } = useAuth();
 
   if (!hasRole("admin")) {
-    return <Navigate to="/landing" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (
