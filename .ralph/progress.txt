@@ -146,3 +146,19 @@ Started: 2026-03-11T05:56:48+0100
   - getByText fails with "multiple elements" when both workspace header mock and ReviewSection render same title — use getByTestId + toHaveTextContent instead
   - Backend get_idea_reviewers endpoint follows same patterns: _require_auth, _get_idea_or_error, batch-load users
 ---
+
+## US-009: Review Timeline UI
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/review/ReviewTimeline.tsx (added reply buttons, CommentInput integration, WebSocket invalidation, useMutation for posting), frontend/src/components/review/CommentInput.tsx (new — textarea + send button with cancel/reply support), frontend/src/api/review.ts (added postComment function), frontend/src/components/review/ReviewSection.tsx (pass ideaId to ReviewTimeline), frontend/src/__tests__/review-timeline.test.tsx (new — 14 tests)
+- Tests: 337 node tests passed, 14 new timeline-specific tests covering UI-TIMELINE.01-04
+- Learnings for future iterations:
+  - ReviewTimeline already had 3 entry types (state_change, comment, resubmission) from US-008 — extended with interactive features
+  - CommentInput is a reusable component with onSubmit/onCancel/autoFocus/placeholder props
+  - Reply workflow: click Reply button → inline CommentInput appears below entry → submit posts with parent_entry_id → invalidates timeline query
+  - WebSocket invalidation listens for 'ws:timeline_update' CustomEvent (same pattern as 'ws:brd_ready' in ReviewTab)
+  - useMutation with queryClient.invalidateQueries(["timeline", ideaId]) refreshes timeline after comment post
+  - Resubmission entry enhanced with download buttons (v-prefix + UUID slice for labels)
+  - screen.getAllByTestId()[1] needs non-null assertion (!) for TypeScript strict mode
+  - Pre-existing unhandled error in information-gaps-toggle.test.tsx (URL.createObjectURL) does not affect test results
+---
