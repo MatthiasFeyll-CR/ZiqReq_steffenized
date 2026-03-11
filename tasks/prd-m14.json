@@ -160,7 +160,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: api-design.md § Message Broker Events\nDesign: page-layouts.md § 12 Toast Notifications\nFiles: notification/consumers/similarity_events.py (extend), email/templates/merge_*.html, gateway/apps/websocket/routing.py\nGotchas: append_request.created notifies 2 parties. merge.complete notifies many",
       "context": {
