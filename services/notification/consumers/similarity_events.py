@@ -55,15 +55,68 @@ def handle_similarity_event(
     )
 
 
+def _classify_match_behavior(
+    requesting_state: str,
+    target_state: str,
+) -> str:
+    """Determine match behavior based on both idea states.
+
+    Returns one of:
+        'merge'         — both open/rejected → full merge flow
+        'informational' — at least one idea is in_review/accepted/dropped
+    """
+    MERGEABLE_STATES = {"open", "rejected"}
+
+    if requesting_state in MERGEABLE_STATES and target_state in MERGEABLE_STATES:
+        return "merge"
+
+    # in_review, accepted, dropped → informational only
+    # (append flow for in_review deferred to M14)
+    return "informational"
+
+
+def _informational_body_for_owner(
+    owner_idea_title: str,
+    other_idea_title: str,
+    other_state: str,
+) -> str:
+    """Build an informational notification body based on the other idea's state."""
+    if other_state == "in_review":
+        return (
+            f'Your idea "{owner_idea_title}" is similar to '
+            f'"{other_idea_title}" which is currently in review. '
+            f"An append request may be available once review is complete."
+        )
+    if other_state == "accepted":
+        return (
+            f'Your idea "{owner_idea_title}" is similar to '
+            f'"{other_idea_title}" which was already accepted. '
+            f"Is this a change request or a new application?"
+        )
+    if other_state == "dropped":
+        return (
+            f'Your idea "{owner_idea_title}" is similar to '
+            f'"{other_idea_title}" which was permanently closed. '
+            f"What's different about yours?"
+        )
+    # Fallback (shouldn't happen for informational path)
+    return (
+        f'Your idea "{owner_idea_title}" is similar to "{other_idea_title}"'
+    )
+
+
 def handle_ai_similarity_confirmed(
     gateway_client: GatewayClient,
     event: dict[str, Any],
 ) -> None:
     """Process an ai.similarity.confirmed event.
 
-    Creates two in-app notifications (one per idea owner), sends emails
-    to both (subject to 'similarity' email preference), and ensures
-    share_link_tokens exist for read-only cross-access.
+    Creates state-aware notifications for both idea owners:
+    - open/rejected + open/rejected → full merge flow notifications
+    - in_review/accepted/dropped → informational notifications only
+
+    Also sends emails to both (subject to 'similarity' email preference),
+    and ensures share_link_tokens exist for read-only cross-access.
     """
     requesting_idea_id: str = event.get("requesting_idea_id", "")
     target_idea_id: str = event.get("target_idea_id", "")
@@ -75,6 +128,8 @@ def handle_ai_similarity_confirmed(
         return
 
     overlap_areas: list[str] = event.get("overlap_areas", [])
+    requesting_idea_state: str = event.get("requesting_idea_state", "open")
+    target_idea_state: str = event.get("target_idea_state", "open")
 
     # Fetch idea details + ensure share link tokens for both
     try:
@@ -105,13 +160,32 @@ def handle_ai_similarity_confirmed(
         )
         return
 
-    notification_title = "Similar idea detected"
-    event_type = "similarity_alert"
+    match_behavior = _classify_match_behavior(
+        requesting_idea_state, target_idea_state
+    )
+
+    if match_behavior == "merge":
+        notification_title = "Similar idea detected"
+        event_type = "similarity_alert"
+
+        requesting_body = (
+            f'Your idea "{requesting_title}" is similar to "{target_title}"'
+        )
+        target_body = (
+            f'Your idea "{target_title}" is similar to "{requesting_title}"'
+        )
+    else:
+        notification_title = "Similar idea detected"
+        event_type = "similarity_alert"
+
+        requesting_body = _informational_body_for_owner(
+            requesting_title, target_title, target_idea_state
+        )
+        target_body = _informational_body_for_owner(
+            target_title, requesting_title, requesting_idea_state
+        )
 
     # Notify requesting idea owner (reference points to target idea)
-    requesting_body = (
-        f'Your idea "{requesting_title}" is similar to "{target_title}"'
-    )
     notify_user(
         gateway_client=gateway_client,
         user_id=requesting_owner_id,
@@ -123,9 +197,6 @@ def handle_ai_similarity_confirmed(
     )
 
     # Notify target idea owner (reference points to requesting idea)
-    target_body = (
-        f'Your idea "{target_title}" is similar to "{requesting_title}"'
-    )
     notify_user(
         gateway_client=gateway_client,
         user_id=target_owner_id,
@@ -159,9 +230,12 @@ def handle_ai_similarity_confirmed(
     )
 
     logger.info(
-        "Similarity notifications sent for %s <-> %s",
+        "Similarity notifications sent for %s <-> %s (behavior=%s, states=%s/%s)",
         requesting_idea_id,
         target_idea_id,
+        match_behavior,
+        requesting_idea_state,
+        target_idea_state,
     )
 
 
