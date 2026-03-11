@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-5.2.01", "T-5.2.02", "T-5.2.03"],
       "notes": "Architecture: docs/02-architecture/data-model.md § idea_keywords, merge_requests — keyword array, declined pairs tracking\nArchitecture: docs/02-architecture/tech-stack.md § Background Keyword Matching Service — Celery periodic task design, data access, performance\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § similarity.detected — event payload schema\nTesting: docs/04-test-architecture/test-matrix.md § T-5.2.01, T-5.2.02, T-5.2.03 — threshold trigger, dismissed pair exclusion, time window filter\nFiles: services/core/background/keyword_matching.py (new), services/core/celeryconfig.py (add task registration)\nGotchas: Celery task scheduling uses crontab() or interval() syntax. Time window filter uses ideas.updated_at. Dismissed pairs are merge_requests with status='declined'. Admin parameters read from admin_parameters table.",
       "context": {
