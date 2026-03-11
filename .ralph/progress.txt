@@ -1,0 +1,39 @@
+# Ralph Progress Log — M13 (similarity)
+Started: 2026-03-11T11:27:20+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: Background Keyword Matching — Celery Periodic Task
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/similarity/tasks.py, services/core/core/settings/base.py, services/core/events/publisher.py, services/core/apps/admin_config/services.py, services/gateway/apps/similarity/models.py, services/gateway/apps/similarity/tasks.py, services/gateway/apps/similarity/tests/test_keyword_matching.py, services/gateway/apps/admin_config/services.py, services/gateway/events/publisher.py
+- Tests: 6 passed (T-5.2.01 overlap trigger, T-5.2.02 declined pair exclusion, T-5.2.03 time window filter, below threshold, reverse declined, soft-deleted exclusion). Full suite: 645 Python tests passed, 403 Node tests passed.
+- Learnings for future iterations:
+  - Task placed in apps/similarity/tasks.py (not services/core/background/) since autodiscover_tasks() finds tasks.py in INSTALLED_APPS
+  - Gateway similarity app had no models.py — needed to create one mirroring core's models for test DB table creation
+  - Gateway admin_config model is managed=False — get_parameter must be mocked in tests or table won't exist
+  - PYTHONPATH order (gateway first, then core) means lazy imports resolve to gateway modules — task code must exist in both services
+  - Event publisher publish_event() was a stub in core and missing in gateway — implemented in both
+  - Celery @shared_task with lazy imports inside function body works well with unittest.mock.patch at class level
+  - Docker compose -v flag needed when restarting test DB to avoid "database already exists" errors
+---
