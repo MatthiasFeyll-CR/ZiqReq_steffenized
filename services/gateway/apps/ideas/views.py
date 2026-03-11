@@ -417,12 +417,16 @@ def context_window(request: Request, idea_id: str) -> Response:
     # Count all messages for this idea
     message_count = ChatMessage.objects.filter(idea_id=idea_id).count()
 
-    # Get latest compression summary
-    latest_summary = (
-        ChatContextSummary.objects.filter(idea_id=idea_id)
-        .order_by("-compression_iteration")
-        .first()
-    )
+    # Get latest compression summary (table may not exist yet if AI service hasn't run migrations)
+    latest_summary = None
+    try:
+        latest_summary = (
+            ChatContextSummary.objects.filter(idea_id=idea_id)
+            .order_by("-compression_iteration")
+            .first()
+        )
+    except Exception:
+        pass
 
     compression_iterations = latest_summary.compression_iteration if latest_summary else 0
 

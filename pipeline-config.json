@@ -245,7 +245,7 @@
     "test_command": "cd e2e && npx playwright test",
     "test_single_command": "cd e2e && npx playwright test {spec_file}",
     "integration_test_command": "cd e2e && npx playwright test",
-    "setup_command": "docker compose -f docker-compose.e2e.yml up -d --build",
+    "setup_command": "docker container rm $(docker container ls -aq); docker volume rm $(docker volume ls -q); docker compose -f docker-compose.e2e.yml up -d --build",
     "teardown_command": "docker compose -f docker-compose.e2e.yml down",
     "force_teardown_command": "docker compose -f docker-compose.e2e.yml down -v --remove-orphans",
     "build_command": "docker compose -f docker-compose.e2e.yml build",

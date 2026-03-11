@@ -82,9 +82,27 @@ class IdeaDetailSerializer(serializers.Serializer):
     agent_mode = serializers.CharField()
     owner = serializers.SerializerMethodField()
     co_owner = serializers.SerializerMethodField()
+    collaborators = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
     deleted_at = serializers.DateTimeField()
+
+    def get_collaborators(self, obj):
+        from apps.authentication.models import User
+        from apps.ideas.models import IdeaCollaborator
+
+        collabs = IdeaCollaborator.objects.filter(idea_id=obj.id)
+        user_ids = [c.user_id for c in collabs]
+        if not user_ids:
+            return []
+        users = {u.id: u for u in User.objects.filter(id__in=user_ids)}
+        return [
+            {
+                "user_id": str(c.user_id),
+                "display_name": users[c.user_id].display_name if c.user_id in users else "",
+            }
+            for c in collabs
+        ]
 
     def get_owner(self, obj):
         user_map = self.context.get("user_map", {})

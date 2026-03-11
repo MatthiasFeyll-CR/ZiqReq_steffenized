@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PanelDivider } from "./PanelDivider";
+import { ReactFlowProvider } from "@xyflow/react";
 import { BoardCanvas } from "@/components/board/BoardCanvas";
 import { ReviewTab } from "@/components/workspace/ReviewTab";
 
@@ -125,7 +126,9 @@ export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId, ideaS
             )}
           </TabsList>
           <TabsContent value="board" className="flex-1 overflow-hidden" data-testid="board-content">
-            <BoardCanvas ideaId={ideaId} disabled={disabled} readOnly={readOnly} />
+            <ReactFlowProvider>
+              <BoardCanvas ideaId={ideaId} disabled={disabled} readOnly={readOnly} />
+            </ReactFlowProvider>
           </TabsContent>
           {reviewVisible && (
             <TabsContent value="review" className="flex-1 overflow-auto" data-testid="review-content">
