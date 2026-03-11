@@ -49,6 +49,11 @@ class GatewayServiceStub(object):
                 request_serializer=gateway__pb2.AlertRecipientsRequest.SerializeToString,
                 response_deserializer=gateway__pb2.AlertRecipientsResponse.FromString,
                 _registered_method=True)
+        self.GetIdeaDetails = channel.unary_unary(
+                '/ziqreq.gateway.GatewayService/GetIdeaDetails',
+                request_serializer=gateway__pb2.IdeaDetailsRequest.SerializeToString,
+                response_deserializer=gateway__pb2.IdeaDetailsResponse.FromString,
+                _registered_method=True)
 
 
 class GatewayServiceServicer(object):
@@ -72,6 +77,12 @@ class GatewayServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetIdeaDetails(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_GatewayServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -89,6 +100,11 @@ def add_GatewayServiceServicer_to_server(servicer, server):
                     servicer.GetAlertRecipients,
                     request_deserializer=gateway__pb2.AlertRecipientsRequest.FromString,
                     response_serializer=gateway__pb2.AlertRecipientsResponse.SerializeToString,
+            ),
+            'GetIdeaDetails': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetIdeaDetails,
+                    request_deserializer=gateway__pb2.IdeaDetailsRequest.FromString,
+                    response_serializer=gateway__pb2.IdeaDetailsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -172,6 +188,33 @@ class GatewayService(object):
             '/ziqreq.gateway.GatewayService/GetAlertRecipients',
             gateway__pb2.AlertRecipientsRequest.SerializeToString,
             gateway__pb2.AlertRecipientsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetIdeaDetails(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ziqreq.gateway.GatewayService/GetIdeaDetails',
+            gateway__pb2.IdeaDetailsRequest.SerializeToString,
+            gateway__pb2.IdeaDetailsResponse.FromString,
             options,
             channel_credentials,
             insecure,

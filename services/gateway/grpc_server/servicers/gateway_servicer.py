@@ -1,4 +1,5 @@
 import logging
+import secrets
 import sys
 import uuid
 from pathlib import Path
@@ -77,3 +78,28 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
         context: grpc.ServicerContext,
     ) -> gateway_pb2.AlertRecipientsResponse:
         return gateway_pb2.AlertRecipientsResponse(recipients=[])
+
+    def GetIdeaDetails(
+        self,
+        request: gateway_pb2.IdeaDetailsRequest,
+        context: grpc.ServicerContext,
+    ) -> gateway_pb2.IdeaDetailsResponse:
+        from apps.ideas.models import Idea
+
+        try:
+            idea = Idea.objects.get(id=uuid.UUID(request.idea_id))
+        except (ValueError, Idea.DoesNotExist):
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("Idea not found")
+            return gateway_pb2.IdeaDetailsResponse()
+
+        if request.ensure_share_link_token and not idea.share_link_token:
+            idea.share_link_token = secrets.token_hex(32)
+            idea.save(update_fields=["share_link_token"])
+
+        return gateway_pb2.IdeaDetailsResponse(
+            idea_id=str(idea.id),
+            title=idea.title,
+            owner_id=str(idea.owner_id),
+            share_link_token=idea.share_link_token or "",
+        )
