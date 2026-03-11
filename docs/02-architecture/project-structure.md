@@ -129,6 +129,38 @@ class Idea(models.Model):
 | **gRPC** | Gateway → Internal services (request/response) | Synchronous |
 | **Message Broker** | Service → Service async events (AI triggers, notifications, monitoring) | Asynchronous |
 
+### Event Publisher Import Pattern (CRITICAL)
+
+**Problem:** Gateway views publish notification events via `services/gateway/events/publisher.py`. Some tests (e.g., `test_ai_consumer.py`) manipulate `sys.modules` for the `events` package at pytest collection time, causing top-level imports to fail.
+
+**Solution:** Views that publish events MUST use **lazy imports** (import inside function body, not module-level).
+
+**Example:**
+
+```python
+# ❌ BROKEN — top-level import breaks test collection
+from events.publisher import publish_notification_event
+
+@api_view(["POST"])
+def invite_collaborator(request, idea_id):
+    # ... logic ...
+    publish_notification_event(user_id=invitee_id, ...)
+```
+
+```python
+# ✅ CORRECT — lazy import inside helper function
+def _publish_notification(**kwargs):
+    from events.publisher import publish_notification_event
+    publish_notification_event(**kwargs)
+
+@api_view(["POST"])
+def invite_collaborator(request, idea_id):
+    # ... logic ...
+    _publish_notification(user_id=invitee_id, ...)
+```
+
+**Affected modules:** `services/gateway/apps/collaboration/views.py`, `services/gateway/apps/review/views.py`, `services/gateway/apps/chat/views.py`, `services/gateway/events/consumers.py` (AI delegation event).
+
 ### Celery Worker Deployment
 
 The Celery worker and beat scheduler run the **core service codebase** as separate containers:
@@ -343,7 +375,8 @@ ziqreq/
 │   │   │   ├── server.py                  # gRPC server entrypoint (requires django.setup())
 │   │   │   └── servicers/
 │   │   │       └── gateway_servicer.py    # GetAlertRecipients, CreateNotification, GetUserPreferences
-│   │   ├── events/                         # RabbitMQ → WebSocket event bridge consumers
+│   │   ├── events/                         # RabbitMQ event integration (publish + consume)
+│   │   │   ├── publisher.py               # Shared RabbitMQ publisher utility (publish_notification_event) — MUST use lazy imports in views
 │   │   │   ├── consumers.py               # BaseEventConsumer, ChatEventConsumer, AiEventConsumer
 │   │   │   ├── board_consumer.py          # BoardEventConsumer
 │   │   │   ├── brd_consumer.py            # BrdEventConsumer (brd.*, ai.brd.generation_complete, ai.processing.failed → WS)

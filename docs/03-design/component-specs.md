@@ -155,7 +155,7 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 - Color: `bg-primary text-primary-foreground` (gold/teal)
 - Font: Gotham Bold, `text-xs`
 - Max display: "99+" for counts over 99
-- Animation: `scale-in` on new notification (100ms)
+- Animation: `scale-in` on new notification (100ms) — **Note:** Tailwind v4 uses `@theme` and has no `tailwind.config.js`, so custom animations must be defined in `globals.css` using `@keyframes` and `animation` property
 
 ### 3.4 AI Badge
 

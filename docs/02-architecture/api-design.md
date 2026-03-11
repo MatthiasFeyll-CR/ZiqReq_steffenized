@@ -1067,6 +1067,10 @@
   }
   ```
 - **Response (200):** Updated notification
+- **Errors:**
+  | Status | Code | When |
+  |--------|------|------|
+  | 404 | NOT_FOUND | Notification belongs to another user (prevents information leakage) |
 
 #### POST /api/notifications/mark-all-read
 - **Purpose:** Mark all notifications as read
@@ -1103,15 +1107,46 @@
   ```json
   {
     "categories": {
-      "Collaboration": { "collaboration_invitation": true, "collaborator_joined": true, "collaborator_left": true, "ownership_transferred": true },
-      "Review": { "review_submission": true, "review_decision": true, "review_comment": true },
-      "AI": { "ai_processing_failed": true },
-      "Similarity": { "similarity_alert": true, "merge_request": true },
-      "Admin": { "monitoring_alert": true }
+      "Collaboration": {
+        "label": "Collaboration",
+        "preferences": {
+          "collaboration_invitation": true,
+          "collaborator_joined": true,
+          "collaborator_left": true,
+          "ownership_transferred": true
+        }
+      },
+      "Review": {
+        "label": "Review",
+        "preferences": {
+          "review_submission": true,
+          "review_decision": true,
+          "review_comment": true
+        }
+      },
+      "AI": {
+        "label": "AI",
+        "preferences": {
+          "ai_processing_failed": true
+        }
+      },
+      "Similarity": {
+        "label": "Similarity",
+        "preferences": {
+          "similarity_alert": true,
+          "merge_request": true
+        }
+      },
+      "Admin": {
+        "label": "Admin",
+        "preferences": {
+          "monitoring_alert": true
+        }
+      }
     }
   }
   ```
-- **Notes:** Missing preference keys default to true (all enabled). Admin section only visible to admin-role users. Email language defaults to `DEFAULT_APP_LANGUAGE` env var (no per-user language preference in database).
+- **Notes:** Each category returns `{label, preferences}` nested structure to support frontend display and future category metadata. Missing preference keys default to true (all enabled). Admin section only visible to admin-role users. Email language defaults to `DEFAULT_APP_LANGUAGE` env var (no per-user language preference in database).
 
 #### PATCH /api/users/me/notification-preferences
 - **Purpose:** Update email notification preferences (partial merge)
