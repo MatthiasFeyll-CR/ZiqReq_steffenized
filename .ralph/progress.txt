@@ -172,3 +172,14 @@ Started: 2026-03-11T09:17:48+0100
   - TanStack Query enabled: open flag ensures preferences only fetched when dialog is visible
   - useMutation with queryClient.invalidateQueries for server reconciliation after save
 ---
+## US-003: Notification Service Consumer — Event Processing & Email Dispatch (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: pyproject.toml (added --reuse-db), services/gateway/gateway/settings/test.py (removed TEST dict)
+- Tests: 639 passed (Python), 403 passed (Node, 1 pre-existing failure). DB teardown warning eliminated.
+- Learnings for future iterations:
+  - TEST_INFRASTRUCTURE/DB_LIFECYCLE root cause: gateway test settings had TEST.NAME = same as NAME (ziqreq_test), causing Django to use the main DB as the test DB and fail on teardown
+  - init-test-db.sql creates test_ziqreq_test (with test_ prefix) — removing TEST dict lets Django use its default prefix naming which matches
+  - Added `--reuse-db` to pyproject.toml pytest addopts — skips DB teardown entirely since Docker manages DB lifecycle
+  - This fix resolves the PytestWarning for all stories, not just US-003
+---
