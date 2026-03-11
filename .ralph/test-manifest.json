@@ -823,6 +823,18 @@
     "API-ADMIN.08": {
       "file": "services/gateway/apps/admin_config/tests/test_parameters.py",
       "function": "test_patch_integer_invalid_returns_400"
+    },
+    "T-11.4.01": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring.py",
+      "function": "test_dashboard_contains_all_required_fields"
+    },
+    "API-ADMIN.09": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring.py",
+      "function": "test_get_monitoring_dashboard_returns_200"
+    },
+    "API-ADMIN.10": {
+      "file": "services/gateway/apps/monitoring/tests/test_monitoring.py",
+      "function": "test_non_admin_gets_403"
     }
   }
 }

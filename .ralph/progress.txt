@@ -36,3 +36,31 @@ Started: 2026-03-11T15:59:48+0100
   - Docker image must be rebuilt (docker compose build) after adding new migration files for tests to pick them up
   - The node test suite has a flaky test (information-gaps-toggle.test.tsx) that fails in full suite but passes in isolation — pre-existing issue
 ---
+
+## US-002: Admin Parameters Endpoints — GET List, PATCH Individual
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/admin_config/models.py (updated mirror with updated_by/updated_at + DATA_TYPE_CHOICES), services/gateway/apps/admin_config/apps.py (new), services/gateway/apps/admin_config/migrations/0001_create_admin_parameters_table.py (new RunSQL + seed), services/gateway/apps/admin_config/serializers.py (new — AdminParameterSerializer + AdminParameterUpdateSerializer with data_type validation), services/gateway/apps/admin_config/views.py (replaced placeholder with parameter_list + parameter_update), services/gateway/apps/admin_config/urls.py (wired routes), services/gateway/apps/admin_config/tests/__init__.py (new), services/gateway/apps/admin_config/tests/test_parameters.py (new), .ralph/test-manifest.json (updated)
+- Tests: 14 passed (TestParameterList: 3, TestParameterUpdate: 11), full suite 834 passed
+- Learnings for future iterations:
+  - Same pattern as US-001: unmanaged mirror model needs RunSQL migration with CREATE TABLE IF NOT EXISTS + seed data for tests
+  - The migration also seeds parameters so tests can operate on real data (same seed as core/0002_seed_parameters)
+  - Data type validation in serializer uses context={'parameter': param} to pass the model instance for type checking
+  - admin_config already existed in INSTALLED_APPS but had no apps.py or migrations dir — needed both for migration discovery
+  - Reused _require_admin pattern from admin_ai_context views (copy, not import, since separate apps)
+---
+
+## US-003: Admin Monitoring Dashboard Endpoint — GET Aggregate Stats
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/monitoring/services.py (new), services/gateway/apps/monitoring/serializers.py (new), services/gateway/apps/monitoring/views.py (replaced placeholder), services/gateway/apps/monitoring/urls.py (added admin/monitoring route), services/gateway/apps/monitoring/tests/test_monitoring.py (new), .ralph/test-manifest.json (updated)
+- Tests: 13 passed (TestMonitoringDashboard: 13), full suite 847 passed
+- Learnings for future iterations:
+  - Monitoring app didn't need an apps.py or new migration — no new models added, just views/services/serializers
+  - WebSocket presence registry is in-memory (_presence_registry in consumers.py) — can be mocked via patch for testing
+  - AI processing stats and system health are read from Redis with graceful fallback to zeros/unknown when Redis unavailable
+  - The monitoring URL is under `api/` prefix (not `api/admin/`), so the urls.py path must be `admin/monitoring` to get final path `api/admin/monitoring`
+  - Docker test image uses COPY (not volume mount), so `docker compose -f docker-compose.test.yml build python-tests` is needed after adding new files
+  - Test paths must use `services/gateway/apps/...` prefix (full path from /app root), not `apps/...`
+  - ideas_by_state filters out soft-deleted ideas (deleted_at__isnull=True)
+---
