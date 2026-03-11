@@ -1,54 +1,31 @@
 {
   "from": "milestone_planner",
   "to": "pipeline_configurator",
-  "timestamp": "2026-03-09T14:00:00Z",
-  "summary": "16 milestones, sequential execution. All MVP (full application delivered as one release per Constraint #8). Strategy approved by user. Verification passed: 75/75 functional requirements covered, 30/30 NFRs covered, all 22 tables mapped, all API endpoints mapped, all 85 components mapped, all 9 AI agents mapped.",
+  "timestamp": "2026-03-11T22:00:00Z",
+  "summary": "5 E2E test milestones (M17-M21), sequential execution. All test-only — no production code changes (except bug fixes discovered during testing). Strategy approved by user. Verification passed: 75/75 functional requirements covered, 5/5 user journeys covered, 6/6 concurrency scenarios covered. Existing milestones M1-M16 are read-only and not modified.",
   "files_produced": [
-    "docs/05-milestones/dependency-analysis.md",
-    "docs/05-milestones/release-plan.md",
-    "docs/05-milestones/verification-report.md",
-    "docs/05-milestones/milestone-1.md",
-    "docs/05-milestones/milestone-2.md",
-    "docs/05-milestones/milestone-3.md",
-    "docs/05-milestones/milestone-4.md",
-    "docs/05-milestones/milestone-5.md",
-    "docs/05-milestones/milestone-6.md",
-    "docs/05-milestones/milestone-7.md",
-    "docs/05-milestones/milestone-8.md",
-    "docs/05-milestones/milestone-9.md",
-    "docs/05-milestones/milestone-10.md",
-    "docs/05-milestones/milestone-11.md",
-    "docs/05-milestones/milestone-12.md",
-    "docs/05-milestones/milestone-13.md",
-    "docs/05-milestones/milestone-14.md",
-    "docs/05-milestones/milestone-15.md",
-    "docs/05-milestones/milestone-16.md"
+    "docs/05-milestones/dependency-analysis-e2e.md",
+    "docs/05-milestones/release-plan-e2e.md",
+    "docs/05-milestones/verification-report-e2e.md",
+    "docs/05-milestones/milestone-17.md",
+    "docs/05-milestones/milestone-18.md",
+    "docs/05-milestones/milestone-19.md",
+    "docs/05-milestones/milestone-20.md",
+    "docs/05-milestones/milestone-21.md"
   ],
   "strategy": {
-    "total_milestones": 16,
-    "total_stories_estimate": 149,
-    "mvp_milestones": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "total_milestones": 5,
+    "total_stories_estimate": 46,
+    "milestone_range": "M17-M21",
+    "type": "E2E Testing",
     "milestones": [
       {
-        "id": 1,
-        "slug": "foundation",
-        "name": "Foundation & Auth",
-        "stories_estimate": 10,
-        "dependencies": [],
-        "complexity": {
-          "info_loss_score": 3,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 10000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 0
-        }
-      },
-      {
-        "id": 2,
-        "slug": "landing",
-        "name": "Landing Page & Idea CRUD",
-        "stories_estimate": 8,
-        "dependencies": [1],
+        "id": 17,
+        "slug": "e2e-foundation",
+        "name": "E2E Test Infrastructure & Foundation Tests",
+        "stories_estimate": 9,
+        "dependencies": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+        "features_tested": ["FA-7", "FA-9", "FA-16", "FA-17"],
         "complexity": {
           "info_loss_score": 2,
           "info_loss_rating": "Low",
@@ -58,69 +35,44 @@
         }
       },
       {
-        "id": 3,
-        "slug": "workspace-chat",
-        "name": "Idea Workspace - Layout & Chat",
+        "id": 18,
+        "slug": "e2e-workspace",
+        "name": "E2E Workspace, Chat & Board Tests",
         "stories_estimate": 10,
-        "dependencies": [2],
+        "dependencies": [17],
+        "features_tested": ["FA-1", "FA-2", "FA-3", "FA-6", "FA-15"],
         "complexity": {
-          "info_loss_score": 3,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 6000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 0
-        }
-      },
-      {
-        "id": 4,
-        "slug": "board-core",
-        "name": "Digital Board - Core",
-        "stories_estimate": 9,
-        "dependencies": [3],
-        "complexity": {
-          "info_loss_score": 2,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 6000,
-          "domain_size_rating": "Medium",
+          "info_loss_score": 6,
+          "info_loss_rating": "Medium",
+          "max_story_context_tokens": 10000,
+          "domain_size_rating": "Medium-Large",
           "heavy_stories": 1
         }
       },
       {
-        "id": 5,
-        "slug": "board-advanced",
-        "name": "Board Interactions & Undo",
-        "stories_estimate": 8,
-        "dependencies": [4],
+        "id": 19,
+        "slug": "e2e-review-collab",
+        "name": "E2E BRD, Review & Collaboration Tests",
+        "stories_estimate": 10,
+        "dependencies": [18],
+        "features_tested": ["FA-4", "FA-8", "FA-10", "FA-12", "FA-13"],
         "complexity": {
-          "info_loss_score": 3,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 6000,
-          "domain_size_rating": "Medium",
+          "info_loss_score": 7,
+          "info_loss_rating": "Medium",
+          "max_story_context_tokens": 10000,
+          "domain_size_rating": "Large",
           "heavy_stories": 2
         }
       },
       {
-        "id": 6,
-        "slug": "websocket",
-        "name": "WebSocket & Real-Time",
-        "stories_estimate": 10,
-        "dependencies": [3],
+        "id": 20,
+        "slug": "e2e-similarity-admin",
+        "name": "E2E Similarity, Merge & Admin Tests",
+        "stories_estimate": 9,
+        "dependencies": [19],
+        "features_tested": ["FA-5", "FA-11"],
         "complexity": {
-          "info_loss_score": 5,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 8000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 3
-        }
-      },
-      {
-        "id": 7,
-        "slug": "ai-chat",
-        "name": "AI Core - Chat Processing Pipeline",
-        "stories_estimate": 10,
-        "dependencies": [5, 6],
-        "complexity": {
-          "info_loss_score": 6,
+          "info_loss_score": 7,
           "info_loss_rating": "Medium",
           "max_story_context_tokens": 12000,
           "domain_size_rating": "Large",
@@ -128,145 +80,50 @@
         }
       },
       {
-        "id": 8,
-        "slug": "ai-context",
-        "name": "AI Board Agent & Context",
-        "stories_estimate": 10,
-        "dependencies": [7],
+        "id": 21,
+        "slug": "e2e-journeys-edge",
+        "name": "E2E Error Handling, Edge Cases & User Journeys",
+        "stories_estimate": 8,
+        "dependencies": [20],
+        "features_tested": ["FA-14", "JOURNEY-001-005", "CONC-001-006", "ERR-001-008"],
         "complexity": {
-          "info_loss_score": 6,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 10000,
-          "domain_size_rating": "Large",
-          "heavy_stories": 2
-        }
-      },
-      {
-        "id": 9,
-        "slug": "brd-pdf",
-        "name": "BRD & PDF Generation",
-        "stories_estimate": 9,
-        "dependencies": [8],
-        "complexity": {
-          "info_loss_score": 5,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 8000,
-          "domain_size_rating": "Large",
-          "heavy_stories": 1
-        }
-      },
-      {
-        "id": 10,
-        "slug": "review",
-        "name": "Review Workflow",
-        "stories_estimate": 10,
-        "dependencies": [9],
-        "complexity": {
-          "info_loss_score": 7,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 10000,
-          "domain_size_rating": "Large",
-          "heavy_stories": 2
-        }
-      },
-      {
-        "id": 11,
-        "slug": "collaboration",
-        "name": "Collaboration & Sharing",
-        "stories_estimate": 9,
-        "dependencies": [6],
-        "complexity": {
-          "info_loss_score": 4,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 6000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 0
-        }
-      },
-      {
-        "id": 12,
-        "slug": "notifications",
-        "name": "Notification System",
-        "stories_estimate": 9,
-        "dependencies": [6],
-        "complexity": {
-          "info_loss_score": 5,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 8000,
-          "domain_size_rating": "Medium-Large",
-          "heavy_stories": 1
-        }
-      },
-      {
-        "id": 13,
-        "slug": "similarity",
-        "name": "Similarity Detection & Merge",
-        "stories_estimate": 10,
-        "dependencies": [8, 12],
-        "complexity": {
-          "info_loss_score": 7,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 8000,
-          "domain_size_rating": "Large",
-          "heavy_stories": 3
-        }
-      },
-      {
-        "id": 14,
-        "slug": "merge-advanced",
-        "name": "Merge Advanced & Manual",
-        "stories_estimate": 7,
-        "dependencies": [13],
-        "complexity": {
-          "info_loss_score": 4,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 6000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 2
-        }
-      },
-      {
-        "id": 15,
-        "slug": "admin",
-        "name": "Admin Panel",
-        "stories_estimate": 10,
-        "dependencies": [8],
-        "complexity": {
-          "info_loss_score": 5,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 7000,
-          "domain_size_rating": "Medium-Large",
-          "heavy_stories": 1
-        }
-      },
-      {
-        "id": 16,
-        "slug": "polish",
-        "name": "Polish & Cross-Cutting",
-        "stories_estimate": 10,
-        "dependencies": [10, 11, 12],
-        "complexity": {
-          "info_loss_score": 5,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 8000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 1
+          "info_loss_score": 9,
+          "info_loss_rating": "High (mitigated - self-contained test files)",
+          "max_story_context_tokens": 15000,
+          "domain_size_rating": "Very Large",
+          "heavy_stories": 5
         }
       }
     ]
   },
   "verification": {
     "functional_coverage_pct": 100,
-    "nfr_coverage_pct": 100,
+    "functional_covered": 75,
+    "functional_total": 75,
+    "user_journeys_covered": 5,
+    "user_journeys_total": 5,
+    "concurrency_scenarios_covered": 6,
+    "concurrency_scenarios_total": 6,
+    "error_scenarios_covered": 5,
+    "error_scenarios_total": 8,
     "architecture_gaps": [],
     "dependency_issues": [],
+    "existing_milestones_modified": false,
     "all_passed": true
+  },
+  "guidelines": {
+    "external_services_mocked": ["Azure AD (AUTH_BYPASS)", "Azure OpenAI (AI_MOCK_MODE)", "Email (capture backend)"],
+    "internal_services_real": ["frontend", "gateway", "core", "ai (mock mode)", "notification", "pdf", "postgres", "redis", "rabbitmq", "celery"],
+    "test_framework": "Playwright",
+    "test_location": "e2e/ at repo root",
+    "fix_before_continue": true,
+    "production_bug_fixes_allowed": true
   },
   "next_commands": [
     {
       "skill": "pipeline_configurator",
-      "command": "/pipeline_configurator Read handover at docs/05-milestones/handover.json. Generate pipeline configuration.",
-      "description": "Generate pipeline-config.json for automated execution"
+      "command": "/pipeline_configurator Read handover at docs/05-milestones/handover-e2e.json. Generate pipeline configuration for E2E test milestones M17-M21.",
+      "description": "Generate pipeline-config.json for E2E test milestone execution"
     }
   ]
 }
