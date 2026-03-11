@@ -684,9 +684,23 @@
   ```
 - **Response (201):** Created timeline entry
 
+#### GET /api/ideas/:id/review/reviewers
+- **Purpose:** Get assigned reviewers for an idea (ReviewSection header display)
+- **Auth:** Idea access (review section visible)
+- **Response (200):**
+  ```json
+  {
+    "reviewers": [
+      { "id": "uuid", "display_name": "string" }
+    ]
+  }
+  ```
+- **Implementation:** M10 (US-008)
+
 #### GET /api/ideas/:id/review/similar
 - **Purpose:** Get similar ideas for the review section (F-4.12)
 - **Auth:** Assigned reviewer
+- **Status:** **DEFERRED** (not implemented in M10 — scheduled for future milestone)
 - **Response (200):**
   ```json
   {
@@ -725,6 +739,8 @@
         "title": "string",
         "state": "in_review",
         "owner": { "id": "uuid", "display_name": "string" },
+        "owner_id": "uuid",
+        "co_owner_id": "uuid | null",
         "submitted_at": "iso8601",
         "reviewers": [
           { "id": "uuid", "display_name": "string" }
@@ -745,6 +761,7 @@
     }
   }
   ```
+- **Note:** `owner_id` and `co_owner_id` added in M10 (US-007) to support frontend conflict-of-interest checks (disable assign button for own ideas)
 
 #### POST /api/reviews/:ideaId/assign
 - **Purpose:** Self-assign to an idea for review
@@ -765,6 +782,19 @@
   ```json
   { "message": "Unassigned" }
   ```
+
+#### GET /api/reviews/reviewers
+- **Purpose:** List all users with reviewer role (for submit flow multi-select)
+- **Auth:** Authenticated (owner/co-owner submitting idea)
+- **Response (200):**
+  ```json
+  {
+    "reviewers": [
+      { "id": "uuid", "display_name": "string" }
+    ]
+  }
+  ```
+- **Implementation:** M10 (US-010). Backend filters by `roles__contains=["reviewer"]` using PostgreSQL array containment.
 
 ---
 
