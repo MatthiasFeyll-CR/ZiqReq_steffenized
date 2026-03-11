@@ -144,7 +144,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § context_agent_bucket, context_chunks — bucket schema and chunk schema\nAI: docs/03-ai/agent-architecture.md § S6.3 — embedding pipeline design, chunking strategy, re-index on bucket update\nTesting: No dedicated test IDs (infrastructure tested indirectly via Context Agent retrieval)\nFiles: services/ai/embedding/chunker.py, services/ai/embedding/embedder.py, services/ai/embedding/reindexer.py, services/ai/grpc_server/servicers/context_servicer.py\nGotchas: Entire context_chunks table is rebuilt on bucket update (DELETE + INSERT, no incremental). Chunk size and overlap should read admin params with fallbacks (e.g., max_chunk_tokens: 512, chunk_overlap: 50). pgvector dimension is 1536 for text-embedding-3-small.\nDeviations: Admin UI for bucket management comes in M15. For M8, bucket updates happen via direct DB or test fixtures. The gRPC RPC should still be implemented for future UI integration.",
       "context": {
