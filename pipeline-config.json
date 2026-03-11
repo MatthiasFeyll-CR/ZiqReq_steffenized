@@ -127,6 +127,41 @@
       "name": "Polish & Cross-Cutting",
       "stories": 10,
       "dependencies": [10, 11, 12]
+    },
+    {
+      "id": 17,
+      "slug": "e2e-foundation",
+      "name": "E2E Foundation Tests",
+      "stories": 5,
+      "dependencies": [16]
+    },
+    {
+      "id": 18,
+      "slug": "e2e-workspace",
+      "name": "E2E Workspace, Chat & Board Tests",
+      "stories": 10,
+      "dependencies": [17]
+    },
+    {
+      "id": 19,
+      "slug": "e2e-review-collab",
+      "name": "E2E BRD, Review & Collaboration",
+      "stories": 10,
+      "dependencies": [18]
+    },
+    {
+      "id": 20,
+      "slug": "e2e-similarity-admin",
+      "name": "E2E Similarity, Merge & Admin",
+      "stories": 9,
+      "dependencies": [19]
+    },
+    {
+      "id": 21,
+      "slug": "e2e-journeys-edge",
+      "name": "E2E Error Handling & User Journeys",
+      "stories": 8,
+      "dependencies": [20]
     }
   ],
   "models": {
@@ -134,7 +169,7 @@
     "phase0": "claude-opus-4-6",
     "prd_generation": "claude-sonnet-4-5",
     "qa_review": "claude-opus-4-6",
-    "test_fix": "claude-sonnet-4-5",
+    "test_fix": "claude-opus-4-6",
     "gate_fix": "claude-opus-4-6",
     "reconciliation": "claude-sonnet-4-5"
   },
@@ -178,6 +213,18 @@
         "command": "cd frontend && npx eslint src/",
         "condition": "test -f frontend/eslint.config.js",
         "required": false
+      },
+      {
+        "name": "E2E typecheck",
+        "command": "cd e2e && npx tsc --noEmit",
+        "condition": "test -f e2e/tsconfig.json",
+        "required": true
+      },
+      {
+        "name": "E2E tests",
+        "command": "cd e2e && npx playwright test",
+        "condition": "test -f e2e/playwright.config.ts",
+        "required": true
       }
     ]
   },
@@ -194,55 +241,43 @@
     "budget_usd": 750
   },
   "test_execution": {
-    "test_command": "docker compose -f docker-compose.test.yml run --rm python-tests pytest",
-    "integration_test_command": "docker compose -f docker-compose.test.yml run --rm node-tests npx vitest run",
-    "setup_command": "docker compose -f docker-compose.test.yml up -d --build",
-    "teardown_command": "docker compose -f docker-compose.test.yml down",
-    "force_teardown_command": "docker compose -f docker-compose.test.yml down -v --remove-orphans",
-    "build_command": "docker compose -f docker-compose.test.yml build",
+    "compose_file": "docker-compose.e2e.yml",
+    "test_command": "cd e2e && npx playwright test",
+    "test_single_command": "cd e2e && npx playwright test {spec_file}",
+    "integration_test_command": "cd e2e && npx playwright test",
+    "setup_command": "docker compose -f docker-compose.e2e.yml up -d --build",
+    "teardown_command": "docker compose -f docker-compose.e2e.yml down",
+    "force_teardown_command": "docker compose -f docker-compose.e2e.yml down -v --remove-orphans",
+    "build_command": "docker compose -f docker-compose.e2e.yml build",
     "condition": "command -v docker",
-    "setup_timeout_seconds": 120,
-    "timeout_seconds": 600,
+    "setup_timeout_seconds": 180,
+    "timeout_seconds": 900,
     "build_timeout_seconds": 300,
-    "tier1": {
-      "compose_file": "docker-compose.test.yml",
-      "environments": [
-        {
-          "name": "python",
-          "service": "python",
-          "test_command": "docker compose -f docker-compose.test.yml run --rm python-tests pytest",
-          "timeout_seconds": 600
-        },
-        {
-          "name": "node",
-          "service": "node",
-          "test_command": "docker compose -f docker-compose.test.yml run --rm node-tests npx vitest run",
-          "timeout_seconds": 600
-        }
-      ]
+    "health_poll": {
+      "gateway": "http://localhost:8000/api/auth/dev-users",
+      "frontend": "http://localhost:5173",
+      "poll_interval_ms": 2000,
+      "max_wait_ms": 120000
     },
     "services": [
       {
-        "name": "postgres",
-        "type": "tcp",
-        "host": "localhost",
-        "port": 5432,
+        "name": "gateway",
+        "type": "http",
+        "url": "http://localhost:8000/api/auth/dev-users",
         "startup_timeout": 120
       },
       {
-        "name": "redis",
-        "type": "tcp",
-        "host": "localhost",
-        "port": 6379,
-        "startup_timeout": 120
-      },
-      {
-        "name": "rabbitmq",
-        "type": "tcp",
-        "host": "localhost",
-        "port": 5672,
+        "name": "frontend",
+        "type": "http",
+        "url": "http://localhost:5173",
         "startup_timeout": 120
       }
     ]
+  },
+  "scaffolding": {
+    "enabled": false,
+    "project_structure_doc": "docs/02-architecture/project-structure.md",
+    "tech_stack_doc": "docs/02-architecture/tech-stack.md",
+    "framework_boilerplate": false
   }
 }
