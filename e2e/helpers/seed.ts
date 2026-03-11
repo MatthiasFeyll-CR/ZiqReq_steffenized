@@ -12,7 +12,10 @@ import {
   sendChatMessage,
 } from "./api";
 
-const GATEWAY_URL = process.env.GATEWAY_URL ?? "http://localhost:8000";
+/**
+ * Base URL — goes through the Vite proxy so cookies stay on the same origin.
+ */
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:5173";
 
 /**
  * Ensure the request context is authenticated as the given dev user.
@@ -23,7 +26,7 @@ export async function authenticateRequest(
   user: DevUserKey,
 ): Promise<void> {
   const devUser = DEV_USERS[user];
-  const res = await request.post(`${GATEWAY_URL}/api/auth/dev-login`, {
+  const res = await request.post(`${BASE_URL}/api/auth/dev-login`, {
     data: { user_id: devUser.id },
   });
   if (!res.ok()) {
@@ -61,13 +64,15 @@ export async function seedInReviewIdea(
 /**
  * Create an idea, submit it, assign a reviewer, and accept it.
  * Requires switching to a reviewer user for the accept step.
+ *
+ * Defaults: owner=user1 (basic), reviewer=user3 (reviewer role)
  */
 export async function seedAcceptedIdea(
   request: APIRequestContext,
   opts?: { owner?: DevUserKey; reviewer?: DevUserKey; message?: string },
 ): Promise<SeededIdea> {
-  const owner = opts?.owner ?? "carol";
-  const reviewer = opts?.reviewer ?? "bob";
+  const owner = opts?.owner ?? "user1";
+  const reviewer = opts?.reviewer ?? "user3";
 
   // Create + submit as owner
   await authenticateRequest(request, owner);
@@ -89,8 +94,8 @@ export async function seedRejectedIdea(
   request: APIRequestContext,
   opts?: { owner?: DevUserKey; reviewer?: DevUserKey; message?: string },
 ): Promise<SeededIdea> {
-  const owner = opts?.owner ?? "carol";
-  const reviewer = opts?.reviewer ?? "bob";
+  const owner = opts?.owner ?? "user1";
+  const reviewer = opts?.reviewer ?? "user3";
 
   await authenticateRequest(request, owner);
   const idea = await createIdea(request, opts?.message ?? "E2E rejected idea");
@@ -109,8 +114,8 @@ export async function seedDroppedIdea(
   request: APIRequestContext,
   opts?: { owner?: DevUserKey; reviewer?: DevUserKey; message?: string },
 ): Promise<SeededIdea> {
-  const owner = opts?.owner ?? "carol";
-  const reviewer = opts?.reviewer ?? "bob";
+  const owner = opts?.owner ?? "user1";
+  const reviewer = opts?.reviewer ?? "user3";
 
   await authenticateRequest(request, owner);
   const idea = await createIdea(request, opts?.message ?? "E2E dropped idea");
@@ -143,7 +148,8 @@ export async function seedIdeaWithCollaborator(
   request: APIRequestContext,
   opts?: { owner?: DevUserKey; collaborator?: DevUserKey },
 ): Promise<SeededIdea & { invitationId: string }> {
-  const collaborator = opts?.collaborator ?? "dave";
+  const owner = opts?.owner ?? "user1";
+  const collaborator = opts?.collaborator ?? "user2";
   const idea = await createIdea(request, "E2E collab idea");
   const inv = await sendInvitation(request, idea.id, DEV_USERS[collaborator].id);
 
@@ -152,6 +158,6 @@ export async function seedIdeaWithCollaborator(
   await acceptInvitation(request, inv.invitation_id);
 
   // Re-auth as owner
-  await authenticateRequest(request, opts?.owner ?? "carol");
+  await authenticateRequest(request, owner);
   return { id: idea.id, title: idea.title, state: "open", invitationId: inv.invitation_id };
 }

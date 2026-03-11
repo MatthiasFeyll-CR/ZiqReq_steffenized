@@ -1,10 +1,14 @@
 import { type APIRequestContext } from "@playwright/test";
 
-const GATEWAY_URL = process.env.GATEWAY_URL ?? "http://localhost:8000";
+/**
+ * Base URL for API calls — goes through the Vite proxy so cookies
+ * stay on the same origin as the page (localhost:5173).
+ */
+const BASE_URL = process.env.BASE_URL ?? "http://localhost:5173";
 
 /**
- * Low-level JSON request helper. Attaches the session cookie automatically
- * when using Playwright's APIRequestContext (which persists cookies).
+ * Low-level JSON request helper. Routes through the Vite proxy so the
+ * session cookie (set on localhost:5173) is included automatically.
  */
 async function apiRequest<T = unknown>(
   request: APIRequestContext,
@@ -12,7 +16,7 @@ async function apiRequest<T = unknown>(
   path: string,
   data?: Record<string, unknown>,
 ): Promise<T> {
-  const url = `${GATEWAY_URL}${path}`;
+  const url = `${BASE_URL}${path}`;
   const response = await request.fetch(url, {
     method,
     headers: { "Content-Type": "application/json" },

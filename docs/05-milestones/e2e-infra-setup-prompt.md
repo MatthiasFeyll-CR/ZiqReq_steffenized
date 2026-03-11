@@ -35,8 +35,8 @@ A **complete standalone** docker-compose file (not extending) for E2E tests. Sho
 
 #### 2. `e2e/playwright.config.ts`
 - Base URL: `http://localhost:5173` (Vite dev server, or adjust if using built frontend)
-- Projects: Chromium (primary), optionally Firefox
-- Global setup/teardown scripts
+- Projects: Firefox (primary), 
+-  Global setup/teardown scripts
 - Timeout: 30s per test
 - Retries: 1 on CI, 0 locally
 - Reporter: HTML + list

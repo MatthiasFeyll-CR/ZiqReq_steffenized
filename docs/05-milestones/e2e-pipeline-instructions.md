@@ -94,14 +94,23 @@ The E2E test gate check replaces the unit test gate for milestones 17–21. The 
 
 ### Auth in tests
 
-The app uses `AUTH_BYPASS=True` with 4 dev users. No login form — auth is via API:
+The app uses `AUTH_BYPASS=True` with 4 dev users. No login form — auth is via API.
+All API calls (including auth) go through the Vite proxy at `localhost:5173/api/...`
+so cookies stay on the same origin as the page. Never call `localhost:8000` directly
+from `page.request` — use the proxy.
+
+Dev users match the DB seed migration (`0002_seed_dev_users.py`):
+- `user1`: basic user (`[user]`), display: "Dev User 1"
+- `user2`: basic user (`[user]`), display: "Dev User 2"
+- `user3`: reviewer (`[user, reviewer]`), display: "Dev User 3"
+- `user4`: admin (`[user, admin]`), display: "Dev User 4"
 
 ```typescript
 import { loginAs } from "./helpers/auth";
-// Sets Django session cookie via POST /api/auth/dev-login, then navigates to /
-await loginAs(page, "carol");   // basic user
-await loginAs(page, "alice");   // admin + reviewer
-await loginAs(page, "bob");     // reviewer
+// Calls POST /api/auth/dev-login via Vite proxy, sets session cookie, navigates to /
+await loginAs(page, "user1");   // basic user
+await loginAs(page, "user4");   // admin
+await loginAs(page, "user3");   // reviewer
 ```
 
 For multi-user tests, use separate browser contexts:
@@ -119,7 +128,7 @@ await loginAs(pageB, "dave");
 Use `helpers/seed.ts` for API-level setup, not UI clicks:
 ```typescript
 import { authenticateRequest, seedInReviewIdea } from "./helpers/seed";
-await authenticateRequest(request, "carol");
+await authenticateRequest(request, "user1");
 const idea = await seedInReviewIdea(request);
 ```
 

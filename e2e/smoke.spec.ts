@@ -5,8 +5,8 @@ import { LandingPage } from "./pages/landing.page";
 
 test.describe("Smoke tests", () => {
   test("landing page loads and user is authenticated", async ({ page }) => {
-    // Log in as Carol (basic user)
-    await loginAs(page, "carol");
+    // Log in as user1 (basic user)
+    await loginAs(page, "user1");
 
     const landing = new LandingPage(page);
     const navbar = new NavbarPage(page);
@@ -18,20 +18,30 @@ test.describe("Smoke tests", () => {
     await expect(navbar.logo).toBeVisible();
 
     // Verify the user is authenticated — name shows in user menu
-    await navbar.expectUserName(DEV_USERS.carol.displayName);
+    await navbar.expectUserName(DEV_USERS.user1.displayName);
   });
 
   test("admin user sees all nav links", async ({ page }) => {
-    await loginAs(page, "alice");
+    // user4 has admin + user roles
+    await loginAs(page, "user4");
+
+    const navbar = new NavbarPage(page);
+
+    await navbar.expectAdminVisible();
+  });
+
+  test("reviewer user sees reviews link", async ({ page }) => {
+    // user3 has reviewer + user roles
+    await loginAs(page, "user3");
 
     const navbar = new NavbarPage(page);
 
     await navbar.expectReviewsVisible();
-    await navbar.expectAdminVisible();
   });
 
   test("regular user does not see admin link", async ({ page }) => {
-    await loginAs(page, "carol");
+    // user1 has only user role
+    await loginAs(page, "user1");
 
     const navbar = new NavbarPage(page);
 
@@ -39,17 +49,14 @@ test.describe("Smoke tests", () => {
   });
 
   test("navigation between pages works", async ({ page }) => {
-    await loginAs(page, "alice");
+    // user4 has admin role, can access all pages
+    await loginAs(page, "user4");
 
     // Start on landing
     await expect(page).toHaveURL("/");
 
-    // Navigate to reviews
-    const navbar = new NavbarPage(page);
-    await navbar.goToReviews();
-    await expect(page).toHaveURL("/reviews");
-
     // Navigate to admin
+    const navbar = new NavbarPage(page);
     await navbar.goToAdmin();
     await expect(page).toHaveURL("/admin");
 
