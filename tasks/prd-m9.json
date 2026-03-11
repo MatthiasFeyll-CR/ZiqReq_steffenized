@@ -267,7 +267,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-1.2.01",
         "T-1.2.02",
@@ -322,7 +322,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-4.4.04",
         "T-4.4.05",
@@ -373,7 +373,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "T-4.8.03",
         "T-4.8.04",
