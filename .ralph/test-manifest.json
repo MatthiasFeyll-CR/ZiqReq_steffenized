@@ -395,6 +395,42 @@
     "T-2.14.02": {
       "file": "frontend/src/__tests__/context-window-indicator.test.tsx",
       "function": "shows tooltip with context details on hover"
+    },
+    "T-4.1.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_full_generation_returns_all_sections"
+    },
+    "T-4.1.02": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_output_contains_all_six_section_fields"
+    },
+    "T-4.2.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_fallback_on_parse_failure"
+    },
+    "T-4.2.02": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_prompt_no_todo_when_gaps_false"
+    },
+    "T-4.8.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_readiness_in_full_generation"
+    },
+    "T-4.9.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_prompt_instructs_todo_markers_when_gaps_true"
+    },
+    "AI-4.01": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_execute_calls_sk_and_returns_parsed"
+    },
+    "AI-4.02": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_selective_regeneration_skips_locked"
+    },
+    "AI-4.03": {
+      "file": "services/ai/tests/test_summarizing_ai.py",
+      "function": "test_section_regeneration_only_target"
     }
   }
 }
