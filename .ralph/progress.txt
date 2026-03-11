@@ -129,3 +129,19 @@ Started: 2026-03-11T11:27:20+0100
   - Only 'pending' status merge requests are checked for duplicates — declined/accepted pairs can create new requests
   - .ralph/prd.json is a symlink to tasks/prd-m13.json — commit the real file via `git add tasks/prd-m13.json`
 ---
+
+## US-008: Merge Request Banner — Workspace UI with Accept/Decline
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/MergeRequestBanner.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/api/ideas.ts, frontend/src/hooks/use-websocket.ts, services/gateway/apps/ideas/views.py, 9 test files updated
+- Tests: 718 Python tests passed, 403 Node tests passed (1 pre-existing failure in information-gaps-toggle.test.tsx). TypeScript typecheck clean.
+- Learnings for future iterations:
+  - merge_request_pending field added inline in _get_idea view (not in serializer) to avoid touching IdeaDetailSerializer which is used by create/patch too
+  - MergeRequest model has `requested_by` field (not `requesting_idea_owner_id`) — use this for the requesting owner lookup
+  - LockOverlay component already existed at components/workspace/LockOverlay.tsx — reused it with `relative` parent wrapper
+  - Adding a new required field to the Idea interface requires updating ALL test mock objects — use `sed` carefully (multi-line arrays break simple line-based sed)
+  - WebSocket handler dispatches `ws:merge_request` custom event; workspace listens and refetches idea to update merge_request_pending
+  - Confirmation dialog for decline uses Dialog (Radix) component — matches component-specs.md § 17
+  - Banner uses framer-motion AnimatePresence with slide-down (200ms) matching InvitationBanner pattern
+  - `docker compose build` gate check has no docker-compose.yml (only test yml) — pre-existing issue
+---
