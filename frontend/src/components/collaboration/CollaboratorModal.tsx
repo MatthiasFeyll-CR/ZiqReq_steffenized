@@ -17,11 +17,18 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import {
   searchUsers,
   sendInvitation,
   fetchCollaborators,
   removeCollaborator,
   transferOwnership,
+  leaveIdea,
   fetchPendingInvitations,
   revokeInvitation,
   type UserSearchResult,
@@ -32,6 +39,7 @@ import { formatRelativeTime } from "@/lib/utils";
 interface CollaboratorModalProps {
   ideaId: string;
   ownerId: string;
+  coOwnerId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -39,6 +47,7 @@ interface CollaboratorModalProps {
 export function CollaboratorModal({
   ideaId,
   ownerId,
+  coOwnerId,
   open,
   onOpenChange,
 }: CollaboratorModalProps) {
@@ -78,6 +87,8 @@ export function CollaboratorModal({
           <TabsContent value="collaborators">
             <CollaboratorsTab
               ideaId={ideaId}
+              ownerId={ownerId}
+              coOwnerId={coOwnerId}
               isOwner={isOwner}
               queryClient={queryClient}
               onCloseModal={() => onOpenChange(false)}
@@ -191,6 +202,8 @@ function InviteTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
 
 interface CollaboratorsTabProps {
   ideaId: string;
+  ownerId: string;
+  coOwnerId?: string | null;
   isOwner: boolean;
   queryClient: ReturnType<typeof useQueryClient>;
   onCloseModal: () => void;
@@ -198,6 +211,7 @@ interface CollaboratorsTabProps {
 
 function CollaboratorsTab({
   ideaId,
+  coOwnerId,
   isOwner,
   queryClient,
   onCloseModal,
@@ -206,6 +220,8 @@ function CollaboratorsTab({
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState<CollaboratorUser | null>(null);
   const [removeTarget, setRemoveTarget] = useState<CollaboratorUser | null>(null);
+
+  const isSingleOwner = isOwner && !coOwnerId;
 
   const { data, isLoading } = useQuery({
     queryKey: ["collaborators", ideaId],
@@ -235,6 +251,18 @@ function CollaboratorsTab({
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to transfer ownership");
+    },
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: () => leaveIdea(ideaId),
+    onSuccess: () => {
+      toast.success("You have left the idea");
+      queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
+      onCloseModal();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to leave idea");
     },
   });
 
@@ -303,6 +331,41 @@ function CollaboratorsTab({
           No collaborators yet
         </p>
       )}
+
+      {/* Leave button */}
+      <div className="pt-4 border-t">
+        {isSingleOwner ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span data-testid="leave-button-wrapper">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    data-testid="leave-button"
+                  >
+                    Leave Idea
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent data-testid="leave-tooltip">
+                Transfer ownership before leaving
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => leaveMutation.mutate()}
+            disabled={leaveMutation.isPending}
+            data-testid="leave-button"
+          >
+            Leave Idea
+          </Button>
+        )}
+      </div>
 
       {/* Remove confirmation dialog */}
       {removeTarget && (

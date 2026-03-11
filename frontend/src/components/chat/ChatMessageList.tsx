@@ -60,6 +60,7 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
 
   const getSenderName = (senderId: string | null): string | undefined => {
     if (!senderId) return undefined;
+    if (senderId === user?.id) return user.display_name;
     const collab = idea.collaborators.find((c) => c.user_id === senderId);
     if (collab) return collab.display_name;
     return undefined;
@@ -101,7 +102,7 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
             key={msg.id}
             message={msg}
             senderName={getSenderName(msg.sender_id)}
-            showSenderName={isMultiUser && msg.sender_id !== user?.id}
+            showSenderName={isMultiUser}
             ideaId={idea.id}
             isOwnMessage={msg.sender_id === user?.id}
           />

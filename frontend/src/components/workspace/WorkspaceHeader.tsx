@@ -170,6 +170,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
       <CollaboratorModal
         ideaId={idea.id}
         ownerId={idea.owner_id}
+        coOwnerId={idea.co_owner_id}
         open={collaboratorModalOpen}
         onOpenChange={setCollaboratorModalOpen}
       />

@@ -731,6 +731,18 @@
     "T-8.3.04": {
       "file": "frontend/src/__tests__/read-only-view.test.tsx",
       "function": "passes readOnly to BoardCanvas"
+    },
+    "UI-CHAT.05": {
+      "file": "frontend/src/__tests__/multi-user-awareness.test.tsx",
+      "function": "shows sender names when collaborators > 0"
+    },
+    "T-2.5.01": {
+      "file": "frontend/src/__tests__/multi-user-awareness.test.tsx",
+      "function": "does NOT show sender names for single-user ideas"
+    },
+    "T-8.4.07": {
+      "file": "frontend/src/__tests__/multi-user-awareness.test.tsx",
+      "function": "shows disabled Leave button with tooltip for single owner"
     }
   }
 }

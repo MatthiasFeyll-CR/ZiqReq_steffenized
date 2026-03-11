@@ -142,6 +142,21 @@ export async function acceptInvitation(
   return handleResponse(res);
 }
 
+export async function leaveIdea(
+  ideaId: string,
+): Promise<{ message: string }> {
+  const res = await fetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/leave`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}
+
 export async function declineInvitation(
   invitationId: string,
 ): Promise<{ message: string }> {
