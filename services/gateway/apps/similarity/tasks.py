@@ -1,4 +1,7 @@
-"""Celery tasks: keyword matching sweep."""
+"""Celery tasks: keyword matching sweep.
+
+Mirrors services/core/apps/similarity/tasks.py for test discoverability.
+"""
 
 from __future__ import annotations
 
