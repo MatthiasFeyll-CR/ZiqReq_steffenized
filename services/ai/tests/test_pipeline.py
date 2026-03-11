@@ -430,6 +430,234 @@ class TestContextAgentDelegation:
         assert "1 knowledge base chunks" in received_delegation_results
 
 
+# ── Context Extension delegation (M8) ──
+
+
+class TestContextExtensionDelegation:
+    @pytest.mark.asyncio
+    async def test_context_extension_delegation_mock_mode(self, _clear_pipeline_state, settings):
+        """In mock mode, context_extension delegation returns empty findings."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        call_count = 0
+        received_extension_results = None
+
+        async def mock_process(input_data):
+            nonlocal call_count, received_extension_results
+            call_count += 1
+            if call_count == 1:
+                return {
+                    "delegations": [{
+                        "delegation_type": "context_extension",
+                        "delegation_id": "d1",
+                        "query": "What did Lisa say?",
+                    }],
+                    "board_instructions": [],
+                    "response": "Let me check...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            received_extension_results = input_data.get("extension_results")
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "Here's what I found.",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
+            instance = MockAgent.return_value
+            instance.process = mock_process
+            result = await pipeline.execute("idea-1")
+
+        assert result["status"] == "completed"
+        assert call_count == 2
+        assert received_extension_results is not None
+        assert "mock mode" in received_extension_results.lower()
+
+    @pytest.mark.asyncio
+    async def test_context_extension_invoked_in_non_mock_mode(self, _clear_pipeline_state, settings):
+        """In non-mock mode, pipeline invokes Context Extension Agent with query."""
+        settings.AI_MOCK_MODE = False
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        extension_agent_called = False
+        extension_agent_input = {}
+
+        async def mock_facilitator_process(input_data):
+            if input_data.get("extension_results") is None:
+                return {
+                    "delegations": [{
+                        "delegation_type": "context_extension",
+                        "delegation_id": "d1",
+                        "query": "What did Lisa say about signatures?",
+                    }],
+                    "board_instructions": [],
+                    "response": "Let me check the history...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "Lisa mentioned digital signatures in message 3.",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        async def mock_extension_process(input_data):
+            nonlocal extension_agent_called, extension_agent_input
+            extension_agent_called = True
+            extension_agent_input = input_data
+            return {
+                "response": "Lisa discussed digital signatures for contract approval.",
+                "messages_cited": ["msg-5", "msg-12"],
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.context_extension.agent.ContextExtensionAgent") as MockExtension:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockExtension.return_value.process = mock_extension_process
+            result = await pipeline.execute("idea-1")
+
+        assert result["status"] == "completed"
+        assert extension_agent_called is True
+        assert extension_agent_input["query"] == "What did Lisa say about signatures?"
+        assert extension_agent_input["idea_id"] == "idea-1"
+
+    @pytest.mark.asyncio
+    async def test_context_extension_results_injected_into_facilitator(self, _clear_pipeline_state, settings):
+        """Context Extension response is injected into second Facilitator invocation."""
+        settings.AI_MOCK_MODE = False
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        received_extension_results = None
+
+        async def mock_facilitator_process(input_data):
+            nonlocal received_extension_results
+            if input_data.get("extension_results") is None:
+                return {
+                    "delegations": [{
+                        "delegation_type": "context_extension",
+                        "delegation_id": "d1",
+                        "query": "What did Lisa say?",
+                    }],
+                    "board_instructions": [],
+                    "response": "Checking...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            received_extension_results = input_data["extension_results"]
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "Lisa said X.",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        async def mock_extension_process(input_data):
+            return {
+                "response": "Lisa discussed digital signatures for contract approval.",
+                "messages_cited": ["msg-5"],
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.context_extension.agent.ContextExtensionAgent") as MockExtension:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockExtension.return_value.process = mock_extension_process
+            await pipeline.execute("idea-1")
+
+        assert received_extension_results is not None
+        assert "extension_results" in received_extension_results
+        assert "digital signatures" in received_extension_results
+        assert "1 cited messages" in received_extension_results
+
+    @pytest.mark.asyncio
+    async def test_context_extension_publishes_delegation_complete(self, _clear_pipeline_state, settings):
+        """Pipeline publishes ai.delegation.complete after context extension handling."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        async def mock_process(input_data):
+            if input_data.get("extension_results") is None:
+                return {
+                    "delegations": [{"delegation_type": "context_extension", "delegation_id": "d1", "query": "test"}],
+                    "board_instructions": [],
+                    "response": "Checking...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "Done.",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
+            MockAgent.return_value.process = mock_process
+            await pipeline.execute("idea-1")
+
+        events = get_published_events()
+        delegation_complete = [e for e in events if e["event_type"] == "ai.delegation.complete"]
+        assert len(delegation_complete) == 1
+        assert delegation_complete[0]["delegation_type"] == "context_extension"
+
+    @pytest.mark.asyncio
+    async def test_context_extension_failure_returns_error_message(self, _clear_pipeline_state, settings):
+        """If Context Extension Agent fails, pipeline injects error message."""
+        settings.AI_MOCK_MODE = False
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        received_extension_results = None
+
+        async def mock_facilitator_process(input_data):
+            nonlocal received_extension_results
+            if input_data.get("extension_results") is None:
+                return {
+                    "delegations": [{"delegation_type": "context_extension", "delegation_id": "d1", "query": "test"}],
+                    "board_instructions": [],
+                    "response": "Checking...",
+                    "token_usage": {"input": 100, "output": 20},
+                }
+            received_extension_results = input_data["extension_results"]
+            return {
+                "delegations": [],
+                "board_instructions": [],
+                "response": "Sorry, couldn't retrieve that.",
+                "token_usage": {"input": 150, "output": 30},
+            }
+
+        async def mock_extension_process(input_data):
+            raise RuntimeError("gRPC GetFullChatHistory failed")
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
+             patch("agents.context_extension.agent.ContextExtensionAgent") as MockExtension:
+            MockFacilitator.return_value.process = mock_facilitator_process
+            MockExtension.return_value.process = mock_extension_process
+            result = await pipeline.execute("idea-1")
+
+        assert result["status"] == "completed"
+        assert received_extension_results is not None
+        assert "error" in received_extension_results.lower()
+
+
 # ── Board Agent invocation (M8) ──
 
 

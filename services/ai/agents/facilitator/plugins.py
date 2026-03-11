@@ -186,6 +186,14 @@ class FacilitatorPlugin:
         if not query or not query.strip():
             return _error_response("validation_error", "Query must not be empty.")
 
+        # Validate that compression has occurred for this idea
+        if not self._has_compressed_context():
+            return _error_response(
+                "no_compressed_context",
+                "No compressed context exists for this idea. All messages are already "
+                "available in recent context — no need for context extension.",
+            )
+
         delegation_id = str(uuid.uuid4())
         self.delegations.append({
             "delegation_id": delegation_id,
@@ -250,6 +258,16 @@ class FacilitatorPlugin:
         )
 
         return {"accepted": True, "instruction_count": len(instructions)}
+
+    def _has_compressed_context(self) -> bool:
+        """Check if chat_context_summaries exist for this idea."""
+        try:
+            from apps.context.models import ChatContextSummary
+
+            return ChatContextSummary.objects.filter(idea_id=self.idea_id).exists()
+        except Exception:
+            logger.warning("Failed to check chat_context_summaries — assuming none exist")
+            return False
 
     def _context_bucket_has_content(self) -> bool:
         """Check if the context_agent_bucket singleton has any content."""

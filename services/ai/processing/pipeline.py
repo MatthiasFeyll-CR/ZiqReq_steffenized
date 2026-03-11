@@ -197,16 +197,10 @@ class ChatProcessingPipeline:
                 )
                 input_data["delegation_results"] = delegation_results
             elif d_type == "context_extension":
-                # Context Extension not yet implemented — return empty
-                logger.warning(
-                    "Step 4: Delegation 'context_extension' for idea %s — "
-                    "agent not available yet, returning empty results",
-                    idea_id,
+                extension_results = await self._invoke_context_extension(
+                    idea_id, d_query,
                 )
-                input_data["extension_results"] = (
-                    "(Context Extension agent is not available in this milestone. "
-                    "No additional context could be retrieved.)"
-                )
+                input_data["extension_results"] = extension_results
             else:
                 logger.warning(
                     "Step 4: Unknown delegation type '%s' for idea %s",
@@ -278,6 +272,55 @@ class ChatProcessingPipeline:
                 "Step 4: Context Agent failed for idea %s", idea_id,
             )
             return "(Context Agent encountered an error. No findings available.)"
+
+    async def _invoke_context_extension(
+        self, idea_id: str, query: str,
+    ) -> str:
+        """Invoke the Context Extension Agent with a query and return formatted results.
+
+        In mock mode, returns empty findings without invoking the agent.
+        """
+        from django.conf import settings as django_settings
+
+        if getattr(django_settings, "AI_MOCK_MODE", False):
+            logger.info(
+                "Step 4: Context Extension delegation for idea %s in mock mode — "
+                "returning empty findings",
+                idea_id,
+            )
+            return "(No context extension findings available in mock mode.)"
+
+        logger.info(
+            "Step 4: Invoking Context Extension Agent for idea %s",
+            idea_id,
+        )
+
+        try:
+            from agents.context_extension.agent import ContextExtensionAgent
+
+            agent = ContextExtensionAgent()
+            result = await agent.process({
+                "query": query,
+                "idea_id": idea_id,
+            })
+
+            response = result.get("response", "")
+            messages_cited = result.get("messages_cited", [])
+
+            if response:
+                return (
+                    f"<extension_results>\n"
+                    f"{response}\n"
+                    f"(Based on {len(messages_cited)} cited messages from full history)\n"
+                    f"</extension_results>"
+                )
+            return "(Context Extension found no relevant information in chat history.)"
+
+        except Exception:
+            logger.exception(
+                "Step 4: Context Extension Agent failed for idea %s", idea_id,
+            )
+            return "(Context Extension Agent encountered an error. No findings available.)"
 
     async def _step_board_agent(
         self, idea_id: str, facilitator_result: dict[str, Any],

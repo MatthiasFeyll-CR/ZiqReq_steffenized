@@ -553,10 +553,13 @@ class TestDelegation:
     @pytest.mark.asyncio
     async def test_delegate_to_context_extension(self):
         """delegate_to_context_extension publishes ai.delegation.started."""
+        from unittest.mock import patch
+
         plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.delegate_to_context_extension(
-            query="What did Lisa say about digital signatures?"
-        )
+        with patch.object(plugin, "_has_compressed_context", return_value=True):
+            result = await plugin.delegate_to_context_extension(
+                query="What did Lisa say about digital signatures?"
+            )
         assert result["status"] == "queued"
         assert "delegation_id" in result
 
@@ -584,6 +587,47 @@ class TestDelegation:
         assert "error" in result
         assert result["error"]["code"] == "no_context_available"
         assert len(get_published_events()) == 0
+
+    @pytest.mark.asyncio
+    async def test_delegate_to_context_extension_empty_query_rejected(self):
+        """delegate_to_context_extension with empty query returns error."""
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        result = await plugin.delegate_to_context_extension(query="")
+        assert "error" in result
+        assert result["error"]["code"] == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_delegate_to_context_extension_no_compressed_context_rejected(self):
+        """delegate_to_context_extension returns error when no compression exists."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_has_compressed_context", return_value=False):
+            result = await plugin.delegate_to_context_extension(
+                query="What did Lisa say about digital signatures?"
+            )
+        assert "error" in result
+        assert result["error"]["code"] == "no_compressed_context"
+        assert len(get_published_events()) == 0
+
+    @pytest.mark.asyncio
+    async def test_delegate_to_context_extension_with_compressed_context_succeeds(self):
+        """delegate_to_context_extension succeeds when compression exists."""
+        from unittest.mock import patch
+
+        plugin = FacilitatorPlugin(idea_id="idea-1")
+        with patch.object(plugin, "_has_compressed_context", return_value=True):
+            result = await plugin.delegate_to_context_extension(
+                query="What did Lisa say about digital signatures?"
+            )
+        assert result["status"] == "queued"
+        assert "delegation_id" in result
+        assert plugin.delegations[0]["delegation_type"] == "context_extension"
+
+        events = get_published_events()
+        assert len(events) == 1
+        assert events[0]["event_type"] == "ai.delegation.started"
+        assert events[0]["delegation_type"] == "context_extension"
 
     @pytest.mark.asyncio
     async def test_delegation_with_bucket_content_succeeds(self):
