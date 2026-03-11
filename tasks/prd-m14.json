@@ -1,0 +1,172 @@
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m14-merge-advanced",
+  "description": "M14: Append flow (3-way consent), manual merge (UUID/URL), recursive merge (co-owner demotion), old idea refs, merge notifications",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Append Flow Backend — 3-Way Consent",
+      "description": "As an open idea owner, I want to request appending to an in-review idea so my context can join an idea under review.",
+      "acceptanceCriteria": [
+        "POST /api/ideas/:id/merge-request accepts merge_type='append' for in_review targets",
+        "Validates target has assigned reviewer (review_assignments.unassigned_at IS NULL)",
+        "Creates merge_request: requesting_owner_consent='accepted', target_owner_consent='pending', reviewer_consent='pending'",
+        "400 REVIEWER_REQUIRED if no assigned reviewers",
+        "POST /api/merge-requests/:id/consent accepts consent from target owner OR reviewer",
+        "All three consents='accepted' → status='accepted', publishes append.accepted",
+        "Any decline → status='declined', publishes append.declined",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: data-model.md § merge_requests.reviewer_consent, review_assignments\nTesting: integration-scenarios.md § Append Flow (F-5.4, F-5.5)\nFiles: gateway/apps/ideas/views.py, gateway/apps/similarity/views.py, test_append_flow.py\nGotchas: 3-way consent for append, 2-way for merge. Events: append_request.created, append.accepted, append.declined",
+      "context": {
+        "data_model": ["merge_requests: reviewer_consent, merge_type", "review_assignments: unassigned_at"],
+        "api_endpoints": ["POST /api/ideas/:id/merge-request", "POST /api/merge-requests/:id/consent"],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "Append Execution — Close & Collaborator Add",
+      "description": "As system, execute append: close requesting idea, add owner as collaborator on target.",
+      "acceptanceCriteria": [
+        "Consumes append.accepted events",
+        "Updates requesting idea: closed_by_append_id = target_idea_id (state stays 'open')",
+        "Adds requesting owner to target collaborators",
+        "Target state stays 'in_review'",
+        "Updates merge_request: status='accepted', resolved_at=now()",
+        "Publishes append.complete event",
+        "No new idea created",
+        "Atomic transaction",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: data-model.md § ideas.closed_by_append_id, idea_collaborators\nFiles: core/apps/similarity/append_service.py (new), core/events/consumers.py\nGotchas: No new idea. State stays 'open', just flagged",
+      "context": {
+        "data_model": ["ideas: closed_by_append_id", "idea_collaborators"],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "Manual Merge — UUID/URL Entry",
+      "description": "As owner, manually request merge via UUID/URL to recover from decline or request undetected merge.",
+      "acceptanceCriteria": [
+        "Accepts target_idea_id (UUID) OR target_idea_url (extracts UUID from /idea/{uuid})",
+        "400 INVALID_UUID, 404 TARGET_NOT_FOUND, 403 TARGET_ACCESS_DENIED, 400 CANNOT_MERGE_SELF, 400 INVALID_STATE",
+        "Auto-detects merge_type from target state (open/rejected→merge, in_review→append)",
+        "For append, validates assigned reviewers",
+        "Bypasses permanent dismissal (declined pairs OK)",
+        "Creates merge_request with manual_request=true flag",
+        "Publishes merge_request.created or append_request.created",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "testIds": ["T-5.8.01", "T-5.8.02", "T-5.8.03"],
+      "notes": "Architecture: data-model.md § merge_requests (add manual_request bool)\nTesting: test-matrix.md § T-5.8.01-03, integration-scenarios.md § Manual Merge Recovery\nFiles: gateway/apps/ideas/views.py (extend), ManualMergeRequestSerializer, test_manual_merge.py, migration 0003_add_manual_request_flag.py\nGotchas: URL regex `/idea/([0-9a-f-]{36})/`. Bypasses dismissed pairs",
+      "context": {
+        "data_model": ["merge_requests: manual_request bool (new)"],
+        "api_endpoints": ["POST /api/ideas/:id/merge-request {target_idea_id | target_idea_url}"],
+        "test_cases": ["T-5.8.01 UUID", "T-5.8.02 invalid", "T-5.8.03 self"]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "Manual Merge UI — UUID/URL + Browse",
+      "description": "As owner, manually request merge with UUID/URL input or similar ideas browser.",
+      "acceptanceCriteria": [
+        "ManualMergeModal: 2 tabs (Enter UUID/URL, Browse Similar)",
+        "Tab 1: text input, paste button, client-side UUID validation, submit",
+        "Tab 2: GET /api/ideas/:id/similar, list with title+keywords, Request Merge buttons",
+        "Similar ideas show 'Previously declined' badge",
+        "Submit calls POST /api/ideas/:id/merge-request",
+        "Success: toast, modal closes, refresh idea",
+        "Error: display in modal",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "testIds": [],
+      "notes": "Design: component-specs.md § 17 Modal, § 4.1 Text Input\nFiles: frontend/components/workspace/ManualMergeModal.tsx, api/similarity.ts, __tests__/manual-merge-modal.test.tsx\nGotchas: UUID regex `/^[0-9a-f-]{36}$/i`. Clipboard API needs HTTPS/localhost",
+      "context": {
+        "api_endpoints": ["GET /api/ideas/:id/similar"],
+        "components": ["ManualMergeModal", "SimilarIdeasList"],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "Recursive Merge — Co-Owner Demotion",
+      "description": "As system, enforce 2-owner max: demote non-triggering co-owners when merged idea merges again.",
+      "acceptanceCriteria": [
+        "Check if requesting/target idea has co_owner_id",
+        "Triggering owners (requesting + target) become co-owners of new idea",
+        "Non-triggering co-owners demoted to collaborators",
+        "Collaborator transfer includes demoted co-owners (deduplicated)",
+        "Never >2 owners on any idea",
+        "Publishes merge.complete with demoted_co_owners array",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: data-model.md § ideas.co_owner_id, 2-owner model notes\nTesting: integration-scenarios.md § Recursive Merge, runtime-safety.md § INTEGRITY-009\nFiles: core/apps/similarity/merge_service.py (extend execute_merge), test_recursive_merge.py\nGotchas: Triggerers = requesting owner + target owner. Demoted = all other original owners",
+      "context": {
+        "data_model": ["ideas: co_owner_id (max 2)", "idea_collaborators"],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "Old Idea References — Read-Only Link",
+      "description": "As user, see reference to merged/appended idea when viewing old idea.",
+      "acceptanceCriteria": [
+        "GET /api/ideas/:id includes merged_idea_ref: {id, title, url} when closed_by_merge_id set",
+        "Includes appended_idea_ref: {id, title, url} when closed_by_append_id set",
+        "MergedIdeaBanner: 'This idea was merged. View merged idea: [link]'",
+        "AppendedIdeaBanner: 'This idea was appended. View target: [link]'",
+        "Banner below header, persistent",
+        "LockOverlay: chat+board read-only, message: 'This idea was merged/appended. Read-only.'",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "testIds": [],
+      "notes": "Design: component-specs.md § 11.5 Banners, § 5.8 LockOverlay\nFiles: gateway/apps/ideas/views.py (extend response), MergedIdeaBanner.tsx, AppendedIdeaBanner.tsx, IdeaWorkspace.tsx\nGotchas: merged_idea_ref and appended_idea_ref are mutually exclusive",
+      "context": {
+        "data_model": ["ideas: closed_by_merge_id, closed_by_append_id"],
+        "api_endpoints": ["GET /api/ideas/:id → merged_idea_ref | appended_idea_ref"],
+        "components": ["MergedIdeaBanner", "AppendedIdeaBanner", "LockOverlay"]
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "Merge Notification Events — Wire All",
+      "description": "As user, receive notifications for all merge/append events.",
+      "acceptanceCriteria": [
+        "Consumes: merge_request.created, append_request.created, merge/append.accepted/declined, merge/append.complete",
+        "merge_request.created: notify target owner",
+        "append_request.created: notify target owner + reviewer",
+        "merge/append.accepted: notify requesting owner",
+        "merge/append.declined: notify requesting owner",
+        "merge/append.complete: notify all collaborators + co-owners",
+        "In-app + email (email_notification_preferences.similarity)",
+        "WebSocket: ws:merge_request, ws:merge_complete, ws:append_complete (toasts)",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: api-design.md § Message Broker Events\nDesign: page-layouts.md § 12 Toast Notifications\nFiles: notification/consumers/similarity_events.py (extend), email/templates/merge_*.html, gateway/apps/websocket/routing.py\nGotchas: append_request.created notifies 2 parties. merge.complete notifies many",
+      "context": {
+        "data_model": ["notifications", "users.email_notification_preferences"],
+        "test_cases": []
+      }
+    }
+  ]
+}
