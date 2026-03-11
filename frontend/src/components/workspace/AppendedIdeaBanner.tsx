@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GitMerge } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { IdeaRef } from "@/api/ideas";
@@ -8,13 +8,15 @@ interface AppendedIdeaBannerProps {
 }
 
 export function AppendedIdeaBanner({ appendedIdeaRef }: AppendedIdeaBannerProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ height: 0, opacity: 0 }}
+        initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
         animate={{ height: "auto", opacity: 1 }}
-        exit={{ height: 0, opacity: 0 }}
-        transition={{ duration: 0.2 }}
+        exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
         data-testid="appended-idea-banner"
       >
         <div className="border-b bg-primary/5 px-4 py-3 flex items-center gap-2">

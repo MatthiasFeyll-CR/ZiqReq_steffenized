@@ -73,6 +73,7 @@ function createAuthValue(): AuthContextValue {
     hasRole: () => true,
     logout: vi.fn(),
     setUser: vi.fn(),
+    getAccessToken: () => Promise.resolve(null),
   };
 }
 
@@ -83,7 +84,7 @@ function renderLandingPage() {
   });
   const store = configureStore({
     reducer: { websocket: websocketReducer },
-    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null } },
+    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false } },
   });
   return render(
     <Provider store={store}>
@@ -223,7 +224,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
 
     const { container } = renderLandingPage();
 
-    const skeletons = container.querySelectorAll(".animate-pulse");
+    const skeletons = container.querySelectorAll(".motion-safe\\:animate-pulse");
     expect(skeletons.length).toBeGreaterThan(0);
   });
 

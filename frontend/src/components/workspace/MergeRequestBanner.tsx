@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { GitMerge, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
@@ -19,20 +20,22 @@ interface MergeRequestBannerProps {
 }
 
 export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBannerProps) {
+  const { t } = useTranslation();
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const busy = accepting || declining;
+  const prefersReducedMotion = useReducedMotion();
 
   async function handleAccept() {
     setAccepting(true);
     try {
       await consentMergeRequest(mergeRequest.id, "accept");
-      toast.success("Merge request accepted. Creating merged idea...");
+      toast.success(t("merge.mergeAccepted"));
       onResolved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to accept merge request");
+      toast.error(err instanceof Error ? err.message : t("merge.failedToAccept"));
     } finally {
       setAccepting(false);
     }
@@ -43,10 +46,10 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
     setConfirmOpen(false);
     try {
       await consentMergeRequest(mergeRequest.id, "decline");
-      toast.success("Merge request declined");
+      toast.success(t("merge.mergeDeclined"));
       onResolved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to decline merge request");
+      toast.error(err instanceof Error ? err.message : t("merge.failedToDecline"));
     } finally {
       setDeclining(false);
     }
@@ -56,13 +59,13 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
     <>
       <AnimatePresence>
         <motion.div
-          initial={{ height: 0, opacity: 0 }}
+          initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
           data-testid="merge-request-banner"
         >
-          <div className="border-b bg-warning/5 px-4 py-3 flex items-center justify-between">
+          <div className="border-b bg-warning/5 px-4 py-3 flex items-center justify-between" role="alert" aria-live="polite">
             <div className="flex items-center gap-2">
               <GitMerge className="h-4 w-4 text-warning" />
               <p className="text-sm text-foreground">
@@ -79,8 +82,8 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
                 disabled={busy}
                 data-testid="merge-accept-button"
               >
-                {accepting && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                Accept
+                {accepting && <Loader2 className="mr-1 h-3 w-3 motion-safe:animate-spin" />}
+                {t("merge.accept")}
               </Button>
               <Button
                 variant="ghost"
@@ -89,8 +92,8 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
                 disabled={busy}
                 data-testid="merge-decline-button"
               >
-                {declining && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
-                Decline
+                {declining && <Loader2 className="mr-1 h-3 w-3 motion-safe:animate-spin" />}
+                {t("merge.decline")}
               </Button>
             </div>
           </div>
@@ -100,18 +103,17 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Decline merge request?</DialogTitle>
+            <DialogTitle>{t("merge.declineTitle")}</DialogTitle>
             <DialogDescription>
-              This will permanently dismiss the merge suggestion between your idea and &quot;
-              {mergeRequest.requesting_idea_title}&quot;. This pair will not be suggested again.
+              {t("merge.declineDescription", { title: mergeRequest.requesting_idea_title })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button variant="destructive" onClick={handleDecline}>
-              Decline
+              {t("merge.decline")}
             </Button>
           </DialogFooter>
         </DialogContent>

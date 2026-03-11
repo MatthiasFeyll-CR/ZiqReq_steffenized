@@ -6,9 +6,9 @@
 - **Last updated:** 2026-03-11
 
 ## Current Review
-- **Milestone:** 15 — Admin Panel
+- **Milestone:** 16 — Polish & Cross-Cutting
 - **Phase:** 6 (verdict delivered)
-- **Bugfix cycle:** 0
+- **Bugfix cycle:** 1
 - **Status:** passed
 
 ## Milestone QA History
@@ -29,44 +29,45 @@
 | M13 — Similarity | `qa-m13-similarity.md` | 0 | PASS | 2026-03-11 |
 | M14 — Merge Advanced | `qa-m14-merge-advanced.md` | 0 | PASS | 2026-03-11 |
 | M15 — Admin Panel | `qa-m15-admin.md` | 0 | PASS | 2026-03-11 |
+| M16 — Polish & Cross-Cutting | `qa-m16-polish.md` | 1 | PASS | 2026-03-11 |
 
 ## Input Consumed
 - .ralph/prd.json
 - .ralph/progress.txt
 - docs/01-requirements/*.md
-- docs/02-architecture/api-design.md
-- docs/02-architecture/data-model.md
+- docs/02-architecture/*.md
 - docs/03-design/component-specs.md
-- docs/03-design/page-layouts.md
 - docs/04-test-architecture/test-matrix.md
-- docs/05-milestones/milestone-15.md
-- tasks/prd-m15.json
-- services/gateway/apps/admin_ai_context/views.py
-- services/gateway/apps/admin_ai_context/serializers.py
-- services/gateway/apps/admin_config/views.py
-- services/gateway/apps/admin_config/serializers.py
-- services/gateway/apps/monitoring/views.py
-- services/gateway/apps/monitoring/services.py
-- services/gateway/apps/authentication/views.py
-- services/core/apps/monitoring/tasks.py
-- services/core/apps/monitoring/health_checks.py
-- services/notification/consumers/monitoring_events.py
-- frontend/src/pages/admin-panel.tsx
-- frontend/src/features/admin/AIContextTab.tsx
-- frontend/src/features/admin/ParametersTab.tsx
-- frontend/src/features/admin/MonitoringTab.tsx
-- frontend/src/features/admin/UsersTab.tsx
-- frontend/src/components/admin/KPICard.tsx
-- frontend/src/components/admin/ServiceHealthTable.tsx
-- frontend/src/components/admin/UserCard.tsx
-- frontend/src/api/admin.ts
+- docs/05-milestones/milestone-16.md
+- tasks/prd-m16.json
 - .ralph/test-manifest.json
+- frontend/src/components/common/ErrorToast.tsx
+- frontend/src/components/common/ErrorLogModal.tsx
+- frontend/src/components/common/OfflineBanner.tsx
+- frontend/src/components/ui/skeleton.tsx
+- frontend/src/hooks/useErrorHandler.ts
+- frontend/src/hooks/useIdleDetection.ts
+- frontend/src/hooks/useIdeaSync.ts
+- frontend/src/hooks/useMsalAuth.ts
+- frontend/src/utils/errorLogger.ts
+- frontend/src/config/msalConfig.ts
+- frontend/src/config/env.ts
+- frontend/src/lib/auth-token.ts
+- frontend/src/app/providers.tsx
+- frontend/src/app/app.tsx
+- frontend/src/i18n/locales/de.json
+- frontend/src/i18n/locales/en.json
+- services/gateway/apps/websocket/consumers.py
+- services/gateway/apps/websocket/middleware.py
+- services/gateway/apps/authentication/middleware.py
 
 ## Handoff
 - **Ready for merge:** true
 - **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m15-admin.md, docs/08-qa/_status.md
+- **Files produced:** docs/08-qa/qa-m16-polish.md, docs/08-qa/_status.md
 - **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
-- None
+- Pre-existing test failures (2): `idea-workspace.test.tsx` (fetchIdea extra undefined arg), `information-gaps-toggle.test.tsx` (URL.createObjectURL). These pre-date M16 and should be addressed in a maintenance pass.
+- Pre-existing ESLint errors (3): unused vars in test files and BRDSectionEditor. Not introduced by M16.
+- ESLint warnings (6): `react-hooks/exhaustive-deps` for `t` in 4 admin tabs (from M16 i18n), `shareToken` in IdeaWorkspace (pre-existing). Non-blocking — `t` is stable.

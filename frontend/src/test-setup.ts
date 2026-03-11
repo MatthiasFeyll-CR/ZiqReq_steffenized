@@ -1,4 +1,9 @@
 import "@testing-library/jest-dom/vitest";
+import i18n from "@/i18n/config";
+
+// Initialize i18n for tests — default to English
+i18n.changeLanguage("en");
+localStorage.setItem("language", "en");
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,

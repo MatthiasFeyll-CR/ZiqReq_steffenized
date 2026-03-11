@@ -69,6 +69,7 @@ vi.mock("@/hooks/use-auth", () => ({
     hasRole: () => false,
     logout: () => {},
     setUser: () => {},
+    getAccessToken: () => Promise.resolve(null),
   }),
   AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));

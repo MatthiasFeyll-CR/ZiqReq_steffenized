@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchNotifications,
@@ -30,6 +31,7 @@ function getNavigationPath(notification: Notification): string | null {
 export function NotificationPanel({ onClose }: NotificationPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -98,19 +100,19 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
       aria-label="Notifications"
     >
       <div className="border-b px-4 py-2">
-        <h3 className="text-sm font-semibold">Notifications</h3>
+        <h3 className="text-sm font-semibold">{t("notifications.title")}</h3>
       </div>
       {isLoading ? (
         <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-          Loading...
+          {t("common.loading")}
         </div>
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-4 py-8">
           <Check className="h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">All caught up</p>
+          <p className="text-sm text-muted-foreground">{t("notifications.allCaughtUp")}</p>
         </div>
       ) : (
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto" role="list" aria-label={t("notifications.title")}>
           {notifications.map((n) => (
             <NotificationItem
               key={n.id}

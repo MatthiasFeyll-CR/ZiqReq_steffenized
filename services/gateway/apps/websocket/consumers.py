@@ -1,9 +1,12 @@
+import asyncio
 import logging
 import uuid
 from collections import defaultdict
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+
+DEFAULT_IDLE_DISCONNECT = 120  # seconds
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +32,13 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         self.user_display_name: str = self.scope.get("user_display_name", "")
         self.connection_id: str = str(uuid.uuid4())
         self.subscribed_groups: set[str] = set()
+        self._idle_disconnect_task: asyncio.Task | None = None
 
         await self.accept()
         logger.info("WebSocket connected: user=%s connection=%s", self.user_id, self.connection_id)
 
     async def disconnect(self, close_code):
+        self._cancel_idle_disconnect()
         user_id = getattr(self, "user_id", "unknown")
         connection_id = getattr(self, "connection_id", "unknown")
 
@@ -139,6 +144,13 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             return
 
         state = payload.get("state", "active")
+
+        # Manage idle disconnect timer
+        if state == "idle":
+            self._start_idle_disconnect()
+        else:
+            self._cancel_idle_disconnect()
+
         # Broadcast presence update to idea group
         await self.channel_layer.group_send(
             group_name,
@@ -343,6 +355,43 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             "type": "append_complete",
             "payload": event["payload"],
         })
+
+    # ---- Idle disconnect timer ----
+
+    def _start_idle_disconnect(self) -> None:
+        """Start (or restart) the idle disconnect timer."""
+        self._cancel_idle_disconnect()
+        idle_disconnect = self._get_idle_disconnect_seconds()
+        self._idle_disconnect_task = asyncio.ensure_future(
+            self._idle_disconnect_countdown(idle_disconnect)
+        )
+
+    def _cancel_idle_disconnect(self) -> None:
+        """Cancel the idle disconnect timer if running."""
+        task = getattr(self, "_idle_disconnect_task", None)
+        if task is not None and not task.done():
+            task.cancel()
+        self._idle_disconnect_task = None
+
+    async def _idle_disconnect_countdown(self, seconds: int) -> None:
+        """Wait for the given duration, then close the WebSocket."""
+        try:
+            await asyncio.sleep(seconds)
+            logger.info(
+                "Idle disconnect: user=%s connection=%s after %ds idle",
+                self.user_id, self.connection_id, seconds,
+            )
+            await self.close(code=4008)
+        except asyncio.CancelledError:
+            pass
+
+    @staticmethod
+    def _get_idle_disconnect_seconds() -> int:
+        try:
+            from apps.admin_config.services import get_parameter
+            return get_parameter("idle_disconnect", default=DEFAULT_IDLE_DISCONNECT, cast=int)
+        except Exception:
+            return DEFAULT_IDLE_DISCONNECT
 
     @database_sync_to_async
     def _check_idea_access(self, idea_id: str, user_id: str) -> bool:

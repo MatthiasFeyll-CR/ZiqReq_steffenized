@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export interface MergeRequestPending {
   id: string;
@@ -33,9 +34,7 @@ export async function fetchIdea(id: string, token?: string): Promise<Idea> {
   const url = token
     ? `${env.apiBaseUrl}/ideas/${id}/?token=${encodeURIComponent(token)}`
     : `${env.apiBaseUrl}/ideas/${id}/`;
-  const res = await fetch(url, {
-    credentials: "include",
-  });
+  const res = await authFetch(url);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const err = new Error(body.message || body.error || `Request failed (${res.status})`);
@@ -49,7 +48,7 @@ export async function patchIdea(
   id: string,
   data: { title?: string; agent_mode?: "interactive" | "silent" },
 ): Promise<Idea> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${id}/`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -78,7 +77,7 @@ export interface CreateIdeaResponse {
 export async function createIdea(
   firstMessage: string,
 ): Promise<CreateIdeaResponse> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -126,7 +125,7 @@ export async function fetchIdeas(
   const qs = searchParams.toString();
   const url = `${env.apiBaseUrl}/ideas/${qs ? `?${qs}` : ""}`;
 
-  const res = await fetch(url, { credentials: "include" });
+  const res = await authFetch(url, { credentials: "include" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
@@ -147,7 +146,7 @@ export interface InvitationsListResponse {
 }
 
 export async function fetchInvitations(): Promise<InvitationsListResponse> {
-  const res = await fetch(`${env.apiBaseUrl}/invitations/`, {
+  const res = await authFetch(`${env.apiBaseUrl}/invitations/`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -158,7 +157,7 @@ export async function fetchInvitations(): Promise<InvitationsListResponse> {
 }
 
 export async function deleteIdea(id: string): Promise<void> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${id}/`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/`, {
     method: "DELETE",
     credentials: "include",
   });
@@ -169,7 +168,7 @@ export async function deleteIdea(id: string): Promise<void> {
 }
 
 export async function restoreIdea(id: string): Promise<void> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${id}/restore/`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/restore/`, {
     method: "POST",
     credentials: "include",
   });
@@ -189,7 +188,7 @@ export async function submitIdea(
   ideaId: string,
   data: { message?: string; reviewer_ids?: string[] },
 ): Promise<SubmitIdeaResponse> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/submit`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -212,7 +211,7 @@ export interface ContextWindowData {
 }
 
 export async function fetchContextWindow(ideaId: string): Promise<ContextWindowData> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/context-window`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/context-window`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -226,7 +225,7 @@ export async function consentMergeRequest(
   mergeRequestId: string,
   consent: "accept" | "decline",
 ): Promise<Record<string, unknown>> {
-  const res = await fetch(`${env.apiBaseUrl}/merge-requests/${mergeRequestId}/consent`, {
+  const res = await authFetch(`${env.apiBaseUrl}/merge-requests/${mergeRequestId}/consent`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

@@ -63,6 +63,7 @@ function createAuthValue(userId = REVIEWER_ID): AuthContextValue {
     hasRole: (r: string) => ["user", "reviewer"].includes(r),
     logout: vi.fn(),
     setUser: vi.fn(),
+    getAccessToken: () => Promise.resolve(null),
   };
 }
 
@@ -94,6 +95,7 @@ function renderCard(
       websocket: {
         connectionState: "online" as const,
         reconnectCountdown: null,
+        isIdleDisconnected: false,
       },
     },
   });

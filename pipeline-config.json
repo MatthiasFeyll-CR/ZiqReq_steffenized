@@ -1,10 +1,19 @@
 {
   "$schema": "pipeline-config-schema.json",
   "version": "1.0",
+<<<<<<< Updated upstream
   "project": {
     "name": "ZiqReq",
     "description": "AI-powered brainstorming and idea management platform with real-time collaboration, BRD generation, and review workflows"
   },
+=======
+
+  "project": {
+    "name": "ZiqReq",
+    "description": "AI-guided brainstorming platform for Commerz Real — turns workflow improvement ideas into structured BRDs"
+  },
+
+>>>>>>> Stashed changes
   "paths": {
     "docs_dir": "docs",
     "tasks_dir": "tasks",
@@ -15,16 +24,25 @@
     "milestones_dir": "docs/05-milestones",
     "archive_dir": ".ralph/archive"
   },
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
   "milestones": [
     {
       "id": 1,
       "slug": "foundation",
+<<<<<<< Updated upstream
       "name": "Foundation & Auth",
+=======
+      "name": "Foundation",
+>>>>>>> Stashed changes
       "stories": 10,
       "dependencies": []
     },
     {
       "id": 2,
+<<<<<<< Updated upstream
       "slug": "landing",
       "name": "Landing Page & Idea CRUD",
       "stories": 8,
@@ -172,30 +190,128 @@
     "gate_fix": "claude-opus-4-6",
     "reconciliation": "claude-sonnet-4-5"
   },
+=======
+      "slug": "shell-landing",
+      "name": "Shell + Landing Page",
+      "stories": 9,
+      "dependencies": [1]
+    },
+    {
+      "id": 3,
+      "slug": "workspace-chat-realtime",
+      "name": "Workspace + Chat + Real-Time",
+      "stories": 10,
+      "dependencies": [2]
+    },
+    {
+      "id": 4,
+      "slug": "digital-board",
+      "name": "Digital Board",
+      "stories": 9,
+      "dependencies": [3]
+    },
+    {
+      "id": 5,
+      "slug": "ai-facilitation",
+      "name": "AI Facilitation",
+      "stories": 9,
+      "dependencies": [4]
+    },
+    {
+      "id": 6,
+      "slug": "ai-context-knowledge",
+      "name": "AI Context & Knowledge",
+      "stories": 7,
+      "dependencies": [5]
+    },
+    {
+      "id": 7,
+      "slug": "review-brd",
+      "name": "Review & BRD Generation",
+      "stories": 10,
+      "dependencies": [5]
+    },
+    {
+      "id": 8,
+      "slug": "review-workflow",
+      "name": "Review Workflow + Review Page",
+      "stories": 8,
+      "dependencies": [7]
+    },
+    {
+      "id": 9,
+      "slug": "collaboration-notifications",
+      "name": "Collaboration + Notifications",
+      "stories": 10,
+      "dependencies": [3, 8]
+    },
+    {
+      "id": 10,
+      "slug": "similarity-merge",
+      "name": "Similarity & Merge",
+      "stories": 9,
+      "dependencies": [5, 6, 9]
+    },
+    {
+      "id": 11,
+      "slug": "admin-monitoring",
+      "name": "Admin Panel + Monitoring",
+      "stories": 8,
+      "dependencies": [6]
+    }
+  ],
+
+  "models": {
+    "ralph": "",
+    "prd_generation": "claude-sonnet-4-6",
+    "qa_review": "claude-sonnet-4-6",
+    "test_fix": "",
+    "gate_fix": "",
+    "reconciliation": "claude-sonnet-4-6"
+  },
+
+>>>>>>> Stashed changes
   "ralph": {
     "tool": "claude",
     "max_iterations_multiplier": 3,
     "stuck_threshold": 3
   },
+<<<<<<< Updated upstream
   "qa": {
     "max_bugfix_cycles": 3
   },
+=======
+
+  "qa": {
+    "max_bugfix_cycles": 3
+  },
+
+>>>>>>> Stashed changes
   "gate_checks": {
     "max_fix_cycles": 3,
     "checks": [
       {
         "name": "Docker build",
         "command": "docker compose build",
+<<<<<<< Updated upstream
         "condition": "command -v docker && test -f docker-compose.yml",
+=======
+        "condition": "test -f docker-compose.yml",
+>>>>>>> Stashed changes
         "required": true
       },
       {
         "name": "Frontend typecheck",
+<<<<<<< Updated upstream
         "command": "cd frontend && npx tsc --noEmit",
+=======
+        "command": "docker compose -f docker-compose.test.yml run --rm test-node npx tsc --noEmit",
+>>>>>>> Stashed changes
         "condition": "test -f frontend/tsconfig.json",
         "required": true
       },
       {
+<<<<<<< Updated upstream
         "name": "Backend lint (Ruff)",
         "command": "ruff check services/",
         "condition": "test -d services && command -v ruff",
@@ -278,5 +394,97 @@
         "startup_timeout": 120
       }
     ]
+=======
+        "name": "Python typecheck (gateway)",
+        "command": "docker compose -f docker-compose.test.yml run --rm test-python mypy services/gateway/",
+        "condition": "test -d services/gateway",
+        "required": false
+      },
+      {
+        "name": "Python typecheck (core)",
+        "command": "docker compose -f docker-compose.test.yml run --rm test-python mypy services/core/",
+        "condition": "test -d services/core",
+        "required": false
+      },
+      {
+        "name": "Python typecheck (ai)",
+        "command": "docker compose -f docker-compose.test.yml run --rm test-python mypy services/ai/",
+        "condition": "test -d services/ai",
+        "required": false
+      },
+      {
+        "name": "Frontend lint",
+        "command": "docker compose -f docker-compose.test.yml run --rm test-node npx eslint src/",
+        "condition": "test -f frontend/package.json",
+        "required": false
+      },
+      {
+        "name": "Python lint",
+        "command": "docker compose -f docker-compose.test.yml run --rm test-python ruff check services/",
+        "condition": "test -d services",
+        "required": true
+      }
+    ]
+  },
+
+  "env_setup": {
+    "source_file": null,
+    "setup_function": null,
+    "description": "No custom env setup. Set source_file to a shell script path if Azure endpoint configuration is needed."
+  },
+
+  "test_execution": {
+    "test_command": "docker compose -f docker-compose.test.yml run --rm test-python pytest --ci && docker compose -f docker-compose.test.yml run --rm test-node npx vitest run",
+    "integration_test_command": "docker compose -f docker-compose.test.yml run --rm test-python pytest --integration",
+    "timeout_seconds": 300,
+    "max_fix_cycles": 5,
+    "condition": "test -f docker-compose.test.yml",
+    "build_command": "docker compose -f docker-compose.test.yml build --no-cache test-python test-node",
+    "build_timeout_seconds": 300,
+    "setup_command": "docker compose -f docker-compose.test.yml up -d postgresql redis rabbitmq && for i in $(seq 1 30); do pg_isready -h localhost -p 5432 -q 2>/dev/null && break; sleep 2; done",
+    "teardown_command": "docker compose -f docker-compose.test.yml down --volumes --remove-orphans",
+    "force_teardown_command": "docker compose -f docker-compose.test.yml kill && docker compose -f docker-compose.test.yml down --volumes --remove-orphans --timeout 5; docker compose -f docker-compose.test.yml rm -f -v",
+    "setup_timeout_seconds": 120,
+
+    "services": [
+      {"name": "postgresql", "type": "tcp", "host": "localhost", "port": 5432, "startup_timeout": 30},
+      {"name": "redis", "type": "tcp", "host": "localhost", "port": 6379, "startup_timeout": 15},
+      {"name": "rabbitmq", "type": "tcp", "host": "localhost", "port": 5672, "startup_timeout": 30}
+    ],
+
+    "tier1": {
+      "compose_file": "docker-compose.test.yml",
+      "teardown_command": "docker compose -f docker-compose.test.yml down --volumes --remove-orphans",
+      "setup_command": "docker compose -f docker-compose.test.yml up -d postgresql redis rabbitmq && for i in $(seq 1 30); do pg_isready -h localhost -p 5432 -q 2>/dev/null && break; sleep 2; done",
+      "setup_timeout_seconds": 120,
+      "build_timeout_seconds": 300,
+      "image_hash_file": ".test-image-hashes",
+      "environments": [
+        {
+          "name": "python",
+          "service": "test-python",
+          "test_command": "docker compose -f docker-compose.test.yml run --rm test-python pytest",
+          "build_command": "docker compose -f docker-compose.test.yml build --no-cache test-python",
+          "rebuild_trigger_files": ["requirements.txt", "requirements-dev.txt", "pyproject.toml", "docker-compose.test.yml"],
+          "condition": "test -f docker-compose.test.yml",
+          "timeout_seconds": 300
+        },
+        {
+          "name": "node",
+          "service": "test-node",
+          "test_command": "docker compose -f docker-compose.test.yml run --rm test-node npx vitest run",
+          "build_command": "docker compose -f docker-compose.test.yml build --no-cache test-node",
+          "rebuild_trigger_files": ["frontend/package.json", "frontend/package-lock.json", "docker-compose.test.yml"],
+          "condition": "test -f frontend/package.json",
+          "timeout_seconds": 300
+        }
+      ]
+    }
+  },
+
+  "retry": {
+    "max_retries": 3,
+    "backoff_seconds": 30
+>>>>>>> Stashed changes
   }
 }

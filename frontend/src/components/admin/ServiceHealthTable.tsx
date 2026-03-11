@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ServiceHealth } from "@/api/admin";
 
 interface ServiceHealthTableProps {
@@ -5,6 +6,7 @@ interface ServiceHealthTableProps {
 }
 
 export function ServiceHealthTable({ health }: ServiceHealthTableProps) {
+  const { t } = useTranslation();
   const services = Object.entries(health);
 
   return (
@@ -12,9 +14,9 @@ export function ServiceHealthTable({ health }: ServiceHealthTableProps) {
       <table className="w-full text-sm" data-testid="service-health-table">
         <thead>
           <tr className="border-b bg-muted/50">
-            <th className="px-4 py-3 text-left font-medium">Service</th>
-            <th className="px-4 py-3 text-left font-medium">Status</th>
-            <th className="px-4 py-3 text-left font-medium">Last Check</th>
+            <th className="px-4 py-3 text-left font-medium">{t("admin.tableService")}</th>
+            <th className="px-4 py-3 text-left font-medium">{t("admin.tableStatus")}</th>
+            <th className="px-4 py-3 text-left font-medium">{t("admin.tableLastCheck")}</th>
           </tr>
         </thead>
         <tbody>

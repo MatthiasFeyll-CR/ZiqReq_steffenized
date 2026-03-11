@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { AdminUser } from "@/api/admin";
 
 interface UserCardProps {
@@ -11,6 +12,7 @@ const roleBadgeColors: Record<string, string> = {
 };
 
 export function UserCard({ user }: UserCardProps) {
+  const { t } = useTranslation();
   const initials = `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase();
 
   return (
@@ -33,7 +35,7 @@ export function UserCard({ user }: UserCardProps) {
             ))}
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            {user.idea_count} ideas | {user.review_count} reviews | {user.contribution_count} contributions
+            {t("admin.userStats", { ideas: user.idea_count, reviews: user.review_count, contributions: user.contribution_count })}
           </p>
         </div>
       </div>

@@ -12,6 +12,7 @@ import type { RootState } from "@/store/index";
 const initialState = {
   connectionState: "offline" as const,
   reconnectCountdown: null as number | null,
+  isIdleDisconnected: false,
 };
 
 describe("T-6.1.07: WebSocket connection state management", () => {
@@ -52,28 +53,28 @@ describe("T-6.1.07: WebSocket connection state management", () => {
 describe("WebSocket selectors", () => {
   it("selectConnectionState returns connection state", () => {
     const rootState = {
-      websocket: { connectionState: "online", reconnectCountdown: null },
+      websocket: { connectionState: "online", reconnectCountdown: null, isIdleDisconnected: false },
     } as RootState;
     expect(selectConnectionState(rootState)).toBe("online");
   });
 
   it("selectReconnectCountdown returns countdown", () => {
     const rootState = {
-      websocket: { connectionState: "offline", reconnectCountdown: 5 },
+      websocket: { connectionState: "offline", reconnectCountdown: 5, isIdleDisconnected: false },
     } as RootState;
     expect(selectReconnectCountdown(rootState)).toBe(5);
   });
 
   it("selectIsOnline returns true when online", () => {
     const rootState = {
-      websocket: { connectionState: "online", reconnectCountdown: null },
+      websocket: { connectionState: "online", reconnectCountdown: null, isIdleDisconnected: false },
     } as RootState;
     expect(selectIsOnline(rootState)).toBe(true);
   });
 
   it("selectIsOnline returns false when offline", () => {
     const rootState = {
-      websocket: { connectionState: "offline", reconnectCountdown: null },
+      websocket: { connectionState: "offline", reconnectCountdown: null, isIdleDisconnected: false },
     } as RootState;
     expect(selectIsOnline(rootState)).toBe(false);
   });

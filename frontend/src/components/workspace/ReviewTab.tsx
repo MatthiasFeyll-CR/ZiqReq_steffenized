@@ -165,7 +165,7 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
           >
             <Skeleton className="h-64 w-full" />
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
               {t("review.generating", "Generating BRD...")}
             </div>
           </div>

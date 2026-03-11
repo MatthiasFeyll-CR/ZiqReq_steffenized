@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { Provider } from "react-redux";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { configureStore } from "@reduxjs/toolkit";
 import { websocketReducer } from "@/store/websocket-slice";
 import i18n from "@/i18n/config";
@@ -65,16 +66,19 @@ function renderWorkspacePage(uuid: string) {
   const store = configureStore({
     reducer: { websocket: websocketReducer },
     preloadedState: {
-      websocket: { connectionState: "online" as const, reconnectCountdown: null },
+      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false },
     },
   });
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <Provider store={store}>
-      <MemoryRouter initialEntries={[`/idea/${uuid}`]}>
-        <Routes>
-          <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
-        </Routes>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/idea/${uuid}`]}>
+          <Routes>
+            <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
     </Provider>,
   );
 }

@@ -50,6 +50,7 @@ function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContext
     hasRole: (role: string) => overrides.user?.roles.includes(role) ?? false,
     logout: vi.fn(),
     setUser: vi.fn(),
+    getAccessToken: () => Promise.resolve(null),
     ...overrides,
   };
 }
@@ -57,7 +58,7 @@ function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContext
 function renderWithAuth(ui: React.ReactNode, authValue: AuthContextValue) {
   const store = configureStore({
     reducer: { websocket: websocketReducer },
-    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null } },
+    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false } },
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight, ClipboardList, Inbox } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -22,6 +23,7 @@ function CollapsibleCategory({
   categoryKey,
   ideas,
 }: CollapsibleCategoryProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -46,7 +48,7 @@ function CollapsibleCategory({
         ideas.length === 0 ? (
           <EmptyState
             icon={Inbox}
-            message={`No ${title.toLowerCase()} ideas`}
+            message={t("review.noCategoryIdeas", { category: title.toLowerCase() })}
           />
         ) : (
           <div className="flex flex-col gap-2">
@@ -61,6 +63,7 @@ function CollapsibleCategory({
 }
 
 export default function ReviewPage() {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["reviews"],
     queryFn: fetchReviews,
@@ -70,54 +73,54 @@ export default function ReviewPage() {
     <PageShell>
       <div className="mx-auto max-w-5xl px-4 pb-12">
         <div className="mb-8 mt-6">
-          <h1 className="text-2xl font-bold text-foreground">Reviews</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("review.pageTitle")}</h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Manage ideas submitted for your review
+            {t("review.pageDescription")}
           </p>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <p className="text-text-secondary">Loading reviews...</p>
+            <p className="text-text-secondary">{t("review.loadingReviews")}</p>
           </div>
         ) : isError ? (
           <EmptyState
             icon={ClipboardList}
-            message="Failed to load reviews"
-            description="Please try again later."
+            message={t("review.failedToLoad")}
+            description={t("review.tryAgainLater")}
           />
         ) : (
           <div className="flex flex-col gap-8">
             <CollapsibleCategory
-              title="Assigned to me"
+              title={t("review.assignedToMe")}
               count={data?.assigned_to_me.length ?? 0}
               defaultOpen={true}
               categoryKey="assigned"
               ideas={data?.assigned_to_me ?? []}
             />
             <CollapsibleCategory
-              title="Unassigned"
+              title={t("review.unassigned")}
               count={data?.unassigned.length ?? 0}
               defaultOpen={true}
               categoryKey="unassigned"
               ideas={data?.unassigned ?? []}
             />
             <CollapsibleCategory
-              title="Accepted"
+              title={t("review.accepted")}
               count={data?.accepted.length ?? 0}
               defaultOpen={false}
               categoryKey="accepted"
               ideas={data?.accepted ?? []}
             />
             <CollapsibleCategory
-              title="Rejected"
+              title={t("review.rejected")}
               count={data?.rejected.length ?? 0}
               defaultOpen={false}
               categoryKey="rejected"
               ideas={data?.rejected ?? []}
             />
             <CollapsibleCategory
-              title="Dropped"
+              title={t("review.dropped")}
               count={data?.dropped.length ?? 0}
               defaultOpen={false}
               categoryKey="dropped"

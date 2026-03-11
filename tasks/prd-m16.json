@@ -16,12 +16,22 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": ["T-14.1.01", "T-14.1.03", "T-14.1.04"],
+      "passes": true,
+      "testIds": [
+        "T-14.1.01",
+        "T-14.1.03",
+        "T-14.1.04"
+      ],
       "notes": "Design: component-specs.md § 11.4 Error States\nFiles: frontend/src/components/common/ErrorToast.tsx (enhance), frontend/src/hooks/useErrorHandler.ts (new)\nGotchas: Max retries from admin_parameters.max_retry_attempts (default 3)",
       "context": {
-        "components": ["ErrorToast — needs onShowLogs/onRetry + retry counter"],
-        "test_cases": ["T-14.1.01 | Unit | Toast with buttons", "T-14.1.03 | Unit | Retry triggers op", "T-14.1.04 | Unit | Max retries disables"]
+        "components": [
+          "ErrorToast — needs onShowLogs/onRetry + retry counter"
+        ],
+        "test_cases": [
+          "T-14.1.01 | Unit | Toast with buttons",
+          "T-14.1.03 | Unit | Retry triggers op",
+          "T-14.1.04 | Unit | Max retries disables"
+        ]
       }
     },
     {
@@ -34,12 +44,18 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "testIds": ["T-14.1.02"],
+      "passes": true,
+      "testIds": [
+        "T-14.1.02"
+      ],
       "notes": "Design: component-specs.md § 11.4 Error States\nFiles: frontend/src/components/common/ErrorLogModal.tsx (enhance), frontend/src/utils/errorLogger.ts (new)\nGotchas: Console log capture needs window.console.error monkey-patch or ErrorBoundary",
       "context": {
-        "components": ["ErrorLogModal — needs console log + network response + tech details + support contact"],
-        "test_cases": ["T-14.1.02 | Unit | Show Logs opens modal with details"]
+        "components": [
+          "ErrorLogModal — needs console log + network response + tech details + support contact"
+        ],
+        "test_cases": [
+          "T-14.1.02 | Unit | Show Logs opens modal with details"
+        ]
       }
     },
     {
@@ -55,12 +71,20 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "testIds": ["T-15.1.01", "T-15.1.02"],
+      "passes": true,
+      "testIds": [
+        "T-15.1.01",
+        "T-15.1.02"
+      ],
       "notes": "Design: component-specs.md § 9.2 Stacked Avatars — idle avatar opacity-50 + grayscale\nFiles: frontend/src/hooks/useIdleDetection.ts (new), frontend/src/store/slices/presenceSlice.ts, services/gateway/apps/websocket/consumers.py\nGotchas: Mouse movement throttled (500ms). Page Visibility API for tab blur",
       "context": {
-        "data_model": ["admin_parameters: idle_timeout=300, idle_disconnect=120"],
-        "test_cases": ["T-15.1.01 | Unit | Idle after timeout", "T-15.1.02 | Unit | Tab blur triggers idle"]
+        "data_model": [
+          "admin_parameters: idle_timeout=300, idle_disconnect=120"
+        ],
+        "test_cases": [
+          "T-15.1.01 | Unit | Idle after timeout",
+          "T-15.1.02 | Unit | Tab blur triggers idle"
+        ]
       }
     },
     {
@@ -74,12 +98,18 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "testIds": ["T-15.2.01"],
+      "passes": true,
+      "testIds": [
+        "T-15.2.01"
+      ],
       "notes": "Design: component-specs.md § 11.5 Banners\nFiles: services/gateway/apps/websocket/consumers.py (idle timeout timer), frontend/src/components/common/OfflineBanner.tsx\nGotchas: Server idle timer resets on any WebSocket message. Use asyncio timeout",
       "context": {
-        "components": ["OfflineBanner — idle disconnect message variant"],
-        "test_cases": ["T-15.2.01 | Unit | Disconnect after idle"]
+        "components": [
+          "OfflineBanner — idle disconnect message variant"
+        ],
+        "test_cases": [
+          "T-15.2.01 | Unit | Disconnect after idle"
+        ]
       }
     },
     {
@@ -94,12 +124,18 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
-      "testIds": ["T-15.3.01"],
+      "passes": true,
+      "testIds": [
+        "T-15.3.01"
+      ],
       "notes": "Files: frontend/src/hooks/useIdleDetection.ts, frontend/src/hooks/useIdeaSync.ts (new)\nGotchas: State sync must be idempotent. Use TanStack Query invalidateQueries",
       "context": {
-        "api_endpoints": ["GET /api/ideas/:id — latest state"],
-        "test_cases": ["T-15.3.01 | Unit | Mouse clears idle"]
+        "api_endpoints": [
+          "GET /api/ideas/:id — latest state"
+        ],
+        "test_cases": [
+          "T-15.3.01 | Unit | Mouse clears idle"
+        ]
       }
     },
     {
@@ -116,11 +152,19 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "testIds": ["T-16.1.01", "T-16.2.01", "T-16.2.02"],
+      "passes": true,
+      "testIds": [
+        "T-16.1.01",
+        "T-16.2.01",
+        "T-16.2.02"
+      ],
       "notes": "Files: frontend/src/i18n/locales/{de,en}.json (add keys), services/notification/templates/ (email templates)\nGotchas: Email templates in Python. Timeline events translated in frontend",
       "context": {
-        "test_cases": ["T-16.1.01 | Unit | All text both langs", "T-16.2.01 | Unit | Switcher changes", "T-16.2.02 | Unit | Preference persists"]
+        "test_cases": [
+          "T-16.1.01 | Unit | All text both langs",
+          "T-16.2.01 | Unit | Switcher changes",
+          "T-16.2.02 | Unit | Preference persists"
+        ]
       }
     },
     {
@@ -137,11 +181,14 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 1.3 Button States\nFiles: frontend/src/components/ui/*.tsx (focus styles), frontend/src/components/common/SkipLink.tsx\nGotchas: shadcn/ui has keyboard support via Radix. Add Tailwind focus classes",
       "context": {
-        "components": ["shadcn/ui components — verify focus", "SkipLink — verify rendered"]
+        "components": [
+          "shadcn/ui components — verify focus",
+          "SkipLink — verify rendered"
+        ]
       }
     },
     {
@@ -157,11 +204,45 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 1.4 Icon Buttons\nFiles: frontend/src/components/**/*.tsx (aria-label, aria-describedby, aria-live)\nGotchas: aria-live='polite' for status, aria-live='assertive' for errors",
       "context": {
-        "components": ["Icon buttons — aria-label", "AIProcessingIndicator — aria-live='polite'", "OfflineBanner — aria-live='assertive'"]
+        "components": [
+          "Icon buttons — aria-label",
+          "AIProcessingIndicator — aria-live='polite'",
+          "OfflineBanner — aria-live='assertive'"
+        ]
+      },
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n── PREVIOUS CYCLE ANALYSIS ──\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=368, failed=0, errors=554)\n  Evidence: expected side effects. Deprecated in Pydantic V2.11 to be\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-11T19:33:16+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "expected side effects. Deprecated in Pydantic V2.11 to be",
+            "test_results": {
+              "passed": 368,
+              "failed": 0,
+              "errors": 554,
+              "total": 922
+            },
+            "error_patterns": [
+              {
+                "exception_class": "django.db.utils.ProgrammingError",
+                "message": "relation \"notifications\" already exists",
+                "count": 554,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 16 — Polish & Cross-Cutting\n**Date:** 2026-03-11\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m16.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed 10 user stories covering universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility (keyboard, screen reader, reduced motion), and production auth (MSAL.js). All stories pass acceptance criteria verification. All 11 test matrix tests are"
+          }
+        ]
       }
     },
     {
@@ -177,11 +258,45 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Design: component-specs.md § 5.4 AI Processing Indicator\nFiles: frontend/src/components/**/*.tsx (useReducedMotion), frontend/src/app/globals.css (@media rules)\nGotchas: framer-motion has useReducedMotion hook. CSS uses Tailwind motion-reduce: variant",
       "context": {
-        "components": ["AIProcessingIndicator — pulse", "AIModifiedIndicator — pulse", "Skeleton loaders — animate-pulse"]
+        "components": [
+          "AIProcessingIndicator — pulse",
+          "AIModifiedIndicator — pulse",
+          "Skeleton loaders — animate-pulse"
+        ]
+      },
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n── PREVIOUS CYCLE ANALYSIS ──\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=368, failed=0, errors=554)\n  Evidence: expected side effects. Deprecated in Pydantic V2.11 to be\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-11T19:33:16+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "expected side effects. Deprecated in Pydantic V2.11 to be",
+            "test_results": {
+              "passed": 368,
+              "failed": 0,
+              "errors": 554,
+              "total": 922
+            },
+            "error_patterns": [
+              {
+                "exception_class": "django.db.utils.ProgrammingError",
+                "message": "relation \"notifications\" already exists",
+                "count": 554,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 16 — Polish & Cross-Cutting\n**Date:** 2026-03-11\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m16.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed 10 user stories covering universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility (keyboard, screen reader, reduced motion), and production auth (MSAL.js). All stories pass acceptance criteria verification. All 11 test matrix tests are"
+          }
+        ]
       }
     },
     {
@@ -201,12 +316,53 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
-      "testIds": ["API-AUTH.01", "API-AUTH.02", "API-AUTH.03"],
+      "passes": true,
+      "testIds": [
+        "API-AUTH.01",
+        "API-AUTH.02",
+        "API-AUTH.03"
+      ],
       "notes": "Architecture: tech-stack.md § Authentication Flow Design\nFiles: frontend/src/app/providers.tsx (MsalProvider), frontend/src/config/msalConfig.ts (new), services/gateway/middleware/azure_ad_auth.py (new), services/gateway/apps/websocket/middleware.py\nGotchas: MSAL config needs Azure AD tenant ID, client ID from .env. Token validation caches JWKS keys",
       "context": {
-        "api_endpoints": ["POST /api/auth/validate — validate JWT", "WebSocket /ws/?token=<jwt>"],
-        "test_cases": ["API-AUTH.01 | Valid JWT | 200", "API-AUTH.02 | Expired | 401", "API-AUTH.03 | Malformed | 401"]
+        "api_endpoints": [
+          "POST /api/auth/validate — validate JWT",
+          "WebSocket /ws/?token=<jwt>"
+        ],
+        "test_cases": [
+          "API-AUTH.01 | Valid JWT | 200",
+          "API-AUTH.02 | Expired | 401",
+          "API-AUTH.03 | Malformed | 401"
+        ]
+      },
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n── PREVIOUS CYCLE ANALYSIS ──\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=368, failed=0, errors=554)\n  Evidence: expected side effects. Deprecated in Pydantic V2.11 to be\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-11T19:33:16+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "expected side effects. Deprecated in Pydantic V2.11 to be",
+            "test_results": {
+              "passed": 368,
+              "failed": 0,
+              "errors": 554,
+              "total": 922
+            },
+            "error_patterns": [
+              {
+                "exception_class": "django.db.utils.ProgrammingError",
+                "message": "relation \"notifications\" already exists",
+                "count": 554,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 16 — Polish & Cross-Cutting\n**Date:** 2026-03-11\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m16.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed 10 user stories covering universal error pattern, idle detection/disconnect/recovery, i18n completion, accessibility (keyboard, screen reader, reduced motion), and production auth (MSAL.js). All stories pass acceptance criteria verification. All 11 test matrix tests are"
+          }
+        ]
       }
     }
   ]

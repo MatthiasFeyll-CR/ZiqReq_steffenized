@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export type ReactionType = "thumbs_up" | "thumbs_down" | "heart";
 
@@ -16,7 +17,7 @@ export async function addReaction(
   reactionType: ReactionType,
 ): Promise<Reaction> {
   const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/${messageId}/reactions`;
-  const res = await fetch(url, {
+  const res = await authFetch(url, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -34,7 +35,7 @@ export async function removeReaction(
   messageId: string,
 ): Promise<void> {
   const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/${messageId}/reactions`;
-  const res = await fetch(url, {
+  const res = await authFetch(url, {
     method: "DELETE",
     credentials: "include",
   });

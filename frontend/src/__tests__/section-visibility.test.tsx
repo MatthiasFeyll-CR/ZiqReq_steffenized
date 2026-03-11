@@ -57,6 +57,7 @@ vi.mock("@/hooks/use-auth", () => ({
     hasRole: () => false,
     logout: () => {},
     setUser: () => {},
+    getAccessToken: () => Promise.resolve(null),
   }),
   AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));
@@ -106,7 +107,7 @@ function renderWorkspace(idea: Idea) {
   const store = configureStore({
     reducer: { presence: presenceReducer, websocket: websocketReducer },
     preloadedState: {
-      websocket: { connectionState: "online" as const, reconnectCountdown: null },
+      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false },
     },
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });

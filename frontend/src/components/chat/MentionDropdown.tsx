@@ -34,6 +34,8 @@ export function MentionDropdown({
     <div
       ref={listRef}
       className="absolute z-50 max-h-48 overflow-y-auto rounded-md border bg-popover shadow-lg"
+      role="listbox"
+      aria-label="Mentions"
       style={{ bottom: position.bottom, left: position.left }}
       data-testid="mention-dropdown"
     >
@@ -41,6 +43,8 @@ export function MentionDropdown({
         <button
           key={item.id}
           type="button"
+          role="option"
+          aria-selected={index === activeIndex}
           className={cn(
             "flex w-full items-center gap-2 px-3 py-2 text-sm text-popover-foreground",
             index === activeIndex && "bg-muted",

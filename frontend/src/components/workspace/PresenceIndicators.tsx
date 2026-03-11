@@ -91,6 +91,8 @@ export function PresenceIndicators({ ideaId }: PresenceIndicatorsProps) {
   return (
     <div
       className="shrink-0 flex items-center"
+      role="group"
+      aria-label="Active users"
       data-testid="presence-indicators"
     >
       {visible.map((user, i) => (

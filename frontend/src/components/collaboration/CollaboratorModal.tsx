@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import { Users } from "lucide-react";
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function CollaboratorModal({
   onOpenChange,
 }: CollaboratorModalProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const isOwner = user?.id === ownerId;
 
@@ -61,22 +63,22 @@ export function CollaboratorModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Manage Collaborators
+            {t("collaboration.manageTitle")}
           </DialogTitle>
           <DialogDescription>
-            Invite users, manage collaborators, and view pending invitations.
+            {t("collaboration.manageDescription")}
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="invite" data-testid="collaborator-tabs">
           <TabsList className="w-full">
             <TabsTrigger value="invite" data-testid="tab-invite">
-              Invite
+              {t("collaboration.tabInvite")}
             </TabsTrigger>
             <TabsTrigger value="collaborators" data-testid="tab-collaborators">
-              Collaborators
+              {t("collaboration.tabCollaborators")}
             </TabsTrigger>
             <TabsTrigger value="pending" data-testid="tab-pending">
-              Pending Invitations
+              {t("collaboration.tabPending")}
             </TabsTrigger>
           </TabsList>
 
@@ -107,6 +109,7 @@ export function CollaboratorModal({
 /* ---------- Invite Tab ---------- */
 
 function InviteTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -135,30 +138,31 @@ function InviteTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
   const inviteMutation = useMutation({
     mutationFn: (inviteeId: string) => sendInvitation(ideaId, inviteeId),
     onSuccess: () => {
-      toast.success("Invitation sent");
+      toast.success(t("collaboration.invitationSent"));
       setSearchQuery("");
       setDebouncedQuery("");
       queryClient.invalidateQueries({ queryKey: ["invitations", ideaId] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to send invitation");
+      toast.error(error.message || t("collaboration.failedToInvite"));
     },
   });
 
   return (
     <div className="space-y-4 py-2" data-testid="invite-tab">
       <Input
-        placeholder="Search users by name or email..."
+        placeholder={t("collaboration.searchPlaceholder")}
+        aria-label={t("collaboration.searchPlaceholder")}
         value={searchQuery}
         onChange={(e) => handleSearchChange(e.target.value)}
         data-testid="invite-search-input"
       />
       {isSearching && debouncedQuery.length >= 2 && (
-        <p className="text-sm text-text-secondary">Searching...</p>
+        <p className="text-sm text-text-secondary">{t("common.searching")}</p>
       )}
       {searchResults && searchResults.length === 0 && debouncedQuery.length >= 2 && (
         <p className="text-sm text-text-secondary" data-testid="no-results">
-          No users found
+          {t("collaboration.noUsersFound")}
         </p>
       )}
       {searchResults && searchResults.length > 0 && (
@@ -187,7 +191,7 @@ function InviteTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
                   disabled={inviteMutation.isPending}
                   data-testid={`invite-button-${u.id}`}
                 >
-                  Invite
+                  {t("collaboration.invite")}
                 </Button>
               )}
             </li>
@@ -217,6 +221,7 @@ function CollaboratorsTab({
   onCloseModal,
 }: CollaboratorsTabProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState<CollaboratorUser | null>(null);
   const [removeTarget, setRemoveTarget] = useState<CollaboratorUser | null>(null);
@@ -231,42 +236,42 @@ function CollaboratorsTab({
   const removeMutation = useMutation({
     mutationFn: (userId: string) => removeCollaborator(ideaId, userId),
     onSuccess: () => {
-      toast.success("Collaborator removed");
+      toast.success(t("collaboration.collaboratorRemoved"));
       setRemoveTarget(null);
       queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to remove collaborator");
+      toast.error(error.message || t("collaboration.failedToRemove"));
     },
   });
 
   const transferMutation = useMutation({
     mutationFn: (newOwnerId: string) => transferOwnership(ideaId, newOwnerId),
     onSuccess: () => {
-      toast.success("Ownership transferred");
+      toast.success(t("collaboration.ownershipTransferred"));
       setTransferDialogOpen(false);
       setTransferTarget(null);
       queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
       onCloseModal();
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to transfer ownership");
+      toast.error(error.message || t("collaboration.failedToTransfer"));
     },
   });
 
   const leaveMutation = useMutation({
     mutationFn: () => leaveIdea(ideaId),
     onSuccess: () => {
-      toast.success("You have left the idea");
+      toast.success(t("collaboration.leftIdea"));
       queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
       onCloseModal();
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to leave idea");
+      toast.error(error.message || t("collaboration.failedToLeave"));
     },
   });
 
-  if (isLoading) return <p className="py-4 text-sm text-text-secondary">Loading...</p>;
+  if (isLoading) return <p className="py-4 text-sm text-text-secondary">{t("common.loading")}</p>;
 
   const owner = data?.owner;
   const coOwner = data?.co_owner;
@@ -276,11 +281,11 @@ function CollaboratorsTab({
     <div className="space-y-2 py-2" data-testid="collaborators-tab">
       {/* Owner */}
       {owner && (
-        <CollaboratorRow user={owner} badge="Owner" />
+        <CollaboratorRow user={owner} badge={t("collaboration.owner")} />
       )}
       {/* Co-owner */}
       {coOwner && (
-        <CollaboratorRow user={coOwner} badge="Co-owner" />
+        <CollaboratorRow user={coOwner} badge={t("collaboration.coOwner")} />
       )}
       {/* Collaborators */}
       {collaborators.map((c) => (
@@ -296,7 +301,7 @@ function CollaboratorsTab({
               <p className="text-xs text-text-secondary">{c.email}</p>
               {c.joined_at && (
                 <p className="text-xs text-text-secondary">
-                  Joined {formatRelativeTime(c.joined_at)}
+                  {t("collaboration.joined", { time: formatRelativeTime(c.joined_at) })}
                 </p>
               )}
             </div>
@@ -312,7 +317,7 @@ function CollaboratorsTab({
                 }}
                 data-testid={`transfer-button-${c.id}`}
               >
-                Transfer
+                {t("collaboration.transfer")}
               </Button>
               <Button
                 size="sm"
@@ -320,7 +325,7 @@ function CollaboratorsTab({
                 onClick={() => setRemoveTarget(c)}
                 data-testid={`remove-button-${c.id}`}
               >
-                Remove
+                {t("collaboration.remove")}
               </Button>
             </div>
           )}
@@ -328,7 +333,7 @@ function CollaboratorsTab({
       ))}
       {collaborators.length === 0 && !coOwner && (
         <p className="py-4 text-center text-sm text-text-secondary" data-testid="no-collaborators">
-          No collaborators yet
+          {t("collaboration.noCollaborators")}
         </p>
       )}
 
@@ -345,12 +350,12 @@ function CollaboratorsTab({
                     disabled
                     data-testid="leave-button"
                   >
-                    Leave Idea
+                    {t("collaboration.leaveIdea")}
                   </Button>
                 </span>
               </TooltipTrigger>
               <TooltipContent data-testid="leave-tooltip">
-                Transfer ownership before leaving
+                {t("collaboration.transferBeforeLeaving")}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -362,7 +367,7 @@ function CollaboratorsTab({
             disabled={leaveMutation.isPending}
             data-testid="leave-button"
           >
-            Leave Idea
+            {t("collaboration.leaveIdea")}
           </Button>
         )}
       </div>
@@ -372,14 +377,14 @@ function CollaboratorsTab({
         <Dialog open={!!removeTarget} onOpenChange={() => setRemoveTarget(null)}>
           <DialogContent data-testid="remove-confirm-dialog">
             <DialogHeader>
-              <DialogTitle>Remove Collaborator</DialogTitle>
+              <DialogTitle>{t("collaboration.removeCollaborator")}</DialogTitle>
               <DialogDescription>
-                Are you sure you want to remove {removeTarget.display_name} from this idea?
+                {t("collaboration.removeConfirm", { name: removeTarget.display_name })}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setRemoveTarget(null)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -387,7 +392,7 @@ function CollaboratorsTab({
                 disabled={removeMutation.isPending}
                 data-testid="confirm-remove-button"
               >
-                Remove
+                {t("collaboration.remove")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -399,21 +404,21 @@ function CollaboratorsTab({
         <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
           <DialogContent data-testid="transfer-confirm-dialog">
             <DialogHeader>
-              <DialogTitle>Transfer Ownership</DialogTitle>
+              <DialogTitle>{t("collaboration.transferOwnership")}</DialogTitle>
               <DialogDescription>
-                Transfer ownership to {transferTarget.display_name}? You will become a collaborator.
+                {t("collaboration.transferConfirm", { name: transferTarget.display_name })}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setTransferDialogOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 onClick={() => transferMutation.mutate(transferTarget.id)}
                 disabled={transferMutation.isPending}
                 data-testid="confirm-transfer-button"
               >
-                Transfer
+                {t("collaboration.transfer")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -449,6 +454,7 @@ function CollaboratorRow({ user, badge }: { user: CollaboratorUser; badge: strin
 /* ---------- Pending Invitations Tab ---------- */
 
 function PendingTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -460,23 +466,23 @@ function PendingTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
   const revokeMutation = useMutation({
     mutationFn: (invitationId: string) => revokeInvitation(invitationId),
     onSuccess: () => {
-      toast.success("Invitation revoked");
+      toast.success(t("collaboration.invitationRevoked"));
       queryClient.invalidateQueries({ queryKey: ["invitations", ideaId] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to revoke invitation");
+      toast.error(error.message || t("collaboration.failedToRevoke"));
     },
   });
 
   if (!isOwner) {
     return (
       <p className="py-4 text-center text-sm text-text-secondary" data-testid="pending-tab">
-        Only the owner can view pending invitations.
+        {t("collaboration.ownerOnly")}
       </p>
     );
   }
 
-  if (isLoading) return <p className="py-4 text-sm text-text-secondary">Loading...</p>;
+  if (isLoading) return <p className="py-4 text-sm text-text-secondary">{t("common.loading")}</p>;
 
   const invitations = data?.invitations ?? [];
 
@@ -484,7 +490,7 @@ function PendingTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
     <div className="space-y-2 py-2" data-testid="pending-tab">
       {invitations.length === 0 && (
         <p className="py-4 text-center text-sm text-text-secondary" data-testid="no-pending">
-          No pending invitations
+          {t("collaboration.noPending")}
         </p>
       )}
       {invitations.map((inv) => (
@@ -503,7 +509,7 @@ function PendingTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
               <p className="text-sm font-medium">{inv.invitee.display_name}</p>
               <p className="text-xs text-text-secondary">{inv.invitee.email}</p>
               <p className="text-xs text-text-secondary">
-                Invited {formatRelativeTime(inv.created_at)}
+                {t("collaboration.invited", { time: formatRelativeTime(inv.created_at) })}
               </p>
             </div>
           </div>
@@ -514,7 +520,7 @@ function PendingTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
             disabled={revokeMutation.isPending}
             data-testid={`revoke-button-${inv.id}`}
           >
-            Revoke
+            {t("collaboration.revoke")}
           </Button>
         </div>
       ))}

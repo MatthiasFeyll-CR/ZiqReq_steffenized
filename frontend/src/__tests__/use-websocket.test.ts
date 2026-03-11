@@ -18,7 +18,7 @@ class MockWebSocket {
   static instances: MockWebSocket[] = [];
   url: string;
   onopen: (() => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: { code: number }) => void) | null = null;
   onerror: (() => void) | null = null;
   onmessage: ((e: unknown) => void) | null = null;
   readyState = 0;
@@ -36,9 +36,9 @@ class MockWebSocket {
     this.onopen?.();
   }
 
-  simulateClose() {
+  simulateClose(code = 1000) {
     this.readyState = 3;
-    this.onclose?.();
+    this.onclose?.({ code });
   }
 
   simulateError() {
@@ -86,6 +86,7 @@ const authenticatedAuth: AuthContextValue = {
   hasRole: () => false,
   logout: () => {},
   setUser: () => {},
+  getAccessToken: () => Promise.resolve("user-123"),
 };
 
 const unauthenticatedAuth: AuthContextValue = {
@@ -95,6 +96,7 @@ const unauthenticatedAuth: AuthContextValue = {
   hasRole: () => false,
   logout: () => {},
   setUser: () => {},
+    getAccessToken: () => Promise.resolve(null),
 };
 
 describe("T-6.1.08: useWebSocket hook", () => {
@@ -107,29 +109,35 @@ describe("T-6.1.08: useWebSocket hook", () => {
     vi.useRealTimers();
   });
 
-  it("connects to WebSocket when authenticated", () => {
+  it("connects to WebSocket when authenticated", async () => {
     const store = createStore();
-    renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, authenticatedAuth),
+    await act(async () => {
+      renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, authenticatedAuth),
+      });
     });
 
     expect(MockWebSocket.instances).toHaveLength(1);
     expect(MockWebSocket.instances[0]!.url).toContain("token=user-123");
   });
 
-  it("does not connect when not authenticated", () => {
+  it("does not connect when not authenticated", async () => {
     const store = createStore();
-    renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, unauthenticatedAuth),
+    await act(async () => {
+      renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, unauthenticatedAuth),
+      });
     });
 
     expect(MockWebSocket.instances).toHaveLength(0);
   });
 
-  it("dispatches online state on open", () => {
+  it("dispatches online state on open", async () => {
     const store = createStore();
-    renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, authenticatedAuth),
+    await act(async () => {
+      renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, authenticatedAuth),
+      });
     });
 
     act(() => {
@@ -139,10 +147,12 @@ describe("T-6.1.08: useWebSocket hook", () => {
     expect(store.getState().websocket.connectionState).toBe("online");
   });
 
-  it("dispatches offline state on close and schedules reconnect", () => {
+  it("dispatches offline state on close and schedules reconnect", async () => {
     const store = createStore();
-    renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, authenticatedAuth),
+    await act(async () => {
+      renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, authenticatedAuth),
+      });
     });
 
     act(() => {
@@ -157,10 +167,13 @@ describe("T-6.1.08: useWebSocket hook", () => {
     expect(store.getState().websocket.reconnectCountdown).toBe(1); // 1s initial backoff
   });
 
-  it("cleans up on unmount — no reconnection timers fire", () => {
+  it("cleans up on unmount — no reconnection timers fire", async () => {
     const store = createStore();
-    const { unmount } = renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, authenticatedAuth),
+    let hookResult: ReturnType<typeof renderHook>;
+    await act(async () => {
+      hookResult = renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, authenticatedAuth),
+      });
     });
 
     act(() => {
@@ -171,7 +184,7 @@ describe("T-6.1.08: useWebSocket hook", () => {
     });
 
     const instanceCountBeforeUnmount = MockWebSocket.instances.length;
-    unmount();
+    hookResult!.unmount();
 
     // Advance time well past any backoff — no new connections should be created
     act(() => {
@@ -192,10 +205,12 @@ describe("LOOP-004: WebSocket reconnection backoff cap + cleanup", () => {
     vi.useRealTimers();
   });
 
-  it("backoff caps at 30 seconds", () => {
+  it("backoff caps at 30 seconds", async () => {
     const store = createStore();
-    renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, authenticatedAuth),
+    await act(async () => {
+      renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, authenticatedAuth),
+      });
     });
 
     // Simulate repeated failed connections (close without open so backoff escalates)
@@ -214,17 +229,20 @@ describe("LOOP-004: WebSocket reconnection backoff cap + cleanup", () => {
         expectedDelays[i],
       );
 
-      // Advance time to trigger reconnection attempt
-      act(() => {
+      // Advance time to trigger reconnection attempt, then flush microtask for async getAccessToken
+      await act(async () => {
         vi.advanceTimersByTime(expectedDelays[i]! * 1000);
       });
     }
   });
 
-  it("timers cleared on unmount — no leaks", () => {
+  it("timers cleared on unmount — no leaks", async () => {
     const store = createStore();
-    const { unmount } = renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, authenticatedAuth),
+    let hookResult: ReturnType<typeof renderHook>;
+    await act(async () => {
+      hookResult = renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, authenticatedAuth),
+      });
     });
 
     act(() => {
@@ -237,17 +255,21 @@ describe("LOOP-004: WebSocket reconnection backoff cap + cleanup", () => {
     // Should have a pending reconnect
     expect(store.getState().websocket.reconnectCountdown).toBe(1);
 
-    unmount();
+    hookResult!.unmount();
 
     // After unmount, state should show offline but countdown should be cleared
     expect(store.getState().websocket.connectionState).toBe("offline");
     expect(store.getState().websocket.reconnectCountdown).toBeNull();
   });
 
-  it("reconnection stops on intentional disconnect (logout)", () => {
+  it("reconnection stops on intentional disconnect (logout)", async () => {
     const store = createStore();
-    const { result } = renderHook(() => useWebSocket(), {
-      wrapper: makeWrapper(store, authenticatedAuth),
+    let hookResult: { current: ReturnType<typeof useWebSocket> };
+    await act(async () => {
+      const { result } = renderHook(() => useWebSocket(), {
+        wrapper: makeWrapper(store, authenticatedAuth),
+      });
+      hookResult = result;
     });
 
     act(() => {
@@ -256,7 +278,7 @@ describe("LOOP-004: WebSocket reconnection backoff cap + cleanup", () => {
 
     // Intentional disconnect
     act(() => {
-      result.current.disconnect();
+      hookResult!.current.disconnect();
     });
 
     expect(store.getState().websocket.connectionState).toBe("offline");

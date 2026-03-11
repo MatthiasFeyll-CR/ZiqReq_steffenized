@@ -21,6 +21,7 @@ function createStore(overrides: {
       websocket: {
         connectionState: overrides.connectionState ?? "offline",
         reconnectCountdown: overrides.reconnectCountdown ?? null,
+        isIdleDisconnected: false,
       },
     },
   });

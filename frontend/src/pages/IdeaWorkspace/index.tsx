@@ -17,6 +17,7 @@ import { AppendedIdeaBanner } from "@/components/workspace/AppendedIdeaBanner";
 import { LockOverlay } from "@/components/workspace/LockOverlay";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
+import { useIdeaSync } from "@/hooks/useIdeaSync";
 import { useSelector } from "react-redux";
 import { selectIsOnline } from "@/store/websocket-slice";
 
@@ -140,6 +141,9 @@ function IdeaWorkspaceContent({
 }) {
   const { reviewVisible, chatLocked, allReadOnly, lockReason } = useSectionVisibility(idea);
   const isOnline = useSelector(selectIsOnline);
+
+  // Return-from-idle: reconnect on mouse move and sync state
+  useIdeaSync({ ideaId: idea.id, onIdeaUpdate });
   const ideaRef = useRef(idea);
   ideaRef.current = idea;
   const onIdeaUpdateRef = useRef(onIdeaUpdate);
@@ -224,7 +228,7 @@ function IdeaWorkspaceContent({
   const effectiveReadOnly = allReadOnly || readOnly || isClosedIdea;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
+    <main id="main-content" className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={effectiveReadOnly || hasMergePending} />
       {readOnly && <ReadOnlyBanner />}
       {!readOnly && isClosedByMerge && idea.merged_idea_ref && (
@@ -258,6 +262,6 @@ function IdeaWorkspaceContent({
           <ReviewSection ideaId={idea.id} idea={idea} />
         </div>
       )}
-    </div>
+    </main>
   );
 }

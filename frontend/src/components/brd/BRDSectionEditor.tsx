@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { toast } from "react-toastify";
 import { Switch } from "@/components/ui/switch";
@@ -49,6 +49,7 @@ export function BRDSectionEditor({
 }: BRDSectionEditorProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const prefersReducedMotion = useReducedMotion();
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [regeneratingSection, setRegeneratingSection] = useState<string | null>(null);
 
@@ -158,10 +159,10 @@ export function BRDSectionEditor({
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ x: "100%" }}
+          initial={prefersReducedMotion ? false : { x: "100%" }}
           animate={{ x: 0 }}
-          exit={{ x: "100%" }}
-          transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { x: "100%" }}
+          transition={{ type: "tween", duration: prefersReducedMotion ? 0 : 0.25, ease: "easeOut" }}
           className="absolute inset-0 z-10 bg-background flex flex-col overflow-hidden"
           data-testid="brd-section-editor"
         >

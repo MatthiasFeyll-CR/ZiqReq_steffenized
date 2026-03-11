@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, GitMerge, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const prefersReducedMotion = useReducedMotion();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(idea.title);
   const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
@@ -112,6 +113,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleTitleSave}
           onKeyDown={handleTitleKeyDown}
+          aria-label={t("workspace.editTitle", "Edit idea title")}
           data-testid="title-input"
         />
       ) : (
@@ -123,10 +125,10 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
           <AnimatePresence>
             <motion.span
               key={idea.title}
-              initial={{ opacity: 0, y: -4 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.25 }}
+              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
               data-testid="title-animated"
             >
               {idea.title || t("landing.untitled", "Untitled")}

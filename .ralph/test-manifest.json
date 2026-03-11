@@ -847,6 +847,62 @@
     "T-11.5.01": {
       "file": "services/gateway/apps/monitoring/tests/test_monitoring_service.py",
       "function": "test_task_unhealthy_publishes_alert"
+    },
+    "T-14.1.01": {
+      "file": "frontend/src/__tests__/error-toast.test.tsx",
+      "function": "renders toast with Show Logs and Retry buttons"
+    },
+    "T-14.1.02": {
+      "file": "frontend/src/__tests__/error-log-modal.test.tsx",
+      "function": "renders modal with all four sections"
+    },
+    "T-14.1.03": {
+      "file": "frontend/src/__tests__/error-toast.test.tsx",
+      "function": "clicking Retry calls the onRetry callback"
+    },
+    "T-14.1.04": {
+      "file": "frontend/src/__tests__/error-toast.test.tsx",
+      "function": "disables Retry button and shows Max retries reached when max retries exhausted"
+    },
+    "T-15.1.01": {
+      "file": "frontend/src/__tests__/idle-detection.test.tsx",
+      "function": "marks user idle after no mouse movement for idle_timeout seconds"
+    },
+    "T-15.1.02": {
+      "file": "frontend/src/__tests__/idle-detection.test.tsx",
+      "function": "sets idle immediately when tab becomes hidden"
+    },
+    "T-15.2.01": {
+      "file": "frontend/src/__tests__/idle-disconnect.test.tsx",
+      "function": "shows idle disconnect message when isIdleDisconnected is true"
+    },
+    "T-15.3.01": {
+      "file": "frontend/src/__tests__/idle-recovery.test.tsx",
+      "function": "triggers reconnect on mouse move when idle-disconnected"
+    },
+    "T-16.1.01": {
+      "file": "frontend/src/__tests__/i18n.test.tsx",
+      "function": "de.json and en.json have identical key sets"
+    },
+    "T-16.2.01": {
+      "file": "frontend/src/__tests__/i18n.test.tsx",
+      "function": "switching language changes translated output"
+    },
+    "T-16.2.02": {
+      "file": "frontend/src/__tests__/i18n.test.tsx",
+      "function": "language preference persists in localStorage"
+    },
+    "API-AUTH.01": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_valid_token_validates_and_syncs"
+    },
+    "API-AUTH.02": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_expired_token_returns_401"
+    },
+    "API-AUTH.03": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_malformed_token_returns_401"
     }
   }
 }
