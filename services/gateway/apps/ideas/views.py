@@ -263,6 +263,12 @@ def _patch_idea(request: Request, idea_id: str) -> Response:
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    if "visibility" in request.data:
+        return Response(
+            {"error": "BAD_REQUEST", "message": "Visibility cannot be manually set"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     serializer = IdeaPatchSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -679,6 +679,10 @@
     "T-8.3.02": {
       "file": "services/gateway/apps/ideas/tests/test_share_link.py",
       "function": "test_invalid_token_returns_403"
+    },
+    "T-8.1.02": {
+      "file": "services/gateway/apps/collaboration/tests/test_visibility.py",
+      "function": "test_removing_all_collaborators_keeps_collaborating"
     }
   }
 }
