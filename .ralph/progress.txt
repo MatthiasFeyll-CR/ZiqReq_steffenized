@@ -53,3 +53,19 @@ Started: 2026-03-11T05:56:48+0100
   - Test infrastructure requires rebuild (docker compose build python-tests) when adding new test files
   - Node tests have 1 pre-existing error in information-gaps-toggle.test.tsx — not caused by backend changes
 ---
+
+## US-003: Review Actions API — Accept, Reject, Drop, Undo
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/review/views.py (added accept_review, reject_review, drop_review, undo_review, _handle_review_action helper), services/gateway/apps/review/serializers.py (added ReviewActionCommentSerializer), services/gateway/apps/ideas/urls.py (added review/accept, review/reject, review/drop, review/undo routes), services/gateway/apps/review/tests/test_review_actions.py (new — 19 tests)
+- Tests: 19 passed, 0 failed — covers T-1.5.02, T-1.5.03, T-1.5.04, T-1.5.06, T-1.5.07, T-1.5.08, T-1.5.09, API-REVIEW.06, API-REVIEW.07, API-REVIEW.08, API-REVIEW.09 plus blank comment, undo rejected, undo invalid states, non-reviewer forbidden, timeline state recording
+- Learnings for future iterations:
+  - Review actions routed under /api/ideas/:id/review/ — added in ideas/urls.py (same pattern as submit)
+  - Used _handle_review_action shared helper with state machine maps to avoid code duplication across 4 endpoints
+  - State machine: accept/reject/drop only from in_review; undo from accepted/dropped/rejected
+  - Comment required for reject, drop, undo — validated via ReviewActionCommentSerializer
+  - Accept does not require a comment — empty body is fine
+  - Multiple reviewers: no consensus, latest action wins (last state change is the current state)
+  - Timeline entries created atomically with state change using transaction.atomic()
+  - _require_reviewer helper from US-002 reused for all 4 endpoints
+---
