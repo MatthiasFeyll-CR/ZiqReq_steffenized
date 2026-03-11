@@ -216,3 +216,25 @@ Started: 2026-03-11T09:17:48+0100
   - The only issue was TEST_INFRASTRUCTURE/DB_LIFECYCLE which was already fixed in US-003 bugfix cycle 1
   - No application code changes needed — just verified and marked as passing
 ---
+
+## US-007: NotificationPanel Component (Bugfix Cycle 2)
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (set passes: true)
+- Tests: Typecheck passes. Ruff passes. Implementation already complete from Phase 2.
+- Learnings for future iterations:
+  - US-007 implementation was already complete from Phase 2 — NotificationPanel.tsx, NotificationItem.tsx, notifications.ts API additions, Navbar integration all in place
+  - The only issue was TEST_INFRASTRUCTURE/DB_LIFECYCLE which was already fixed in US-003 bugfix cycle 1
+  - No application code changes needed — just verified and marked as passing
+---
+
+## US-008: WebSocket Notification Delivery — Real-Time Bell Update & Toast (Bugfix Cycle 2)
+- Status: PASS
+- Attempts: 1
+- Changes: .ralph/prd.json (set passes: true)
+- Tests: 639 passed (Python), 403 passed (Node, 1 pre-existing failure in information-gaps-toggle.test.tsx). Typecheck passes. Ruff passes.
+- Learnings for future iterations:
+  - US-008 implementation was already complete from Phase 2 — NotificationBell.tsx has toast display via react-toastify, getToastType() severity mapping, optimistic count update, ws:notification event handler, websocket-notifications.test.tsx with 8 tests
+  - The only issue was TEST_INFRASTRUCTURE/DB_LIFECYCLE which was already fixed in US-003 bugfix cycle 1
+  - No application code changes needed — just verified and marked as passing
+---
