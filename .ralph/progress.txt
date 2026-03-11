@@ -145,3 +145,19 @@ Started: 2026-03-11T11:27:20+0100
   - Banner uses framer-motion AnimatePresence with slide-down (200ms) matching InvitationBanner pattern
   - `docker compose build` gate check has no docker-compose.yml (only test yml) — pre-existing issue
 ---
+
+## US-009: Merge Synthesizer Agent — Synthesis Message & Board Instructions
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/agents/merge_synthesizer/agent.py, services/ai/agents/merge_synthesizer/prompt.py, services/ai/agents/merge_synthesizer/consumer.py (new), services/ai/fixtures/merge_synthesizer_response.json, services/ai/tests/test_merge_synthesizer.py (new)
+- Tests: 24 new tests passed (5 Pydantic validation, 7 prompt rendering, 4 output validation, 4 agent execution, 1 mock mode, 3 consumer integration). Full suite: 742 Python tests passed, 403 Node tests passed (1 pre-existing failure in information-gaps-toggle.test.tsx).
+- Learnings for future iterations:
+  - MergeSynthesizerOutput Pydantic model: synthesis_message (str, min_length=100), board_instructions (list[dict])
+  - board_instructions use same schema as Facilitator's request_board_changes tool (intent, description, suggested_title, suggested_content, target, related_to, suggested_group)
+  - Consumer placed in agents/merge_synthesizer/consumer.py (same pattern as deep_comparison) — avoids events module path collision
+  - Agent uses Default model tier (get_deployment("default")), max_tokens=2000, temperature=0.4
+  - On both parse failures, returns empty synthesis_message and empty board_instructions (safe fallback)
+  - Consumer publishes merge_synthesizer.complete only when BOTH synthesis_message and board_instructions are non-empty
+  - merge_synthesizer directory already existed with stub files — just needed to fill in the implementations
+  - Running individual test file with `pytest services/ai/tests/test_merge_synthesizer.py` fails due to Django PYTHONPATH — use `pytest` without path to run full suite
+---
