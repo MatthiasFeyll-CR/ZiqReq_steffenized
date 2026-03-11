@@ -161,3 +161,20 @@ Started: 2026-03-11T11:27:20+0100
   - merge_synthesizer directory already existed with stub files — just needed to fill in the implementations
   - Running individual test file with `pytest services/ai/tests/test_merge_synthesizer.py` fails due to Django PYTHONPATH — use `pytest` without path to run full suite
 ---
+
+## US-010: Merged Idea Creation — New Idea with Co-Owners & Transferred Collaborators
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/similarity/merge_service.py (new), services/core/events/consumers.py, services/gateway/apps/similarity/merge_service.py (new), services/gateway/events/merge_consumer.py, services/gateway/apps/similarity/tests/test_merge_service.py (new)
+- Tests: 19 new tests passed (9 merge creation, 5 collaborator transfer, 3 board instructions, 2 consumer integration). Full suite: 761 Python tests passed, 403 Node tests passed (1 pre-existing failure in information-gaps-toggle.test.tsx).
+- Learnings for future iterations:
+  - merge_service.py placed in apps/similarity/ (not services/ or consumers/) — follows existing pattern of business logic in app-level modules
+  - Gateway mirror file needed for test discoverability (PYTHONPATH: gateway, core, ai — gateway resolves first)
+  - Consumer function placed in events/merge_consumer.py (not events/consumers.py) since gateway's consumers.py already has AIEventConsumer class
+  - ChatMessage in gateway's ideas app (not separate chat app) — use `from apps.ideas.models import ChatMessage` in gateway context
+  - execute_merge uses transaction.atomic() wrapping all DB operations, publishes event outside transaction
+  - _publish_merge_complete uses lazy import of events.publisher to avoid pika import issues in tests
+  - Collaborator transfer uses set operations (union - owners) for deduplication, bulk_create with ignore_conflicts=True
+  - Board instructions processing only handles create_node/add_node intents — other intents (move, delete) are skipped
+  - .ralph/prd.json is a symlink to tasks/prd-m13.json — commit the real file via `git add tasks/prd-m13.json`
+---
