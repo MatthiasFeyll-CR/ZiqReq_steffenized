@@ -447,6 +447,38 @@
     "AI-4.05": {
       "file": "services/ai/tests/test_brd_pipeline.py",
       "function": "test_pipeline_generated_event_has_all_fields"
+    },
+    "T-4.4.01": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_auto_lock_on_section_edit"
+    },
+    "T-4.4.02": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_lock_toggle"
+    },
+    "T-4.4.03": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_auto_lock_multiple_sections"
+    },
+    "T-4.9.02": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_gaps_toggle"
+    },
+    "API-4.01": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_get_returns_all_fields"
+    },
+    "API-4.02": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_patch_updates_section"
+    },
+    "API-4.03": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_auto_lock_on_current_workflow_edit"
+    },
+    "API-4.04": {
+      "file": "services/gateway/apps/brd/tests/test_views.py",
+      "function": "test_get_403_if_not_collaborator"
     }
   }
 }
