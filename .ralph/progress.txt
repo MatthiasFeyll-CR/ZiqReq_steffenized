@@ -124,3 +124,18 @@ Started: 2026-03-11T07:34:47+0100
   - When adding new components to IdeaWorkspace, tests that render the full page need InvitationBanner mocked (idea-workspace.test, review-section.test), while tests that render the actual page components (section-visibility.test) need fetchInvitations and acceptInvitation/declineInvitation mocks
   - useMutation with acceptInvitation/declineInvitation works via @/api/collaboration module — same pattern as CollaboratorModal
 ---
+
+## US-008: Read-Only View Mode
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/ReadOnlyBanner.tsx (new), frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/api/ideas.ts, frontend/src/components/workspace/ChatPanel.tsx, frontend/src/components/workspace/WorkspaceLayout.tsx, frontend/src/components/board/BoardCanvas.tsx, frontend/src/__tests__/read-only-view.test.tsx (new), .ralph/test-manifest.json
+- Tests: 620 Python tests passed, 383 Node tests passed (48 files). 1 pre-existing node error (PDFPreview unrelated).
+- Learnings for future iterations:
+  - useSearchParams from react-router-dom detects ?token= query param in IdeaWorkspace
+  - fetchIdea accepts optional token param, appends as ?token= query param for middleware validation
+  - readOnly prop flows: IdeaWorkspace → WorkspaceHeader (hides Manage button, disables agent mode), ChatPanel (hides ChatInput, shows read-only notice), WorkspaceLayout → BoardCanvas (hides BoardToolbar, passes disabled=true for ReactFlow)
+  - BoardCanvas already had `disabled` prop handling nodesDraggable/nodesConnectable/elementsSelectable — readOnly just adds toolbar hiding
+  - ReadOnlyBanner is simple static component with Eye icon, border-l-4 border-primary styling matching InvitationBanner pattern
+  - InvitationBanner is hidden in read-only mode (share link viewers don't need invitation UI)
+  - effectiveReadOnly combines allReadOnly (from state like accepted/dropped) with readOnly (from share link token)
+---

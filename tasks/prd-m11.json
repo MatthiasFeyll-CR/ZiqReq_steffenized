@@ -151,7 +151,7 @@
         "Verify in browser"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": ["UI-INVITE.01", "UI-INVITE.02", "UI-INVITE.03", "T-12.3.01"],
       "notes": "Design: docs/03-design/component-inventory.md § InvitationCard, InvitationBanner, docs/03-design/component-specs.md § 11.5 Banners\nTesting: docs/04-test-architecture/test-matrix.md § UI-INVITE.01-03, T-12.3.01\nFiles: frontend/src/components/landing/InvitationCard.tsx (enhance), frontend/src/components/workspace/InvitationBanner.tsx (new), frontend/src/__tests__/invitation-display.test.tsx\nGotchas: InvitationCard exists (static) — wire API. Banner: AnimatePresence slide-down, border-l-4 border-primary.",
       "context": {
@@ -173,7 +173,7 @@
         "Verify in browser"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": ["UI-SHARE.01", "UI-SHARE.02", "T-8.3.03", "T-8.3.04"],
       "notes": "Design: docs/01-requirements/features.md § F-8.3, docs/03-design/page-layouts.md § 7 Workspace\nTesting: docs/04-test-architecture/test-matrix.md § UI-SHARE.01-02, T-8.3.03-04\nFiles: frontend/src/pages/IdeaWorkspace/index.tsx (detect token, pass readOnly), frontend/src/components/workspace/ReadOnlyBanner.tsx (new), frontend/src/__tests__/read-only-view.test.tsx\nGotchas: useSearchParams for ?token=. Middleware adds 'share_link_viewer' role. Disable ReactFlow: nodesDraggable={false}, nodesConnectable={false}.",
       "context": {
