@@ -63,8 +63,8 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql="\n".join(
-                f"INSERT INTO admin_parameters (key, value, default_value, description, data_type, category) "
-                f"VALUES ('{k}', '{v}', '{dv}', '{desc}', '{dt}', '{cat}') ON CONFLICT (key) DO NOTHING;"
+                f"INSERT INTO admin_parameters (key, value, default_value, description, data_type, category, updated_at) "
+                f"VALUES ('{k}', '{v}', '{dv}', '{desc}', '{dt}', '{cat}', now()) ON CONFLICT (key) DO NOTHING;"
                 for k, v, dv, desc, dt, cat in SEED_PARAMETERS
             ),
             reverse_sql="DELETE FROM admin_parameters;",

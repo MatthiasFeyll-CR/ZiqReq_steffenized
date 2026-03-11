@@ -8,8 +8,10 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - frontend
-      - gateway
+      frontend:
+        condition: service_started
+      gateway:
+        condition: service_started
 
   postgresql:
     image: pgvector/pgvector:pg16
@@ -21,17 +23,34 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ziqreq -d ziqreq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # Application
   frontend:
@@ -49,6 +68,19 @@ services:
     build: ../../services/gateway
     ports:
       - "8000:8000"
+    command: >
+      sh -c "
+        echo 'Waiting for core service (migrations)...' &&
+        until python -c \"import socket; s=socket.create_connection(('core',50051),2); s.close()\" 2>/dev/null; do sleep 2; done &&
+        echo 'Core ready. Running gateway migrations...' &&
+        python manage.py migrate --fake board 2>/dev/null;
+        python manage.py migrate --fake brd 2>/dev/null;
+        python manage.py migrate --fake gateway_collaboration 2>/dev/null;
+        python manage.py migrate --fake gateway_ideas 2>/dev/null;
+        python manage.py migrate --fake review 2>/dev/null;
+        python manage.py migrate --noinput &&
+        daphne -b 0.0.0.0 -p 8000 gateway.asgi:application
+      "
     environment:
       DJANGO_SETTINGS_MODULE: gateway.settings.development
       DB_HOST: postgresql
@@ -60,14 +92,25 @@ services:
       DEBUG: "true"
       AUTH_BYPASS: "true"
     depends_on:
-      - postgresql
-      - redis
-      - rabbitmq
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      core:
+        condition: service_started
 
   core:
     build: ../../services/core
     ports:
       - "50051:50051"
+    command: >
+      sh -c "
+        until python -c \"import socket; s=socket.create_connection(('postgresql',5432),2); s.close()\" 2>/dev/null; do sleep 1; done &&
+        python manage.py migrate --noinput &&
+        python grpc_server/server.py
+      "
     environment:
       DJANGO_SETTINGS_MODULE: core.settings.development
       DB_HOST: postgresql
@@ -77,8 +120,10 @@ services:
       PDF_GRPC_ADDRESS: pdf:50053
       DEBUG: "true"
     depends_on:
-      - postgresql
-      - rabbitmq
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   ai:
     build: ../../services/ai
@@ -91,11 +136,14 @@ services:
       CORE_GRPC_ADDRESS: core:50051
       DEBUG: "true"
     depends_on:
-      - postgresql
-      - rabbitmq
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   notification:
     build: ../../services/notification
+    restart: on-failure
     environment:
       BROKER_URL: amqp://guest:guest@rabbitmq:5672/
       GATEWAY_GRPC_ADDRESS: gateway:50054
@@ -103,7 +151,8 @@ services:
     volumes:
       - ../../proto:/app/proto
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
 
   pdf:
     build: ../../services/pdf
@@ -119,9 +168,12 @@ services:
       BROKER_URL: amqp://guest:guest@rabbitmq:5672/
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     depends_on:
-      - postgresql
-      - rabbitmq
-      - redis
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   celery-beat:
     build: ../../services/core
@@ -132,9 +184,12 @@ services:
       BROKER_URL: amqp://guest:guest@rabbitmq:5672/
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     depends_on:
-      - postgresql
-      - rabbitmq
-      - redis
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   pgdata:
