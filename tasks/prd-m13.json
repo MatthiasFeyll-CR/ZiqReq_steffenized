@@ -138,7 +138,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-4.12.01"],
       "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/ideas/:id/similar — query params, response schema, auth\nArchitecture: docs/02-architecture/data-model.md § merge_requests, idea_embeddings — declined pairs, vector similarity scores\nDesign: docs/03-design/component-specs.md § 11.3 Empty States — 'No similar ideas found' when list is empty\nTesting: docs/04-test-architecture/test-matrix.md § T-4.12.01 — API integration test\nFiles: services/gateway/apps/ideas/views.py (add get_similar_ideas view), services/gateway/apps/ideas/urls.py (add similar/ route), services/gateway/apps/ideas/serializers.py (add SimilarIdeaSerializer), services/gateway/apps/ideas/tests/test_similar_ideas.py (new)\nGotchas: 'Near-threshold' matches are ideas with cosine similarity between 0.65 and 0.75 (below confirmation threshold but close). Declined merges are queried from merge_requests table. Requires permission check (same as idea detail endpoint). DRF pagination uses PageNumberPagination.",
       "context": {
