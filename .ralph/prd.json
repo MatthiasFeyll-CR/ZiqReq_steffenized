@@ -183,7 +183,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § WebSocket Protocol — 'notification' event delivered to user regardless of current idea.\nDesign: docs/03-design/component-specs.md § 11.1 Toast Notifications — position, auto-dismiss, types.\nTesting: No test matrix entry — manual verification.\nFiles: frontend/src/hooks/useWebSocket.ts (add 'notification' event handler), frontend/src/components/notifications/NotificationBell.tsx (update count on event), frontend/src/components/notifications/NotificationPanel.tsx (refetch on event), frontend/src/__tests__/websocket-notifications.test.tsx (new)\nGotchas: WebSocket notification event structure: {type: 'notification', payload: {id, event_type, title, body, reference_id, reference_type, created_at}}. Toast uses react-toastify (already configured). Optimistic count increment before API refetch. If user has NotificationPanel open, refetch list to show new item. Event is user-scoped — not tied to idea_id.",
       "context": {

@@ -141,3 +141,17 @@ Started: 2026-03-11T09:17:48+0100
   - Unacted notifications get a subtle bg-primary/5 highlight to distinguish from acted ones
   - Empty state uses Lucide Check icon with "All caught up" message per component-specs.md § 11.3
 ---
+
+## US-008: WebSocket Notification Delivery — Real-Time Bell Update & Toast
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/layout/NotificationBell.tsx, frontend/src/__tests__/websocket-notifications.test.tsx (new)
+- Tests: 8 passed (websocket-notifications). Full suite: 639 passed (Python), 403 passed (Node, 1 pre-existing failure in information-gaps-toggle.test.tsx).
+- Learnings for future iterations:
+  - Toast display added to NotificationBell's existing ws:notification event handler — no new component needed
+  - getToastType() maps event_type prefix/value to toast severity: review_state* → warning, removed/declined/monitoring → warning, joined/accepted/ai_delegation → success, everything else → info
+  - Toast message format: "title: body" when body present, just "title" when body missing. No toast when title is missing.
+  - CustomEvent detail typing: cast `(e as CustomEvent).detail` since window event listeners receive generic Event type
+  - react-toastify mock pattern: vi.mock with toast.info/success/warning/error as vi.fn() — import after mock
+  - autoClose: 5000 used for notification toasts (5 seconds)
+---
