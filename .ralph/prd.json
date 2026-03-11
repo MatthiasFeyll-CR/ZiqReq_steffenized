@@ -256,7 +256,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "testIds": [
         "API-AUTH.01",
         "API-AUTH.02",

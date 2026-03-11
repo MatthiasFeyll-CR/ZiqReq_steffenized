@@ -73,6 +73,7 @@ function createAuthValue(): AuthContextValue {
     hasRole: () => true,
     logout: vi.fn(),
     setUser: vi.fn(),
+    getAccessToken: () => Promise.resolve(null),
   };
 }
 

@@ -153,3 +153,21 @@ Started: 2026-03-11T17:44:30+0100
   - Skeleton component is used across many pages — changing its class requires updating test selectors that match by class name
   - Pre-existing test failures: idea-workspace.test.tsx (fetchIdea called with extra undefined arg)
 ---
+
+## US-010: Production Auth — MSAL.js Integration
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/config/msalConfig.ts (new — MSAL PublicClientApplication config), frontend/src/lib/auth-token.ts (new — module-level token store + authFetch wrapper), frontend/src/hooks/useMsalAuth.ts (new — MSAL token acquisition, silent refresh, redirect), frontend/src/hooks/use-auth.ts (added getAccessToken to AuthContextValue), frontend/src/hooks/use-auth-provider.ts (integrated getAccessToken, uses env.authBypass), frontend/src/app/providers.tsx (conditional MsalProvider wrapping), frontend/src/hooks/use-websocket.ts (async getAccessToken for WS token), frontend/src/lib/api-client.ts (uses authFetch), frontend/src/api/{ideas,admin,similarity,notifications,collaboration,review,brd,board,chat,reactions}.ts (all use authFetch for Authorization: Bearer), frontend/src/__tests__/use-websocket.test.ts (async tests, getAccessToken mock), 17 test files updated (added getAccessToken to auth mocks), .ralph/test-manifest.json (added API-AUTH.01-03)
+- Tests: 460 passed, 1 failed (pre-existing information-gaps-toggle URL.createObjectURL). Typecheck clean. Ruff clean. API-AUTH.01-03 covered by existing test_azure_ad.py tests.
+- Learnings for future iterations:
+  - MSAL packages (@azure/msal-browser, @azure/msal-react) were already installed but unused
+  - Backend Azure AD validation (azure_ad.py), auth middleware, and WebSocket middleware were already fully implemented from earlier milestones
+  - Auth bypass is double-gated: DEBUG=True AND AUTH_BYPASS=True — enforced in middleware, views, and WebSocket middleware
+  - authFetch wrapper pattern: module-level token store + fetch wrapper that adds Authorization header when token is set, always includes credentials: "include" for session cookie compatibility
+  - Adding getAccessToken to AuthContextValue required updating ~17 test files that mock the auth context — sed-based bulk replacement worked well
+  - WebSocket connect flow became async (getAccessToken().then()) — tests needed await act(async () => ...) to flush microtask queue
+  - getAccessToken in dev bypass returns user.id (for WebSocket UUID-based auth), in production returns cached MSAL access token
+  - MsalProvider conditionally wraps app only when not in dev bypass mode — prevents MSAL initialization errors when Azure AD config is empty
+  - useMsalAuth hook schedules silent token refresh 5 minutes before expiry via setTimeout
+  - Pre-existing test failures: information-gaps-toggle.test.tsx (URL.createObjectURL)
+---

@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export interface BrdDraft {
   id: string;
@@ -21,7 +22,7 @@ export type GenerationMode =
   | "section_regeneration";
 
 export async function fetchBrdDraft(ideaId: string): Promise<BrdDraft> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -41,7 +42,7 @@ export async function triggerBrdGeneration(
   const body: Record<string, string> = { mode };
   if (sectionName) body.section_name = sectionName;
 
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/generate`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/generate`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -59,7 +60,7 @@ export async function patchBrdDraft(
   ideaId: string,
   data: Partial<Pick<BrdDraft, "section_title" | "section_short_description" | "section_current_workflow" | "section_affected_department" | "section_core_capabilities" | "section_success_criteria" | "section_locks" | "allow_information_gaps">>,
 ): Promise<BrdDraft> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -75,7 +76,7 @@ export async function patchBrdDraft(
 }
 
 export async function fetchBrdPdf(ideaId: string): Promise<Blob> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/versions/latest/pdf`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/versions/latest/pdf`, {
     credentials: "include",
   });
   if (!res.ok) {

@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export interface UnreadCountResponse {
   unread_count: number;
@@ -34,7 +35,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function fetchUnreadCount(): Promise<UnreadCountResponse> {
-  const res = await fetch(`${env.apiBaseUrl}/notifications/unread-count`, {
+  const res = await authFetch(`${env.apiBaseUrl}/notifications/unread-count`, {
     credentials: "include",
   });
   return handleResponse(res);
@@ -44,7 +45,7 @@ export async function fetchNotifications(
   page = 1,
   pageSize = 20,
 ): Promise<NotificationsResponse> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/notifications?page=${page}&page_size=${pageSize}`,
     { credentials: "include" },
   );
@@ -54,7 +55,7 @@ export async function fetchNotifications(
 export async function markNotificationActioned(
   notificationId: string,
 ): Promise<Notification> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/notifications/${notificationId}`,
     {
       method: "PATCH",
@@ -76,7 +77,7 @@ export interface EmailPreferencesResponse {
 }
 
 export async function fetchEmailPreferences(): Promise<EmailPreferencesResponse> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/users/me/notification-preferences`,
     { credentials: "include" },
   );
@@ -86,7 +87,7 @@ export async function fetchEmailPreferences(): Promise<EmailPreferencesResponse>
 export async function updateEmailPreferences(
   preferences: Record<string, boolean>,
 ): Promise<EmailPreferencesResponse> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/users/me/notification-preferences`,
     {
       method: "PATCH",

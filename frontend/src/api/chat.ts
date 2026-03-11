@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export interface ChatMessage {
   id: string;
@@ -23,7 +24,7 @@ export async function sendChatMessage(
   content: string,
 ): Promise<ChatMessage> {
   const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/`;
-  const res = await fetch(url, {
+  const res = await authFetch(url, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -46,7 +47,7 @@ export async function fetchChatMessages(
   const qs = searchParams.toString();
   const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/${qs ? `?${qs}` : ""}`;
 
-  const res = await fetch(url, { credentials: "include" });
+  const res = await authFetch(url, { credentials: "include" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);

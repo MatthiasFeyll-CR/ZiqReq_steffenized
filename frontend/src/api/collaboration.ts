@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export interface UserSearchResult {
   id: string;
@@ -37,7 +38,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function searchUsers(query: string): Promise<UserSearchResult[]> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/users/search?q=${encodeURIComponent(query)}`,
     { credentials: "include" },
   );
@@ -48,7 +49,7 @@ export async function sendInvitation(
   ideaId: string,
   inviteeId: string,
 ): Promise<{ invitation_id: string; status: string }> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/invite`,
     {
       method: "POST",
@@ -63,7 +64,7 @@ export async function sendInvitation(
 export async function fetchCollaborators(
   ideaId: string,
 ): Promise<CollaboratorsResponse> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/collaborators`,
     { credentials: "include" },
   );
@@ -74,7 +75,7 @@ export async function removeCollaborator(
   ideaId: string,
   userId: string,
 ): Promise<void> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/${userId}`,
     { method: "DELETE", credentials: "include" },
   );
@@ -90,7 +91,7 @@ export async function transferOwnership(
   ideaId: string,
   newOwnerId: string,
 ): Promise<{ message: string }> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/transfer-ownership`,
     {
       method: "POST",
@@ -105,7 +106,7 @@ export async function transferOwnership(
 export async function fetchPendingInvitations(
   ideaId: string,
 ): Promise<{ invitations: PendingInvitation[] }> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/invitations`,
     { credentials: "include" },
   );
@@ -115,7 +116,7 @@ export async function fetchPendingInvitations(
 export async function revokeInvitation(
   invitationId: string,
 ): Promise<{ message: string }> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/invitations/${invitationId}/revoke`,
     {
       method: "POST",
@@ -130,7 +131,7 @@ export async function revokeInvitation(
 export async function acceptInvitation(
   invitationId: string,
 ): Promise<{ message: string }> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/invitations/${invitationId}/accept`,
     {
       method: "POST",
@@ -145,7 +146,7 @@ export async function acceptInvitation(
 export async function leaveIdea(
   ideaId: string,
 ): Promise<{ message: string }> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/leave`,
     {
       method: "POST",
@@ -160,7 +161,7 @@ export async function leaveIdea(
 export async function declineInvitation(
   invitationId: string,
 ): Promise<{ message: string }> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/invitations/${invitationId}/decline`,
     {
       method: "POST",

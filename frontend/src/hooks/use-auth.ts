@@ -16,6 +16,7 @@ export interface AuthContextValue {
   hasRole: (role: string) => boolean
   logout: () => void
   setUser: (user: AuthUser | null) => void
+  getAccessToken: () => Promise<string | null>
 }
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -25,6 +26,7 @@ export const AuthContext = createContext<AuthContextValue>({
   hasRole: () => false,
   logout: () => {},
   setUser: () => {},
+  getAccessToken: () => Promise.resolve(null),
 })
 
 export function useAuth(): AuthContextValue {

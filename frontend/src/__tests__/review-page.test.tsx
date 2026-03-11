@@ -57,6 +57,7 @@ function createAuthValue(): AuthContextValue {
     hasRole: (r: string) => ["user", "reviewer"].includes(r),
     logout: vi.fn(),
     setUser: vi.fn(),
+    getAccessToken: () => Promise.resolve(null),
   };
 }
 

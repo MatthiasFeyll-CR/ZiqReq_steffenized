@@ -50,6 +50,7 @@ function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContext
     hasRole: (role: string) => overrides.user?.roles.includes(role) ?? false,
     logout: vi.fn(),
     setUser: vi.fn(),
+    getAccessToken: () => Promise.resolve(null),
     ...overrides,
   };
 }

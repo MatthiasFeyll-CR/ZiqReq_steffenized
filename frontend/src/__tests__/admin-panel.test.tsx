@@ -47,6 +47,7 @@ function makeAuth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
     hasRole: (role: string) => ["admin"].includes(role),
     logout: vi.fn(),
     setUser: vi.fn(),
+    getAccessToken: () => Promise.resolve(null),
     ...overrides,
   };
 }

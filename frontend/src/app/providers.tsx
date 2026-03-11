@@ -1,11 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider as ReduxProvider } from "react-redux";
+import { MsalProvider } from "@azure/msal-react";
 import { createContext, createElement, useContext } from "react";
 import { ToastContainer } from "react-toastify";
 import { store } from "../store";
 import { AuthContext } from "../hooks/use-auth";
 import { useAuthProvider } from "../hooks/use-auth-provider";
 import { useWebSocket } from "../hooks/use-websocket";
+import { msalInstance } from "../config/msalConfig";
+import { env } from "../config/env";
 import type { ReactNode } from "react";
 import "../i18n/config";
 
@@ -45,7 +48,7 @@ function WebSocketManager({ children }: { children: ReactNode }) {
   );
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
@@ -57,5 +60,18 @@ export function Providers({ children }: { children: ReactNode }) {
         </AuthProvider>
       </QueryClientProvider>
     </ReduxProvider>
+  );
+}
+
+export function Providers({ children }: { children: ReactNode }) {
+  // In dev bypass mode, skip MsalProvider entirely
+  if (env.authBypass) {
+    return <AppProviders>{children}</AppProviders>;
+  }
+
+  return (
+    <MsalProvider instance={msalInstance}>
+      <AppProviders>{children}</AppProviders>
+    </MsalProvider>
   );
 }

@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 // ---------- AI Context ----------
 
@@ -18,7 +19,7 @@ export interface CompanyContext {
 }
 
 export async function fetchFacilitatorContext(): Promise<FacilitatorContext> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/ai-context/facilitator`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/facilitator`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -29,7 +30,7 @@ export async function fetchFacilitatorContext(): Promise<FacilitatorContext> {
 }
 
 export async function patchFacilitatorContext(content: string): Promise<FacilitatorContext> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/ai-context/facilitator`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/facilitator`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -43,7 +44,7 @@ export async function patchFacilitatorContext(content: string): Promise<Facilita
 }
 
 export async function fetchCompanyContext(): Promise<CompanyContext> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/ai-context/company`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/company`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -57,7 +58,7 @@ export async function patchCompanyContext(
   sections: Record<string, unknown>,
   free_text: string,
 ): Promise<CompanyContext> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/ai-context/company`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/company`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -84,7 +85,7 @@ export interface AdminParameter {
 }
 
 export async function fetchParameters(): Promise<AdminParameter[]> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/parameters`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/parameters`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -95,7 +96,7 @@ export async function fetchParameters(): Promise<AdminParameter[]> {
 }
 
 export async function patchParameter(key: string, value: string): Promise<AdminParameter> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/parameters/${encodeURIComponent(key)}`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/parameters/${encodeURIComponent(key)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -140,7 +141,7 @@ export interface AlertConfig {
 }
 
 export async function fetchMonitoringData(): Promise<MonitoringData> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/monitoring`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/monitoring`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -151,7 +152,7 @@ export async function fetchMonitoringData(): Promise<MonitoringData> {
 }
 
 export async function fetchAlertConfig(): Promise<AlertConfig> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/monitoring/alerts`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/monitoring/alerts`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -162,7 +163,7 @@ export async function fetchAlertConfig(): Promise<AlertConfig> {
 }
 
 export async function patchAlertConfig(is_active: boolean): Promise<AlertConfig> {
-  const res = await fetch(`${env.apiBaseUrl}/admin/monitoring/alerts`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/monitoring/alerts`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -191,7 +192,7 @@ export interface AdminUser {
 
 export async function searchUsers(query: string): Promise<AdminUser[]> {
   const params = query ? `?q=${encodeURIComponent(query)}` : "";
-  const res = await fetch(`${env.apiBaseUrl}/admin/users/search${params}`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/users/search${params}`, {
     credentials: "include",
   });
   if (!res.ok) {

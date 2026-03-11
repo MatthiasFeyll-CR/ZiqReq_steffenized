@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export interface SimilarIdea {
   id: string;
@@ -16,7 +17,7 @@ export interface SimilarIdeasResponse {
 }
 
 export async function getSimilarIdeas(ideaId: string): Promise<SimilarIdeasResponse> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/similar`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/similar`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -38,7 +39,7 @@ export async function createManualMergeRequest(
   ideaId: string,
   target: { target_idea_id?: string; target_idea_url?: string },
 ): Promise<CreateMergeRequestResponse> {
-  const res = await fetch(`${env.apiBaseUrl}/ideas/${ideaId}/merge-request`, {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/merge-request`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

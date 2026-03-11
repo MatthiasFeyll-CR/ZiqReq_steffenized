@@ -26,7 +26,7 @@ function getWsUrl(token: string): string {
 }
 
 export function useWebSocket() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, getAccessToken } = useAuth();
   const dispatch = useDispatch();
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -212,10 +212,12 @@ export function useWebSocket() {
   // Connect when authenticated, disconnect on logout or unmount
   useEffect(() => {
     if (isAuthenticated && user) {
-      // In dev bypass mode, token = user ID
-      const token = user.id;
       intentionalCloseRef.current = false;
-      connect(token);
+      getAccessToken().then((token) => {
+        if (token) {
+          connect(token);
+        }
+      });
     } else {
       disconnect();
     }
@@ -237,8 +239,12 @@ export function useWebSocket() {
     if (!isAuthenticated || !user) return;
     clearTimers();
     backoffRef.current = INITIAL_BACKOFF_MS;
-    connect(user.id);
-  }, [isAuthenticated, user, clearTimers, connect]);
+    getAccessToken().then((token) => {
+      if (token) {
+        connect(token);
+      }
+    });
+  }, [isAuthenticated, user, clearTimers, connect, getAccessToken]);
 
   return { wsRef, disconnect, sendMessage, reconnectNow };
 }

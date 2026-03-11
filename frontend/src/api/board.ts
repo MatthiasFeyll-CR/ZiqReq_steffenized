@@ -1,4 +1,5 @@
 import { env } from "@/config/env";
+import { authFetch } from "@/lib/auth-token";
 
 export interface BoardNode {
   id: string;
@@ -22,7 +23,7 @@ export async function updateBoardNode(
   nodeId: string,
   updates: Partial<Pick<BoardNode, "position_x" | "position_y" | "parent_id" | "is_locked" | "ai_modified_indicator" | "title" | "body" | "width" | "height">>,
 ): Promise<BoardNode> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/board/nodes/${nodeId}/`,
     {
       method: "PATCH",
@@ -44,7 +45,7 @@ export async function deleteBoardNode(
   ideaId: string,
   nodeId: string,
 ): Promise<void> {
-  const res = await fetch(
+  const res = await authFetch(
     `${env.apiBaseUrl}/ideas/${ideaId}/board/nodes/${nodeId}/`,
     {
       method: "DELETE",

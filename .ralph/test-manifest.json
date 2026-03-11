@@ -891,6 +891,18 @@
     "T-16.2.02": {
       "file": "frontend/src/__tests__/i18n.test.tsx",
       "function": "language preference persists in localStorage"
+    },
+    "API-AUTH.01": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_valid_token_validates_and_syncs"
+    },
+    "API-AUTH.02": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_expired_token_returns_401"
+    },
+    "API-AUTH.03": {
+      "file": "services/gateway/apps/authentication/tests/test_azure_ad.py",
+      "function": "test_malformed_token_returns_401"
     }
   }
 }

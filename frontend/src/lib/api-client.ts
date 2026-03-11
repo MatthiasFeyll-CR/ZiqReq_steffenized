@@ -1,7 +1,9 @@
+import { authFetch } from "./auth-token";
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
 export async function apiClient<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await authFetch(`${API_BASE}${path}`, {
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
