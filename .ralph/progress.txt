@@ -52,3 +52,16 @@ Started: 2026-03-11T07:34:47+0100
   - `.ralph/` directory is gitignored — must use `git add -f` to stage `.ralph/` files
   - Transient DB connection errors can occur between test classes (test DB dropped mid-suite) — re-running resolves
 ---
+
+## US-003: User Directory Search API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/authentication/views.py, services/gateway/apps/authentication/user_urls.py, services/gateway/gateway/urls.py, services/gateway/apps/authentication/tests/test_user_search.py, .ralph/test-manifest.json
+- Tests: 606 Python tests passed (11 new), 361 Node tests passed. 1 pre-existing node error (PDFPreview).
+- Learnings for future iterations:
+  - User search endpoint lives in authentication app (users owned by auth), mounted at `api/users/search` via separate `user_urls.py`
+  - Uses `Q(display_name__icontains=...) | Q(email__icontains=...)` for case-insensitive search across both fields
+  - Excludes current user with `.exclude(id=user.id)`, limits to 20 results with `[:20]`, orders by `display_name` ASC
+  - Auth uses `MiddlewareAuthentication` class from `apps.ideas.authentication` — same pattern as collaboration views
+  - Ruff enforces import sorting — `django.db.models` import must be grouped with other django imports, not separate
+---
