@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { LockOverlay } from "./LockOverlay";
 import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { AIProcessingIndicator } from "@/components/chat/AIProcessingIndicator";
 import type { Idea } from "@/api/ideas";
 import type { ChatMessage } from "@/api/chat";
 
@@ -21,6 +22,7 @@ export function ChatPanel({ idea, locked, lockReason }: ChatPanelProps) {
   return (
     <div className="relative flex flex-col flex-1" data-testid="chat-panel-inner">
       <ChatMessageList idea={idea} appendedMessages={newMessages} />
+      <AIProcessingIndicator ideaId={idea.id} />
       <ChatInput
         ideaId={idea.id}
         idea={idea}

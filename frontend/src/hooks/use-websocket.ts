@@ -120,6 +120,12 @@ export function useWebSocket() {
                 detail: { idea_id: data.idea_id, title: data.payload.title },
               }),
             );
+          } else if (data.type === "ai_processing" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:ai_processing", {
+                detail: { idea_id: data.idea_id, state: data.payload.state },
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&

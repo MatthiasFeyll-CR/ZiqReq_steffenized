@@ -331,6 +331,14 @@
     "T-2.7.02-gw": {
       "file": "services/gateway/apps/websocket/tests/test_ai_consumer.py",
       "function": "test_reaction_persists_and_broadcasts"
+    },
+    "T-2.12.01": {
+      "file": "frontend/src/__tests__/ai-processing-indicator.test.tsx",
+      "function": "becomes visible on ai_processing {state: started}"
+    },
+    "T-2.12.02": {
+      "file": "frontend/src/__tests__/ai-processing-indicator.test.tsx",
+      "function": "hides on ai_processing {state: completed}"
     }
   }
 }
