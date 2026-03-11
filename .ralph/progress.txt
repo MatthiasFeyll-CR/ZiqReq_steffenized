@@ -67,3 +67,20 @@ Started: 2026-03-11T11:27:20+0100
   - CONFIDENCE_THRESHOLD = 0.7 is hardcoded in agent module (not admin-configurable)
   - Retry pattern: validate output, if None, add assistant message + user correction message to chat history, retry once
 ---
+
+## US-004: Similarity Notification Flow — Notify Both Owners
+- Status: PASS
+- Attempts: 1
+- Changes: proto/gateway.proto, proto/gateway_pb2.py, proto/gateway_pb2_grpc.py, services/gateway/grpc_server/servicers/gateway_servicer.py, services/notification/consumers/similarity_events.py, services/notification/grpc_clients/gateway_client.py, services/notification/main.py
+- Tests: 678 Python tests passed, 403 Node tests passed (1 pre-existing failure in information-gaps-toggle.test.tsx)
+- Learnings for future iterations:
+  - Added GetIdeaDetails RPC to gateway proto — returns title, owner_id, share_link_token for an idea
+  - Gateway servicer generates share_link_token on demand if `ensure_share_link_token=True` (uses secrets.token_hex(32))
+  - Notification service binds to `ai.similarity.*` in addition to `notification.similarity.*` to receive ai.similarity.confirmed events
+  - handle_ai_similarity_confirmed creates TWO notifications: one per owner, reference_id points to the OTHER owner's idea
+  - Email uses `similarity` preference group (not `similarity_alert`) — check email_notification_preferences["similarity"]
+  - Email includes share_link_token-based URLs for read-only cross-access between owners
+  - notify_user() from consumers.base handles both in-app notification (gRPC) AND standard email (via get_user_preferences + render_email), but for custom email bodies, send_email() directly
+  - Proto regeneration: `python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. gateway.proto` from proto/ directory
+  - Pre-existing Node test failure: information-gaps-toggle.test.tsx — not related to M13 changes
+---
