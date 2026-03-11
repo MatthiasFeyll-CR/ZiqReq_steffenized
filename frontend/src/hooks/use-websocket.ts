@@ -114,6 +114,12 @@ export function useWebSocket() {
                 state: data.payload.state,
               }),
             );
+          } else if (data.type === "title_update" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:title_update", {
+                detail: { idea_id: data.idea_id, title: data.payload.title },
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&

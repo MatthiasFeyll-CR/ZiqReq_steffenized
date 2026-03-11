@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { fetchIdea, type Idea } from "@/api/ideas";
@@ -129,6 +129,22 @@ function IdeaWorkspaceContent({
 }) {
   const { reviewVisible, chatLocked, allReadOnly, lockReason } = useSectionVisibility(idea);
   const isOnline = useSelector(selectIsOnline);
+  const ideaRef = useRef(idea);
+  ideaRef.current = idea;
+  const onIdeaUpdateRef = useRef(onIdeaUpdate);
+  onIdeaUpdateRef.current = onIdeaUpdate;
+
+  // Listen for WebSocket title_update events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { idea_id, title } = (e as CustomEvent).detail;
+      if (idea_id === ideaRef.current.id) {
+        onIdeaUpdateRef.current({ ...ideaRef.current, title });
+      }
+    };
+    window.addEventListener("ws:title_update", handler);
+    return () => window.removeEventListener("ws:title_update", handler);
+  }, []);
 
   const effectiveChatLocked = chatLocked || !isOnline;
   const effectiveLockReason = !isOnline

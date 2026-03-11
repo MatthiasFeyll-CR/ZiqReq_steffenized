@@ -296,6 +296,10 @@
       "file": "services/ai/tests/test_facilitator.py",
       "function": "test_update_title_rejected_when_manually_edited"
     },
+    "T-2.3.03": {
+      "file": "frontend/src/__tests__/title-update-animation.test.tsx",
+      "function": "renders animated title element with motion span"
+    },
     "T-2.4.01": {
       "file": "services/ai/tests/test_facilitator.py",
       "function": "test_react_to_user_message"

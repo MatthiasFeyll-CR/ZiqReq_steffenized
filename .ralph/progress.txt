@@ -95,3 +95,46 @@ Started: 2026-03-11T00:07:22+0100
   - Added debounce_timer to ADMIN_PARAM_DEFAULTS in settings/base.py
   - mypy "duplicate module" error for events/__init__.py is pre-existing and expected (marked optional in gates)
 ---
+
+## US-005: send_chat_message Tool
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/tests/test_facilitator.py
+- Tests: 205 Python tests passed (5 new send_chat_message tests), 244 Node tests passed, ruff clean, tsc clean
+- Learnings for future iterations:
+  - send_chat_message implementation was already complete from US-002; US-005 focused on comprehensive AC verification
+  - Key tests added: full event payload verification (all 6 fields + event_id), created_at return, delegation message_type, board ref validation end-to-end through the tool, whitespace-only rejection, no-board-state edge case
+  - Board ref validation strips [[Title]] brackets for refs not found in board_state.nodes — empty board_state means all refs stripped
+  - publish_event auto-adds event_id (UUID) to every event payload
+  - Docker build gate fails on unrelated "pdf" service (pre-existing apt issue) — not caused by AI service changes
+  - .ralph/ is gitignored; prd.json symlinks to tasks/prd-m7.json — commit the real file
+---
+
+## US-006: react_to_message Tool
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/tests/test_facilitator.py, .ralph/test-manifest.json
+- Tests: 213 Python tests passed (8 new react_to_message tests), 244 Node tests passed, ruff clean, tsc clean
+- Learnings for future iterations:
+  - react_to_message implementation was already complete from US-002; US-006 focused on comprehensive AC verification
+  - Key tests added: full event payload verification (all 4 fields + event_id), all 3 reaction types (thumbs_up, thumbs_down, heart), AI message rejection, duplicate rejection (UNIQUE), message not found, success return value, no events on error
+  - Validation chain: reaction_type check → message lookup → sender_type check → has_ai_reaction check → publish
+  - _find_message() searches recent_messages by str(msg.id) == message_id — message_id must be string
+  - has_ai_reaction field on message objects is the duplicate detection mechanism (DB UNIQUE enforced at Gateway layer)
+  - T-2.7.02 maps to test_react_duplicate_error — tests the UNIQUE constraint simulation via has_ai_reaction flag
+---
+
+## US-007: update_title Tool
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/tests/test_facilitator.py, frontend/src/components/workspace/WorkspaceHeader.tsx, frontend/src/hooks/use-websocket.ts, frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/__tests__/title-update-animation.test.tsx, .ralph/test-manifest.json
+- Tests: 221 Python tests passed (8 new update_title tests), 247 Node tests passed (3 new animation tests), ruff clean, tsc clean
+- Learnings for future iterations:
+  - update_title implementation was already complete from US-002; US-007 focused on comprehensive AC verification + frontend animation
+  - Key backend tests: full event payload verification (idea_id, title, event_id), truncation at 60 chars (boundary test at exactly 60), title_manually_edited=true rejection, missing flag defaults to falsy (allows update), success return format
+  - Frontend title animation: WorkspaceHeader uses framer-motion AnimatePresence + motion.span with key={idea.title} for cross-fade animation
+  - Do NOT use AnimatePresence mode="wait" — jsdom doesn't complete framer-motion exit animations, so the old element blocks the new one in tests. Default mode (cross-fade) works correctly in tests
+  - WebSocket title_update handling: use-websocket.ts dispatches a CustomEvent "ws:title_update" on window; IdeaWorkspacePage listens and updates idea state via refs to avoid stale closures
+  - Docker test container caches COPY layers — must rebuild (docker compose up --build) when source files change, or tests run against stale code
+  - T-2.3.03 frontend test verifies: motion span renders with data-testid="title-animated", title text updates on re-render with new idea prop
+---
