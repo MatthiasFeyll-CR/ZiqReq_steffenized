@@ -1,0 +1,330 @@
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m13-similarity",
+  "description": "Milestone 13: Similarity Detection & Merge — Implements background keyword matching, vector similarity detection, AI deep comparison, merge request flow, and merge synthesizer agent. Enables automatic detection of similar ideas and collaborative merge workflows.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Background Keyword Matching — Celery Periodic Task",
+      "description": "As a system administrator, I want a background service to continuously compare keywords across ideas so that similar ideas can be detected automatically without user intervention.",
+      "acceptanceCriteria": [
+        "Celery periodic task runs on configurable schedule (default: every 5 minutes)",
+        "Task queries ideas with keywords updated since last sweep",
+        "For each updated idea, compares keyword set against all other ideas within similarity_time_limit (default: 6 months)",
+        "Set intersection: if overlap >= min_keyword_overlap (default: 7), triggers similarity.detected event",
+        "Checks merge_requests table for previously dismissed pairs (status=declined), skips those pairs",
+        "Event payload includes: requesting_idea_id, target_idea_id, keyword_overlap_count",
+        "Task reads admin_parameters for min_keyword_overlap and similarity_time_limit",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "testIds": ["T-5.2.01", "T-5.2.02", "T-5.2.03"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § idea_keywords, merge_requests — keyword array, declined pairs tracking\nArchitecture: docs/02-architecture/tech-stack.md § Background Keyword Matching Service — Celery periodic task design, data access, performance\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § similarity.detected — event payload schema\nTesting: docs/04-test-architecture/test-matrix.md § T-5.2.01, T-5.2.02, T-5.2.03 — threshold trigger, dismissed pair exclusion, time window filter\nFiles: services/core/background/keyword_matching.py (new), services/core/celeryconfig.py (add task registration)\nGotchas: Celery task scheduling uses crontab() or interval() syntax. Time window filter uses ideas.updated_at. Dismissed pairs are merge_requests with status='declined'. Admin parameters read from admin_parameters table.",
+      "context": {
+        "data_model": [
+          "idea_keywords: idea_id uuid UNIQUE, keywords varchar[], last_updated_at timestamptz — one keyword set per idea",
+          "merge_requests: requesting_idea_id, target_idea_id, status ('pending'|'accepted'|'declined'), merge_type — dual consent tracking",
+          "ideas: updated_at timestamptz — filter for similarity_time_limit",
+          "admin_parameters: key, value — min_keyword_overlap (default: 7), similarity_time_limit (default: 180 days)"
+        ],
+        "api_endpoints": [],
+        "test_cases": [
+          "T-5.2.01 | Integration | Keyword overlap ≥ threshold triggers similarity.detected | Two ideas with 7+ shared keywords → Event published",
+          "T-5.2.02 | Integration | Dismissed pairs not re-matched | Declined merge request exists for pair → No event published",
+          "T-5.2.03 | Integration | Time window filter applies | Idea older than similarity_time_limit → Not matched"
+        ]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "Vector Similarity Detection — pgvector Cosine Similarity",
+      "description": "As a system, I want to detect semantically similar ideas using vector embeddings so that ideas with different keywords but similar meaning can still be matched.",
+      "acceptanceCriteria": [
+        "Celery periodic task queries idea_embeddings table using pgvector cosine similarity",
+        "For each updated idea embedding, finds other ideas within similarity_time_limit with cosine similarity >= similarity_vector_threshold (default: 0.75)",
+        "Excludes pairs already in merge_requests with status=declined",
+        "Publishes similarity.detected event for each match above threshold",
+        "Event payload includes: requesting_idea_id, target_idea_id, similarity_score",
+        "Task reads admin_parameter similarity_vector_threshold",
+        "Uses HNSW index on idea_embeddings.embedding for fast similarity search",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/data-model.md § idea_embeddings — embedding vector(1536), source_text_hash, HNSW index\nArchitecture: docs/02-architecture/tech-stack.md § pgvector — vector similarity search, HNSW index\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § similarity.detected\nAI: docs/03-ai/agent-architecture.md § S6.4 Embedding Generation — idea embedding source text composition\nTesting: No specific test IDs assigned (vector similarity is secondary to keyword matching)\nFiles: services/core/background/vector_similarity.py (new), services/core/celeryconfig.py (add task registration)\nGotchas: pgvector uses <=> operator for cosine similarity. HNSW index already created in migrations. similarity_vector_threshold stored in admin_parameters. Embedding updates happen after keyword generation (handled by AI service).",
+      "context": {
+        "data_model": [
+          "idea_embeddings: idea_id uuid UNIQUE, embedding vector(1536), source_text_hash varchar(64), updated_at — semantic embeddings per idea",
+          "admin_parameters: similarity_vector_threshold (default: 0.75) — cosine similarity threshold for idea similarity detection"
+        ],
+        "api_endpoints": [],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "Deep Comparison Agent — AI Similarity Confirmation",
+      "description": "As a system, I want an AI agent to perform full-context similarity comparison so that false positives from keyword overlap can be filtered out before notifying users.",
+      "acceptanceCriteria": [
+        "Deep Comparison agent consumes similarity.detected events from message broker",
+        "Agent receives idea summaries for both ideas (title + keywords + chat summary + board summary)",
+        "System prompt instructs agent to confirm genuine similarity (not generic keyword overlap)",
+        "Agent returns structured JSON: {is_similar: bool, confidence: float, explanation: string, overlap_areas: list[str]}",
+        "Pydantic validation enforces output schema; retry once on malformed output with format instruction",
+        "If is_similar=true and confidence >= 0.7, publishes ai.similarity.confirmed event",
+        "If is_similar=false, no further action (silent dismissal)",
+        "Uses Default model tier (agent-architecture.md S3.7)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "testIds": ["T-5.3.01", "T-5.3.02"],
+      "notes": "AI: docs/03-ai/agent-architecture.md § S3.7 Deep Comparison — purpose, model tier, I/O\nAI: docs/03-ai/system-prompts.md § Deep Comparison — full system prompt, output format instructions\nAI: docs/03-ai/guardrails.md § Output Validation § 11.6 Deep Comparison — Pydantic schema, retry on malformed output\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § ai.similarity.confirmed — event payload schema\nTesting: docs/04-test-architecture/test-matrix.md § T-5.3.01, T-5.3.02 — structured output validation, Pydantic enforcement\nFiles: services/ai/agents/deep_comparison/agent.py (new), services/ai/agents/deep_comparison/prompt.py (new), services/ai/consumers/similarity_consumer.py (new)\nGotchas: Agent is non-interactive (no tools). Uses Semantic Kernel basic chat completion. Output Pydantic model: DeepComparisonOutput with is_similar, confidence (0-1), explanation, overlap_areas. Confidence threshold 0.7 is hardcoded (not admin-configurable).",
+      "context": {
+        "data_model": [],
+        "api_endpoints": [],
+        "ai_specs": [
+          "Deep Comparison — model: Default tier (GPT-4o), tools: none, input: two idea summaries, output: JSON {is_similar, confidence, explanation, overlap_areas}"
+        ],
+        "test_cases": [
+          "T-5.3.01 | AI Agent | Deep Comparison returns structured output | Two similar ideas → {is_similar: bool, confidence: float, explanation, overlap_areas}",
+          "T-5.3.02 | AI Agent | Pydantic validation enforces output schema | Malformed output → Retry with format instruction"
+        ]
+      }
+    },
+    {
+      "id": "US-004",
+      "title": "Similarity Notification Flow — Notify Both Owners",
+      "description": "As an idea owner, I want to be notified when my idea is similar to another so that I can decide whether to merge or dismiss the suggestion.",
+      "acceptanceCriteria": [
+        "Notification service consumes ai.similarity.confirmed events",
+        "Creates two in-app notifications: one for each idea owner",
+        "Notification title: 'Similar idea detected'",
+        "Notification body: 'Your idea \"[title]\" is similar to \"[other title]\"'",
+        "reference_type: 'idea', reference_id: requesting_idea_id (for target owner), target_idea_id (for requesting owner)",
+        "Sends email notification to both owners (subject to email_notification_preferences.similarity group)",
+        "Email includes: both idea titles, keywords overlap summary, link to requesting idea, link to target idea",
+        "Both owners receive read-only access to the other's idea (using share_link_token mechanism from M11)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § ai.similarity.confirmed — event payload\nArchitecture: docs/02-architecture/data-model.md § notifications, ideas.share_link_token — notification storage, read-only link mechanism\nTesting: No specific test IDs (notification flow validated by M12 tests)\nFiles: services/notification/consumers/similarity_events.py (new or extend existing), services/notification/email/templates/similarity_detected.html (new)\nGotchas: Read-only access uses share_link_token from ideas table (generated on-demand if not exists). Email preference group: 'similarity'. Notification service uses gateway_client.create_notification() gRPC call. Both owners see the other's name (similarity detection is not anonymous).\nDeviations: Milestone scope says 'notify both users (in-app + email)' but doesn't specify read-only link generation — this is inferred from F-5.5 step 2 'both users receive read-only access'.",
+      "context": {
+        "data_model": [
+          "notifications: user_id, event_type, title, body, reference_id, reference_type, is_read — persistent in-app notifications",
+          "ideas: share_link_token varchar(64) UNIQUE — token for read-only sharing (F-8.3), generated on-demand"
+        ],
+        "api_endpoints": [],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-005",
+      "title": "Similar Ideas Display — GET /api/ideas/:id/similar",
+      "description": "As a reviewer, I want to see similar ideas in the review section so that I can identify potential duplicates or related ideas during the review process.",
+      "acceptanceCriteria": [
+        "GET /api/ideas/:id/similar endpoint returns list of similar ideas",
+        "Response includes: declined merges (merge_requests where status=declined and one idea is :id), near-threshold matches (similarity score between 0.65 and 0.75)",
+        "Each entry includes: idea_id, title, keywords, similarity_type ('declined_merge' | 'near_threshold'), similarity_score (for vector matches)",
+        "Endpoint requires Bearer token authentication",
+        "Only accessible by: idea owner, co-owner, collaborators, assigned reviewers",
+        "Returns 403 if user is not authorized to view the idea",
+        "Returns 404 if idea does not exist",
+        "Response is paginated (default: 10 per page, max: 50)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "testIds": ["T-4.12.01"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/ideas/:id/similar — query params, response schema, auth\nArchitecture: docs/02-architecture/data-model.md § merge_requests, idea_embeddings — declined pairs, vector similarity scores\nDesign: docs/03-design/component-specs.md § 11.3 Empty States — 'No similar ideas found' when list is empty\nTesting: docs/04-test-architecture/test-matrix.md § T-4.12.01 — API integration test\nFiles: services/gateway/apps/ideas/views.py (add get_similar_ideas view), services/gateway/apps/ideas/urls.py (add similar/ route), services/gateway/apps/ideas/serializers.py (add SimilarIdeaSerializer), services/gateway/apps/ideas/tests/test_similar_ideas.py (new)\nGotchas: 'Near-threshold' matches are ideas with cosine similarity between 0.65 and 0.75 (below confirmation threshold but close). Declined merges are queried from merge_requests table. Requires permission check (same as idea detail endpoint). DRF pagination uses PageNumberPagination.",
+      "context": {
+        "data_model": [
+          "merge_requests: requesting_idea_id, target_idea_id, status ('declined'), merge_type — declined merge tracking",
+          "idea_embeddings: idea_id, embedding vector(1536) — cosine similarity query for near-threshold matches"
+        ],
+        "api_endpoints": [
+          "GET /api/ideas/:id/similar — Query params: page, page_size. Response: {results: [{id, title, keywords, similarity_type, similarity_score}], count, next, previous}"
+        ],
+        "test_cases": [
+          "T-4.12.01 | Integration | Similar ideas shown to reviewer | GET /api/ideas/:id/review/similar → 200 + similar ideas list (declined merges + near-threshold)"
+        ]
+      }
+    },
+    {
+      "id": "US-006",
+      "title": "State-Aware Match Behavior — Open/Rejected Mergeable",
+      "description": "As a system, I want similarity detection to respect idea lifecycle states so that only appropriate merge/append actions are offered based on the current state of both ideas.",
+      "acceptanceCriteria": [
+        "Open or Rejected ideas: full merge flow applies (both owners consent, new merged idea created)",
+        "In Review ideas: append flow only (open idea owner requests append, in-review owner + one reviewer consent)",
+        "Accepted ideas: informational notification only ('similar idea was already accepted, is this a change request or new app?')",
+        "Dropped ideas: informational notification only ('similar idea was permanently closed, what's different about yours?')",
+        "ai.similarity.confirmed event payload includes both idea states",
+        "Notification service logic checks states and creates appropriate notification body",
+        "For in_review target, notification includes 'Append request' action (not merge)",
+        "For accepted/dropped target, notification is informational with no action buttons",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/data-model.md § ideas.state — state enum values, state transition rules\nDesign: Feature spec F-5.4 — state-aware match behavior rules (open/rejected→merge, in_review→append, accepted/dropped→informational)\nTesting: No specific test IDs (state-aware logic validated by notification service tests)\nFiles: services/notification/consumers/similarity_events.py (extend from US-004 with state-aware logic)\nGotchas: Append flow (open → in_review) is mentioned in milestone notes as coming in M14. This story only handles the notification differentiation — actual append request API comes in M14. For now, in_review target ideas get informational notification similar to accepted/dropped.\nDeviations: Milestone scope says 'state-aware match behavior' but the actual append flow API is deferred to M14. This story implements the notification differentiation only.",
+      "context": {
+        "data_model": [
+          "ideas: state ('open'|'in_review'|'accepted'|'dropped'|'rejected') — idea lifecycle state (F-1.5)"
+        ],
+        "api_endpoints": [],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-007",
+      "title": "Merge Request API — Create Request & Dual Consent Flow",
+      "description": "As an idea owner, I want to create a merge request and track consent from both owners so that the merge only proceeds when both parties agree.",
+      "acceptanceCriteria": [
+        "POST /api/ideas/:id/merge-request creates a merge request",
+        "Request body: {target_idea_id: uuid}",
+        "Response 201: {id, requesting_idea_id, target_idea_id, merge_type: 'merge', status: 'pending', requesting_owner_consent: 'accepted', target_owner_consent: 'pending'}",
+        "Requesting owner implicitly consents (requesting_owner_consent='accepted')",
+        "Target owner consent defaults to 'pending'",
+        "Publishes merge_request.created event for target owner notification",
+        "POST /api/merge-requests/:id/consent accepts or declines",
+        "Request body: {consent: 'accept' | 'decline'}",
+        "On accept: sets target_owner_consent='accepted', checks if both consents are 'accepted', if yes publishes merge_request.accepted event",
+        "On decline: sets status='declined', target_owner_consent='declined', publishes merge_request.declined event",
+        "Unique constraint: one active merge request per (requesting_idea_id, target_idea_id) pair where status='pending'",
+        "Returns 400 if merge request already exists for this pair",
+        "Returns 403 if user is not the target idea owner (for consent endpoint)",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "testIds": ["T-5.5.01", "T-5.5.02", "T-5.5.04"],
+      "notes": "Architecture: docs/02-architecture/api-design.md § POST /api/ideas/:id/merge-request, POST /api/merge-requests/:id/consent — request/response schemas\nArchitecture: docs/02-architecture/data-model.md § merge_requests — dual consent tracking, unique constraint on active requests\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge_request.created, merge_request.accepted, merge_request.declined\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.01, T-5.5.02, T-5.5.04 — merge request creation, target locking, decline dismissal\nFiles: services/gateway/apps/ideas/views.py (add create_merge_request view), services/gateway/apps/merge/views.py (new, add consent view), services/gateway/apps/merge/urls.py (new), services/gateway/apps/merge/serializers.py (new), services/gateway/apps/merge/tests/test_merge_request.py (new)\nGotchas: Requesting owner implicitly consents (requesting_owner_consent='accepted' on creation). Unique constraint uq_active_merge_request enforced at DB level. Event publishing uses gateway events/publisher.py pattern from M12.",
+      "context": {
+        "data_model": [
+          "merge_requests: id uuid PK, requesting_idea_id, target_idea_id, merge_type ('merge'|'append'), status ('pending'|'accepted'|'declined'), requesting_owner_consent ('accepted'|'pending'), target_owner_consent ('accepted'|'pending'|'declined'), resulting_idea_id, created_at, resolved_at",
+          "Constraint: uq_active_merge_request UNIQUE (requesting_idea_id, target_idea_id) WHERE status='pending'"
+        ],
+        "api_endpoints": [
+          "POST /api/ideas/:id/merge-request — Body: {target_idea_id} → 201 {id, requesting_idea_id, target_idea_id, merge_type, status, consents}",
+          "POST /api/merge-requests/:id/consent — Body: {consent: 'accept'|'decline'} → 200 {id, status, consents}"
+        ],
+        "test_cases": [
+          "T-5.5.01 | Integration | Merge request creates pending record | POST /api/ideas/:id/merge-request → 201, merge_request with status=pending",
+          "T-5.5.02 | Integration | Target idea locked with merge request | Active merge request → merge_request_pending populated in idea response",
+          "T-5.5.04 | Integration | Decline permanently dismisses pair | POST /api/merge-requests/:id/decline → Status=declined, pair never suggested again"
+        ]
+      }
+    },
+    {
+      "id": "US-008",
+      "title": "Merge Request Banner — Workspace UI with Accept/Decline",
+      "description": "As a target idea owner, I want to see a merge request banner in my idea workspace so that I can accept or decline the merge request without leaving the workspace.",
+      "acceptanceCriteria": [
+        "MergeRequestBanner component renders when merge_request_pending is present in idea API response",
+        "Banner displays: 'Merge request from [requesting owner name]: merge your idea with \"[requesting idea title]\"'",
+        "Two buttons: 'Accept' (primary) and 'Decline' (ghost)",
+        "Banner is full-width below workspace header, uses border-b bg-warning/5 per component-specs.md § 11.5",
+        "Accept button calls POST /api/merge-requests/:id/consent with {consent: 'accept'}, shows loading state",
+        "Decline button calls POST /api/merge-requests/:id/consent with {consent: 'decline'}, shows confirmation dialog first",
+        "On accept: banner disappears, toast 'Merge request accepted. Creating merged idea...', idea unlocks",
+        "On decline: banner disappears, toast 'Merge request declined', idea unlocks",
+        "Idea is locked (chat + board read-only) while merge request is pending",
+        "LockOverlay component wraps entire workspace with message: 'This idea has a pending merge request. Accept or decline to continue editing.'",
+        "WebSocket event ws:merge_request updates merge_request_pending field and triggers banner re-render",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "testIds": [],
+      "notes": "Design: docs/03-design/component-specs.md § 11.5 Banners — workspace-integrated banner variant (border-b bg-warning/5), framer-motion slide-down\nDesign: docs/03-design/component-specs.md § 5.8 Chat Input Area — LockOverlay pattern for idea locking\nArchitecture: docs/02-architecture/api-design.md § GET /api/ideas/:id — merge_request_pending field in response\nTesting: No specific test IDs (UI component validated by frontend unit tests)\nFiles: frontend/src/components/workspace/MergeRequestBanner.tsx (new), frontend/src/pages/IdeaWorkspace.tsx (integrate banner + lock overlay), frontend/src/hooks/use-websocket.ts (add ws:merge_request event handler)\nGotchas: Banner is persistent (not dismissible) until resolved. Lock overlay prevents all editing (chat input disabled, board canvas read-only). Confirmation dialog for decline uses Dialog component (not AlertDialog — none exists per component-specs.md § 17). merge_request_pending is a nested object: {id, requesting_idea_id, requesting_owner_name, requesting_idea_title}.",
+      "context": {
+        "data_model": [],
+        "api_endpoints": [
+          "GET /api/ideas/:id — Response includes merge_request_pending: {id, requesting_idea_id, requesting_owner_name, requesting_idea_title} | null"
+        ],
+        "components": [
+          "MergeRequestBanner — full-width banner below header, accept/decline buttons, lock explanation",
+          "LockOverlay — from component-specs.md § 5.8, wraps workspace with bg-card/80 + message"
+        ],
+        "test_cases": []
+      }
+    },
+    {
+      "id": "US-009",
+      "title": "Merge Synthesizer Agent — Synthesis Message & Board Instructions",
+      "description": "As a system, I want an AI agent to synthesize two merged ideas into a combined context so that the new merged idea starts with a coherent summary and organized board.",
+      "acceptanceCriteria": [
+        "Merge Synthesizer agent consumes merge_request.accepted events",
+        "Agent receives full context for both ideas: title, keywords, chat summary, board state (nodes + connections)",
+        "System prompt instructs agent to create: (1) synthesis message summarizing both ideas' combined context, (2) board instructions for merged board layout",
+        "Agent returns structured JSON: {synthesis_message: string, board_instructions: array}",
+        "synthesis_message is a chat message that becomes the first message in the new merged idea",
+        "board_instructions is an array of board modification instructions (same format as Facilitator's request_board_changes tool)",
+        "Pydantic validation enforces output schema; retry once on malformed output",
+        "Agent uses Default model tier (agent-architecture.md S3.9)",
+        "On success, publishes merge_synthesizer.complete event with synthesis output",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "testIds": ["T-5.5.05"],
+      "notes": "AI: docs/03-ai/agent-architecture.md § S3.9 Merge Synthesizer — purpose, model tier, I/O, tool-free agent\nAI: docs/03-ai/system-prompts.md § Merge Synthesizer — full system prompt, synthesis instructions, board deduplication rules\nAI: docs/03-ai/tools-and-functions.md § request_board_changes — board instruction format (used as output template)\nAI: docs/03-ai/guardrails.md § Output Validation § 11.6 Merge Synthesizer — Pydantic schema\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge_synthesizer.complete\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.05 — synthesis + board instructions output\nFiles: services/ai/agents/merge_synthesizer/agent.py (new), services/ai/agents/merge_synthesizer/prompt.py (new), services/ai/consumers/merge_consumer.py (new)\nGotchas: Agent is non-interactive (no tools). Output Pydantic model: MergeSynthesizerOutput with synthesis_message (string) and board_instructions (list[dict]). board_instructions use same schema as Facilitator's request_board_changes tool (intent, description, suggested_title, etc.).",
+      "context": {
+        "data_model": [],
+        "api_endpoints": [],
+        "ai_specs": [
+          "Merge Synthesizer — model: Default tier (GPT-4o), tools: none, input: two idea contexts, output: JSON {synthesis_message, board_instructions}"
+        ],
+        "test_cases": [
+          "T-5.5.05 | AI Agent | Merge Synthesizer produces synthesis + board instructions | Two idea contexts → {synthesis_message: string, board_instructions: array}"
+        ]
+      }
+    },
+    {
+      "id": "US-010",
+      "title": "Merged Idea Creation — New Idea with Co-Owners & Transferred Collaborators",
+      "description": "As a system, I want to create a new merged idea when both owners accept a merge request so that the combined idea workspace preserves all context and collaborators from both original ideas.",
+      "acceptanceCriteria": [
+        "Core service consumes merge_synthesizer.complete events",
+        "Creates new idea: title = 'Merged: [idea1 title] + [idea2 title]', state = 'open', visibility = 'collaborating'",
+        "Sets owner_id = requesting idea owner, co_owner_id = target idea owner (dual ownership)",
+        "Sets merged_from_idea_1_id = requesting_idea_id, merged_from_idea_2_id = target_idea_id",
+        "First chat message: synthesis_message from Merge Synthesizer, sender_type='ai', ai_agent='merge_synthesizer'",
+        "Board Agent processes board_instructions from Merge Synthesizer to create merged board",
+        "Transfers all collaborators from both ideas to new idea (INSERT into idea_collaborators, deduplicated by user_id)",
+        "Updates both original ideas: closed_by_merge_id = new_merged_idea_id, state remains unchanged (original state preserved)",
+        "Updates merge_request: status='accepted', resulting_idea_id = new_merged_idea_id, resolved_at = now()",
+        "Publishes merge.complete event for both owners + all collaborators notification",
+        "Both original ideas become read-only: chat locked, board locked, message: 'This idea was merged. View merged idea: [link]'",
+        "Entire operation is atomic (transaction rollback on any failure)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "testIds": ["T-5.5.03", "T-5.5.06"],
+      "notes": "Architecture: docs/02-architecture/data-model.md § ideas — merged_from_idea_1_id, merged_from_idea_2_id, closed_by_merge_id, co_owner_id (dual ownership for merged ideas)\nArchitecture: docs/02-architecture/data-model.md § idea_collaborators — transfer all collaborators, deduplicate by user_id\nArchitecture: docs/02-architecture/data-model.md § chat_messages — synthesis message as first AI message\nAI: docs/03-ai/agent-architecture.md § S4.4 Board Agent — processes board instructions from Merge Synthesizer\nArchitecture: docs/02-architecture/api-design.md § Message Broker Event Contracts § merge.complete — notify all users\nTesting: docs/04-test-architecture/test-matrix.md § T-5.5.03, T-5.5.06 — synthesis trigger, full E2E merge flow\nFiles: services/core/consumers/merge_consumer.py (new), services/core/services/merge_service.py (new)\nGotchas: Atomic transaction required (Django transaction.atomic() or gRPC transaction). Board Agent invoked in-process (not via message broker). Old ideas remain accessible via read-only link (share_link_token). Collaborator transfer uses UNION of both idea_collaborators sets, excluding the two owners (they become co-owners). Title 'Merged:' prefix indicates merged idea.\nDeviations: Milestone scope says 'AI synthesizes a summary of merged context as the first chat message' — implemented as synthesis_message from Merge Synthesizer agent.",
+      "context": {
+        "data_model": [
+          "ideas: owner_id, co_owner_id (merged ideas only), merged_from_idea_1_id, merged_from_idea_2_id, closed_by_merge_id — dual ownership + merge tracking",
+          "idea_collaborators: idea_id, user_id, joined_at — collaborator join table, deduplicated by user_id",
+          "chat_messages: idea_id, sender_type ('ai'), ai_agent ('merge_synthesizer'), content — synthesis message as first message",
+          "merge_requests: status ('accepted'), resulting_idea_id, resolved_at — merge completion tracking"
+        ],
+        "api_endpoints": [],
+        "ai_specs": [
+          "Board Agent — processes board_instructions array from Merge Synthesizer (create_node, move_node, etc.)"
+        ],
+        "test_cases": [
+          "T-5.5.03 | Integration | Accept merge triggers synthesis | POST /api/merge-requests/:id/accept → Event published, resulting_idea created",
+          "T-5.5.06 | E2E | Full merge flow end-to-end | Two similar ideas → detect → request → accept → merged idea | Merged idea created with combined content"
+        ]
+      }
+    }
+  ]
+}
