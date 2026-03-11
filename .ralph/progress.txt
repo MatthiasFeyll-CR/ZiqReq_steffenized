@@ -69,3 +69,22 @@ Started: 2026-03-11T13:38:26+0100
   - Declined pairs bypass: no check for prior declined MergeRequests, only pending ones are blocked
   - Pre-existing flaky test: idea-workspace.test.tsx T-1.7.01 fails intermittently (unrelated to changes)
 ---
+
+## US-004: Manual Merge UI — UUID/URL + Browse
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/similarity.ts (new), frontend/src/components/workspace/ManualMergeModal.tsx (new), frontend/src/components/workspace/WorkspaceHeader.tsx
+- Tests: 800 Python tests passed, 403 Node tests passed (1 pre-existing flaky: information-gaps-toggle.test.tsx), tsc clean, ruff clean
+- Learnings for future iterations:
+  - API pattern: use plain fetch with env.apiBaseUrl, credentials: "include", error handling with body.message || body.error
+  - Modal pattern: shadcn Dialog with open/onOpenChange props, rendered in same component managing state
+  - Tabs: @radix-ui/react-tabs via shadcn Tabs component (Tabs, TabsList, TabsTrigger, TabsContent)
+  - UUID validation: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i (full pattern, not just 36 chars)
+  - URL UUID extraction: /\/idea\/([0-9a-f]{8}-...)\/?/i to extract UUID from idea URLs
+  - Clipboard API (navigator.clipboard.readText) may fail silently — wrap in try/catch
+  - Similar ideas fetched with useQuery, enabled only when modal is open
+  - ManualMergeModal accepts both UUID and URL; sends target_idea_id for UUID, target_idea_url for URL
+  - "Previously declined" badge shown for similarity_type === "declined_merge"
+  - Toast notifications via react-toastify (toast.success/toast.error)
+  - Pre-existing flaky test: information-gaps-toggle.test.tsx (PDFPreview URL.createObjectURL issue)
+---

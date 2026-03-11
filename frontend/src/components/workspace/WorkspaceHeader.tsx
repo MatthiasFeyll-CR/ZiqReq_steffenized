@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Users } from "lucide-react";
+import { ArrowLeft, GitMerge, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { patchIdea, type Idea } from "@/api/ideas";
+import { patchIdea, fetchIdea, type Idea } from "@/api/ideas";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
+import { ManualMergeModal } from "./ManualMergeModal";
 import { PresenceIndicators } from "./PresenceIndicators";
 
 interface WorkspaceHeaderProps {
@@ -28,6 +29,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(idea.title);
   const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleTitleClick = useCallback(() => {
@@ -164,6 +166,19 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
         </Button>
       )}
 
+      {/* Request merge */}
+      {!readOnly && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setMergeModalOpen(true)}
+          data-testid="request-merge-button"
+        >
+          <GitMerge className="mr-1 h-4 w-4" />
+          {t("workspace.requestMerge", "Merge")}
+        </Button>
+      )}
+
       {/* Presence indicators */}
       <PresenceIndicators ideaId={idea.id} />
 
@@ -173,6 +188,17 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
         coOwnerId={idea.co_owner_id}
         open={collaboratorModalOpen}
         onOpenChange={setCollaboratorModalOpen}
+      />
+
+      <ManualMergeModal
+        ideaId={idea.id}
+        open={mergeModalOpen}
+        onOpenChange={setMergeModalOpen}
+        onSuccess={() => {
+          fetchIdea(idea.id).then((updated) => {
+            onIdeaUpdate(updated);
+          }).catch(() => {});
+        }}
       />
     </div>
   );
