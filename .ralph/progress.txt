@@ -65,3 +65,18 @@ Started: 2026-03-11T07:34:47+0100
   - Auth uses `MiddlewareAuthentication` class from `apps.ideas.authentication` — same pattern as collaboration views
   - Ruff enforces import sorting — `django.db.models` import must be grouped with other django imports, not separate
 ---
+
+## US-004: Read-Only Link Sharing API
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/ideas/views.py, services/gateway/apps/ideas/urls.py, services/gateway/middleware/share_link.py, services/gateway/gateway/settings/base.py, services/gateway/apps/ideas/tests/test_share_link.py, .ralph/test-manifest.json
+- Tests: 614 Python tests passed (8 new), 361 Node tests passed. 1 pre-existing node error (PDFPreview).
+- Learnings for future iterations:
+  - share_link_token field already existed on Idea model (both core and gateway) — no migration needed
+  - Share link endpoint uses `secrets.token_hex(32)` for 64-char hex token, placed in ideas views (not collaboration)
+  - ShareLinkMiddleware placed after AuthenticationMiddleware in MIDDLEWARE list — needs authenticated user to add role
+  - Middleware only validates tokens on `/api/ideas/` paths to avoid interfering with other endpoints
+  - Middleware adds `share_link_viewer` to user.roles list for downstream role-based access control
+  - Transient DB connection error between test classes persists — re-run resolves (known issue from US-002)
+  - URL route: `<idea_id>/share-link` added to ideas URLs alongside collaboration routes
+---
