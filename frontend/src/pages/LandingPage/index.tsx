@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Lightbulb, Users, Mail, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
-import { PageShell } from "@/components/layout/PageShell";
+
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FilterBar } from "@/components/landing/FilterBar";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -144,7 +144,6 @@ export default function LandingPage() {
   );
 
   return (
-    <PageShell>
       <div className="mx-auto max-w-5xl px-4 pb-12">
         <HeroSection />
 
@@ -273,6 +272,5 @@ export default function LandingPage() {
           </Section>
         </div>
       </div>
-    </PageShell>
   );
 }

@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Brain, Settings, BarChart3, Users } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { PageShell } from "@/components/layout/PageShell";
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AIContextTab } from "@/features/admin/AIContextTab";
 import { ParametersTab } from "@/features/admin/ParametersTab";
@@ -18,7 +18,6 @@ export default function AdminPanel() {
   }
 
   return (
-    <PageShell>
       <div className="mx-auto w-full max-w-7xl px-4 py-6">
         <Tabs defaultValue="ai-context">
           <TabsList className="inline-flex h-auto w-full items-center justify-start gap-0 rounded-none border-b bg-transparent p-0">
@@ -66,6 +65,5 @@ export default function AdminPanel() {
           </TabsContent>
         </Tabs>
       </div>
-    </PageShell>
   );
 }

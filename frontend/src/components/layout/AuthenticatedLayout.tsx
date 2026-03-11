@@ -3,9 +3,9 @@ import { useAuth } from "@/hooks/use-auth"
 import { PageShell } from "./PageShell"
 
 export function AuthenticatedLayout() {
-  const { isAuthenticated, isDevBypass } = useAuth()
+  const { isAuthenticated } = useAuth()
 
-  if (!isAuthenticated && !isDevBypass) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
 

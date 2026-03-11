@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronRight, ClipboardList, Inbox } from "lucide-react";
-import { PageShell } from "@/components/layout/PageShell";
+
 import { EmptyState } from "@/components/common/EmptyState";
 import { ReviewCard } from "@/components/review/ReviewCard";
 import { fetchReviews } from "@/api/review";
@@ -70,7 +70,6 @@ export default function ReviewPage() {
   });
 
   return (
-    <PageShell>
       <div className="mx-auto max-w-5xl px-4 pb-12">
         <div className="mb-8 mt-6">
           <h1 className="text-2xl font-bold text-foreground">{t("review.pageTitle")}</h1>
@@ -129,6 +128,5 @@ export default function ReviewPage() {
           </div>
         )}
       </div>
-    </PageShell>
   );
 }

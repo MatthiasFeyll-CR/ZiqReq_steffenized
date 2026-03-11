@@ -20,8 +20,8 @@ export function DevUserSwitcher() {
 
   useEffect(() => {
     if (!isDevBypass) return
-    apiClient<DevUser[]>("/auth/dev-users")
-      .then(setDevUsers)
+    apiClient<{ users: DevUser[] }>("/auth/dev-users")
+      .then((data) => setDevUsers(data.users))
       .catch(() => {
         // Fallback: use hardcoded dev users if API not available
         setDevUsers([
