@@ -284,6 +284,38 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             "payload": event["payload"],
         })
 
+    async def ai_reaction(self, event: dict) -> None:
+        """Forward ai_reaction group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "ai_reaction",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
+    async def title_update(self, event: dict) -> None:
+        """Forward title_update group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "title_update",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
+    async def ai_processing(self, event: dict) -> None:
+        """Forward ai_processing group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "ai_processing",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
+    async def rate_limit(self, event: dict) -> None:
+        """Forward rate_limit group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "rate_limit",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
     @database_sync_to_async
     def _check_idea_access(self, idea_id: str, user_id: str) -> bool:
         from apps.ideas.models import Idea, IdeaCollaborator

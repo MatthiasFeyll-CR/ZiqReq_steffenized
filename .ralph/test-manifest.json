@@ -279,6 +279,78 @@
     "T-6.6.01": {
       "file": "frontend/src/__tests__/connection-indicator.test.tsx",
       "function": "shows green dot and 'Online' when connected"
+    },
+    "T-2.1.03": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_silent_mode_no_ai_mention"
+    },
+    "T-2.1.04": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_silent_mode_with_ai_mention"
+    },
+    "T-2.3.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_update_title_publishes_event"
+    },
+    "T-2.3.02": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_update_title_rejected_when_manually_edited"
+    },
+    "T-2.3.03": {
+      "file": "frontend/src/__tests__/title-update-animation.test.tsx",
+      "function": "renders animated title element with motion span"
+    },
+    "T-2.4.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_react_to_user_message"
+    },
+    "T-2.7.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_react_to_user_message"
+    },
+    "T-2.7.02": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_react_duplicate_error"
+    },
+    "T-2.15.01": {
+      "file": "services/ai/tests/test_facilitator.py",
+      "function": "test_delegate_to_context_agent"
+    },
+    "T-2.10.03": {
+      "file": "services/ai/tests/test_pipeline.py",
+      "function": "test_abort_flag_causes_early_exit"
+    },
+    "T-2.10.01": {
+      "file": "services/ai/tests/test_debouncer.py",
+      "function": "test_debounce_waits_period"
+    },
+    "T-2.10.02": {
+      "file": "services/ai/tests/test_debouncer.py",
+      "function": "test_debounce_resets_on_new_message"
+    },
+    "T-2.7.02-gw": {
+      "file": "services/gateway/apps/websocket/tests/test_ai_consumer.py",
+      "function": "test_reaction_persists_and_broadcasts"
+    },
+    "T-2.12.01": {
+      "file": "frontend/src/__tests__/ai-processing-indicator.test.tsx",
+      "function": "becomes visible on ai_processing {state: started}"
+    },
+    "T-2.12.02": {
+      "file": "frontend/src/__tests__/ai-processing-indicator.test.tsx",
+      "function": "hides on ai_processing {state: completed}"
+    },
+    "T-2.11.01": {
+      "file": "services/gateway/apps/chat/tests/test_rate_limit.py",
+      "function": "test_rate_limit_locks_chat_at_cap"
+    },
+    "T-2.11.02": {
+      "file": "services/gateway/apps/chat/tests/test_rate_limit.py",
+      "function": "test_rate_limit_resets_on_complete"
+    },
+    "T-2.11.03": {
+      "file": "frontend/src/__tests__/rate-limit.test.tsx",
+      "function": "shows toast on rate_limit WebSocket event"
     }
   }
 }

@@ -46,3 +46,30 @@ CORE_GRPC_ADDRESS = os.environ.get("CORE_GRPC_ADDRESS", "localhost:50051")
 
 # Message broker
 BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@localhost:5672/")
+
+# Admin parameter defaults (used when Core service is unreachable)
+ADMIN_PARAM_DEFAULTS: dict[str, str] = {
+    "default_ai_model": AZURE_OPENAI_DEFAULT_DEPLOYMENT,
+    "escalated_ai_model": AZURE_OPENAI_ESCALATED_DEPLOYMENT,
+    "ai_processing_timeout": "60",
+    "recent_message_count": "20",
+    "context_compression_threshold": "60",
+    "debounce_timer": "3",
+}
+
+# Validate required Azure OpenAI env vars (warn at import time, skip in mock mode)
+if not AI_MOCK_MODE:
+    import logging as _logging
+
+    _logger = _logging.getLogger("ai_service.settings")
+    _missing = [
+        v
+        for v in ("AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_API_KEY")
+        if not os.environ.get(v)
+    ]
+    if _missing:
+        _logger.warning(
+            "Missing required Azure OpenAI env vars: %s. "
+            "AI features will fail until these are set.",
+            ", ".join(_missing),
+        )

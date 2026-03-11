@@ -32,6 +32,11 @@ class CoreClient:
         logger.warning("AI CoreClient.get_full_chat_history stub called")
         return {"messages": []}
 
+    def get_admin_parameter(self, key: str) -> dict[str, Any]:
+        """Fetch a single admin parameter by key."""
+        logger.warning("AI CoreClient.get_admin_parameter stub called for key=%s", key)
+        return {"key": key, "value": ""}
+
     def get_rate_limit_status(self, idea_id: str) -> dict[str, Any]:
         logger.warning("AI CoreClient.get_rate_limit_status stub called")
         return {"current_count": 0, "cap": 100, "is_locked": False}

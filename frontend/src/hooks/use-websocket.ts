@@ -114,6 +114,24 @@ export function useWebSocket() {
                 state: data.payload.state,
               }),
             );
+          } else if (data.type === "title_update" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:title_update", {
+                detail: { idea_id: data.idea_id, title: data.payload.title },
+              }),
+            );
+          } else if (data.type === "ai_processing" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:ai_processing", {
+                detail: { idea_id: data.idea_id, state: data.payload.state },
+              }),
+            );
+          } else if (data.type === "rate_limit" && data.idea_id) {
+            window.dispatchEvent(
+              new CustomEvent("ws:rate_limit", {
+                detail: { idea_id: data.idea_id },
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&

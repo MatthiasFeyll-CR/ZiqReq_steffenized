@@ -1,4 +1,5 @@
 import logging
+import threading
 import uuid
 
 from asgiref.sync import async_to_sync
@@ -8,6 +9,7 @@ from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from apps.admin_config.models import AdminParameter
 from apps.ideas.authentication import MiddlewareAuthentication
 from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator, UserReaction
 
@@ -22,6 +24,48 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
+DEFAULT_CHAT_MESSAGE_CAP = 5
+
+# In-memory rate limit counters per idea_id.
+# Future milestones should use Redis for cross-process consistency.
+_rate_limit_counters: dict[str, int] = {}
+_rate_limit_lock = threading.Lock()
+
+
+def _get_chat_message_cap() -> int:
+    """Read chat_message_cap admin param, fallback to default.
+
+    Uses a savepoint so that a failed query (e.g., unmanaged table not existing
+    in tests) doesn't abort the enclosing transaction.
+    """
+    from django.db import transaction
+
+    try:
+        with transaction.atomic():
+            param = AdminParameter.objects.get(key="chat_message_cap")
+            return int(param.value)
+    except Exception:
+        return DEFAULT_CHAT_MESSAGE_CAP
+
+
+def get_rate_limit_counter(idea_id: str) -> int:
+    """Get current rate limit counter for an idea."""
+    with _rate_limit_lock:
+        return _rate_limit_counters.get(idea_id, 0)
+
+
+def increment_rate_limit_counter(idea_id: str) -> int:
+    """Increment and return the new counter value."""
+    with _rate_limit_lock:
+        count = _rate_limit_counters.get(idea_id, 0) + 1
+        _rate_limit_counters[idea_id] = count
+        return count
+
+
+def reset_rate_limit_counter(idea_id: str) -> None:
+    """Reset counter to 0 (called on ai.processing.complete)."""
+    with _rate_limit_lock:
+        _rate_limit_counters.pop(idea_id, None)
 
 
 def _require_auth(request: Request):
@@ -103,6 +147,26 @@ def _broadcast_chat_message(message: ChatMessage, sender_user) -> None:
         logger.exception("Failed to broadcast chat message %s", message.id)
 
 
+def _broadcast_rate_limit(idea_id: str) -> None:
+    """Broadcast a rate_limit event to the idea's WebSocket group."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"idea_{idea_id}"
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "rate_limit",
+                "idea_id": idea_id,
+                "payload": {"idea_id": idea_id},
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast rate limit for idea %s", idea_id)
+
+
 @api_view(["GET", "POST"])
 @authentication_classes([MiddlewareAuthentication])
 def chat_messages(request: Request, idea_id: str) -> Response:
@@ -127,6 +191,23 @@ def _create_message(request: Request, idea_id: str) -> Response:
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    # Rate limit check: 429 when counter >= chat_message_cap
+    idea_id_str = str(idea.id)
+    cap = _get_chat_message_cap()
+    current_count = get_rate_limit_counter(idea_id_str)
+    if current_count >= cap:
+        # Broadcast rate_limit event via WebSocket
+        _broadcast_rate_limit(idea_id_str)
+        return Response(
+            {
+                "error": {
+                    "code": "rate_limited",
+                    "message": "Chat input is locked. Please wait for AI to complete processing.",
+                }
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
     serializer = ChatMessageCreateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -137,6 +218,9 @@ def _create_message(request: Request, idea_id: str) -> Response:
         sender_id=user.id,
         content=serializer.validated_data["content"],
     )
+
+    # Increment rate limit counter after successful message creation
+    increment_rate_limit_counter(idea_id_str)
 
     response_serializer = ChatMessageResponseSerializer(message)
 
