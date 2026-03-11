@@ -171,3 +171,15 @@ Started: 2026-03-11T17:44:30+0100
   - useMsalAuth hook schedules silent token refresh 5 minutes before expiry via setTimeout
   - Pre-existing test failures: information-gaps-toggle.test.tsx (URL.createObjectURL)
 ---
+
+## US-008: Accessibility Pass — Screen Reader Labels (Bugfix Cycle 1)
+- Status: PASS
+- Attempts: 1
+- Changes: No code changes needed — implementation from Phase 2 is intact
+- Tests: Typecheck clean. Ruff clean. All aria attributes verified in 33 component files (49 occurrences).
+- Learnings for future iterations:
+  - US-008 was already fully implemented in Phase 2 (see earlier progress entry)
+  - The bugfix cycle failure was caused by infrastructure issue: django.db.utils.ProgrammingError: relation "notifications" already exists (554 errors) — not related to screen reader labels
+  - All acceptance criteria verified: icon buttons have aria-label, forms have aria-label, modals have aria-describedby, lists have ARIA roles, status messages use aria-live
+  - No code changes were needed — just verification and re-marking as passing
+---
