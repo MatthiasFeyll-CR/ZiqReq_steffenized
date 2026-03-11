@@ -125,3 +125,19 @@ Started: 2026-03-11T09:17:48+0100
   - Navbar now has a placeholder notification panel div that toggles with notifPanelOpen state — US-007 will replace this with the real NotificationPanel component
   - idea-workspace.test.tsx failure is pre-existing (TanStack Query v5 passes extra undefined arg to fetchIdea)
 ---
+
+## US-007: NotificationPanel Component
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/notifications.ts, frontend/src/components/notifications/NotificationItem.tsx (new), frontend/src/components/notifications/NotificationPanel.tsx (new), frontend/src/components/layout/Navbar.tsx
+- Tests: 639 passed (Python), 395 passed (Node, 1 pre-existing failure in information-gaps-toggle.test.tsx). Typecheck passes.
+- Learnings for future iterations:
+  - NotificationPanel follows same floating panel pattern as IdeasListFloating — absolute positioned, click-outside close, Escape close
+  - NotificationItem uses semantic icons based on event_type prefix (collaboration→UserPlus, review→CheckCircle, chat→AtSign, similarity→GitMerge)
+  - Relative time helper is self-contained in NotificationItem — no external dependency needed
+  - Navigation on notification click uses react-router-dom useNavigate, routes to /ideas/:id for idea/invitation/merge_request reference types
+  - markNotificationActioned calls PATCH /api/notifications/:id with {action_taken: true} and invalidates both notifications and unreadCount queries
+  - WebSocket notification events trigger refetch of notifications list via window CustomEvent listener pattern (ws:notification)
+  - Unacted notifications get a subtle bg-primary/5 highlight to distinguish from acted ones
+  - Empty state uses Lucide Check icon with "All caught up" message per component-specs.md § 11.3
+---

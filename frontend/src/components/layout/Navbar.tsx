@@ -7,6 +7,7 @@ import { UserDropdown } from "./UserDropdown"
 import { ConnectionIndicator } from "./ConnectionIndicator"
 import { IdeasListFloating } from "./IdeasListFloating"
 import { NotificationBell } from "./NotificationBell"
+import { NotificationPanel } from "@/components/notifications/NotificationPanel"
 
 export function Navbar() {
   const { user, hasRole } = useAuth()
@@ -17,6 +18,7 @@ export function Navbar() {
 
   const closeIdeas = useCallback(() => setIdeasOpen(false), [])
   const toggleNotifPanel = useCallback(() => setNotifPanelOpen((prev) => !prev), [])
+  const closeNotifPanel = useCallback(() => setNotifPanelOpen(false), [])
 
   return (
     <nav className="sticky top-0 z-40 flex h-14 items-center bg-[#002E3C] px-4 text-white dark:bg-[#0F1A2E]">
@@ -51,11 +53,7 @@ export function Navbar() {
         </div>
         <div className="relative">
           <NotificationBell onTogglePanel={toggleNotifPanel} />
-          {notifPanelOpen && (
-            <div className="absolute right-0 top-full mt-2 w-96 rounded-lg border bg-popover p-4 text-popover-foreground shadow-lg">
-              <p className="text-sm text-muted-foreground">No notifications yet</p>
-            </div>
-          )}
+          {notifPanelOpen && <NotificationPanel onClose={closeNotifPanel} />}
         </div>
         {user && <UserDropdown />}
 

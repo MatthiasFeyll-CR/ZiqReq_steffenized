@@ -159,7 +159,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § GET /api/notifications returns list with pagination.\nDesign: docs/03-design/component-inventory.md § NotificationPanel and NotificationItem — icon + title + time + description + actions. docs/03-design/component-specs.md § 11.3 Empty States — 'All caught up' message.\nTesting: No test matrix entry for frontend components — manual verification.\nFiles: frontend/src/components/notifications/NotificationPanel.tsx (new), frontend/src/components/notifications/NotificationItem.tsx (new), frontend/src/api/notifications.ts (add fetchNotifications, markNotificationRead), frontend/src/__tests__/notification-panel.test.tsx (new)\nGotchas: Floating panel pattern similar to IdeasListFloating (M2) — use shadcn Popover or Dialog. NotificationItem action buttons depend on event_type (invitation → accept/decline, merge request → view details, etc.). Navigation on click uses react-router navigate() and marks action_taken via API. WebSocket 'notification' event triggers refetch or optimistic insert. Empty state uses Lucide Check icon.",
       "context": {
