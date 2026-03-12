@@ -19,7 +19,8 @@ import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useIdeaSync } from "@/hooks/useIdeaSync";
 import { useSelector } from "react-redux";
-import { selectIsOnline } from "@/store/websocket-slice";
+import { selectIsOnline, selectConnectionState } from "@/store/websocket-slice";
+import { useWsSend } from "@/app/providers";
 
 export default function IdeaWorkspacePage() {
   const { id } = useParams<{ id: string }>();
@@ -141,6 +142,20 @@ function IdeaWorkspaceContent({
 }) {
   const { reviewVisible, chatLocked, allReadOnly, lockReason } = useSectionVisibility(idea);
   const isOnline = useSelector(selectIsOnline);
+  const connectionState = useSelector(selectConnectionState);
+  const sendWs = useWsSend();
+
+  // Subscribe to idea's WebSocket group when connected
+  useEffect(() => {
+    if (connectionState === "online") {
+      sendWs({ type: "subscribe_idea", idea_id: idea.id });
+    }
+    return () => {
+      if (connectionState === "online") {
+        sendWs({ type: "unsubscribe_idea", idea_id: idea.id });
+      }
+    };
+  }, [idea.id, connectionState, sendWs]);
 
   // Return-from-idle: reconnect on mouse move and sync state
   useIdeaSync({ ideaId: idea.id, onIdeaUpdate });

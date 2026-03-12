@@ -65,8 +65,16 @@ class CoreClient:
     def update_idea_title(
         self, idea_id: str, new_title: str
     ) -> dict[str, Any]:
-        logger.warning("CoreClient.update_idea_title stub called")
-        return {"success": True}
+        from apps.ideas.models import Idea
+
+        updated = Idea.objects.filter(id=idea_id, deleted_at__isnull=True).update(
+            title=new_title
+        )
+        if updated:
+            logger.info("Updated title for idea %s", idea_id)
+        else:
+            logger.warning("Idea %s not found for title update", idea_id)
+        return {"success": bool(updated)}
 
     def persist_board_mutations(
         self, idea_id: str, mutations: list[dict[str, Any]]

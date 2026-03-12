@@ -95,7 +95,7 @@ export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId, ideaS
     >
       {/* Chat Panel */}
       <div
-        className="flex flex-col overflow-hidden"
+        className="flex flex-col h-full overflow-hidden"
         style={{ width: chatWidth, transition }}
         data-testid="chat-panel"
       >

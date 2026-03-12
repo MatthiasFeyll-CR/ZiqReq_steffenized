@@ -16,7 +16,8 @@ function getToastType(eventType: string): "info" | "success" | "warning" {
   if (
     eventType === "removed_from_idea" ||
     eventType === "merge_declined" ||
-    eventType === "monitoring_alert"
+    eventType === "monitoring_alert" ||
+    eventType === "rate_limit"
   )
     return "warning";
   return "info";
@@ -47,6 +48,9 @@ export function NotificationBell({ onTogglePanel }: NotificationBellProps) {
     prevCountRef.current = count;
   }, [count]);
 
+  // Event types that should be silently ignored (no toast, no bell increment)
+  const SILENT_EVENT_TYPES = new Set(["ai_delegation_complete"]);
+
   const handleNotificationEvent = useCallback(
     (e: Event) => {
       const detail = (e as CustomEvent).detail as {
@@ -54,6 +58,11 @@ export function NotificationBell({ onTogglePanel }: NotificationBellProps) {
         title?: string;
         body?: string;
       } | undefined;
+
+      const eventType = detail?.event_type ?? "";
+
+      // Skip silent event types entirely
+      if (SILENT_EVENT_TYPES.has(eventType)) return;
 
       // Optimistic count update + server reconciliation
       queryClient.setQueryData<{ unread_count: number }>(
@@ -64,7 +73,7 @@ export function NotificationBell({ onTogglePanel }: NotificationBellProps) {
 
       // Display toast with severity based on event type
       if (detail?.title) {
-        const toastType = getToastType(detail.event_type ?? "");
+        const toastType = getToastType(eventType);
         const message = detail.body
           ? `${detail.title}: ${detail.body}`
           : detail.title;

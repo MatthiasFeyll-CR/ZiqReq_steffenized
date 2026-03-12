@@ -44,6 +44,12 @@ const PREFERENCE_GROUPS: PreferenceGroup[] = [
     ],
   },
   {
+    label: "AI",
+    items: [
+      { key: "ai_delegation_complete", label: "AI processing complete" },
+    ],
+  },
+  {
     label: "Chat",
     items: [{ key: "chat_mention", label: "@mention in chat" }],
   },
@@ -79,9 +85,17 @@ interface EmailPreferencesPanelProps {
   onOpenChange: (open: boolean) => void
 }
 
+// Event types that default to OFF (opt-in). Must match backend.
+const DEFAULT_DISABLED_KEYS = new Set(["ai_delegation_complete"])
+
+function defaultFor(key: string): boolean {
+  return !DEFAULT_DISABLED_KEYS.has(key)
+}
+
 const groupLabelKey: Record<string, string> = {
   Collaboration: "collaboration",
   Review: "review",
+  AI: "ai",
   Chat: "chat",
   Similarity: "similarity",
   "Review Management": "reviewManagement",
@@ -160,7 +174,7 @@ export function EmailPreferencesPanel({
 
   const getGroupState = useCallback(
     (group: PreferenceGroup): "all" | "none" | "indeterminate" => {
-      const vals = group.items.map((i) => localPrefs[i.key] ?? true)
+      const vals = group.items.map((i) => localPrefs[i.key] ?? defaultFor(i.key))
       const allOn = vals.every(Boolean)
       const allOff = vals.every((v) => !v)
       if (allOn) return "all"
@@ -218,7 +232,7 @@ export function EmailPreferencesPanel({
                       </label>
                       <Switch
                         id={`pref-${item.key}`}
-                        checked={localPrefs[item.key] ?? true}
+                        checked={localPrefs[item.key] ?? defaultFor(item.key)}
                         onCheckedChange={(checked) =>
                           handleToggle(item.key, checked)
                         }

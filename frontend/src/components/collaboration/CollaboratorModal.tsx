@@ -26,7 +26,6 @@ import {
 import {
   searchUsers,
   sendBulkInvitations,
-  generateShareLink,
   fetchCollaborators,
   removeCollaborator,
   transferOwnership,
@@ -60,7 +59,7 @@ export function CollaboratorModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" data-testid="collaborator-modal">
+      <DialogContent className="max-w-2xl flex flex-col" data-testid="collaborator-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -70,8 +69,8 @@ export function CollaboratorModal({
             {t("collaboration.manageDescription")}
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="invite" data-testid="collaborator-tabs">
-          <TabsList className="w-full">
+        <Tabs defaultValue="invite" className="flex flex-col min-h-0 flex-1" data-testid="collaborator-tabs">
+          <TabsList className="w-full shrink-0">
             <TabsTrigger value="invite" data-testid="tab-invite">
               {t("collaboration.tabInvite")}
             </TabsTrigger>
@@ -83,11 +82,11 @@ export function CollaboratorModal({
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="invite">
-            <InviteTab ideaId={ideaId} />
+          <TabsContent value="invite" className="overflow-visible">
+            <InviteTab ideaId={ideaId} onClose={() => onOpenChange(false)} />
           </TabsContent>
 
-          <TabsContent value="collaborators">
+          <TabsContent value="collaborators" className="overflow-y-auto">
             <CollaboratorsTab
               ideaId={ideaId}
               ownerId={ownerId}
@@ -98,8 +97,8 @@ export function CollaboratorModal({
             />
           </TabsContent>
 
-          <TabsContent value="pending">
-            <PendingTab ideaId={ideaId} isOwner={isOwner} />
+          <TabsContent value="pending" className="overflow-y-auto">
+            <PendingTab ideaId={ideaId} isOwner={isOwner} onClose={() => onOpenChange(false)} />
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -109,14 +108,13 @@ export function CollaboratorModal({
 
 /* ---------- Invite Tab ---------- */
 
-function InviteTab({ ideaId }: { ideaId: string }) {
+function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<UserSearchResult[]>([]);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const listRef = useRef<HTMLUListElement>(null);
@@ -210,27 +208,16 @@ function InviteTab({ ideaId }: { ideaId: string }) {
     },
   });
 
-  const shareLinkMutation = useMutation({
-    mutationFn: () => generateShareLink(ideaId),
-    onSuccess: (data) => {
-      const fullUrl = `${window.location.origin}${data.share_url}`;
-      setShareUrl(fullUrl);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || t("collaboration.failedToInvite"));
-    },
-  });
+  const ideaUrl = `${window.location.origin}/idea/${ideaId}`;
 
   const handleCopyLink = useCallback(async () => {
-    if (!shareUrl) return;
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(ideaUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback
       const textarea = document.createElement("textarea");
-      textarea.value = shareUrl;
+      textarea.value = ideaUrl;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
@@ -238,7 +225,7 @@ function InviteTab({ ideaId }: { ideaId: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [shareUrl]);
+  }, [ideaUrl]);
 
   const handleInviteSelected = useCallback(() => {
     if (selectedUsers.length === 0) return;
@@ -247,61 +234,6 @@ function InviteTab({ ideaId }: { ideaId: string }) {
 
   return (
     <div className="space-y-4 py-2" data-testid="invite-tab">
-      {/* Share Link Section */}
-      <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Link className="h-4 w-4" />
-          {t("collaboration.shareLink")}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t("collaboration.shareLinkDescription")}
-        </p>
-        {shareUrl ? (
-          <div className="flex items-center gap-2">
-            <Input
-              readOnly
-              value={shareUrl}
-              className="text-xs flex-1"
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-              data-testid="share-link-input"
-            />
-            <TooltipProvider delayDuration={0}>
-              <Tooltip open={copied}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon-sm"
-                    onClick={handleCopyLink}
-                    data-testid="copy-link-button"
-                    aria-label={t("collaboration.copyLink")}
-                  >
-                    {copied ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {t("collaboration.copied")}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => shareLinkMutation.mutate()}
-            disabled={shareLinkMutation.isPending}
-            data-testid="generate-link-button"
-          >
-            <Link className="mr-1 h-3.5 w-3.5" />
-            {t("collaboration.generateLink")}
-          </Button>
-        )}
-      </div>
-
       {/* Selected users chips */}
       {selectedUsers.length > 0 && (
         <div className="flex flex-wrap gap-1.5" data-testid="selected-users">
@@ -392,16 +324,52 @@ function InviteTab({ ideaId }: { ideaId: string }) {
         )}
       </div>
 
-      {/* Invite button */}
-      <Button
-        onClick={handleInviteSelected}
-        disabled={selectedUsers.length === 0 || bulkInviteMutation.isPending}
-        data-testid="invite-selected-button"
-      >
-        {selectedUsers.length > 0
-          ? t("collaboration.inviteSelected", { count: selectedUsers.length })
-          : t("collaboration.invite")}
-      </Button>
+      {/* Share link + copy */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link className="h-4 w-4 shrink-0" />
+        <span className="truncate select-all">{ideaUrl}</span>
+        <TooltipProvider delayDuration={0}>
+          <Tooltip open={copied}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="shrink-0 rounded p-0.5 hover:text-foreground transition-colors"
+                onClick={handleCopyLink}
+                data-testid="copy-link-button"
+                aria-label={t("collaboration.copyLink")}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {t("collaboration.copied")}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <p className="text-sm text-muted-foreground -mt-2">
+        {t("collaboration.shareLinkDescription")}
+      </p>
+
+      {/* Footer buttons */}
+      <DialogFooter>
+        <Button variant="ghost" onClick={onClose}>
+          {t("common.back")}
+        </Button>
+        <Button
+          onClick={handleInviteSelected}
+          disabled={selectedUsers.length === 0 || bulkInviteMutation.isPending}
+          data-testid="invite-selected-button"
+        >
+          {selectedUsers.length > 0
+            ? t("collaboration.inviteSelected", { count: selectedUsers.length })
+            : t("collaboration.invite")}
+        </Button>
+      </DialogFooter>
     </div>
   );
 }
@@ -576,6 +544,12 @@ function CollaboratorsTab({
         )}
       </div>
 
+      <DialogFooter>
+        <Button variant="ghost" onClick={onCloseModal}>
+          {t("common.back")}
+        </Button>
+      </DialogFooter>
+
       {/* Remove confirmation dialog */}
       {removeTarget && (
         <Dialog open={!!removeTarget} onOpenChange={() => setRemoveTarget(null)}>
@@ -657,7 +631,7 @@ function CollaboratorRow({ user, badge }: { user: CollaboratorUser; badge: strin
 
 /* ---------- Pending Invitations Tab ---------- */
 
-function PendingTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
+function PendingTab({ ideaId, isOwner, onClose }: { ideaId: string; isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -728,6 +702,11 @@ function PendingTab({ ideaId, isOwner }: { ideaId: string; isOwner: boolean }) {
           </Button>
         </div>
       ))}
+      <DialogFooter>
+        <Button variant="ghost" onClick={onClose}>
+          {t("common.back")}
+        </Button>
+      </DialogFooter>
     </div>
   );
 }

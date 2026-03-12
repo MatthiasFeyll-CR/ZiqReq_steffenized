@@ -11,6 +11,11 @@ from grpc_clients.gateway_client import GatewayClient
 
 logger = logging.getLogger(__name__)
 
+# Event types that are OFF by default — users must explicitly opt in.
+_DEFAULT_DISABLED_EVENT_TYPES = frozenset({
+    "ai_delegation_complete",
+})
+
 
 def notify_user(
     gateway_client: GatewayClient,
@@ -64,8 +69,10 @@ def notify_user(
     display_name = prefs.get("display_name", "there")
 
     # Step 3: Check if email is enabled for this event type
-    # Missing preference key = enabled (default to True)
-    email_enabled = email_prefs.get(event_type, True)
+    # Default depends on event type: most default to True (opt-out),
+    # but some noisy types default to False (opt-in).
+    default_enabled = event_type not in _DEFAULT_DISABLED_EVENT_TYPES
+    email_enabled = email_prefs.get(event_type, default_enabled)
 
     if email_enabled and user_email:
         rendered = render_email(

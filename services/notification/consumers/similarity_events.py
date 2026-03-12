@@ -587,7 +587,7 @@ def _send_similarity_email(
         logger.warning("No email address for user %s, skipping email", owner_id)
         return
 
-    owner_idea_link = f"{BASE_URL}/ideas/{owner_idea_id}"
+    owner_idea_link = f"{BASE_URL}/idea/{owner_idea_id}"
     other_idea_link = f"{BASE_URL}/idea/{other_idea_id}?token={other_share_token}"
 
     overlap_summary = ""

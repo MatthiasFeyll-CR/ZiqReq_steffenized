@@ -6,13 +6,8 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.chat.views import (
-    _rate_limit_counters,
-    get_rate_limit_counter,
-    increment_rate_limit_counter,
-    reset_rate_limit_counter,
-)
-from apps.ideas.models import Idea
+from apps.chat.views import get_unprocessed_message_count
+from apps.ideas.models import ChatMessage, Idea
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000011")
 
@@ -29,28 +24,66 @@ def _create_user(user_id: uuid.UUID, email: str, display_name: str) -> User:
 
 
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
-class TestRateLimitCounters(TestCase):
-    """Unit tests for rate limit counter functions."""
+class TestUnprocessedMessageCount(TestCase):
+    """Unit tests for DB-based unprocessed message counting."""
 
     def setUp(self):
-        _rate_limit_counters.clear()
+        self.user = _create_user(USER_1_ID, "counter@test.local", "Counter User")
+        self.idea = Idea.objects.create(owner_id=self.user.id, title="Counter Test")
+        self.idea_id_str = str(self.idea.id)
 
-    def test_counter_starts_at_zero(self):
-        assert get_rate_limit_counter("idea-1") == 0
+    def test_count_starts_at_zero(self):
+        assert get_unprocessed_message_count(self.idea_id_str) == 0
 
-    def test_increment_returns_new_count(self):
-        assert increment_rate_limit_counter("idea-1") == 1
-        assert increment_rate_limit_counter("idea-1") == 2
+    def test_count_increments_with_user_messages(self):
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="user",
+            sender_id=self.user.id, content="msg1",
+        )
+        assert get_unprocessed_message_count(self.idea_id_str) == 1
 
-    def test_reset_clears_counter(self):
-        increment_rate_limit_counter("idea-1")
-        increment_rate_limit_counter("idea-1")
-        reset_rate_limit_counter("idea-1")
-        assert get_rate_limit_counter("idea-1") == 0
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="user",
+            sender_id=self.user.id, content="msg2",
+        )
+        assert get_unprocessed_message_count(self.idea_id_str) == 2
 
-    def test_reset_nonexistent_is_noop(self):
-        reset_rate_limit_counter("nonexistent")
-        assert get_rate_limit_counter("nonexistent") == 0
+    def test_count_resets_after_ai_response(self):
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="user",
+            sender_id=self.user.id, content="msg1",
+        )
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="user",
+            sender_id=self.user.id, content="msg2",
+        )
+        assert get_unprocessed_message_count(self.idea_id_str) == 2
+
+        # AI responds — count should reset
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="ai",
+            content="AI response",
+        )
+        assert get_unprocessed_message_count(self.idea_id_str) == 0
+
+    def test_count_tracks_messages_after_ai_response(self):
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="user",
+            sender_id=self.user.id, content="msg1",
+        )
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="ai",
+            content="AI response",
+        )
+        ChatMessage.objects.create(
+            idea_id=self.idea.id, sender_type="user",
+            sender_id=self.user.id, content="msg2",
+        )
+        assert get_unprocessed_message_count(self.idea_id_str) == 1
+
+    def test_nonexistent_idea_returns_zero(self):
+        fake_id = str(uuid.uuid4())
+        assert get_unprocessed_message_count(fake_id) == 0
 
 
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
@@ -58,7 +91,6 @@ class TestRateLimitAPI(TestCase):
     """Integration tests for rate limit on POST /api/ideas/:id/chat (T-2.11.01)."""
 
     def setUp(self):
-        _rate_limit_counters.clear()
         self.client = APIClient()
         self.user = _create_user(USER_1_ID, "ratelimit@test.local", "Rate Limiter")
         self.idea = Idea.objects.create(owner_id=self.user.id, title="Rate Test")
@@ -93,11 +125,9 @@ class TestRateLimitAPI(TestCase):
         assert data["error"]["code"] == "rate_limited"
         assert "locked" in data["error"]["message"].lower()
 
-    def test_rate_limit_resets_on_complete(self):
-        """T-2.11.02: ai.processing.complete resets counter to 0."""
-        idea_id_str = str(self.idea.id)
-
-        # Fill counter to cap
+    def test_rate_limit_resets_after_ai_response(self):
+        """T-2.11.02: AI response resets unprocessed count, allowing new messages."""
+        # Fill to cap
         for i in range(5):
             self.client.post(
                 self._chat_url(),
@@ -113,26 +143,30 @@ class TestRateLimitAPI(TestCase):
         )
         assert resp.status_code == 429
 
-        # Reset (simulating ai.processing.complete)
-        reset_rate_limit_counter(idea_id_str)
+        # Simulate AI response (this is what ai.processing.complete leads to)
+        ChatMessage.objects.create(
+            idea_id=self.idea.id,
+            sender_type="ai",
+            content="AI has processed your messages.",
+        )
 
         # Should be able to send again
         resp = self.client.post(
             self._chat_url(),
-            {"content": "After reset"},
+            {"content": "After AI response"},
             format="json",
         )
         assert resp.status_code == 201
 
     def test_counter_increments_per_message(self):
-        """Counter increments for each successfully sent message."""
+        """Unprocessed count increments for each successfully sent message."""
         idea_id_str = str(self.idea.id)
 
         self.client.post(self._chat_url(), {"content": "msg1"}, format="json")
-        assert get_rate_limit_counter(idea_id_str) == 1
+        assert get_unprocessed_message_count(idea_id_str) == 1
 
         self.client.post(self._chat_url(), {"content": "msg2"}, format="json")
-        assert get_rate_limit_counter(idea_id_str) == 2
+        assert get_unprocessed_message_count(idea_id_str) == 2
 
     def test_rate_limit_per_idea(self):
         """Rate limit counters are per-idea."""

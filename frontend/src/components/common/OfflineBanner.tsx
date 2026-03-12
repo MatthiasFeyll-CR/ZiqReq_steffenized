@@ -1,14 +1,14 @@
-import { useSelector } from "react-redux";
-import { useTranslation } from "react-i18next";
-import { WifiOff } from "lucide-react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useWsReconnect } from "@/app/providers";
 import { Button } from "@/components/ui/button";
 import {
   selectConnectionState,
-  selectReconnectCountdown,
   selectIsIdleDisconnected,
+  selectReconnectCountdown,
 } from "@/store/websocket-slice";
-import { useWsReconnect } from "@/app/providers";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { WifiOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
 
 export function OfflineBanner() {
   const { t } = useTranslation();
@@ -31,29 +31,36 @@ export function OfflineBanner() {
           className="overflow-hidden"
           data-testid="offline-banner"
         >
-          <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-400 dark:border-amber-600 rounded-md p-4 mx-0" role="alert" aria-live="assertive">
-            <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-            <p className="text-sm text-foreground flex-1">
-              {isIdleDisconnected
-                ? t("offline.idleDisconnected")
-                : <>
+          <div
+            className="flex flex-col items-center gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-400 dark:border-amber-600 rounded-md p-4 mx-0"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div className="flex items-center gap-2">
+              <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <p className="text-sm text-foreground">
+                {isIdleDisconnected ? (
+                  t("offline.idleDisconnected")
+                ) : (
+                  <>
                     {t("offline.currentlyOffline")}
                     {countdown !== null && countdown > 0
                       ? ` ${t("offline.retryingIn", { countdown })}`
                       : ` ${t("offline.attemptingReconnect")}`}
                   </>
-              }
-            </p>
-            {!isIdleDisconnected && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={reconnect}
-                data-testid="reconnect-button"
-              >
-                {t("offline.reconnect")}
-              </Button>
-            )}
+                )}
+              </p>
+              {!isIdleDisconnected && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={reconnect}
+                  data-testid="reconnect-button"
+                >
+                  {t("offline.reconnect")}
+                </Button>
+              )}
+            </div>
           </div>
         </motion.div>
       )}

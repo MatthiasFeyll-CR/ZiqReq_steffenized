@@ -121,8 +121,9 @@ class AIEventConsumer:
 
         payload = {
             "id": result.get("message_id", ""),
+            "idea_id": idea_id,
             "sender_type": "ai",
-            "sender": None,
+            "sender_id": None,
             "ai_agent": ai_agent,
             "content": content,
             "message_type": message_type,
@@ -194,12 +195,12 @@ class AIEventConsumer:
         await self._broadcast(idea_id, "brd_ready", payload)
 
     async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
-        """ai.processing.complete → reset rate limit counter + broadcast ai_processing {state: completed}."""
+        """ai.processing.complete → broadcast ai_processing {state: completed}.
+
+        Rate limiting is now handled by querying unprocessed messages in the DB,
+        so no explicit counter reset is needed here.
+        """
         idea_id = event["idea_id"]
-
-        from apps.chat.views import reset_rate_limit_counter
-
-        reset_rate_limit_counter(idea_id)
 
         payload = {
             "idea_id": idea_id,
@@ -237,10 +238,14 @@ class AIEventConsumer:
         """Send event to WebSocket group idea_{idea_id}."""
         channel_layer = get_channel_layer()
         if channel_layer is None:
-            logger.warning("No channel layer available, skipping broadcast")
+            logger.warning("[BROADCAST] No channel layer available, skipping broadcast")
             return
 
         group_name = f"idea_{idea_id}"
+        logger.info(
+            "[BROADCAST] Sending %s to group %s via %s",
+            event_type, group_name, type(channel_layer).__name__,
+        )
         await channel_layer.group_send(
             group_name,
             {
@@ -249,3 +254,4 @@ class AIEventConsumer:
                 "payload": payload,
             },
         )
+        logger.info("[BROADCAST] Sent %s to group %s", event_type, group_name)

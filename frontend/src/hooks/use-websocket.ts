@@ -157,6 +157,30 @@ export function useWebSocket() {
                 detail: data.payload,
               }),
             );
+          } else if (data.type === "chat_message" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:chat_message", {
+                detail: { idea_id: data.idea_id, message: data.payload },
+              }),
+            );
+          } else if (data.type === "ai_reaction" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:ai_reaction", {
+                detail: { idea_id: data.idea_id, ...data.payload },
+              }),
+            );
+          } else if (data.type === "board_update" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:board_update", {
+                detail: { idea_id: data.idea_id, ...data.payload },
+              }),
+            );
+          } else if (data.type === "brd_ready" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:brd_ready", {
+                detail: { idea_id: data.idea_id, ...data.payload },
+              }),
+            );
           } else if (
             data.type === "board_selection" &&
             data.idea_id &&

@@ -85,14 +85,19 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
     const el = textareaRef.current;
     if (el) {
       el.style.height = "auto";
+      el.style.overflowY = "hidden";
     }
   }, []);
+
+  const MAX_TEXTAREA_HEIGHT = 168; // ~7 rows
 
   const handleInput = useCallback(() => {
     const el = textareaRef.current;
     if (el) {
       el.style.height = "auto";
-      el.style.height = `${el.scrollHeight}px`;
+      const newHeight = Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT);
+      el.style.height = `${newHeight}px`;
+      el.style.overflowY = el.scrollHeight > MAX_TEXTAREA_HEIGHT ? "auto" : "hidden";
     }
   }, []);
 
@@ -240,7 +245,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
   }, []);
 
   return (
-    <div ref={containerRef} className="relative border-t bg-card p-3 flex items-end gap-2" data-testid="chat-input">
+    <div ref={containerRef} className="relative border-t bg-card px-6 py-4 flex items-end gap-2" data-testid="chat-input">
       <ContextWindowIndicator ideaId={ideaId} ideaState={idea?.state ?? "open"} />
       <div className="relative flex-1">
         {mentionOpen && (
@@ -253,7 +258,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
         )}
         <textarea
           ref={textareaRef}
-          className="w-full min-h-10 max-h-40 rounded-md border border-border bg-background px-3 py-2 text-base text-foreground placeholder:text-text-secondary resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full min-h-10 max-h-[10.5rem] overflow-y-auto rounded-md border border-border bg-background px-3 py-2 text-base text-foreground placeholder:text-text-secondary resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           rows={1}
           value={value}
           onChange={handleChange}

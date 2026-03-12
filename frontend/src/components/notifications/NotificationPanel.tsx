@@ -18,11 +18,11 @@ function getNavigationPath(notification: Notification): string | null {
   if (!notification.reference_id) return null;
   switch (notification.reference_type) {
     case "idea":
-      return `/ideas/${notification.reference_id}`;
+      return `/idea/${notification.reference_id}`;
     case "invitation":
-      return `/ideas/${notification.reference_id}`;
+      return `/idea/${notification.reference_id}`;
     case "merge_request":
-      return `/ideas/${notification.reference_id}`;
+      return `/idea/${notification.reference_id}`;
     default:
       return null;
   }

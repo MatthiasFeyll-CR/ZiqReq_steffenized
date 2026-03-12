@@ -1,6 +1,5 @@
 import logging
 import re
-import threading
 import uuid
 
 from asgiref.sync import async_to_sync
@@ -50,11 +49,6 @@ DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
 DEFAULT_CHAT_MESSAGE_CAP = 5
 
-# In-memory rate limit counters per idea_id.
-# Future milestones should use Redis for cross-process consistency.
-_rate_limit_counters: dict[str, int] = {}
-_rate_limit_lock = threading.Lock()
-
 
 def _get_chat_message_cap() -> int:
     """Read chat_message_cap admin param, fallback to default.
@@ -72,24 +66,24 @@ def _get_chat_message_cap() -> int:
         return DEFAULT_CHAT_MESSAGE_CAP
 
 
-def get_rate_limit_counter(idea_id: str) -> int:
-    """Get current rate limit counter for an idea."""
-    with _rate_limit_lock:
-        return _rate_limit_counters.get(idea_id, 0)
+def get_unprocessed_message_count(idea_id: str) -> int:
+    """Count user messages sent after the last AI response for an idea.
 
+    This queries the database directly, avoiding cross-process state issues
+    that occurred with the previous in-memory counter approach.
+    """
+    last_ai_message = (
+        ChatMessage.objects.filter(idea_id=idea_id, sender_type="ai")
+        .order_by("-created_at")
+        .values("created_at")
+        .first()
+    )
 
-def increment_rate_limit_counter(idea_id: str) -> int:
-    """Increment and return the new counter value."""
-    with _rate_limit_lock:
-        count = _rate_limit_counters.get(idea_id, 0) + 1
-        _rate_limit_counters[idea_id] = count
-        return count
+    qs = ChatMessage.objects.filter(idea_id=idea_id, sender_type="user")
+    if last_ai_message:
+        qs = qs.filter(created_at__gt=last_ai_message["created_at"])
 
-
-def reset_rate_limit_counter(idea_id: str) -> None:
-    """Reset counter to 0 (called on ai.processing.complete)."""
-    with _rate_limit_lock:
-        _rate_limit_counters.pop(idea_id, None)
+    return qs.count()
 
 
 def _require_auth(request: Request):
@@ -215,10 +209,10 @@ def _create_message(request: Request, idea_id: str) -> Response:
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    # Rate limit check: 429 when counter >= chat_message_cap
+    # Rate limit check: 429 when unprocessed user messages >= chat_message_cap
     idea_id_str = str(idea.id)
     cap = _get_chat_message_cap()
-    current_count = get_rate_limit_counter(idea_id_str)
+    current_count = get_unprocessed_message_count(idea_id_str)
     if current_count >= cap:
         # Broadcast rate_limit event via WebSocket
         _broadcast_rate_limit(idea_id_str)
@@ -242,9 +236,6 @@ def _create_message(request: Request, idea_id: str) -> Response:
         sender_id=user.id,
         content=serializer.validated_data["content"],
     )
-
-    # Increment rate limit counter after successful message creation
-    increment_rate_limit_counter(idea_id_str)
 
     response_serializer = ChatMessageResponseSerializer(message)
 

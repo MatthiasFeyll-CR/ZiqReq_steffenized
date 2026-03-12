@@ -15,6 +15,16 @@ export function useRateLimit(ideaId: string) {
       if (detail?.idea_id !== ideaId) return;
       setIsLimited(true);
       toast.warning(i18n.t("chat.rateLimited"));
+
+      // Also push to notification bell
+      window.dispatchEvent(
+        new CustomEvent("ws:notification", {
+          detail: {
+            event_type: "rate_limit",
+            title: i18n.t("chat.rateLimited"),
+          },
+        }),
+      );
     };
 
     const handleAiProcessing = (e: Event) => {
