@@ -127,41 +127,6 @@
       "name": "Polish & Cross-Cutting",
       "stories": 10,
       "dependencies": [10, 11, 12]
-    },
-    {
-      "id": 17,
-      "slug": "e2e-foundation",
-      "name": "E2E Foundation Tests",
-      "stories": 5,
-      "dependencies": [16]
-    },
-    {
-      "id": 18,
-      "slug": "e2e-workspace",
-      "name": "E2E Workspace, Chat & Board Tests",
-      "stories": 10,
-      "dependencies": [17]
-    },
-    {
-      "id": 19,
-      "slug": "e2e-review-collab",
-      "name": "E2E BRD, Review & Collaboration",
-      "stories": 10,
-      "dependencies": [18]
-    },
-    {
-      "id": 20,
-      "slug": "e2e-similarity-admin",
-      "name": "E2E Similarity, Merge & Admin",
-      "stories": 9,
-      "dependencies": [19]
-    },
-    {
-      "id": 21,
-      "slug": "e2e-journeys-edge",
-      "name": "E2E Error Handling & User Journeys",
-      "stories": 8,
-      "dependencies": [20]
     }
   ],
   "models": {

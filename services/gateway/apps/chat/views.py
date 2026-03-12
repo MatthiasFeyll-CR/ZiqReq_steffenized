@@ -305,11 +305,7 @@ def _list_messages(request: Request, idea_id: str) -> Response:
     if error:
         return error
 
-    if not _check_access(user, idea):
-        return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+    # Any authenticated user can read chat messages (read-only access)
 
     limit = min(int(request.query_params.get("limit", DEFAULT_LIMIT)), MAX_LIMIT)
     offset = max(int(request.query_params.get("offset", 0)), 0)

@@ -19,6 +19,7 @@ import { useTrash } from "@/hooks/use-trash";
 import { useDeleteIdea } from "@/hooks/use-delete-idea";
 import { useRestoreIdea } from "@/hooks/use-restore-idea";
 import { useIdeasFilters } from "@/hooks/use-ideas-filters";
+import { useLandingSync } from "@/hooks/use-landing-sync";
 
 interface SectionProps {
   title: string;
@@ -61,6 +62,8 @@ export default function LandingPage() {
     clearFilters,
     hasActiveFilters,
   } = useIdeasFilters();
+
+  useLandingSync();
 
   const showMyIdeas = !filters.ownership || filters.ownership === "my_ideas";
   const showCollaborating =

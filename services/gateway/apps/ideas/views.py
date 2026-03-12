@@ -116,12 +116,23 @@ def _create_idea(request: Request) -> Response:
 
     idea = Idea.objects.create(owner_id=user.id)
 
-    ChatMessage.objects.create(
+    message = ChatMessage.objects.create(
         idea_id=idea.id,
         sender_type="user",
         sender_id=user.id,
         content=first_message,
     )
+
+    # Trigger AI processing for the first message
+    try:
+        from apps.chat.views import _trigger_ai_processing
+
+        _trigger_ai_processing(str(idea.id), str(message.id))
+    except Exception:
+        logger.exception(
+            "AI processing trigger failed for first message idea=%s message=%s",
+            idea.id, message.id,
+        )
 
     user_map = {user.id: user}
     detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
@@ -402,14 +413,7 @@ def context_window(request: Request, idea_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    is_owner = idea.owner_id == user.id
-    is_co_owner = idea.co_owner_id == user.id
-    is_collaborator = IdeaCollaborator.objects.filter(idea_id=idea.id, user_id=user.id).exists()
-    if not (is_owner or is_co_owner or is_collaborator):
-        return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+    # Any authenticated user can read context window (read-only access)
 
     # Count all messages for this idea
     message_count = ChatMessage.objects.filter(idea_id=idea_id).count()
@@ -575,22 +579,7 @@ def get_similar_ideas(request: Request, idea_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # Permission check: owner, co-owner, collaborator, or assigned reviewer
-    is_owner = idea.owner_id == user.id
-    is_co_owner = idea.co_owner_id == user.id
-    is_collaborator = IdeaCollaborator.objects.filter(idea_id=idea.id, user_id=user.id).exists()
-
-    from apps.review.models import ReviewAssignment
-
-    is_reviewer = ReviewAssignment.objects.filter(
-        idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
-    ).exists()
-
-    if not (is_owner or is_co_owner or is_collaborator or is_reviewer):
-        return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+    # Any authenticated user can view similar ideas (read-only access)
 
     # Pagination
     page = max(int(request.query_params.get("page", 1)), 1)

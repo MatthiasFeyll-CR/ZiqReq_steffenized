@@ -181,8 +181,8 @@ def send_invitation(request: Request, idea_id: str) -> Response:
             event_type="collaboration_invitation",
             title="Collaboration Invitation",
             body=f"{user.display_name} invited you to collaborate on \"{idea.title}\"",
-            reference_id=str(invitation.id),
-            reference_type="invitation",
+            reference_id=str(idea_uuid),
+            reference_type="idea",
         )
 
         results.append({"invitee_id": str(invitee_uuid), "invitation_id": str(invitation.id), "status": "pending"})

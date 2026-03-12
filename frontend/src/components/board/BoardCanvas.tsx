@@ -14,6 +14,8 @@ import {
   type Edge,
   type NodeTypes,
   type EdgeTypes,
+  type NodeChange,
+  type EdgeChange,
   SelectionMode,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -23,7 +25,14 @@ import { GroupNode } from "./GroupNode";
 import { FreeTextNode } from "./FreeTextNode";
 import { ConnectionEdge } from "./ConnectionEdge";
 import { BoardToolbar } from "./BoardToolbar";
-import { updateBoardNode } from "@/api/board";
+import {
+  updateBoardNode,
+  createBoardNode,
+  fetchBoardNodes,
+  fetchBoardConnections,
+  type BoardNode as ApiBoardNode,
+  type BoardConnection as ApiBoardConnection,
+} from "@/api/board";
 import { useBoardUndo } from "@/hooks/use-board-undo";
 import { useWsSend } from "@/app/providers";
 import { useAuth } from "@/hooks/use-auth";
@@ -112,6 +121,34 @@ function findParentGroup(
   return bestGroup;
 }
 
+function apiNodeToReactFlow(n: ApiBoardNode): Node {
+  return {
+    id: n.id,
+    type: n.node_type,
+    position: { x: n.position_x, y: n.position_y },
+    ...(n.parent_id ? { parentId: n.parent_id, expandParent: true } : {}),
+    ...(n.width != null ? { width: n.width } : {}),
+    ...(n.height != null ? { height: n.height } : {}),
+    data: {
+      title: n.title ?? "",
+      body: n.body ?? "",
+      created_by: n.created_by,
+      is_locked: n.is_locked,
+      ai_modified_indicator: n.ai_modified_indicator,
+    },
+  };
+}
+
+function apiConnectionToReactFlow(c: ApiBoardConnection): Edge {
+  return {
+    id: c.id,
+    source: c.source_node_id,
+    target: c.target_node_id,
+    type: "connection",
+    label: c.label || undefined,
+  };
+}
+
 interface BoardCanvasProps {
   ideaId?: string;
   disabled?: boolean;
@@ -119,9 +156,35 @@ interface BoardCanvasProps {
 }
 
 export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
+  const [nodes, setNodes, onNodesChangeRaw] = useNodesState(defaultNodes);
+  const [edges, setEdges, onEdgesChangeRaw] = useEdgesState(defaultEdges);
   const dropTargetIdRef = useRef<string | null>(null);
+
+  // When disabled, only allow selection changes (for visual highlighting) — block
+  // position, dimension, add, remove, and reset changes so the board is truly frozen.
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      if (disabled) {
+        const allowed = changes.filter((c) => c.type === "select");
+        if (allowed.length > 0) onNodesChangeRaw(allowed);
+        return;
+      }
+      onNodesChangeRaw(changes);
+    },
+    [disabled, onNodesChangeRaw],
+  );
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      if (disabled) {
+        const allowed = changes.filter((c) => c.type === "select");
+        if (allowed.length > 0) onEdgesChangeRaw(allowed);
+        return;
+      }
+      onEdgesChangeRaw(changes);
+    },
+    [disabled, onEdgesChangeRaw],
+  );
   const { getInternalNode } = useReactFlow();
   const { push: pushUndoAction, handleUndo, handleRedo, canUndo, canRedo, undoTop, redoTop } = useBoardUndo(ideaId);
   const wsSend = useWsSend();
@@ -171,9 +234,9 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
 
   const handleAddBox = useCallback(
     (position: { x: number; y: number }) => {
-      const id = crypto.randomUUID();
+      const tempId = crypto.randomUUID();
       const newNode: Node = {
-        id,
+        id: tempId,
         type: "box",
         position,
         data: {
@@ -184,8 +247,27 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
         },
       };
       setNodes((nds) => [...nds, newNode]);
+
+      if (ideaId) {
+        createBoardNode(ideaId, {
+          node_type: "box",
+          title: "New Box",
+          body: "",
+          position_x: position.x,
+          position_y: position.y,
+          created_by: "user",
+        }).then((saved) => {
+          // Replace temp ID with server-assigned ID
+          setNodes((nds) =>
+            nds.map((n) => (n.id === tempId ? { ...n, id: saved.id } : n)),
+          );
+        }).catch(() => {
+          // Remove the node if persist failed
+          setNodes((nds) => nds.filter((n) => n.id !== tempId));
+        });
+      }
     },
-    [setNodes],
+    [ideaId, setNodes],
   );
 
   const handleDeleteSelected = useCallback(() => {
@@ -382,7 +464,35 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
     }
   }, [ideaId, wsSend, user]);
 
-  // Inject onToggleLock, selection info into node data and set draggable based on is_locked
+  const handleTitleChange = useCallback(
+    (nodeId: string, newTitle: string) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, title: newTitle } } : n,
+        ),
+      );
+      if (ideaId) {
+        updateBoardNode(ideaId, nodeId, { title: newTitle }).catch(() => {});
+      }
+    },
+    [ideaId, setNodes],
+  );
+
+  const handleBodyChange = useCallback(
+    (nodeId: string, newBody: string) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId ? { ...n, data: { ...n.data, body: newBody } } : n,
+        ),
+      );
+      if (ideaId) {
+        updateBoardNode(ideaId, nodeId, { body: newBody }).catch(() => {});
+      }
+    },
+    [ideaId, setNodes],
+  );
+
+  // Inject callbacks and selection info into node data, set draggable based on is_locked
   const processedNodes = useMemo(
     () =>
       nodes.map((n) => {
@@ -395,12 +505,145 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
           data: {
             ...n.data,
             onToggleLock: handleToggleLock,
+            onTitleChange: handleTitleChange,
+            onBodyChange: handleBodyChange,
             _selectedBy: sel ?? null,
           },
         };
       }),
-    [nodes, handleToggleLock, selections, user?.id, disabled],
+    [nodes, handleToggleLock, handleTitleChange, handleBodyChange, selections, user?.id, disabled],
   );
+
+  // Load initial board data
+  useEffect(() => {
+    if (!ideaId) return;
+    let cancelled = false;
+
+    Promise.all([fetchBoardNodes(ideaId), fetchBoardConnections(ideaId)]).then(
+      ([apiNodes, apiConnections]) => {
+        if (cancelled) return;
+        // Sort so parents come before children for ReactFlow
+        const sorted = [...apiNodes].sort((a, b) => {
+          if (a.parent_id && !b.parent_id) return 1;
+          if (!a.parent_id && b.parent_id) return -1;
+          return 0;
+        });
+        setNodes(sorted.map(apiNodeToReactFlow));
+        setEdges(apiConnections.map(apiConnectionToReactFlow));
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ideaId, setNodes, setEdges]);
+
+  // Listen for real-time board updates via WebSocket
+  useEffect(() => {
+    if (!ideaId) return;
+
+    const handleBoardUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail.idea_id !== ideaId) return;
+
+      const mutations: Array<Record<string, unknown>> =
+        detail.mutations?.length > 0
+          ? detail.mutations
+          : detail.mutation && Object.keys(detail.mutation).length > 0
+            ? [detail.mutation]
+            : [];
+
+      for (const mut of mutations) {
+        const action = mut.action as string;
+
+        if (action === "create_node") {
+          const newNode: Node = {
+            id: mut.node_id as string,
+            type: (mut.node_type as string) || "box",
+            position: {
+              x: (mut.position_x as number) ?? 0,
+              y: (mut.position_y as number) ?? 0,
+            },
+            ...(mut.parent_id
+              ? { parentId: mut.parent_id as string, expandParent: true }
+              : {}),
+            data: {
+              title: (mut.title as string) ?? "",
+              body: (mut.body as string) ?? "",
+              created_by: "ai",
+              is_locked: false,
+              ai_modified_indicator: false,
+            },
+          };
+          setNodes((nds) => {
+            if (nds.some((n) => n.id === newNode.id)) return nds;
+            return [...nds, newNode];
+          });
+        } else if (action === "update_node") {
+          setNodes((nds) =>
+            nds.map((n) => {
+              if (n.id !== (mut.node_id as string)) return n;
+              const updated = { ...n, data: { ...n.data } };
+              if (mut.title != null) updated.data.title = mut.title as string;
+              if (mut.body != null) updated.data.body = mut.body as string;
+              return updated;
+            }),
+          );
+        } else if (action === "delete_node") {
+          setNodes((nds) => nds.filter((n) => n.id !== (mut.node_id as string)));
+        } else if (action === "move_node") {
+          setNodes((nds) =>
+            nds.map((n) => {
+              if (n.id !== (mut.node_id as string)) return n;
+              return {
+                ...n,
+                position: {
+                  x: (mut.position_x as number) ?? n.position.x,
+                  y: (mut.position_y as number) ?? n.position.y,
+                },
+                ...(mut.new_parent_id !== undefined
+                  ? {
+                      parentId: (mut.new_parent_id as string) || undefined,
+                      expandParent: !!mut.new_parent_id,
+                    }
+                  : {}),
+              };
+            }),
+          );
+        } else if (action === "create_connection") {
+          const newEdge: Edge = {
+            id: (mut.connection_id as string) ?? crypto.randomUUID(),
+            source: mut.source_node_id as string,
+            target: mut.target_node_id as string,
+            type: "connection",
+            label: (mut.label as string) || undefined,
+          };
+          setEdges((eds) => {
+            if (eds.some((e) => e.id === newEdge.id)) return eds;
+            return [...eds, newEdge];
+          });
+        } else if (action === "delete_connection") {
+          setEdges((eds) =>
+            eds.filter((e) => e.id !== (mut.connection_id as string)),
+          );
+        } else if (action === "resize_group") {
+          setNodes((nds) =>
+            nds.map((n) => {
+              if (n.id !== (mut.node_id as string)) return n;
+              return {
+                ...n,
+                width: (mut.width as number) ?? n.width,
+                height: (mut.height as number) ?? n.height,
+              };
+            }),
+          );
+        }
+      }
+    };
+
+    window.addEventListener("ws:board_update", handleBoardUpdate);
+    return () => window.removeEventListener("ws:board_update", handleBoardUpdate);
+  }, [ideaId, setNodes, setEdges]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -435,8 +678,8 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
         <ReactFlow
           nodes={processedNodes}
           edges={edges}
-          onNodesChange={disabled ? undefined : onNodesChange}
-          onEdgesChange={disabled ? undefined : onEdgesChange}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           onConnect={disabled ? undefined : onConnect}
           onNodeClick={disabled ? undefined : onNodeClick}
           onPaneClick={disabled ? undefined : onPaneClick}

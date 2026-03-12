@@ -191,8 +191,7 @@ def _list_nodes(request: Request, idea_id: str) -> Response:
     if error:
         return error
 
-    if not _check_access(user, idea):
-        return _access_denied_response()
+    # Any authenticated user can read board nodes (read-only access)
 
     nodes = BoardNode.objects.filter(idea_id=idea.id).order_by("created_at")
     serializer = BoardNodeResponseSerializer(nodes, many=True)
@@ -413,8 +412,7 @@ def _list_connections(request: Request, idea_id: str) -> Response:
     if error:
         return error
 
-    if not _check_access(user, idea):
-        return _access_denied_response()
+    # Any authenticated user can read board connections (read-only access)
 
     connections = BoardConnection.objects.filter(idea_id=idea.id).order_by("created_at")
     serializer = BoardConnectionResponseSerializer(connections, many=True)

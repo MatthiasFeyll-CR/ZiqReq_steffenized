@@ -79,10 +79,12 @@ class CoreClient:
                     "compression_iteration": row[1],
                 }
 
+        board_state = self.get_board_state(idea_id) if include_board else {"nodes": [], "connections": []}
+
         return {
             "idea": idea,
             "recent_messages": recent_messages,
-            "board_state": {"nodes": [], "connections": []},
+            "board_state": board_state,
             "chat_summary": chat_summary,
         }
 

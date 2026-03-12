@@ -100,9 +100,7 @@ def _get_brd_draft(request: Request, idea_id: str) -> Response:
     if error:
         return error
 
-    access_error = _check_access(user, idea)
-    if access_error:
-        return access_error
+    # Any authenticated user can read BRD draft (read-only access)
 
     # Get or create empty draft
     draft, _created = BrdDraft.objects.get_or_create(
@@ -250,9 +248,7 @@ def brd_version_pdf(request: Request, idea_id: str, version: str) -> Response:
     if error:
         return error
 
-    access_error = _check_access(user, idea)
-    if access_error:
-        return access_error
+    # Any authenticated user can download BRD PDF (read-only access)
 
     # Resolve "latest" to actual version number
     if version == "latest":

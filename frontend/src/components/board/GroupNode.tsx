@@ -1,4 +1,4 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, useRef, useEffect } from "react";
 import { Handle, Position, NodeResizer, type NodeProps, type Node } from "@xyflow/react";
 import { Lock, Unlock } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ export interface GroupNodeData {
   is_locked?: boolean;
   ai_modified_indicator?: boolean;
   onToggleLock?: (nodeId: string, newLocked: boolean) => void;
+  onTitleChange?: (nodeId: string, title: string) => void;
   _dropTarget?: boolean;
   [key: string]: unknown;
 }
@@ -21,9 +22,44 @@ function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
   const selectedBy = _selectedBy as { user_id: string; display_name: string } | null;
   const { t } = useTranslation();
 
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(title ?? "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => setValue(title ?? ""), [title]);
+
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus();
+  }, [editing]);
+
   const handleToggleLock = useCallback(() => {
     onToggleLock?.(id, !is_locked);
   }, [id, is_locked, onToggleLock]);
+
+  const handleDoubleClick = useCallback(() => {
+    if (is_locked) return;
+    setEditing(true);
+  }, [is_locked]);
+
+  const handleBlur = useCallback(() => {
+    setEditing(false);
+    if (data.onTitleChange && value !== title) {
+      data.onTitleChange(id, value);
+    }
+  }, [data, id, value, title]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        (e.target as HTMLInputElement).blur();
+      } else if (e.key === "Escape") {
+        setValue(title ?? "");
+        setEditing(false);
+      }
+    },
+    [title],
+  );
 
   const selectionColor = selectedBy ? getUserColor(selectedBy.user_id) : null;
 
@@ -71,16 +107,27 @@ function GroupNodeComponent({ data, id }: NodeProps<GroupNodeType>) {
       <Handle type="target" position={Position.Top} className="!bg-border" />
 
       {/* Label badge */}
-      {title && (
-        <div className="absolute left-2 top-2">
+      <div className="absolute left-2 top-2">
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="rounded bg-muted px-2 py-0.5 text-xs font-medium outline-none"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            data-testid="group-title-input"
+          />
+        ) : (
           <span
-            className="rounded bg-muted px-2 py-0.5 text-xs font-medium"
+            className="rounded bg-muted px-2 py-0.5 text-xs font-medium cursor-text"
+            onDoubleClick={handleDoubleClick}
             data-testid="group-label"
           >
-            {title}
+            {value || (is_locked ? "\u00A0" : "Double-click to name")}
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Lock toggle button */}
       <div className="absolute bottom-1 right-1">
