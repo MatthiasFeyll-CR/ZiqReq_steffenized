@@ -28,10 +28,10 @@ interface SectionProps {
 
 function Section({ title, count, children }: SectionProps) {
   return (
-    <section>
+    <section className="rounded-lg border border-border bg-surface p-4 shadow-sm dark:shadow-md dark:shadow-black/20">
       <div className="mb-3 flex items-center gap-2">
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-muted px-2 text-xs font-medium text-text-secondary">
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-text-secondary">
           {count}
         </span>
       </div>

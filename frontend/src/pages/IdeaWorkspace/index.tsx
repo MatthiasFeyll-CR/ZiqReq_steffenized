@@ -228,7 +228,7 @@ function IdeaWorkspaceContent({
   const effectiveReadOnly = allReadOnly || readOnly || isClosedIdea;
 
   return (
-    <main id="main-content" className="flex flex-col h-full overflow-y-auto" data-testid="idea-workspace">
+    <div className="flex flex-col h-full overflow-hidden" data-testid="idea-workspace">
       <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} readOnly={effectiveReadOnly || hasMergePending} />
       {readOnly && <ReadOnlyBanner />}
       {!readOnly && isClosedByMerge && idea.merged_idea_ref && (
@@ -242,7 +242,7 @@ function IdeaWorkspaceContent({
       )}
       {!readOnly && !isClosedIdea && <InvitationBanner ideaId={idea.id} />}
       <OfflineBanner />
-      <div ref={brainstormingRef} className="relative flex-1 min-h-0 flex flex-col" style={{ minHeight: hasBeenSubmitted ? "calc(100vh - 64px)" : undefined }}>
+      <div ref={brainstormingRef} className="relative flex-1 min-h-0 flex flex-col">
         {(hasMergePending || isClosedIdea) && (
           <LockOverlay reason={isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
         )}
@@ -262,6 +262,6 @@ function IdeaWorkspaceContent({
           <ReviewSection ideaId={idea.id} idea={idea} />
         </div>
       )}
-    </main>
+    </div>
   );
 }

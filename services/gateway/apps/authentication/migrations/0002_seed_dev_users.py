@@ -6,7 +6,7 @@ from django.db import migrations
 DEV_USERS = [
     {
         "id": uuid.UUID("00000000-0000-0000-0000-000000000001"),
-        "email": "dev1@ziqreq.local",
+        "email": "matthias.feyll@commerzreal.com",
         "first_name": "Dev",
         "last_name": "User1",
         "display_name": "Dev User 1",

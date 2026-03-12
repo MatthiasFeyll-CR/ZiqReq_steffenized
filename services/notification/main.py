@@ -6,9 +6,12 @@ import json
 import logging
 import os
 import signal
+import threading
+import time
 from typing import Any
 
 import pika
+import redis
 from consumers.ai_events import handle_ai_event
 from consumers.chat_events import handle_chat_event
 from consumers.collaboration_events import handle_collaboration_event
@@ -24,7 +27,22 @@ from pika.adapters.blocking_connection import BlockingChannel
 logger = logging.getLogger(__name__)
 
 BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@localhost:5672/")
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 EXCHANGE_NAME = "ziqreq.events"
+
+
+def _heartbeat_loop(stop_event: threading.Event) -> None:
+    """Periodically write a heartbeat timestamp to Redis."""
+    try:
+        r = redis.from_url(REDIS_URL, socket_timeout=5)
+        while not stop_event.is_set():
+            try:
+                r.set("notification:heartbeat", str(time.time()))
+            except Exception:
+                logger.exception("Failed to write heartbeat to Redis")
+            stop_event.wait(30)
+    except Exception:
+        logger.exception("Heartbeat thread failed to connect to Redis")
 
 # Map routing key prefixes to handler functions
 _ROUTE_HANDLERS: dict[str, Any] = {
@@ -152,11 +170,19 @@ def main() -> None:
     signal.signal(signal.SIGINT, _shutdown)
     signal.signal(signal.SIGTERM, _shutdown)
 
+    # Start heartbeat thread
+    heartbeat_stop = threading.Event()
+    heartbeat_thread = threading.Thread(
+        target=_heartbeat_loop, args=(heartbeat_stop,), daemon=True
+    )
+    heartbeat_thread.start()
+
     logger.info("Notification service started, waiting for events...")
 
     try:
         channel.start_consuming()
     finally:
+        heartbeat_stop.set()
         gateway_client.close()
         connection.close()
         logger.info("Notification service stopped.")

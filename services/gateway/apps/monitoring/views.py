@@ -34,6 +34,12 @@ def _require_admin(request: Request) -> Response | None:
 
 
 @api_view(["GET"])
+def health_check(request: Request) -> Response:
+    """GET /api/health/ — lightweight health probe for monitoring."""
+    return Response({"status": "ok"})
+
+
+@api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
 def monitoring_dashboard(request: Request) -> Response:
     """GET /api/admin/monitoring — aggregate monitoring dashboard stats."""

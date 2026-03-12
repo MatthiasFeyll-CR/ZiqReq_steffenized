@@ -178,7 +178,15 @@
     "invited": "Eingeladen {{time}}",
     "revoke": "Widerrufen",
     "invitationRevoked": "Einladung widerrufen",
-    "failedToRevoke": "Einladung konnte nicht widerrufen werden"
+    "failedToRevoke": "Einladung konnte nicht widerrufen werden",
+    "shareLink": "Freigabelink (Nur Lesen)",
+    "shareLinkDescription": "Jeder bei Commerz Real mit diesem Link kann diese Idee im Nur-Lesen-Modus ansehen.",
+    "generateLink": "Link generieren",
+    "copyLink": "Link kopieren",
+    "copied": "Kopiert",
+    "inviteSelected": "Ausgewählte einladen ({{count}})",
+    "invitationsSent": "{{count}} Einladung(en) gesendet",
+    "selectedUsers": "{{count}} Benutzer ausgewählt"
   },
   "review": {
     "pageTitle": "Bewertungen",

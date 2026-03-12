@@ -18,7 +18,7 @@ const BASE_URL = process.env.BASE_URL ?? "http://localhost:5173";
 export const DEV_USERS = {
   user1: {
     id: "00000000-0000-0000-0000-000000000001",
-    email: "dev1@ziqreq.local",
+    email: "matthias.feyll@commerzreal.com",
     displayName: "Dev User 1",
     roles: ["user"],
   },
@@ -59,9 +59,7 @@ export async function loginAs(page: Page, user: DevUserKey): Promise<void> {
   });
 
   if (!response.ok()) {
-    throw new Error(
-      `dev-login failed for ${user}: ${response.status()} ${await response.text()}`,
-    );
+    throw new Error(`dev-login failed for ${user}: ${response.status()} ${await response.text()}`);
   }
 
   // Navigate to root — the frontend will call GET /api/auth/me
@@ -82,9 +80,7 @@ export async function switchUser(page: Page, user: DevUserKey): Promise<void> {
   });
 
   if (!response.ok()) {
-    throw new Error(
-      `dev-switch failed for ${user}: ${response.status()} ${await response.text()}`,
-    );
+    throw new Error(`dev-switch failed for ${user}: ${response.status()} ${await response.text()}`);
   }
 
   await page.reload();

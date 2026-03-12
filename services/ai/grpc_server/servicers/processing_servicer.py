@@ -1,19 +1,71 @@
 import asyncio
 import logging
+import threading
 import uuid
 
 logger = logging.getLogger(__name__)
 
+# Single persistent event loop running in a dedicated daemon thread.
+# All async pipeline work is submitted here so httpx/OpenAI SDK clients
+# are never orphaned by a closed loop.
+_pipeline_loop: asyncio.AbstractEventLoop | None = None
+_pipeline_loop_lock = threading.Lock()
+
+
+def _get_pipeline_loop() -> asyncio.AbstractEventLoop:
+    """Return (and lazily start) the shared pipeline event loop."""
+    global _pipeline_loop
+    if _pipeline_loop is not None and _pipeline_loop.is_running():
+        return _pipeline_loop
+
+    with _pipeline_loop_lock:
+        if _pipeline_loop is not None and _pipeline_loop.is_running():
+            return _pipeline_loop
+
+        loop = asyncio.new_event_loop()
+        thread = threading.Thread(
+            target=loop.run_forever,
+            daemon=True,
+            name="pipeline-event-loop",
+        )
+        thread.start()
+        _pipeline_loop = loop
+        return loop
+
 
 class AiProcessingServicer:
-    """gRPC servicer stub for AI processing methods.
-
-    All methods return valid placeholder responses.
-    Full implementations will be added in later milestones.
-    """
+    """gRPC servicer for AI processing methods."""
 
     def TriggerChatProcessing(self, request, context):  # type: ignore[no-untyped-def]
-        return {"status": "accepted", "processing_id": str(uuid.uuid4())}
+        idea_id = self._get_field(request, "idea_id")
+        message_id = self._get_field(request, "message_id")
+        processing_id = str(uuid.uuid4())
+
+        logger.info(
+            "TriggerChatProcessing: idea_id=%s, message_id=%s, processing_id=%s",
+            idea_id, message_id, processing_id,
+        )
+
+        loop = _get_pipeline_loop()
+        asyncio.run_coroutine_threadsafe(
+            self._run_chat_pipeline(idea_id), loop,
+        )
+
+        return {"status": "accepted", "processing_id": processing_id}
+
+    async def _run_chat_pipeline(self, idea_id: str) -> None:
+        """Run the chat processing pipeline."""
+        try:
+            from processing.pipeline import ChatProcessingPipeline
+
+            pipeline = ChatProcessingPipeline()
+            result = await pipeline.execute(idea_id)
+            logger.info(
+                "Chat pipeline completed for idea %s: status=%s",
+                idea_id, result.get("status"),
+            )
+        except Exception:
+            logger.exception("Chat pipeline failed for idea %s", idea_id)
 
     def _get_field(self, request, name: str, default: str = "") -> str:  # type: ignore[no-untyped-def]
         if isinstance(request, dict):
@@ -27,30 +79,20 @@ class AiProcessingServicer:
 
         generation_id = str(uuid.uuid4())
 
-        # Launch BRD generation pipeline asynchronously
-        try:
-            from processing.brd_pipeline import BrdGenerationPipeline
-
-            pipeline = BrdGenerationPipeline()
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.ensure_future(
-                    self._run_brd_pipeline(pipeline, idea_id, mode, section_name)
-                )
-            else:
-                loop.run_until_complete(
-                    self._run_brd_pipeline(pipeline, idea_id, mode, section_name)
-                )
-        except Exception:
-            logger.exception("Failed to launch BRD generation pipeline for idea %s", idea_id)
+        loop = _get_pipeline_loop()
+        asyncio.run_coroutine_threadsafe(
+            self._run_brd_pipeline(idea_id, mode, section_name), loop,
+        )
 
         return {"status": "accepted", "generation_id": generation_id}
 
-    async def _run_brd_pipeline(
-        self, pipeline, idea_id: str, mode: str, section_name: str  # type: ignore[no-untyped-def]
-    ) -> None:
-        """Run BRD pipeline and publish ai.brd.ready event on completion."""
+    async def _run_brd_pipeline(self, idea_id: str, mode: str, section_name: str) -> None:
+        """Run BRD pipeline."""
         try:
+            from processing.brd_pipeline import BrdGenerationPipeline
+            from events.publishers import publish_event
+
+            pipeline = BrdGenerationPipeline()
             result = await pipeline.execute(
                 idea_id=idea_id,
                 mode=mode,
@@ -58,8 +100,6 @@ class AiProcessingServicer:
             )
 
             if result.get("status") == "completed":
-                from events.publishers import publish_event
-
                 await publish_event("ai.brd.ready", {
                     "idea_id": idea_id,
                     "mode": mode,
@@ -70,11 +110,11 @@ class AiProcessingServicer:
                 logger.info("ai.brd.ready event published for idea %s", idea_id)
             else:
                 logger.warning(
-                    "BRD pipeline did not complete successfully for idea %s: status=%s",
+                    "BRD pipeline did not complete for idea %s: status=%s",
                     idea_id, result.get("status"),
                 )
         except Exception:
-            logger.exception("BRD pipeline execution failed for idea %s", idea_id)
+            logger.exception("BRD pipeline failed for idea %s", idea_id)
 
     def TriggerContextReindex(self, request, context):  # type: ignore[no-untyped-def]
         return {"status": "accepted", "chunk_count": 0}

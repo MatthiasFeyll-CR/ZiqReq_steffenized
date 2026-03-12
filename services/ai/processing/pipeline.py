@@ -81,6 +81,24 @@ class ChatProcessingPipeline:
                 idea_id, input_data, facilitator_result,
             )
 
+            # Fallback: if the LLM didn't call send_chat_message but returned
+            # text, publish it as a chat response so the user always gets a reply.
+            if not facilitator_result.get("chat_message_sent") and facilitator_result.get("response"):
+                response_text = facilitator_result["response"].strip()
+                if response_text:
+                    logger.info(
+                        "Facilitator did not call send_chat_message for idea %s — "
+                        "publishing text response as fallback",
+                        idea_id,
+                    )
+                    await publish_event("ai.chat_response.ready", {
+                        "idea_id": idea_id,
+                        "content": response_text,
+                        "message_type": "regular",
+                        "sender_type": "ai",
+                        "ai_agent": "facilitator",
+                    })
+
             # Step 5: Board Agent
             self._check_abort(idea_id, version, step=5)
             await self._step_board_agent(idea_id, facilitator_result)

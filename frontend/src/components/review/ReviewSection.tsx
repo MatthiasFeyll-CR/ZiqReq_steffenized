@@ -39,7 +39,7 @@ export function ReviewSection({ ideaId, idea }: ReviewSectionProps) {
   const reviewers = reviewerData?.reviewers ?? [];
 
   return (
-    <div className="border-t bg-background p-6" data-testid="review-section">
+    <div className="border-t border-border bg-surface p-6" data-testid="review-section">
       {/* Header area: PDF thumbnail, title, reviewers, state badge */}
       <div className="flex items-start gap-4 mb-6" data-testid="review-section-header">
         {/* PDF preview thumbnail */}
@@ -49,7 +49,7 @@ export function ReviewSection({ ideaId, idea }: ReviewSectionProps) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-lg font-semibold truncate">{idea.title}</h2>
+            <h2 className="text-lg font-semibold truncate text-foreground">{idea.title}</h2>
             <Badge
               variant={idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected"}
               className="shrink-0"

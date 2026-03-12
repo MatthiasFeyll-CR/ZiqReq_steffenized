@@ -30,6 +30,7 @@ class FacilitatorPlugin:
         self.idea_context = idea_context or {}
         self.delegations: list[dict[str, Any]] = []
         self.board_instructions: list[dict[str, Any]] = []
+        self.chat_message_sent: bool = False
 
     @kernel_function(
         name="send_chat_message",
@@ -63,6 +64,7 @@ class FacilitatorPlugin:
             "ai_agent": "facilitator",
         })
 
+        self.chat_message_sent = True
         return {"message_id": None, "created_at": None}
 
     @kernel_function(

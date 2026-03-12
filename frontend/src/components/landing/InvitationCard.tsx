@@ -21,7 +21,7 @@ export function InvitationCard({
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border bg-surface p-4 border-l-4 border-l-primary">
+    <div className="flex items-center justify-between rounded-md border border-border bg-background p-3 border-l-4 border-l-primary dark:bg-muted/40">
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-foreground">{ideaTitle}</p>
         <p className="text-sm text-text-secondary">

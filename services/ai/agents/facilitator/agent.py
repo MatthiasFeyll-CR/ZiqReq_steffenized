@@ -115,6 +115,7 @@ class FacilitatorAgent(BaseAgent):
         return {
             "delegations": plugin.delegations,
             "board_instructions": plugin.board_instructions,
+            "chat_message_sent": plugin.chat_message_sent,
             "response": result[-1].content if result else None,
             "token_usage": {
                 "input": self.token_tracker.total_input,

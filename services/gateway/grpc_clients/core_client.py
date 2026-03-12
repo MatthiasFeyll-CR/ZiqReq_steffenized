@@ -40,8 +40,21 @@ class CoreClient:
         language: str = "de",
         processing_id: str = "",
     ) -> dict[str, Any]:
-        logger.warning("CoreClient.persist_ai_chat_message stub called")
-        return {"message_id": "", "created_at": ""}
+        from apps.ideas.models import ChatMessage
+
+        message = ChatMessage.objects.create(
+            idea_id=idea_id,
+            sender_type="ai",
+            sender_id=None,
+            content=content,
+            message_type=message_type,
+            ai_agent="facilitator",
+        )
+        logger.info("Persisted AI chat message %s for idea %s", message.id, idea_id)
+        return {
+            "message_id": str(message.id),
+            "created_at": message.created_at.isoformat(),
+        }
 
     def persist_ai_reaction(
         self, idea_id: str, message_id: str, reaction_type: str

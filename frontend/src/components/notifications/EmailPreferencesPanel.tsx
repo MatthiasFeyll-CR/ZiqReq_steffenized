@@ -200,7 +200,7 @@ export function EmailPreferencesPanel({
                   {state === "indeterminate" && (
                     <Minus className="pointer-events-none absolute h-3 w-3 text-current" />
                   )}
-                  <span className="text-sm font-semibold">
+                  <span className="text-sm font-semibold text-foreground">
                     {t(`emailPrefs.groups.${groupLabelKey[group.label]}`)}
                   </span>
                 </div>

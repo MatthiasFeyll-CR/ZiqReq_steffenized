@@ -90,7 +90,7 @@ export function WorkspaceHeader({ idea, onIdeaUpdate, readOnly = false }: Worksp
 
   return (
     <div
-      className="h-16 border-b flex items-center gap-4 px-4"
+      className="h-16 shrink-0 border-b border-border bg-surface flex items-center gap-4 px-4"
       data-testid="workspace-header"
     >
       {/* Back button */}

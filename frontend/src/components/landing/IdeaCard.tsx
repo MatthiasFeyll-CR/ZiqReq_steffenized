@@ -59,7 +59,7 @@ export function IdeaCard({
   return (
     <button
       type="button"
-      className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-muted"
+      className="flex w-full cursor-pointer items-center gap-3 rounded-md border border-border bg-background p-3 text-left transition-colors hover:bg-muted dark:bg-muted/40 dark:hover:bg-muted"
       onClick={() => navigate(`/idea/${id}`)}
     >
       <span

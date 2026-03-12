@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react"
+import { Link } from "react-router-dom"
 import { Menu, X, Lightbulb } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
@@ -21,11 +22,11 @@ export function Navbar() {
   const closeNotifPanel = useCallback(() => setNotifPanelOpen(false), [])
 
   return (
-    <nav className="sticky top-0 z-40 flex h-14 items-center bg-[#002E3C] px-4 text-white dark:bg-[#0F1A2E]">
+    <nav className="sticky top-0 z-40 flex h-14 items-center bg-[#002E3C] px-4 text-white dark:bg-[#1C1C22]">
       {/* Logo */}
-      <div className="mr-6 flex items-center gap-2">
+      <Link to="/" className="mr-6 flex items-center gap-2 hover:opacity-80 transition-opacity">
         <span className="text-lg font-bold tracking-tight">ZiqReq</span>
-      </div>
+      </Link>
 
       {/* Desktop nav links */}
       <div className="hidden md:flex md:items-center md:gap-1">
@@ -69,7 +70,7 @@ export function Navbar() {
 
       {/* Mobile menu overlay */}
       {mobileOpen && (
-        <div className="absolute left-0 top-14 z-50 w-full bg-[#002E3C] shadow-lg dark:bg-[#0F1A2E] md:hidden">
+        <div className="absolute left-0 top-14 z-50 w-full bg-[#002E3C] shadow-lg dark:bg-[#1C1C22] md:hidden">
           <div className="flex flex-col py-2">
             <MobileLink to="/" onClick={() => setMobileOpen(false)}>{t("nav.ideas")}</MobileLink>
             {hasRole("reviewer") && (

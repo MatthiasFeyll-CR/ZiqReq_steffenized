@@ -178,7 +178,15 @@
     "invited": "Invited {{time}}",
     "revoke": "Revoke",
     "invitationRevoked": "Invitation revoked",
-    "failedToRevoke": "Failed to revoke invitation"
+    "failedToRevoke": "Failed to revoke invitation",
+    "shareLink": "Share Link (Read-Only)",
+    "shareLinkDescription": "Anyone at Commerz Real with this link can view this idea in read-only mode.",
+    "generateLink": "Generate Link",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "inviteSelected": "Invite Selected ({{count}})",
+    "invitationsSent": "{{count}} invitation(s) sent",
+    "selectedUsers": "{{count}} user(s) selected"
   },
   "review": {
     "pageTitle": "Reviews",

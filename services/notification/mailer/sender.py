@@ -1,21 +1,26 @@
-"""Email sending logic via SMTP."""
+"""Email sending logic via Azure Communication Services."""
 
 from __future__ import annotations
 
 import logging
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import time
+
+from azure.communication.email import EmailClient
 
 logger = logging.getLogger(__name__)
 
-SMTP_HOST = os.environ.get("SMTP_HOST", "localhost")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
-SMTP_FROM = os.environ.get("SMTP_FROM", "noreply@ziqreq.com")
-SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "true").lower() == "true"
+ACS_EMAIL_ENDPOINT = os.environ.get("ACS_EMAIL_ENDPOINT", "")
+ACS_EMAIL_KEY = os.environ.get("ACS_EMAIL_ACCESS_KEY", "")
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "noreply@ziqreq.com")
+
+_POLL_WAIT = 2  # seconds between status polls
+_POLL_TIMEOUT = 60  # max seconds to wait for send completion
+
+
+def _get_client() -> EmailClient:
+    connection_string = f"endpoint={ACS_EMAIL_ENDPOINT};accesskey={ACS_EMAIL_KEY}"
+    return EmailClient.from_connection_string(connection_string)
 
 
 def send_email(
@@ -24,32 +29,50 @@ def send_email(
     text_body: str,
     html_body: str,
 ) -> bool:
-    """Send an email via SMTP.
+    """Send an email via Azure Communication Services.
 
     Returns True on success, False on failure (logged, not raised).
     """
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = SMTP_FROM
-    msg["To"] = to_email
+    if not ACS_EMAIL_ENDPOINT or not ACS_EMAIL_KEY:
+        logger.error("ACS_EMAIL_ENDPOINT=%r ACS_EMAIL_ACCESS_KEY=%s", ACS_EMAIL_ENDPOINT, "set" if ACS_EMAIL_KEY else "empty")
+        logger.error("ACS_EMAIL_ENDPOINT or ACS_EMAIL_KEY not configured")
+        return False
 
-    msg.attach(MIMEText(text_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
+    message = {
+        "senderAddress": EMAIL_FROM,
+        "recipients": {
+            "to": [{"address": to_email}],
+        },
+        "content": {
+            "subject": subject,
+            "plainText": text_body,
+            "html": html_body,
+        },
+    }
 
     try:
-        if SMTP_USE_TLS:
-            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-            server.starttls()
-        else:
-            server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        client = _get_client()
+        poller = client.begin_send(message)
+        elapsed = 0
+        while not poller.done():
+            if elapsed >= _POLL_TIMEOUT:
+                logger.error("Timed out waiting for email send to %s", to_email)
+                return False
+            time.sleep(_POLL_WAIT)
+            elapsed += _POLL_WAIT
 
-        if SMTP_USER and SMTP_PASSWORD:
-            server.login(SMTP_USER, SMTP_PASSWORD)
+        result = poller.result()
+        if result["status"] == "Succeeded":
+            logger.info("Email sent to %s: %s", to_email, subject)
+            return True
 
-        server.sendmail(SMTP_FROM, [to_email], msg.as_string())
-        server.quit()
-        logger.info("Email sent to %s: %s", to_email, subject)
-        return True
+        logger.error(
+            "Email send failed for %s: status=%s error=%s",
+            to_email,
+            result.get("status"),
+            result.get("error"),
+        )
+        return False
     except Exception:
         logger.exception("Failed to send email to %s: %s", to_email, subject)
         return False

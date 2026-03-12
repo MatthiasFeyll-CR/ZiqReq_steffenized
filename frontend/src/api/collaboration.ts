@@ -172,3 +172,41 @@ export async function declineInvitation(
   );
   return handleResponse(res);
 }
+
+export interface BulkInviteResult {
+  invitee_id: string;
+  invitation_id?: string;
+  status: string;
+  message?: string;
+}
+
+export async function sendBulkInvitations(
+  ideaId: string,
+  inviteeIds: string[],
+): Promise<{ results: BulkInviteResult[] }> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/invite`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ invitee_ids: inviteeIds }),
+    },
+  );
+  return handleResponse(res);
+}
+
+export async function generateShareLink(
+  ideaId: string,
+): Promise<{ share_link_token: string; share_url: string }> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/ideas/${ideaId}/share-link`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    },
+  );
+  return handleResponse(res);
+}

@@ -25,8 +25,66 @@ class CoreClient:
         include_board: bool = True,
         include_brd_draft: bool = False,
     ) -> dict[str, Any]:
-        logger.warning("AI CoreClient.get_idea_context stub called")
-        return {}
+        from django.db import connection
+
+        # Load idea metadata
+        idea = {}
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, title, state, owner_id FROM ideas WHERE id = %s AND deleted_at IS NULL",
+                [idea_id],
+            )
+            row = cursor.fetchone()
+            if row:
+                idea = {
+                    "id": str(row[0]),
+                    "title": row[1] or "",
+                    "state": row[2] or "brainstorming",
+                    "owner_id": str(row[3]) if row[3] else "",
+                }
+
+        # Load recent chat messages
+        recent_messages: list[dict[str, Any]] = []
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, sender_type, sender_id, ai_agent, content, message_type, created_at "
+                "FROM chat_messages WHERE idea_id = %s ORDER BY created_at DESC LIMIT %s",
+                [idea_id, recent_message_limit],
+            )
+            rows = cursor.fetchall()
+            for row in reversed(rows):  # oldest first
+                recent_messages.append({
+                    "id": str(row[0]),
+                    "sender_type": row[1],
+                    "sender_id": str(row[2]) if row[2] else None,
+                    "ai_agent": row[3],
+                    "content": row[4],
+                    "message_type": row[5],
+                    "created_at": row[6].isoformat() if row[6] else "",
+                    "sender_name": row[3] if row[1] == "ai" else "User",
+                })
+
+        # Load chat summary if exists
+        chat_summary = None
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT summary_text, compression_iteration FROM chat_context_summaries "
+                "WHERE idea_id = %s ORDER BY created_at DESC LIMIT 1",
+                [idea_id],
+            )
+            row = cursor.fetchone()
+            if row:
+                chat_summary = {
+                    "summary_text": row[0],
+                    "compression_iteration": row[1],
+                }
+
+        return {
+            "idea": idea,
+            "recent_messages": recent_messages,
+            "board_state": {"nodes": [], "connections": []},
+            "chat_summary": chat_summary,
+        }
 
     def get_full_chat_history(self, idea_id: str) -> dict[str, Any]:
         logger.warning("AI CoreClient.get_full_chat_history stub called")

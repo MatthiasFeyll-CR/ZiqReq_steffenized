@@ -31,6 +31,21 @@ def _publish_notification(**kwargs) -> None:
     publish_notification_event(**kwargs)
 
 
+def _trigger_ai_processing(idea_id: str, message_id: str) -> None:
+    """Trigger AI chat processing via the AI gRPC client."""
+    import os
+    from grpc_clients.ai_client import AiClient
+
+    address = os.environ.get("AI_GRPC_ADDRESS", "localhost:50052")
+    logger.info(
+        "[DEBUG] Creating AiClient with address=%s for idea=%s",
+        address, idea_id,
+    )
+    client = AiClient(address=address)
+    result = client.trigger_chat_processing(idea_id=idea_id, message_id=message_id)
+    logger.info("[DEBUG] AiClient.trigger_chat_processing returned: %s", result)
+
+
 DEFAULT_LIMIT = 50
 MAX_LIMIT = 100
 DEFAULT_CHAT_MESSAGE_CAP = 5
@@ -238,6 +253,24 @@ def _create_message(request: Request, idea_id: str) -> Response:
 
     # Detect @mentions and publish notification events
     _publish_mention_notifications(message, user, idea)
+
+    # Trigger AI processing for this message
+    logger.info(
+        "[DEBUG] Chat message created: id=%s, idea_id=%s, sender=%s. "
+        "Attempting to trigger AI processing...",
+        message.id, idea.id, user.id,
+    )
+    try:
+        _trigger_ai_processing(str(idea.id), str(message.id))
+        logger.info(
+            "[DEBUG] AI processing trigger succeeded for idea=%s, message=%s",
+            idea.id, message.id,
+        )
+    except Exception:
+        logger.exception(
+            "[DEBUG] AI processing trigger FAILED for idea=%s, message=%s",
+            idea.id, message.id,
+        )
 
     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 

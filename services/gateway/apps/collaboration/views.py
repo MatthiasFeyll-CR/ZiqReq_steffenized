@@ -107,70 +107,101 @@ def send_invitation(request: Request, idea_id: str) -> Response:
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    invitee_id = request.data.get("invitee_id")
-    if not invitee_id:
+    # Support both single invitee_id and bulk invitee_ids
+    invitee_ids_raw = request.data.get("invitee_ids")
+    single_id = request.data.get("invitee_id")
+
+    if invitee_ids_raw and isinstance(invitee_ids_raw, list):
+        raw_ids = invitee_ids_raw
+    elif single_id:
+        raw_ids = [single_id]
+    else:
         return Response(
-            {"error": "BAD_REQUEST", "message": "invitee_id is required"},
+            {"error": "BAD_REQUEST", "message": "invitee_id or invitee_ids is required"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    try:
-        invitee_uuid = uuid.UUID(str(invitee_id))
-    except ValueError:
+    # Validate and deduplicate
+    invitee_uuids = []
+    for raw in raw_ids:
+        try:
+            uid = uuid.UUID(str(raw))
+        except ValueError:
+            return Response(
+                {"error": "BAD_REQUEST", "message": f"Invalid invitee_id: {raw}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if uid == user.id:
+            continue  # silently skip self
+        if uid not in invitee_uuids:
+            invitee_uuids.append(uid)
+
+    if not invitee_uuids:
         return Response(
-            {"error": "BAD_REQUEST", "message": "Invalid invitee_id"},
+            {"error": "BAD_REQUEST", "message": "No valid invitees provided"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if invitee_uuid == user.id:
-        return Response(
-            {"error": "BAD_REQUEST", "message": "Cannot invite yourself"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    if not User.objects.filter(id=invitee_uuid).exists():
-        return Response(
-            {"error": "BAD_REQUEST", "message": "User not found"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    if IdeaCollaborator.objects.filter(idea_id=idea_uuid, user_id=invitee_uuid).exists():
-        return Response(
-            {"error": "BAD_REQUEST", "message": "User is already a collaborator"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    existing_pending = CollaborationInvitation.objects.filter(
-        idea_id=idea_uuid,
-        invitee_id=invitee_uuid,
-        status="pending",
-    ).exists()
-    if existing_pending:
-        return Response(
-            {"error": "BAD_REQUEST", "message": "Pending invitation already exists"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    invitation = CollaborationInvitation.objects.create(
-        idea_id=idea_uuid,
-        inviter_id=user.id,
-        invitee_id=invitee_uuid,
-        status="pending",
+    existing_users = set(
+        User.objects.filter(id__in=invitee_uuids).values_list("id", flat=True)
+    )
+    existing_collaborators = set(
+        IdeaCollaborator.objects.filter(
+            idea_id=idea_uuid, user_id__in=invitee_uuids
+        ).values_list("user_id", flat=True)
+    )
+    existing_pending = set(
+        CollaborationInvitation.objects.filter(
+            idea_id=idea_uuid, invitee_id__in=invitee_uuids, status="pending"
+        ).values_list("invitee_id", flat=True)
     )
 
-    # Notify invitee of the invitation
-    _publish_notification(
-        routing_key="notification.collaboration.invitation",
-        user_id=str(invitee_uuid),
-        event_type="collaboration_invitation",
-        title="Collaboration Invitation",
-        body=f"{user.display_name} invited you to collaborate on \"{idea.title}\"",
-        reference_id=str(invitation.id),
-        reference_type="invitation",
-    )
+    results = []
+    for invitee_uuid in invitee_uuids:
+        if invitee_uuid not in existing_users:
+            results.append({"invitee_id": str(invitee_uuid), "status": "error", "message": "User not found"})
+            continue
+        if invitee_uuid in existing_collaborators:
+            results.append({"invitee_id": str(invitee_uuid), "status": "error", "message": "Already a collaborator"})
+            continue
+        if invitee_uuid in existing_pending:
+            results.append({"invitee_id": str(invitee_uuid), "status": "error", "message": "Pending invitation already exists"})
+            continue
+
+        invitation = CollaborationInvitation.objects.create(
+            idea_id=idea_uuid,
+            inviter_id=user.id,
+            invitee_id=invitee_uuid,
+            status="pending",
+        )
+
+        _publish_notification(
+            routing_key="notification.collaboration.invitation",
+            user_id=str(invitee_uuid),
+            event_type="collaboration_invitation",
+            title="Collaboration Invitation",
+            body=f"{user.display_name} invited you to collaborate on \"{idea.title}\"",
+            reference_id=str(invitation.id),
+            reference_type="invitation",
+        )
+
+        results.append({"invitee_id": str(invitee_uuid), "invitation_id": str(invitation.id), "status": "pending"})
+
+    # Backward-compatible: single invite returns flat object
+    if single_id and not invitee_ids_raw:
+        if results and results[0].get("invitation_id"):
+            return Response(
+                {"invitation_id": results[0]["invitation_id"], "status": "pending"},
+                status=status.HTTP_201_CREATED,
+            )
+        elif results:
+            return Response(
+                {"error": "BAD_REQUEST", "message": results[0].get("message", "Failed to invite")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     return Response(
-        {"invitation_id": str(invitation.id), "status": "pending"},
+        {"results": results},
         status=status.HTTP_201_CREATED,
     )
 
