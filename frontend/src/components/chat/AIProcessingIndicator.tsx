@@ -25,17 +25,17 @@ export function AIProcessingIndicator({ ideaId }: AIProcessingIndicatorProps) {
 
   return (
     <div
-      className="flex items-center justify-center py-2 text-sm text-muted-foreground"
+      className="flex items-center gap-2 px-6 py-2"
       role="status"
       aria-live="polite"
       data-testid="ai-processing-indicator"
     >
-      <span>AI is processing</span>
-      <span className="inline-flex ml-0.5" aria-hidden="true">
-        <span className="motion-safe:animate-bounce [animation-delay:0ms]">.</span>
-        <span className="motion-safe:animate-bounce [animation-delay:150ms]">.</span>
-        <span className="motion-safe:animate-bounce [animation-delay:300ms]">.</span>
-      </span>
+      <div className="flex items-end gap-1 rounded-full bg-muted px-3 py-2" aria-hidden="true">
+        <span className="typing-dot h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
+        <span className="typing-dot h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animationDelay: "150ms" }} />
+        <span className="typing-dot h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animationDelay: "300ms" }} />
+      </div>
+      <span className="text-xs text-muted-foreground">thinking</span>
     </div>
   );
 }

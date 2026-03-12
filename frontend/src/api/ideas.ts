@@ -28,6 +28,7 @@ export interface Idea {
   merge_request_pending: MergeRequestPending | null;
   merged_idea_ref: IdeaRef | null;
   appended_idea_ref: IdeaRef | null;
+  read_only?: boolean;
 }
 
 export async function fetchIdea(id: string, token?: string): Promise<Idea> {

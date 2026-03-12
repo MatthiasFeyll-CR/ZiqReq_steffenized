@@ -23,12 +23,21 @@ export function UserMessageBubble({
   });
 
   return (
-    <div className="flex flex-col items-end" data-testid="user-message-bubble">
+    <div
+      className={cn("group flex flex-col", isOwnMessage ? "items-end" : "items-start")}
+      data-testid="user-message-bubble"
+    >
+      {showSenderName && senderName && !isOwnMessage && (
+        <span className="text-xs text-muted-foreground mb-0.5 ml-1">
+          {senderName}
+        </span>
+      )}
       <div
         className={cn(
-          "max-w-[70%] rounded-md rounded-tr-sm",
-          "bg-secondary text-secondary-foreground",
-          "px-3 py-2",
+          "max-w-[70%] rounded-md px-3 py-2",
+          isOwnMessage
+            ? "rounded-tr-sm bg-secondary text-secondary-foreground"
+            : "rounded-tl-sm bg-card border border-border text-card-foreground",
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
@@ -36,7 +45,7 @@ export function UserMessageBubble({
           {timestamp}
         </span>
       </div>
-      {showSenderName && senderName && (
+      {showSenderName && senderName && isOwnMessage && (
         <span className="text-xs text-muted-foreground mt-0.5 mr-1">
           {senderName}
         </span>

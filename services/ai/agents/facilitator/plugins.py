@@ -225,7 +225,7 @@ class FacilitatorPlugin:
     )
     async def request_board_changes(
         self,
-        instructions: list[dict[str, Any]],
+        instructions: str | list[dict[str, Any]],
     ) -> dict[str, Any]:
         """Accept board change instructions for Board Agent execution."""
         if not instructions:
@@ -233,12 +233,33 @@ class FacilitatorPlugin:
                 "validation_error", "At least one instruction is required."
             )
 
+        # Normalize: LLM may pass a plain string or JSON string instead of a list
+        if isinstance(instructions, str):
+            import json
+
+            try:
+                parsed = json.loads(instructions)
+                if isinstance(parsed, list):
+                    instructions = parsed
+                elif isinstance(parsed, dict):
+                    instructions = [parsed]
+                else:
+                    instructions = [{"intent": "add_topic", "description": instructions}]
+            except (json.JSONDecodeError, TypeError):
+                instructions = [{"intent": "add_topic", "description": instructions}]
+
+        if isinstance(instructions, dict):
+            instructions = [instructions]
+
         valid_intents = {
             "add_topic", "update_topic", "remove_topic", "reorganize",
             "add_relationship", "update_relationship", "remove_relationship",
         }
 
         for i, instr in enumerate(instructions):
+            if isinstance(instr, str):
+                instr = {"intent": "add_topic", "description": instr}
+                instructions[i] = instr
             intent = instr.get("intent")
             if not intent or intent not in valid_intents:
                 return _error_response(

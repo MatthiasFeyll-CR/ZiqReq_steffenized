@@ -1,14 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { toastNotificationReducer } from "@/store/toast-notification-slice";
 
-const { mockFetchUnreadCount } = vi.hoisted(() => ({
-  mockFetchUnreadCount: vi.fn(),
-}));
+const { mockFetchUnreadCount, mockMarkNotificationActioned } = vi.hoisted(
+  () => ({
+    mockFetchUnreadCount: vi.fn(),
+    mockMarkNotificationActioned: vi.fn(),
+  }),
+);
 
 vi.mock("@/api/notifications", () => ({
   fetchUnreadCount: mockFetchUnreadCount,
+  markNotificationActioned: mockMarkNotificationActioned,
 }));
 
 vi.mock("react-toastify", () => ({
@@ -29,13 +36,25 @@ function createQueryClient() {
   });
 }
 
+function createStore() {
+  return configureStore({
+    reducer: { toastNotifications: toastNotificationReducer },
+  });
+}
+
 function renderBell() {
   const qc = createQueryClient();
-  return render(
-    <QueryClientProvider client={qc}>
-      <NotificationBell onTogglePanel={vi.fn()} />
-    </QueryClientProvider>,
-  );
+  const store = createStore();
+  return {
+    store,
+    ...render(
+      <Provider store={store}>
+        <QueryClientProvider client={qc}>
+          <NotificationBell onTogglePanel={vi.fn()} />
+        </QueryClientProvider>
+      </Provider>,
+    ),
+  };
 }
 
 function dispatchNotification(payload: Record<string, unknown>) {
@@ -48,6 +67,7 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchUnreadCount.mockResolvedValue({ unread_count: 0 });
+    mockMarkNotificationActioned.mockResolvedValue({});
   });
 
   it("displays info toast for collaboration_invitation event", async () => {
@@ -64,7 +84,7 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
 
     expect(toast.info).toHaveBeenCalledWith(
       "New invitation: Alice invited you",
-      { autoClose: 5000 },
+      expect.objectContaining({ autoClose: 5000 }),
     );
   });
 
@@ -82,7 +102,7 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
 
     expect(toast.success).toHaveBeenCalledWith(
       "Collaborator joined: Bob joined your idea",
-      { autoClose: 5000 },
+      expect.objectContaining({ autoClose: 5000 }),
     );
   });
 
@@ -100,7 +120,7 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
 
     expect(toast.warning).toHaveBeenCalledWith(
       "Review updated: Your idea was rejected",
-      { autoClose: 5000 },
+      expect.objectContaining({ autoClose: 5000 }),
     );
   });
 
@@ -118,11 +138,11 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
 
     expect(toast.warning).toHaveBeenCalledWith(
       "Removed: You were removed from an idea",
-      { autoClose: 5000 },
+      expect.objectContaining({ autoClose: 5000 }),
     );
   });
 
-  it("displays success toast for ai_delegation_complete event", async () => {
+  it("silently ignores ai_delegation_complete event", async () => {
     renderBell();
     await screen.findByRole("button", { name: "Notifications" });
 
@@ -134,10 +154,9 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
       });
     });
 
-    expect(toast.success).toHaveBeenCalledWith(
-      "AI completed: Delegation finished",
-      { autoClose: 5000 },
-    );
+    expect(toast.info).not.toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.warning).not.toHaveBeenCalled();
   });
 
   it("displays title-only toast when body is missing", async () => {
@@ -151,9 +170,10 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
       });
     });
 
-    expect(toast.info).toHaveBeenCalledWith("You were mentioned", {
-      autoClose: 5000,
-    });
+    expect(toast.info).toHaveBeenCalledWith(
+      "You were mentioned",
+      expect.objectContaining({ autoClose: 5000 }),
+    );
   });
 
   it("does not show toast when title is missing", async () => {
@@ -186,5 +206,65 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
     });
 
     expect(await screen.findByText("3")).toBeInTheDocument();
+  });
+
+  it("stores notification in bell when toast auto-closes (onClose without click)", async () => {
+    const { store } = renderBell();
+    await screen.findByRole("button", { name: "Notifications" });
+
+    await act(async () => {
+      dispatchNotification({
+        notification_id: "n-123",
+        event_type: "chat_mention",
+        title: "You were mentioned",
+        body: "In idea X",
+        reference_id: "idea-1",
+        reference_type: "idea",
+      });
+    });
+
+    // Simulate toast auto-close (onClose fires without prior onClick)
+    const toastCall = (toast.info as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    const options = toastCall[1] as { onClose: () => void };
+    act(() => {
+      options.onClose();
+    });
+
+    const items = store.getState().toastNotifications.items;
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
+      id: "n-123",
+      event_type: "chat_mention",
+      title: "You were mentioned",
+    });
+  });
+
+  it("does NOT store notification when user clicks the toast", async () => {
+    const { store } = renderBell();
+    await screen.findByRole("button", { name: "Notifications" });
+
+    await act(async () => {
+      dispatchNotification({
+        notification_id: "n-456",
+        event_type: "chat_mention",
+        title: "You were mentioned",
+        body: "In idea Y",
+      });
+    });
+
+    const toastCall = (toast.info as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    const options = toastCall[1] as {
+      onClick: () => void;
+      onClose: () => void;
+    };
+
+    // User clicks the toast first, then it closes
+    act(() => {
+      options.onClick();
+      options.onClose();
+    });
+
+    const items = store.getState().toastNotifications.items;
+    expect(items).toHaveLength(0);
   });
 });

@@ -82,7 +82,7 @@ export function ReactionChips({
 
   return (
     <div
-      className="flex gap-1 mt-1"
+      className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
       data-testid={`reaction-chips-${messageId}`}
     >
       {REACTION_CONFIG.map(({ type, emoji }) => {

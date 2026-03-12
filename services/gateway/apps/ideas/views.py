@@ -230,12 +230,7 @@ def _get_idea(request: Request, idea_id: str) -> Response:
     is_owner = idea.owner_id == user.id
     is_co_owner = idea.co_owner_id == user.id
     is_collaborator = IdeaCollaborator.objects.filter(idea_id=idea.id, user_id=user.id).exists()
-
-    if not (is_owner or is_co_owner or is_collaborator):
-        return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+    has_write_access = is_owner or is_co_owner or is_collaborator
 
     owner_ids = {idea.owner_id}
     if idea.co_owner_id:
@@ -286,6 +281,8 @@ def _get_idea(request: Request, idea_id: str) -> Response:
         } if ref_idea else None
     else:
         data["appended_idea_ref"] = None
+
+    data["read_only"] = not has_write_access
 
     return Response(data)
 

@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { toastNotificationReducer } from "@/store/toast-notification-slice";
 
 const { mockFetchUnreadCount } = vi.hoisted(() => ({
   mockFetchUnreadCount: vi.fn(),
@@ -10,6 +13,17 @@ const { mockFetchUnreadCount } = vi.hoisted(() => ({
 
 vi.mock("@/api/notifications", () => ({
   fetchUnreadCount: mockFetchUnreadCount,
+  markNotificationActioned: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("react-toastify", () => ({
+  toast: {
+    info: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+    error: vi.fn(),
+  },
+  ToastContainer: () => null,
 }));
 
 function createQueryClient() {
@@ -18,13 +32,22 @@ function createQueryClient() {
   });
 }
 
+function createStore() {
+  return configureStore({
+    reducer: { toastNotifications: toastNotificationReducer },
+  });
+}
+
 function renderBell(onTogglePanel = vi.fn()) {
   const qc = createQueryClient();
+  const store = createStore();
   return {
     ...render(
-      <QueryClientProvider client={qc}>
-        <NotificationBell onTogglePanel={onTogglePanel} />
-      </QueryClientProvider>,
+      <Provider store={store}>
+        <QueryClientProvider client={qc}>
+          <NotificationBell onTogglePanel={onTogglePanel} />
+        </QueryClientProvider>
+      </Provider>,
     ),
     onTogglePanel,
   };

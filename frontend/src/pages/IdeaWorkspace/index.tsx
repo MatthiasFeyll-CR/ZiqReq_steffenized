@@ -127,7 +127,7 @@ export default function IdeaWorkspacePage() {
   if (!idea) return null;
 
   return (
-    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} readOnly={!!shareToken} />
+    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} readOnly={!!shareToken || !!idea.read_only} />
   );
 }
 

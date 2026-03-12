@@ -131,17 +131,17 @@ class TestIdeasCRUD(TestCase):
         assert data["title"] == "My Idea"
         assert data["state"] == "open"
 
-    # --- API-IDEA.07: Non-owner access denied ---
+    # --- API-IDEA.07: Non-owner gets read-only access ---
 
-    def test_get_idea_non_owner_denied(self):
-        """API-IDEA.07: GET /api/ideas/:id as non-owner returns 403."""
+    def test_get_idea_non_owner_read_only(self):
+        """API-IDEA.07: GET /api/ideas/:id as non-owner returns 200 with read_only=True."""
         idea = Idea.objects.create(owner_id=self.user1.id, title="Private Idea")
         self._login_as(self.user2)
 
         response = self.client.get(f"/api/ideas/{idea.id}")
-        assert response.status_code == 403
+        assert response.status_code == 200
         data = response.json()
-        assert data["error"] == "ACCESS_DENIED"
+        assert data["read_only"] is True
 
     # --- API-IDEA.08: Non-existent UUID ---
 

@@ -3,26 +3,30 @@ import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSelector, useDispatch } from "react-redux";
 import {
   fetchNotifications,
   markNotificationActioned,
 } from "@/api/notifications";
 import type { Notification } from "@/api/notifications";
 import { NotificationItem } from "./NotificationItem";
+import type { RootState } from "@/store";
+import {
+  dismissToastNotification,
+  type ToastNotification,
+} from "@/store/toast-notification-slice";
 
 interface NotificationPanelProps {
   onClose: () => void;
 }
 
-function getNavigationPath(notification: Notification): string | null {
-  if (!notification.reference_id) return null;
-  switch (notification.reference_type) {
+function getNavigationPath(refType?: string | null, refId?: string | null): string | null {
+  if (!refId) return null;
+  switch (refType) {
     case "idea":
-      return `/idea/${notification.reference_id}`;
     case "invitation":
-      return `/idea/${notification.reference_id}`;
     case "merge_request":
-      return `/idea/${notification.reference_id}`;
+      return `/idea/${refId}`;
     default:
       return null;
   }
@@ -33,6 +37,11 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+
+  const localItems = useSelector(
+    (state: RootState) => state.toastNotifications.items,
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],
@@ -47,16 +56,30 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
     },
   });
 
-  const handleItemClick = useCallback(
+  const handleServerItemClick = useCallback(
     (notification: Notification) => {
       markActioned.mutate(notification.id);
-      const path = getNavigationPath(notification);
+      const path = getNavigationPath(notification.reference_type, notification.reference_id);
       if (path) {
         navigate(path);
       }
       onClose();
     },
     [markActioned, navigate, onClose],
+  );
+
+  const handleLocalItemClick = useCallback(
+    (item: ToastNotification) => {
+      dispatch(dismissToastNotification(item.id));
+      // Also mark on server if we have a server-side notification id
+      markActioned.mutate(item.id);
+      const path = getNavigationPath(item.reference_type, item.reference_id);
+      if (path) {
+        navigate(path);
+      }
+      onClose();
+    },
+    [dispatch, markActioned, navigate, onClose],
   );
 
   useEffect(() => {
@@ -90,7 +113,13 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
     };
   }, [queryClient]);
 
-  const notifications = data?.notifications ?? [];
+  const serverNotifications = data?.notifications ?? [];
+
+  // Deduplicate: if a local item already exists in server list, skip the local one
+  const serverIds = new Set(serverNotifications.map((n) => n.id));
+  const uniqueLocalItems = localItems.filter((l) => !serverIds.has(l.id));
+
+  const hasItems = uniqueLocalItems.length > 0 || serverNotifications.length > 0;
 
   return (
     <div
@@ -106,18 +135,38 @@ export function NotificationPanel({ onClose }: NotificationPanelProps) {
         <div className="px-4 py-8 text-center text-sm text-muted-foreground">
           {t("common.loading")}
         </div>
-      ) : notifications.length === 0 ? (
+      ) : !hasItems ? (
         <div className="flex flex-col items-center gap-2 px-4 py-8">
           <Check className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">{t("notifications.allCaughtUp")}</p>
         </div>
       ) : (
         <div className="max-h-96 overflow-y-auto" role="list" aria-label={t("notifications.title")}>
-          {notifications.map((n) => (
+          {/* Local (missed toast) notifications — shown first */}
+          {uniqueLocalItems.map((item) => (
+            <NotificationItem
+              key={`local-${item.id}`}
+              notification={{
+                id: item.id,
+                user_id: "",
+                event_type: item.event_type,
+                title: item.title,
+                body: item.body,
+                reference_id: item.reference_id ?? null,
+                reference_type: item.reference_type ?? null,
+                is_read: false,
+                action_taken: false,
+                created_at: item.created_at,
+              }}
+              onClick={() => handleLocalItemClick(item)}
+            />
+          ))}
+          {/* Server-persisted notifications */}
+          {serverNotifications.map((n) => (
             <NotificationItem
               key={n.id}
               notification={n}
-              onClick={handleItemClick}
+              onClick={handleServerItemClick}
             />
           ))}
         </div>

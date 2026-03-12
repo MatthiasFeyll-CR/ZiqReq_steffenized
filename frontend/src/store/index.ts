@@ -5,6 +5,7 @@ import { presenceReducer } from "./presence-slice";
 import { selectionsReducer } from "./selections-slice";
 import { uiReducer } from "./ui-slice";
 import { rateLimitReducer } from "./rate-limit-slice";
+import { toastNotificationReducer } from "./toast-notification-slice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     selections: selectionsReducer,
     ui: uiReducer,
     rateLimit: rateLimitReducer,
+    toastNotifications: toastNotificationReducer,
   },
 });
 

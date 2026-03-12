@@ -30,6 +30,7 @@ _EVENT_HANDLERS = {
     "ai.title.updated": "_handle_title_update",
     "ai.processing.complete": "_handle_processing_complete",
     "ai.brd.ready": "_handle_brd_ready",
+    "ai.board.updated": "_handle_board_updated",
 }
 
 
@@ -193,6 +194,20 @@ class AIEventConsumer:
         }
 
         await self._broadcast(idea_id, "brd_ready", payload)
+
+    async def _handle_board_updated(self, event: dict[str, Any]) -> None:
+        """ai.board.updated → broadcast board_update to WebSocket subscribers."""
+        idea_id = event["idea_id"]
+        mutation = event.get("mutation", {})
+        mutations = event.get("mutations", [])
+
+        payload = {
+            "idea_id": idea_id,
+            "mutation": mutation,
+            "mutations": mutations,
+        }
+
+        await self._broadcast(idea_id, "board_update", payload)
 
     async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
         """ai.processing.complete → broadcast ai_processing {state: completed}.

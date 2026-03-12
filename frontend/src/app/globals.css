@@ -141,9 +141,20 @@
   animation: scale-in 200ms ease-out;
 }
 
+/* Typing indicator dots animation */
+@keyframes typing-dot {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-4px); }
+}
+
+.typing-dot {
+  animation: typing-dot 1.4s infinite ease-in-out;
+}
+
 /* Prefers-reduced-motion: disable all animations and transitions */
 @media (prefers-reduced-motion: reduce) {
-  .animate-scale-in {
+  .animate-scale-in,
+  .typing-dot {
     animation: none;
   }
 }
