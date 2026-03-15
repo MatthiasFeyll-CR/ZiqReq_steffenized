@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
@@ -75,3 +76,84 @@ def parameter_update(request: Request, key: str) -> Response:
     param.save(update_fields=["value", "updated_by", "updated_at"])
 
     return Response(AdminParameterSerializer(param).data)
+
+
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def admin_ideas_list(request: Request) -> Response:
+    """GET /api/admin/ideas — list all ideas with state and keywords (admin only)."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    from apps.authentication.models import User
+    from apps.ideas.models import Idea
+    from apps.similarity.models import IdeaKeywords
+
+    state_param = request.query_params.get("state")
+    search_param = request.query_params.get("search")
+    page = max(int(request.query_params.get("page", 1)), 1)
+    page_size = min(
+        int(request.query_params.get("page_size", DEFAULT_PAGE_SIZE)),
+        MAX_PAGE_SIZE,
+    )
+
+    qs = Idea.objects.filter(deleted_at__isnull=True)
+
+    if state_param:
+        qs = qs.filter(state=state_param)
+
+    if search_param:
+        qs = qs.filter(Q(title__icontains=search_param))
+
+    qs = qs.order_by("-updated_at")
+
+    total_count = qs.count()
+    offset = (page - 1) * page_size
+    ideas = list(qs[offset : offset + page_size])
+
+    # Fetch owners
+    owner_ids = {idea.owner_id for idea in ideas}
+    users = User.objects.filter(id__in=owner_ids)
+    user_map = {u.id: u for u in users}
+
+    # Fetch keywords for all ideas in the page
+    idea_ids = [idea.id for idea in ideas]
+    keywords_map = {
+        kw.idea_id: kw.keywords
+        for kw in IdeaKeywords.objects.filter(idea_id__in=idea_ids)
+    }
+
+    results = []
+    for idea in ideas:
+        owner = user_map.get(idea.owner_id)
+        results.append(
+            {
+                "id": str(idea.id),
+                "title": idea.title,
+                "state": idea.state,
+                "keywords": keywords_map.get(idea.id, []),
+                "owner": {
+                    "id": str(owner.id) if owner else str(idea.owner_id),
+                    "display_name": owner.display_name if owner else "",
+                },
+                "created_at": idea.created_at.isoformat(),
+                "updated_at": idea.updated_at.isoformat(),
+            }
+        )
+
+    next_page = page + 1 if offset + page_size < total_count else None
+    previous_page = page - 1 if page > 1 else None
+
+    return Response(
+        {
+            "results": results,
+            "count": total_count,
+            "next": next_page,
+            "previous": previous_page,
+        }
+    )

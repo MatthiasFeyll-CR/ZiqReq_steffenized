@@ -210,6 +210,8 @@ services:
 
   pdf:
     build: ../../services/pdf
+    volumes:
+      - ../../proto:/app/proto
     ports:
       - "50053:50053"
 

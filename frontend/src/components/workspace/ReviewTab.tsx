@@ -16,7 +16,7 @@ import {
 import { EmptyState } from "@/components/common/EmptyState";
 import { PDFPreview } from "@/components/brd/PDFPreview";
 import { BRDSectionEditor } from "@/components/brd/BRDSectionEditor";
-import { fetchBrdDraft, triggerBrdGeneration, fetchBrdPdf } from "@/api/brd";
+import { fetchBrdDraft, triggerBrdGeneration, fetchBrdPdf, fetchBrdPreviewPdf } from "@/api/brd";
 import type { BrdDraft } from "@/api/brd";
 import { SubmitArea } from "@/components/review/SubmitArea";
 
@@ -46,6 +46,7 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [todoWarningOpen, setTodoWarningOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const {
     data: brdDraft,
@@ -58,6 +59,7 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
   const generateMutation = useMutation({
     mutationFn: () => triggerBrdGeneration(ideaId, "full_generation"),
     onSuccess: () => {
+      setIsGenerating(true);
       queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
     },
     onError: (error: Error) => {
@@ -75,12 +77,20 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
     },
   });
 
-  // Listen for brd_ready WebSocket events to invalidate cache
+  // Listen for brd_ready WebSocket events to invalidate cache and fetch PDF preview
   useEffect(() => {
-    const handler = (e: Event) => {
+    const handler = async (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (detail?.idea_id === ideaId) {
+        setIsGenerating(false);
         queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
+        // Auto-fetch PDF preview
+        try {
+          const blob = await fetchBrdPreviewPdf(ideaId);
+          setPdfBlob(blob);
+        } catch (error) {
+          console.warn("PDF preview fetch failed, user can download manually", error);
+        }
       }
     };
     window.addEventListener("ws:brd_ready", handler);
@@ -158,7 +168,7 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
               </p>
             </div>
           )
-        ) : generateMutation.isPending ? (
+        ) : isGenerating || generateMutation.isPending ? (
           <div
             className="flex flex-col items-center justify-center h-full gap-3"
             data-testid="review-tab-generating"
@@ -199,13 +209,15 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
         <Button
           variant="primary"
           onClick={handleGenerate}
-          disabled={generateMutation.isPending || disabled}
+          disabled={generateMutation.isPending || isGenerating || disabled}
           data-testid="generate-brd-button"
         >
-          {generateMutation.isPending && (
+          {(generateMutation.isPending || isGenerating) && (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           )}
-          {t("review.generate", "Generate")}
+          {isGenerating
+            ? t("review.generating", "Generating BRD...")
+            : t("review.generate", "Generate")}
         </Button>
         {hasBrdContent && (
           <Button

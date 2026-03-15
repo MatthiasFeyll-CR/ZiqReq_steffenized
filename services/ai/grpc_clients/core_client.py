@@ -101,6 +101,103 @@ class CoreClient:
         logger.warning("AI CoreClient.get_rate_limit_status stub called")
         return {"current_count": 0, "cap": 100, "is_locked": False}
 
+    # ── Similarity ──
+
+    def get_similar_ideas(self, idea_id: str) -> dict[str, Any]:
+        """Fetch similar ideas for a given idea (declined merges + near-threshold vector matches)."""
+        from django.db import connection as db_conn
+
+        results: list[dict[str, Any]] = []
+
+        # 1. Declined merge requests involving this idea
+        try:
+            with db_conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT requesting_idea_id, target_idea_id FROM merge_requests "
+                    "WHERE status = 'declined' AND (requesting_idea_id = %s OR target_idea_id = %s)",
+                    [idea_id, idea_id],
+                )
+                declined_ids: set[str] = set()
+                for row in cursor.fetchall():
+                    other = str(row[1]) if str(row[0]) == idea_id else str(row[0])
+                    declined_ids.add(other)
+
+                for other_id in declined_ids:
+                    results.append({
+                        "idea_id": other_id,
+                        "similarity_type": "declined_merge",
+                        "similarity_score": None,
+                    })
+        except Exception:
+            logger.debug("get_similar_ideas: failed to query declined merges for %s", idea_id)
+
+        # 2. Near-threshold vector matches via pgvector
+        try:
+            with db_conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT b.idea_id, 1 - (a.embedding <=> b.embedding) AS score "
+                    "FROM idea_embeddings a "
+                    "JOIN idea_embeddings b ON a.idea_id <> b.idea_id "
+                    "JOIN ideas ib ON ib.id = b.idea_id AND ib.deleted_at IS NULL "
+                    "WHERE a.idea_id = %s AND (1 - (a.embedding <=> b.embedding)) >= 0.65 "
+                    "ORDER BY score DESC LIMIT 20",
+                    [idea_id],
+                )
+                seen = {r["idea_id"] for r in results}
+                for row in cursor.fetchall():
+                    oid = str(row[0])
+                    if oid not in seen:
+                        results.append({
+                            "idea_id": oid,
+                            "similarity_type": "near_threshold",
+                            "similarity_score": round(float(row[1]), 4),
+                        })
+                        seen.add(oid)
+        except Exception:
+            logger.debug("get_similar_ideas: pgvector query failed for %s", idea_id)
+
+        # 3. Enrich with titles and keywords
+        idea_ids = [r["idea_id"] for r in results]
+        if idea_ids:
+            titles_map: dict[str, str] = {}
+            keywords_map: dict[str, list[str]] = {}
+            try:
+                with db_conn.cursor() as cursor:
+                    placeholders = ",".join(["%s"] * len(idea_ids))
+                    cursor.execute(
+                        f"SELECT id, title FROM ideas WHERE id IN ({placeholders})",
+                        idea_ids,
+                    )
+                    for row in cursor.fetchall():
+                        titles_map[str(row[0])] = row[1] or ""
+            except Exception:
+                pass
+            try:
+                with db_conn.cursor() as cursor:
+                    placeholders = ",".join(["%s"] * len(idea_ids))
+                    cursor.execute(
+                        f"SELECT idea_id, keywords FROM idea_keywords WHERE idea_id IN ({placeholders})",
+                        idea_ids,
+                    )
+                    for row in cursor.fetchall():
+                        keywords_map[str(row[0])] = row[1] or []
+            except Exception:
+                pass
+
+            enriched = []
+            for r in results:
+                iid = r["idea_id"]
+                enriched.append({
+                    "id": iid,
+                    "title": titles_map.get(iid, "Untitled"),
+                    "keywords": keywords_map.get(iid, []),
+                    "similarity_type": r["similarity_type"],
+                    "similarity_score": r["similarity_score"],
+                })
+            return {"results": enriched, "count": len(enriched)}
+
+        return {"results": [], "count": 0}
+
     # ── Board operations ──
 
     def get_board_state(self, idea_id: str) -> dict[str, Any]:
@@ -352,8 +449,23 @@ class CoreClient:
         idea_id: str,
         keywords: list[str],
     ) -> dict[str, Any]:
-        logger.warning("AI CoreClient.upsert_keywords stub called")
-        return {"success": True}
+        """Persist keywords for an idea (insert or update)."""
+        from django.db import connection as db_conn
+
+        try:
+            with db_conn.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO idea_keywords (id, idea_id, keywords, last_updated_at) "
+                    "VALUES (gen_random_uuid(), %s, %s, NOW()) "
+                    "ON CONFLICT (idea_id) DO UPDATE SET keywords = EXCLUDED.keywords, "
+                    "last_updated_at = NOW()",
+                    [idea_id, keywords],
+                )
+            logger.info("Upserted %d keywords for idea %s", len(keywords), idea_id)
+            return {"success": True}
+        except Exception:
+            logger.exception("Failed to upsert keywords for idea %s", idea_id)
+            return {"success": False}
 
     def upsert_idea_embedding(
         self,

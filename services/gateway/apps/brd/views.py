@@ -2,7 +2,7 @@ import logging
 import os
 import uuid
 
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
@@ -30,6 +30,13 @@ def _create_ai_client():
 
     address = os.environ.get("AI_GRPC_ADDRESS", "localhost:50052")
     return AiClient(address=address)
+
+
+def _create_pdf_client():
+    """Create a PdfClient instance (lazy import to avoid namespace collisions)."""
+    from grpc_clients.pdf_client import PdfClient
+
+    return PdfClient()
 
 
 def _require_auth(request: Request):
@@ -296,4 +303,75 @@ def brd_version_pdf(request: Request, idea_id: str, version: str) -> Response:
         content_type="application/pdf",
         as_attachment=False,
         filename=f"brd-v{brd_version.version_number}.pdf",
+    )
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def brd_preview_pdf(request: Request, idea_id: str) -> Response | HttpResponse:
+    """GET /api/ideas/:id/brd/preview-pdf — Generate PDF preview from current draft."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    idea, error = _get_idea_or_error(idea_id)
+    if error:
+        return error
+
+    try:
+        draft = BrdDraft.objects.get(idea_id=idea.id)
+    except BrdDraft.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "No BRD draft found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    has_content = any([
+        draft.section_title,
+        draft.section_short_description,
+        draft.section_current_workflow,
+        draft.section_affected_department,
+        draft.section_core_capabilities,
+        draft.section_success_criteria,
+    ])
+    if not has_content:
+        return Response(
+            {"error": "NO_CONTENT", "message": "BRD draft has no content to preview"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    sections = {
+        "title": draft.section_title or "",
+        "short_description": draft.section_short_description or "",
+        "current_workflow": draft.section_current_workflow or "",
+        "affected_department": draft.section_affected_department or "",
+        "core_capabilities": draft.section_core_capabilities or "",
+        "success_criteria": draft.section_success_criteria or "",
+    }
+
+    try:
+        pdf_client = _create_pdf_client()
+        result = pdf_client.generate_pdf(
+            idea_id=str(idea.id),
+            idea_title=idea.title or "",
+            sections=sections,
+        )
+    except Exception:
+        logger.exception("PDF preview generation failed for idea %s", idea_id)
+        return Response(
+            {"error": "PDF_GENERATION_FAILED", "message": "PDF generation service is unavailable"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    pdf_data = result.get("pdf_data", b"")
+    if not pdf_data:
+        return Response(
+            {"error": "PDF_GENERATION_FAILED", "message": "PDF generation returned empty data"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return HttpResponse(
+        pdf_data,
+        content_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="brd-preview-{idea.id}.pdf"'},
     )

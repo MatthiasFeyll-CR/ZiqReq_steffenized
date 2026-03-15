@@ -348,7 +348,15 @@
     "noUsersFound": "Keine Benutzer gefunden.",
     "failedLoadUsers": "Benutzer konnten nicht geladen werden",
     "failedSearchUsers": "Benutzersuche fehlgeschlagen",
-    "userStats": "{{ideas}} Ideen | {{reviews}} Bewertungen | {{contributions}} Beiträge"
+    "userStats": "{{ideas}} Ideen | {{reviews}} Bewertungen | {{contributions}} Beiträge",
+    "ideas": {
+      "tab": "Ideen",
+      "searchPlaceholder": "Ideen nach Titel suchen...",
+      "allStates": "Alle Status",
+      "totalCount": "{{count}} Ideen",
+      "failedLoad": "Ideen konnten nicht geladen werden",
+      "next": "Weiter"
+    }
   },
   "board": {
     "addBox": "Box hinzufügen",
@@ -376,7 +384,10 @@
     "send": "Senden",
     "rateLimited": "Chat-Eingabe gesperrt. Bitte warten Sie, bis die KI-Verarbeitung abgeschlossen ist.",
     "messageList": "Chat-Nachrichten",
-    "emptyState": "Starten Sie ein Brainstorming..."
+    "emptyState": "Starten Sie ein Brainstorming...",
+    "quickReplies": {
+      "similarIdea": "Hat jemand eine ähnliche Idee?"
+    }
   },
   "submit": {
     "success": "Idee eingereicht",

@@ -1,6 +1,7 @@
 """Tests for AIEventConsumer — event processing, retry, idempotency, DLQ."""
 
 import asyncio
+import json
 import sys
 import uuid
 from pathlib import Path
@@ -349,7 +350,7 @@ class TestAIEventConsumerBrdReady(TestCase):
         self.core_client.update_brd_draft.assert_called_once_with(
             idea_id=event["idea_id"],
             sections=sections,
-            readiness_evaluation_json=str(readiness),
+            readiness_evaluation_json=json.dumps(readiness),
         )
         ws_event = mock_layer.group_send.call_args[0][1]
         assert ws_event["type"] == "brd_ready"

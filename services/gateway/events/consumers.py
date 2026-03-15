@@ -12,6 +12,7 @@ Idempotency: event_id tracking prevents duplicate processing.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from typing import Any
 
@@ -182,7 +183,7 @@ class AIEventConsumer:
         self._core_client.update_brd_draft(
             idea_id=idea_id,
             sections=sections,
-            readiness_evaluation_json=str(readiness_evaluation),
+            readiness_evaluation_json=json.dumps(readiness_evaluation),
         )
 
         payload = {

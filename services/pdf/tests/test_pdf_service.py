@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -34,17 +34,27 @@ def _sample_content() -> BrdContent:
 
 def _make_request(**overrides: str) -> SimpleNamespace:
     defaults = {
-        "section_title": "Test Title",
-        "section_short_description": "Test Description",
-        "section_current_workflow": "Test Workflow",
-        "section_affected_department": "Test Department",
-        "section_core_capabilities": "Test Capabilities",
-        "section_success_criteria": "Test Criteria",
-        "idea_title": "Test Idea",
-        "generated_date": "2026-03-11",
+        "title": "Test Title",
+        "short_description": "Test Description",
+        "current_workflow": "Test Workflow",
+        "affected_department": "Test Department",
+        "core_capabilities": "Test Capabilities",
+        "success_criteria": "Test Criteria",
     }
+    idea_title = overrides.pop("idea_title", "Test Idea")
+    idea_id = overrides.pop("idea_id", "test-idea-id")
+    generated_at = overrides.pop("generated_at", "2026-03-11")
     defaults.update(overrides)
-    return SimpleNamespace(**defaults)
+    return SimpleNamespace(
+        idea_id=idea_id,
+        idea_title=idea_title,
+        sections=defaults,
+        generated_at=generated_at,
+    )
+
+
+def _mock_context():
+    return MagicMock()
 
 
 # ── Builder Tests ─────────────────────────────────────────────────
@@ -167,50 +177,53 @@ class TestPdfServicer:
         """PDF-4.03: gRPC service returns bytes."""
         servicer = PdfServicer()
         request = _make_request()
-        result = servicer.GeneratePdf(request, context=None)
+        ctx = _mock_context()
+        result = servicer.GeneratePdf(request, context=ctx)
 
-        assert result["error_message"] == ""
-        assert isinstance(result["pdf_bytes"], bytes)
-        assert len(result["pdf_bytes"]) > 0
-        assert result["pdf_bytes"][:5] == b"%PDF-"
+        assert isinstance(result.pdf_data, bytes)
+        assert len(result.pdf_data) > 0
+        assert result.pdf_data[:5] == b"%PDF-"
 
     def test_generate_pdf_with_todo_markers_rejected(self) -> None:
         """T-4.9.06: PDF generation rejected if /TODO markers present."""
         servicer = PdfServicer()
         request = _make_request(
-            section_title="/TODO: Need a proper title"
+            title="/TODO: Need a proper title"
         )
-        result = servicer.GeneratePdf(request, context=None)
+        ctx = _mock_context()
+        result = servicer.GeneratePdf(request, context=ctx)
 
-        assert result["pdf_bytes"] == b""
-        assert "/TODO markers" in result["error_message"]
+        assert result.pdf_data == b""
+        ctx.set_code.assert_called_once()
 
     def test_generate_pdf_all_sections_in_output(self) -> None:
         """T-4.7.01: PDF generated from BRD content."""
         servicer = PdfServicer()
         request = _make_request()
-        result = servicer.GeneratePdf(request, context=None)
+        ctx = _mock_context()
+        result = servicer.GeneratePdf(request, context=ctx)
 
-        assert result["error_message"] == ""
-        assert len(result["pdf_bytes"]) > 100
+        assert len(result.pdf_data) > 100
 
     def test_generate_pdf_logs_success(self) -> None:
         servicer = PdfServicer()
         request = _make_request()
+        ctx = _mock_context()
         # Just verifies no errors; logging is tested implicitly
-        result = servicer.GeneratePdf(request, context=None)
-        assert result["error_message"] == ""
+        result = servicer.GeneratePdf(request, context=ctx)
+        assert len(result.pdf_data) > 0
 
     def test_generate_pdf_handles_rendering_error(self) -> None:
         servicer = PdfServicer()
         request = _make_request()
+        ctx = _mock_context()
         with patch(
             "services.pdf.grpc_server.servicers.pdf_servicer.render_pdf",
             side_effect=ValueError("Rendering kaboom"),
         ):
-            result = servicer.GeneratePdf(request, context=None)
-        assert result["pdf_bytes"] == b""
-        assert "Rendering kaboom" in result["error_message"]
+            result = servicer.GeneratePdf(request, context=ctx)
+        assert result.pdf_data == b""
+        ctx.set_code.assert_called_once()
 
 
 # ── CSS Content Test ──────────────────────────────────────────────

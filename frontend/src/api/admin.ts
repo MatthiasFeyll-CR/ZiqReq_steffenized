@@ -190,6 +190,50 @@ export interface AdminUser {
   contribution_count: number;
 }
 
+// ---------- Ideas (Admin) ----------
+
+export interface AdminIdea {
+  id: string;
+  title: string;
+  state: "open" | "in_review" | "accepted" | "dropped" | "rejected";
+  keywords: string[];
+  owner: { id: string; display_name: string };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminIdeasResponse {
+  results: AdminIdea[];
+  count: number;
+  next: number | null;
+  previous: number | null;
+}
+
+export async function fetchAdminIdeas(params?: {
+  page?: number;
+  page_size?: number;
+  state?: string;
+  search?: string;
+}): Promise<AdminIdeasResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+  if (params?.state) searchParams.set("state", params.state);
+  if (params?.search) searchParams.set("search", params.search);
+
+  const qs = searchParams.toString();
+  const res = await authFetch(`${env.apiBaseUrl}/admin/ideas${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+// ---------- Users ----------
+
 export async function searchUsers(query: string): Promise<AdminUser[]> {
   const params = query ? `?q=${encodeURIComponent(query)}` : "";
   const res = await authFetch(`${env.apiBaseUrl}/admin/users/search${params}`, {

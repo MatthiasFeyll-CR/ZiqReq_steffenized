@@ -88,7 +88,47 @@ class CoreClient:
         sections: dict[str, str],
         readiness_evaluation_json: str = "",
     ) -> dict[str, Any]:
-        logger.warning("CoreClient.update_brd_draft stub called")
+        import json
+        from apps.brd.models import BrdDraft
+
+        draft, _created = BrdDraft.objects.get_or_create(
+            idea_id=idea_id,
+            defaults={
+                "section_locks": {},
+                "allow_information_gaps": False,
+                "readiness_evaluation": {},
+            },
+        )
+
+        # Map section keys to model fields
+        field_map = {
+            "title": "section_title",
+            "short_description": "section_short_description",
+            "current_workflow": "section_current_workflow",
+            "affected_department": "section_affected_department",
+            "core_capabilities": "section_core_capabilities",
+            "success_criteria": "section_success_criteria",
+        }
+
+        update_fields = ["updated_at"]
+        for key, field in field_map.items():
+            if key in sections:
+                # Only update if the section is not locked
+                locks = draft.section_locks or {}
+                if not locks.get(key, False):
+                    setattr(draft, field, sections[key])
+                    update_fields.append(field)
+
+        # Update readiness evaluation
+        if readiness_evaluation_json:
+            try:
+                draft.readiness_evaluation = json.loads(readiness_evaluation_json) if isinstance(readiness_evaluation_json, str) else readiness_evaluation_json
+            except (json.JSONDecodeError, TypeError):
+                draft.readiness_evaluation = {}
+            update_fields.append("readiness_evaluation")
+
+        draft.save(update_fields=update_fields)
+        logger.info("Updated BRD draft for idea %s", idea_id)
         return {"success": True}
 
     def update_idea_keywords(

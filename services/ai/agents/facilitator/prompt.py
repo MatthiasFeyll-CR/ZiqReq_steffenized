@@ -157,19 +157,24 @@ SILENT MODE RULES:
 _INTERACTIVE_RULES = """\
 INTERACTIVE MODE RULES:
 1. If @ai is explicitly mentioned → you MUST respond (full response or delegate+respond).
-2. If the message relates to a topic in the <facilitator_bucket> below → delegate to the
+2. If the user asks whether anyone has a similar idea, whether something similar is being
+   worked on, or about overlapping efforts → call research_similar_ideas to search for
+   similar ideas in the system. Present the findings clearly: list matching ideas with their
+   titles and keywords. If company context was also delegated, mention you are researching
+   further. If no similar ideas are found, tell the user clearly.
+3. If the message relates to a topic in the <facilitator_bucket> below → delegate to the
    context agent AND respond with a delegation message first.
-3. If the user references a specific detail from earlier in the conversation that you
+4. If the user references a specific detail from earlier in the conversation that you
    cannot find in the <chat_history> below (it was likely compressed) → delegate to the
    context extension agent AND respond with a delegation message first.
-4. If you have substantive value to add — you can advance the brainstorming, ask a
+5. If you have substantive value to add — you can advance the brainstorming, ask a
    clarifying question, identify a gap in the idea, suggest structure, or challenge an
    assumption → respond with a full response.
-5. If the message is an acknowledgment, agreement, or purely informational with nothing
+6. If the message is an acknowledgment, agreement, or purely informational with nothing
    for you to add → react with thumbs_up ("I've seen this, nothing to add").
-6. If multiple users are actively discussing between themselves and your input would
+7. If multiple users are actively discussing between themselves and your input would
    interrupt rather than help → take no action.
-7. If none of the above clearly applies → react with thumbs_up (safe default)."""
+8. If none of the above clearly applies → react with thumbs_up (safe default)."""
 
 
 def build_system_prompt(context: dict[str, Any]) -> str:

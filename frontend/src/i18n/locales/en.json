@@ -348,7 +348,15 @@
     "noUsersFound": "No users found.",
     "failedLoadUsers": "Failed to load users",
     "failedSearchUsers": "Failed to search users",
-    "userStats": "{{ideas}} ideas | {{reviews}} reviews | {{contributions}} contributions"
+    "userStats": "{{ideas}} ideas | {{reviews}} reviews | {{contributions}} contributions",
+    "ideas": {
+      "tab": "Ideas",
+      "searchPlaceholder": "Search ideas by title...",
+      "allStates": "All states",
+      "totalCount": "{{count}} ideas",
+      "failedLoad": "Failed to load ideas",
+      "next": "Next"
+    }
   },
   "board": {
     "addBox": "Add Box",
@@ -376,7 +384,10 @@
     "send": "Send",
     "rateLimited": "Chat input is locked. Please wait for AI to complete processing.",
     "messageList": "Chat messages",
-    "emptyState": "Start brainstorming..."
+    "emptyState": "Start brainstorming...",
+    "quickReplies": {
+      "similarIdea": "Does anyone have a similar idea?"
+    }
   },
   "submit": {
     "success": "Idea submitted",

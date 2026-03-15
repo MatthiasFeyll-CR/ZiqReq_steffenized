@@ -75,6 +75,19 @@ export async function patchBrdDraft(
   return res.json();
 }
 
+export async function fetchBrdPreviewPdf(ideaId: string): Promise<Blob> {
+  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/preview-pdf`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    (err as Error & { status: number }).status = res.status;
+    throw err;
+  }
+  return res.blob();
+}
+
 export async function fetchBrdPdf(ideaId: string): Promise<Blob> {
   const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/versions/latest/pdf`, {
     credentials: "include",

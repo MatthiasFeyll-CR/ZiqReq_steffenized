@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Brain, Settings, BarChart3, Users } from "lucide-react";
+import { Brain, Settings, BarChart3, Users, Lightbulb } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { AIContextTab } from "@/features/admin/AIContextTab";
 import { ParametersTab } from "@/features/admin/ParametersTab";
 import { MonitoringTab } from "@/features/admin/MonitoringTab";
 import { UsersTab } from "@/features/admin/UsersTab";
+import { IdeasTab } from "@/features/admin/IdeasTab";
 
 export default function AdminPanel() {
   const { t } = useTranslation();
@@ -49,6 +50,13 @@ export default function AdminPanel() {
               <Users className="h-4 w-4" />
               {t("admin.users")}
             </TabsTrigger>
+            <TabsTrigger
+              value="ideas"
+              className="inline-flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:bg-muted/50 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            >
+              <Lightbulb className="h-4 w-4" />
+              {t("admin.ideas.tab")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="ai-context">
@@ -62,6 +70,9 @@ export default function AdminPanel() {
           </TabsContent>
           <TabsContent value="users">
             <UsersTab />
+          </TabsContent>
+          <TabsContent value="ideas">
+            <IdeasTab />
           </TabsContent>
         </Tabs>
       </div>

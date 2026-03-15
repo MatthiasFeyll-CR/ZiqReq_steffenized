@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { sendChatMessage, type ChatMessage } from "@/api/chat";
 import { MentionDropdown, type MentionItem } from "./MentionDropdown";
 import { ContextWindowIndicator } from "./ContextWindowIndicator";
+import { QuickReplyChips } from "./QuickReplyChips";
 import type { Idea } from "@/api/ideas";
 
 interface ChatInputProps {
@@ -226,6 +227,18 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
     return () => window.removeEventListener("board:reference", handleBoardReference);
   }, []);
 
+  const handleQuickReply = useCallback(
+    (text: string) => {
+      setValue(text);
+      // Auto-resize textarea after setting value
+      requestAnimationFrame(() => {
+        handleInput();
+        textareaRef.current?.focus();
+      });
+    },
+    [handleInput],
+  );
+
   // Close mention on click outside
   useEffect(() => {
     if (!mentionOpen) return;
@@ -245,7 +258,11 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
   }, []);
 
   return (
-    <div ref={containerRef} className="relative border-t bg-card px-6 py-4 flex items-end gap-2" data-testid="chat-input">
+    <div ref={containerRef} className="relative border-t bg-card" data-testid="chat-input">
+      {!disabled && value.trim().length === 0 && (
+        <QuickReplyChips onSelect={handleQuickReply} disabled={disabled} />
+      )}
+      <div className="flex items-end gap-2 px-6 py-4">
       <ContextWindowIndicator ideaId={ideaId} ideaState={idea?.state ?? "open"} />
       <div className="relative flex-1">
         {mentionOpen && (
@@ -285,6 +302,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
           <ArrowRight className="h-4 w-4" />
         )}
       </Button>
+      </div>
     </div>
   );
 }

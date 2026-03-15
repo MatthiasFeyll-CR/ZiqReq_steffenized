@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import logging
+import sys
+from pathlib import Path
 from typing import Any
+
+import grpc
 
 from services.pdf.generator.builder import BrdContent, build_html
 from services.pdf.generator.renderer import (
@@ -12,10 +16,37 @@ from services.pdf.generator.renderer import (
     validate_no_todo_markers,
 )
 
+# Ensure proto directory is on sys.path for generated imports
+def _find_proto_dir() -> str:
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        candidate = current / "proto"
+        if candidate.is_dir():
+            return str(candidate)
+        current = current.parent
+    return ""
+
+_proto_dir = _find_proto_dir()
+if _proto_dir and _proto_dir not in sys.path:
+    sys.path.insert(0, _proto_dir)
+
+import pdf_pb2  # noqa: E402
+import pdf_pb2_grpc  # noqa: E402
+
 logger = logging.getLogger(__name__)
 
+# Section key mapping: proto sections map keys → builder field names
+_SECTION_KEY_TO_FIELD = {
+    "title": "section_title",
+    "short_description": "section_short_description",
+    "current_workflow": "section_current_workflow",
+    "affected_department": "section_affected_department",
+    "core_capabilities": "section_core_capabilities",
+    "success_criteria": "section_success_criteria",
+}
 
-class PdfServicer:
+
+class PdfServicer(pdf_pb2_grpc.PdfServiceServicer):
     """gRPC servicer for PDF generation.
 
     Implements GeneratePdf: accepts BRD content (6 sections + metadata),
@@ -23,38 +54,30 @@ class PdfServicer:
     and returns raw PDF bytes.
     """
 
-    def GeneratePdf(self, request: Any, context: Any) -> dict[str, Any]:
-        """Generate a PDF from BRD content.
+    def GeneratePdf(self, request: Any, context: Any) -> Any:
+        """Generate a PDF from BRD content."""
+        idea_title = request.idea_title or ""
+        idea_id = request.idea_id or ""
+        logger.info("GeneratePdf request for idea: %s (id=%s)", idea_title, idea_id)
 
-        Request fields:
-            section_title, section_short_description, section_current_workflow,
-            section_affected_department, section_core_capabilities,
-            section_success_criteria, idea_title, generated_date
-
-        Returns dict with pdf_bytes (bytes) or error_message (str).
-        """
-        idea_title = getattr(request, "idea_title", "") or ""
-        logger.info("GeneratePdf request for idea: %s", idea_title)
-
-        section_fields = {
-            "section_title": getattr(request, "section_title", "") or "",
-            "section_short_description": getattr(request, "section_short_description", "") or "",
-            "section_current_workflow": getattr(request, "section_current_workflow", "") or "",
-            "section_affected_department": getattr(request, "section_affected_department", "") or "",
-            "section_core_capabilities": getattr(request, "section_core_capabilities", "") or "",
-            "section_success_criteria": getattr(request, "section_success_criteria", "") or "",
-        }
+        # Map sections from proto map to builder fields
+        sections = dict(request.sections)
+        section_fields = {}
+        for key, field in _SECTION_KEY_TO_FIELD.items():
+            section_fields[field] = sections.get(key, "")
 
         try:
             validate_no_todo_markers(section_fields)
         except TodoMarkerError as exc:
             logger.warning("PDF generation rejected: %s", exc)
-            return {"pdf_bytes": b"", "error_message": str(exc)}
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details(str(exc))
+            return pdf_pb2.PdfGenerationResponse(pdf_data=b"", filename="")
 
         brd_content = BrdContent(
             **section_fields,
             idea_title=idea_title,
-            generated_date=getattr(request, "generated_date", "") or "",
+            generated_date=request.generated_at or "",
         )
 
         try:
@@ -65,7 +88,13 @@ class PdfServicer:
                 idea_title,
                 len(pdf_bytes),
             )
-            return {"pdf_bytes": pdf_bytes, "error_message": ""}
+            filename = f"brd-{idea_id}.pdf" if idea_id else "brd.pdf"
+            return pdf_pb2.PdfGenerationResponse(
+                pdf_data=pdf_bytes,
+                filename=filename,
+            )
         except (ValueError, OSError) as exc:
             logger.error("PDF generation failed: %s", exc)
-            return {"pdf_bytes": b"", "error_message": str(exc)}
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(exc))
+            return pdf_pb2.PdfGenerationResponse(pdf_data=b"", filename="")
