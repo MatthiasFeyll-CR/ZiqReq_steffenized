@@ -98,18 +98,18 @@ class TestShareLinkMiddleware(TestCase):
 
     def test_valid_token_adds_share_link_viewer_role(self):
         token = "a" * 64
-        response = self.client.get(f"/api/ideas/{self.idea.id}?token={token}")
+        response = self.client.get(f"/api/ideas/{self.idea.id}/?token={token}")
         assert response.status_code == 200
 
     def test_invalid_token_returns_403(self):
-        response = self.client.get(f"/api/ideas/{self.idea.id}?token=invalidtoken")
+        response = self.client.get(f"/api/ideas/{self.idea.id}/?token=invalidtoken")
         assert response.status_code == 403
         data = response.json()
         assert data["error"] == "FORBIDDEN"
 
     def test_no_token_passes_through(self):
         # Without token, normal auth applies — owner can still access
-        response = self.client.get(f"/api/ideas/{self.idea.id}")
+        response = self.client.get(f"/api/ideas/{self.idea.id}/")
         assert response.status_code == 200
 
     def test_token_not_applied_to_non_ideas_paths(self):

@@ -153,7 +153,7 @@ class TestVisibilityNoRevert(TestCase):
 
     def test_visibility_cannot_be_set_via_patch(self):
         response = self.client.patch(
-            f"/api/ideas/{self.idea.id}",
+            f"/api/ideas/{self.idea.id}/",
             {"visibility": "private"},
             format="json",
         )

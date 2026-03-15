@@ -16,6 +16,7 @@ vi.mock("@/components/board/BoardCanvas", () => ({
 
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
+  useWsSend: () => vi.fn(),
 }));
 
 // Mock child components to isolate section visibility behavior

@@ -78,9 +78,11 @@ describe("T-3.1.02: GroupNode renders as dashed container", () => {
     expect(label.className).toContain("rounded");
   });
 
-  it("does not render label badge when title is empty", () => {
+  it("renders placeholder label when title is empty", () => {
     renderGroupNode({ title: undefined });
-    expect(screen.queryByTestId("group-label")).not.toBeInTheDocument();
+    const label = screen.getByTestId("group-label");
+    expect(label).toBeInTheDocument();
+    expect(label.textContent).toBe("Double-click to name");
   });
 
   it("renders NodeResizer with min 200x150", () => {

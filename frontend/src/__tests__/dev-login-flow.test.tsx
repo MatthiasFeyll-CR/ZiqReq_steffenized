@@ -9,6 +9,7 @@ import type { AuthUser, AuthContextValue } from "@/hooks/use-auth";
 import { DevUserSwitcher } from "@/components/auth/DevUserSwitcher";
 import { Navbar } from "@/components/layout/Navbar";
 import { websocketReducer } from "@/store/websocket-slice";
+import { toastNotificationReducer } from "@/store/toast-notification-slice";
 import { MemoryRouter } from "react-router-dom";
 import "@/i18n/config";
 
@@ -31,16 +32,28 @@ const DEV_USERS = [
   },
 ];
 
-// Mock fetch to return dev users from API
-vi.stubGlobal(
-  "fetch",
-  vi.fn(() =>
-    Promise.resolve({
-      ok: true,
-      json: () => Promise.resolve(DEV_USERS),
-    }),
-  ),
-);
+// Mock apiClient to return dev users from API
+vi.mock("@/lib/api-client", () => ({
+  apiClient: vi.fn(() => Promise.resolve({ users: DEV_USERS })),
+}));
+
+vi.mock("react-toastify", () => ({
+  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }),
+  ToastContainer: () => null,
+}));
+
+vi.mock("@/api/notifications", () => ({
+  fetchUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0 }),
+  fetchNotifications: vi.fn().mockResolvedValue({ results: [], count: 0 }),
+  fetchEmailPreferences: vi.fn().mockResolvedValue({ email_enabled: false, digest_frequency: "never" }),
+  updateEmailPreferences: vi.fn().mockResolvedValue({}),
+  markNotificationActioned: vi.fn().mockResolvedValue({}),
+  markAllRead: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("@/hooks/use-ideas-by-state", () => ({
+  useIdeasByState: vi.fn(() => ({ data: null, isLoading: false })),
+}));
 
 function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
@@ -57,7 +70,7 @@ function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContext
 
 function renderWithAuth(ui: React.ReactNode, authValue: AuthContextValue) {
   const store = configureStore({
-    reducer: { websocket: websocketReducer },
+    reducer: { websocket: websocketReducer, toastNotifications: toastNotificationReducer },
     preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false } },
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -76,20 +89,13 @@ describe("T-7.1.04: Dev login flow end-to-end", () => {
   let authValue: AuthContextValue;
   let currentUser: AuthUser | null;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     currentUser = null;
     vi.clearAllMocks();
 
-    // Re-stub fetch for each test
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(DEV_USERS),
-        }),
-      ),
-    );
+    // Re-mock apiClient for each test
+    const { apiClient } = await import("@/lib/api-client");
+    vi.mocked(apiClient).mockResolvedValue({ users: DEV_USERS });
 
     authValue = createAuthValue({
       get user() {

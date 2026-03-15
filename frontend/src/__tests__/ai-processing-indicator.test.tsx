@@ -32,20 +32,22 @@ describe("T-2.12.01: AI processing indicator shows", () => {
 
     const indicator = screen.getByTestId("ai-processing-indicator");
     expect(indicator).toBeInTheDocument();
-    expect(indicator).toHaveTextContent("AI is processing");
+    expect(indicator).toHaveTextContent("thinking");
   });
 
-  it("shows animated dots with motion-safe class", () => {
+  it("shows animated dots with typing-dot class", () => {
     render(<AIProcessingIndicator ideaId={IDEA_ID} />);
 
     act(() => {
       dispatchAiProcessing(IDEA_ID, "started");
     });
 
-    const dots = screen.getByTestId("ai-processing-indicator").querySelectorAll("span > span");
+    const indicator = screen.getByTestId("ai-processing-indicator");
+    const dots = indicator.querySelectorAll(".typing-dot");
     expect(dots).toHaveLength(3);
     dots.forEach((dot) => {
-      expect(dot.className).toContain("motion-safe:animate-bounce");
+      expect(dot.className).toContain("typing-dot");
+      expect(dot.className).toContain("rounded-full");
     });
   });
 

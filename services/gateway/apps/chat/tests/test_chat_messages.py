@@ -46,7 +46,7 @@ class TestChatMessagesAPI(TestCase):
         )
 
     def _chat_url(self, idea_id=None):
-        return f"/api/ideas/{idea_id or self.idea.id}/chat"
+        return f"/api/ideas/{idea_id or self.idea.id}/chat/"
 
     # --- POST /api/ideas/:id/chat ---
 
@@ -209,11 +209,11 @@ class TestChatMessagesAPI(TestCase):
         response = client.get(self._chat_url())
         assert response.status_code == 401
 
-    def test_list_messages_no_access_returns_403(self):
-        """GET by non-owner/non-collaborator returns 403."""
+    def test_list_messages_non_owner_returns_200_read_only(self):
+        """GET by non-owner/non-collaborator returns 200 (read-only access)."""
         self._login_as(self.user2)
         response = self.client.get(self._chat_url())
-        assert response.status_code == 403
+        assert response.status_code == 200
 
     def test_list_messages_nonexistent_idea_returns_404(self):
         """GET for nonexistent idea returns 404."""

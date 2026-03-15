@@ -79,11 +79,11 @@ class TestBoardNodesAPI(TestCase):
         response = client.get(self._nodes_url())
         assert response.status_code == 401
 
-    def test_list_nodes_no_access_returns_403(self):
-        """GET by non-owner returns 403."""
+    def test_list_nodes_non_owner_returns_200_read_only(self):
+        """GET by non-owner returns 200 (read-only access)."""
         self._login_as(self.user2)
         response = self.client.get(self._nodes_url())
-        assert response.status_code == 403
+        assert response.status_code == 200
 
     def test_list_nodes_nonexistent_idea_returns_404(self):
         """GET for nonexistent idea returns 404."""
@@ -456,11 +456,11 @@ class TestBoardConnectionsAPI(TestCase):
         response = client.get(self._conns_url())
         assert response.status_code == 401
 
-    def test_list_connections_no_access_returns_403(self):
-        """GET by non-owner returns 403."""
+    def test_list_connections_non_owner_returns_200_read_only(self):
+        """GET by non-owner returns 200 (read-only access)."""
         self._login_as(self.user2)
         response = self.client.get(self._conns_url())
-        assert response.status_code == 403
+        assert response.status_code == 200
 
     # --- POST /api/ideas/:id/board/connections ---
 

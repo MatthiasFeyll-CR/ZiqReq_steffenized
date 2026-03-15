@@ -101,7 +101,7 @@ class TestRateLimitAPI(TestCase):
         )
 
     def _chat_url(self):
-        return f"/api/ideas/{self.idea.id}/chat"
+        return f"/api/ideas/{self.idea.id}/chat/"
 
     def test_rate_limit_locks_chat_at_cap(self):
         """T-2.11.01: Send chat_message_cap messages (default 5), 429 on next."""
@@ -178,7 +178,7 @@ class TestRateLimitAPI(TestCase):
 
         # Second idea should still accept messages
         resp = self.client.post(
-            f"/api/ideas/{idea2.id}/chat",
+            f"/api/ideas/{idea2.id}/chat/",
             {"content": "Different idea"},
             format="json",
         )

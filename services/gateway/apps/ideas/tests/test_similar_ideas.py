@@ -135,11 +135,11 @@ class TestSimilarIdeas(TestCase):
         response = self.client.get("/api/ideas/not-a-uuid/similar")
         assert response.status_code == 404
 
-    def test_403_for_unauthorized_user(self, _mock_near):
-        """Returns 403 if user is not owner, co-owner, collaborator, or reviewer."""
+    def test_any_authenticated_user_can_access(self, _mock_near):
+        """Any authenticated user can access similar ideas (read-only)."""
         self._login_as(self.user3)
         response = self.client.get(f"/api/ideas/{self.idea_a.id}/similar")
-        assert response.status_code == 403
+        assert response.status_code == 200
 
     def test_owner_can_access(self, _mock_near):
         """Idea owner can access similar ideas."""

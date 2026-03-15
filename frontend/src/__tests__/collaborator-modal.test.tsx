@@ -12,32 +12,35 @@ const INVITE_ID = "22222222-2222-2222-2222-222222222222";
 
 const {
   mockSearchUsers,
-  mockSendInvitation,
+  mockSendBulkInvitations,
   mockFetchCollaborators,
   mockRemoveCollaborator,
   mockTransferOwnership,
   mockFetchPendingInvitations,
   mockRevokeInvitation,
+  mockLeaveIdea,
   mockToastSuccess,
   mockToastError,
 } = vi.hoisted(() => ({
   mockSearchUsers: vi.fn(),
-  mockSendInvitation: vi.fn(),
+  mockSendBulkInvitations: vi.fn(),
   mockFetchCollaborators: vi.fn(),
   mockRemoveCollaborator: vi.fn(),
   mockTransferOwnership: vi.fn(),
   mockFetchPendingInvitations: vi.fn(),
   mockRevokeInvitation: vi.fn(),
+  mockLeaveIdea: vi.fn(),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
 }));
 
 vi.mock("@/api/collaboration", () => ({
   searchUsers: mockSearchUsers,
-  sendInvitation: mockSendInvitation,
+  sendBulkInvitations: mockSendBulkInvitations,
   fetchCollaborators: mockFetchCollaborators,
   removeCollaborator: mockRemoveCollaborator,
   transferOwnership: mockTransferOwnership,
+  leaveIdea: mockLeaveIdea,
   fetchPendingInvitations: mockFetchPendingInvitations,
   revokeInvitation: mockRevokeInvitation,
 }));
@@ -125,6 +128,8 @@ beforeEach(() => {
     ],
   });
   mockSearchUsers.mockResolvedValue([]);
+  mockSendBulkInvitations.mockResolvedValue({ results: [] });
+  mockLeaveIdea.mockResolvedValue({ message: "Left" });
 });
 
 describe("UI-COLLAB.01: Modal opens with 3 tabs", () => {
@@ -166,12 +171,14 @@ describe("UI-COLLAB.02: Invite tab search and invite", () => {
     });
   });
 
-  it("sends invitation on Invite button click", async () => {
+  it("selects user from search results and sends bulk invitation", async () => {
     const user = userEvent.setup();
     mockSearchUsers.mockResolvedValue([
       { id: "user-1", display_name: "Alice Test", email: "alice@test.com", roles: ["user"] },
     ]);
-    mockSendInvitation.mockResolvedValue({ invitation_id: "inv-1", status: "pending" });
+    mockSendBulkInvitations.mockResolvedValue({
+      results: [{ invitee_id: "user-1", status: "pending" }],
+    });
 
     renderModal();
 
@@ -182,12 +189,20 @@ describe("UI-COLLAB.02: Invite tab search and invite", () => {
       expect(screen.getByText("Alice Test")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByTestId("invite-button-user-1"));
+    // Click the search result to select it
+    await user.click(screen.getByTestId("search-result-user-1"));
+
+    // Selected users should appear as chips
+    await waitFor(() => {
+      expect(screen.getByTestId("selected-users")).toBeInTheDocument();
+    });
+
+    // Click the invite button
+    await user.click(screen.getByTestId("invite-selected-button"));
 
     await waitFor(() => {
-      expect(mockSendInvitation).toHaveBeenCalledWith(IDEA_ID, "user-1");
+      expect(mockSendBulkInvitations).toHaveBeenCalledWith(IDEA_ID, ["user-1"]);
     });
-    expect(mockToastSuccess).toHaveBeenCalledWith("Invitation sent");
   });
 });
 

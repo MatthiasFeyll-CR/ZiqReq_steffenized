@@ -129,7 +129,7 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
     );
 
     await user.click(screen.getByRole("button", { name: /accept/i }));
-    expect(onAccept).toHaveBeenCalledWith(INVITE_ID);
+    expect(onAccept).toHaveBeenCalledWith(INVITE_ID, IDEA_ID);
   });
 
   it("calls onDecline when Decline button is clicked", async () => {

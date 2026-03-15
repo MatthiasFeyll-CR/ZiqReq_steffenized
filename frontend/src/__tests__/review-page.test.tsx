@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext } from "@/hooks/use-auth";
 import type { AuthContextValue } from "@/hooks/use-auth";
 import { websocketReducer } from "@/store/websocket-slice";
+import { toastNotificationReducer } from "@/store/toast-notification-slice";
 import ReviewPage from "@/pages/review-page";
 import i18n from "@/i18n/config";
 import type { ReviewListResponse } from "@/api/review";
@@ -24,8 +25,17 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("react-toastify", () => ({
-  toast: Object.assign(vi.fn(), { error: vi.fn() }),
+  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }),
   ToastContainer: () => null,
+}));
+
+vi.mock("@/api/notifications", () => ({
+  fetchUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0 }),
+  markNotificationActioned: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("@/hooks/use-ideas-by-state", () => ({
+  useIdeasByState: vi.fn(() => ({ data: null, isLoading: false })),
 }));
 
 const { mockFetchReviews } = vi.hoisted(() => {
@@ -76,7 +86,7 @@ function renderReviewPage(fetchResult: ReviewListResponse = emptyResponse) {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const store = configureStore({
-    reducer: { websocket: websocketReducer },
+    reducer: { websocket: websocketReducer, toastNotifications: toastNotificationReducer },
     preloadedState: {
       websocket: {
         connectionState: "online" as const,
@@ -205,11 +215,13 @@ describe("T-10.2.03: Collapsible categories", () => {
   });
 });
 
-describe("UI-REVIEW.01: Review page uses PageShell with Navbar", () => {
-  it("renders with Navbar (ZiqReq logo visible)", async () => {
+describe("UI-REVIEW.01: Review page renders content", () => {
+  it("renders page content (Navbar is provided by AuthenticatedLayout)", async () => {
     renderReviewPage();
 
-    expect(await screen.findByText("ZiqReq")).toBeInTheDocument();
+    // ReviewPage no longer includes Navbar directly — it's wrapped by AuthenticatedLayout.
+    // Verify the page's own content renders instead.
+    expect(await screen.findByRole("heading", { name: "Reviews" })).toBeInTheDocument();
   });
 
   it("renders page heading", async () => {

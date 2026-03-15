@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthContext } from "@/hooks/use-auth";
 import type { AuthContextValue } from "@/hooks/use-auth";
 import { websocketReducer } from "@/store/websocket-slice";
+import { toastNotificationReducer } from "@/store/toast-notification-slice";
 import LandingPage from "@/pages/LandingPage";
 import i18n from "@/i18n/config";
 
@@ -45,8 +46,17 @@ vi.mock("@/hooks/use-restore-idea", () => ({
 }));
 
 vi.mock("react-toastify", () => ({
-  toast: vi.fn(),
+  toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }),
   ToastContainer: () => null,
+}));
+
+vi.mock("@/api/notifications", () => ({
+  fetchUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0 }),
+  markNotificationActioned: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock("@/hooks/use-ideas-by-state", () => ({
+  useIdeasByState: vi.fn(() => ({ data: null, isLoading: false })),
 }));
 
 import { useMyIdeas } from "@/hooks/use-my-ideas";
@@ -83,7 +93,7 @@ function renderLandingPage() {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const store = configureStore({
-    reducer: { websocket: websocketReducer },
+    reducer: { websocket: websocketReducer, toastNotifications: toastNotificationReducer },
     preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false } },
   });
   return render(
@@ -210,10 +220,12 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/idea/abc-123");
   });
 
-  it("uses PageShell layout with Navbar", () => {
+  it("renders page content (Navbar is provided by AuthenticatedLayout)", () => {
     renderLandingPage();
 
-    expect(screen.getByText("ZiqReq")).toBeInTheDocument();
+    // LandingPage no longer includes Navbar directly — it's wrapped by AuthenticatedLayout.
+    // Verify the page's own content renders instead.
+    expect(screen.getByText("Start a new brainstorm")).toBeInTheDocument();
   });
 
   it("shows skeleton loaders when data is loading", () => {

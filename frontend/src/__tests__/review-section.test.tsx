@@ -24,6 +24,7 @@ vi.mock("@/components/workspace/InvitationBanner", () => ({
 }));
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
+  useWsSend: () => vi.fn(),
 }));
 
 const { mockFetchIdea, mockFetchTimeline, mockFetchIdeaReviewers } = vi.hoisted(() => ({

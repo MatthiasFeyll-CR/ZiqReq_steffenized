@@ -124,7 +124,7 @@ class TestIdeasCRUD(TestCase):
         """API-IDEA.06: GET /api/ideas/:id returns full idea state for owner."""
         idea = Idea.objects.create(owner_id=self.user1.id, title="My Idea")
 
-        response = self.client.get(f"/api/ideas/{idea.id}")
+        response = self.client.get(f"/api/ideas/{idea.id}/")
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == str(idea.id)
@@ -138,7 +138,7 @@ class TestIdeasCRUD(TestCase):
         idea = Idea.objects.create(owner_id=self.user1.id, title="Private Idea")
         self._login_as(self.user2)
 
-        response = self.client.get(f"/api/ideas/{idea.id}")
+        response = self.client.get(f"/api/ideas/{idea.id}/")
         assert response.status_code == 200
         data = response.json()
         assert data["read_only"] is True
@@ -148,7 +148,7 @@ class TestIdeasCRUD(TestCase):
     def test_get_idea_not_found(self):
         """API-IDEA.08: GET /api/ideas/:invalid-uuid returns 404."""
         fake_id = str(uuid.uuid4())
-        response = self.client.get(f"/api/ideas/{fake_id}")
+        response = self.client.get(f"/api/ideas/{fake_id}/")
         assert response.status_code == 404
         data = response.json()
         assert data["error"] == "NOT_FOUND"
@@ -159,7 +159,7 @@ class TestIdeasCRUD(TestCase):
         """API-IDEA.11: DELETE /api/ideas/:id sets deleted_at, returns 200."""
         idea = Idea.objects.create(owner_id=self.user1.id, title="Delete Me")
 
-        response = self.client.delete(f"/api/ideas/{idea.id}")
+        response = self.client.delete(f"/api/ideas/{idea.id}/")
         assert response.status_code == 200
 
         idea.refresh_from_db()
@@ -185,7 +185,7 @@ class TestIdeasCRUD(TestCase):
         """T-9.3.01: Soft delete sets deleted_at, idea appears in trash list."""
         idea = Idea.objects.create(owner_id=self.user1.id, title="Trash Test")
 
-        self.client.delete(f"/api/ideas/{idea.id}")
+        self.client.delete(f"/api/ideas/{idea.id}/")
 
         response = self.client.get("/api/ideas/?filter=trash")
         data = response.json()

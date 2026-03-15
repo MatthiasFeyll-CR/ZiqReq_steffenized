@@ -8,10 +8,15 @@ const mockUpdateBoardNode = vi.fn<(ideaId: string, nodeId: string, updates: Reco
 vi.mock("@/api/board", () => ({
   updateBoardNode: (ideaId: string, nodeId: string, updates: Record<string, unknown>) =>
     mockUpdateBoardNode(ideaId, nodeId, updates),
+  fetchBoardNodes: vi.fn(() => Promise.resolve([])),
+  fetchBoardConnections: vi.fn(() => Promise.resolve([])),
+  createBoardNode: vi.fn(() => Promise.resolve({})),
+  deleteBoardNode: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock("@/app/providers", () => ({
   useWsSend: () => vi.fn(),
+  useWsReconnect: () => vi.fn(),
 }));
 
 vi.mock("@/hooks/use-auth", () => ({

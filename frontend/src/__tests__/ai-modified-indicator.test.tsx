@@ -158,6 +158,14 @@ describe("T-3.4.02: Indicator clears on user selection (BoardCanvas)", () => {
     vi.doMock("@/api/board", () => ({
       updateBoardNode: (ideaId: string, nodeId: string, updates: Record<string, unknown>) =>
         mockUpdateBoardNode(ideaId, nodeId, updates),
+      fetchBoardNodes: vi.fn(() => Promise.resolve([])),
+      fetchBoardConnections: vi.fn(() => Promise.resolve([])),
+      createBoardNode: vi.fn(() => Promise.resolve({})),
+      deleteBoardNode: vi.fn(() => Promise.resolve()),
+    }));
+
+    vi.doMock("@/hooks/use-board-undo", () => ({
+      useBoardUndo: () => ({ undo: vi.fn(), redo: vi.fn(), canUndo: false, canRedo: false }),
     }));
 
     vi.doMock("react-redux", () => ({

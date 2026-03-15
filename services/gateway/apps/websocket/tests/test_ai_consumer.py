@@ -107,7 +107,7 @@ class TestAIEventConsumerChatResponse(TestCase):
         payload = mock_layer.group_send.call_args[0][1]["payload"]
         assert payload["id"] == msg_id
         assert payload["created_at"] == "2026-03-11T12:00:00Z"
-        assert payload["sender"] is None  # AI messages have no user sender
+        assert payload["sender_id"] is None  # AI messages have no user sender
 
 
 class TestAIEventConsumerReaction(TestCase):

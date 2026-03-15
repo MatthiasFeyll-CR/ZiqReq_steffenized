@@ -44,7 +44,7 @@ class TestBrdDraftAPI(TestCase):
         )
 
     def _url(self, idea_id=None):
-        return f"/api/ideas/{idea_id or self.idea.id}/brd"
+        return f"/api/ideas/{idea_id or self.idea.id}/brd/"
 
     # --- API-4.01: GET returns all BRD fields ---
 
@@ -181,11 +181,11 @@ class TestBrdDraftAPI(TestCase):
 
     # --- API-4.04: 403 if not collaborator ---
 
-    def test_get_403_if_not_collaborator(self):
-        """API-4.04: GET returns 403 if user is not owner/co-owner/collaborator."""
+    def test_get_200_for_non_collaborator_read_only(self):
+        """API-4.04: GET returns 200 for any authenticated user (read-only access)."""
         self._login_as(self.user2)
         response = self.client.get(self._url())
-        assert response.status_code == 403
+        assert response.status_code == 200
 
     def test_patch_403_if_not_collaborator(self):
         """PATCH returns 403 if user is not owner/co-owner/collaborator."""
@@ -207,7 +207,7 @@ class TestBrdDraftAPI(TestCase):
 
     def test_get_404_for_invalid_uuid(self):
         """GET returns 404 for invalid UUID."""
-        response = self.client.get("/api/ideas/not-a-uuid/brd")
+        response = self.client.get("/api/ideas/not-a-uuid/brd/")
         assert response.status_code == 404
 
     # --- Collaborator access ---

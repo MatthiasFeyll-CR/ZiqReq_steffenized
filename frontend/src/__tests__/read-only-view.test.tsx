@@ -20,6 +20,7 @@ vi.mock("@/components/board/BoardCanvas", () => ({
 
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
+  useWsSend: () => vi.fn(),
 }));
 
 vi.mock("@/components/chat/ChatMessageList", () => ({

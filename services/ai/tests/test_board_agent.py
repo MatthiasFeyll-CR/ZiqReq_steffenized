@@ -9,12 +9,97 @@ BoardAgent mock mode — all without hitting Azure OpenAI.
 from __future__ import annotations
 
 import uuid
+from unittest.mock import patch, MagicMock
 
 import pytest
 
 from agents.board_agent.agent import BoardAgent
 from agents.board_agent.plugins import BoardPlugin
 from agents.board_agent.prompt import build_system_prompt
+
+
+def _fake_core_client():
+    """Create a mock CoreClient that returns realistic data without DB access."""
+    mock = MagicMock()
+
+    def _create_board_node(**kwargs):
+        node_id = str(uuid.uuid4())
+        return {
+            "node_id": node_id,
+            "id": node_id,
+            "idea_id": kwargs.get("idea_id", ""),
+            "node_type": kwargs.get("node_type", "box"),
+            "title": kwargs.get("title", ""),
+            "body": kwargs.get("body", ""),
+            "position_x": kwargs.get("position_x", 0.0),
+            "position_y": kwargs.get("position_y", 0.0),
+            "width": kwargs.get("width"),
+            "height": kwargs.get("height"),
+            "parent_id": kwargs.get("parent_id"),
+            "is_locked": False,
+            "created_by": "ai",
+            "created_at": "2026-03-15T00:00:00Z",
+        }
+
+    def _update_board_node(**kwargs):
+        return {
+            "node_id": kwargs.get("node_id", ""),
+            "title": kwargs.get("title"),
+            "body": kwargs.get("body"),
+        }
+
+    def _delete_board_node(**kwargs):
+        return {"success": True, "detached_children": []}
+
+    def _move_board_node(**kwargs):
+        return {
+            "node_id": kwargs.get("node_id", ""),
+            "parent_changed": kwargs.get("new_parent_id") is not None,
+            "position_x": kwargs.get("position_x", 0.0),
+            "position_y": kwargs.get("position_y", 0.0),
+            "new_parent_id": kwargs.get("new_parent_id"),
+        }
+
+    def _resize_board_group(**kwargs):
+        return {
+            "success": True,
+            "node_id": kwargs.get("node_id", ""),
+            "width": kwargs.get("width", 0.0),
+            "height": kwargs.get("height", 0.0),
+        }
+
+    def _create_board_connection(**kwargs):
+        conn_id = str(uuid.uuid4())
+        return {
+            "connection_id": conn_id,
+            "id": conn_id,
+            "source_node_id": kwargs.get("source_node_id", ""),
+            "target_node_id": kwargs.get("target_node_id", ""),
+            "label": kwargs.get("label", ""),
+        }
+
+    def _update_board_connection(**kwargs):
+        return {"success": True}
+
+    def _delete_board_connection(**kwargs):
+        return {"success": True}
+
+    mock.create_board_node.side_effect = _create_board_node
+    mock.update_board_node.side_effect = _update_board_node
+    mock.delete_board_node.side_effect = _delete_board_node
+    mock.move_board_node.side_effect = _move_board_node
+    mock.resize_board_group.side_effect = _resize_board_group
+    mock.create_board_connection.side_effect = _create_board_connection
+    mock.update_board_connection.side_effect = _update_board_connection
+    mock.delete_board_connection.side_effect = _delete_board_connection
+    return mock
+
+
+@pytest.fixture(autouse=True)
+def _mock_core_client():
+    """Mock CoreClient to avoid database access in board agent tests."""
+    with patch("agents.board_agent.plugins.CoreClient", return_value=_fake_core_client()):
+        yield
 
 
 def _make_node(
