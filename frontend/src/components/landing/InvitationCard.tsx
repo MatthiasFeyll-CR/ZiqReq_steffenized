@@ -7,12 +7,13 @@ export interface InvitationCardProps {
   ideaTitle: string;
   inviterName: string;
   createdAt: string;
-  onAccept?: (id: string) => void;
+  onAccept?: (id: string, ideaId: string) => void;
   onDecline?: (id: string) => void;
 }
 
 export function InvitationCard({
   id,
+  ideaId,
   ideaTitle,
   inviterName,
   onAccept,
@@ -32,7 +33,7 @@ export function InvitationCard({
         <Button
           variant="primary"
           size="sm"
-          onClick={() => onAccept?.(id)}
+          onClick={() => onAccept?.(id, ideaId)}
         >
           {t("landing.invitations.accept")}
         </Button>

@@ -15,15 +15,6 @@ import pytest
 from agents.board_agent.agent import BoardAgent
 from agents.board_agent.plugins import BoardPlugin
 from agents.board_agent.prompt import build_system_prompt
-from events.publishers import clear_published_events, get_published_events
-
-
-@pytest.fixture(autouse=True)
-def _clear_events():
-    """Clear published events before each test."""
-    clear_published_events()
-    yield
-    clear_published_events()
 
 
 def _make_node(
@@ -69,8 +60,8 @@ class TestCreateNode:
     """T-2.17.01: Board Agent creates one topic per box."""
 
     @pytest.mark.asyncio
-    async def test_create_box_node_publishes_event(self):
-        """T-2.17.01: create_node publishes ai.board.updated event."""
+    async def test_create_box_node_collects_complete_mutation(self):
+        """T-2.17.01: create_node collects a mutation with full persisted data."""
         plugin = BoardPlugin(idea_id="idea-1")
         result = await plugin.create_node(
             node_type="box",
@@ -82,14 +73,14 @@ class TestCreateNode:
 
         assert "node_id" in result
         assert len(plugin.mutations) == 1
-        assert plugin.mutations[0]["action"] == "create_node"
-        assert plugin.mutations[0]["node_type"] == "box"
-        assert plugin.mutations[0]["title"] == "Manual Approvals"
-
-        events = get_published_events()
-        assert len(events) == 1
-        assert events[0]["event_type"] == "ai.board.updated"
-        assert events[0]["idea_id"] == "idea-1"
+        mut = plugin.mutations[0]
+        assert mut["action"] == "create_node"
+        assert mut["node_type"] == "box"
+        assert mut["title"] == "Manual Approvals"
+        assert mut["body"] == "- Slow turnaround\n- Paper-based"
+        assert mut["position_x"] == 100.0
+        assert mut["position_y"] == 200.0
+        assert mut["node_id"] == result["node_id"]
 
     @pytest.mark.asyncio
     async def test_create_multiple_boxes_separate_topics(self):
@@ -134,6 +125,7 @@ class TestBulletPointFormat:
 
         assert "node_id" in result
         assert len(plugin.mutations) == 1
+        assert plugin.mutations[0]["body"] == bullet_body
 
     @pytest.mark.asyncio
     async def test_system_prompt_includes_bullet_rule(self):
@@ -219,7 +211,6 @@ class TestLockedNodeValidation:
         assert "error" in result
         assert result["error"]["code"] == "node_locked"
         assert len(plugin.mutations) == 0
-        assert len(get_published_events()) == 0
 
     @pytest.mark.asyncio
     async def test_delete_locked_node_rejected(self):
@@ -259,8 +250,8 @@ class TestLockedNodeValidation:
 
 class TestConnectionOperations:
     @pytest.mark.asyncio
-    async def test_create_connection_publishes_event(self):
-        """create_connection publishes ai.board.updated event."""
+    async def test_create_connection_collects_complete_mutation(self):
+        """create_connection collects a mutation with full persisted data."""
         plugin = BoardPlugin(idea_id="idea-1")
         result = await plugin.create_connection(
             source_node_id="node-a",
@@ -269,11 +260,12 @@ class TestConnectionOperations:
         )
         assert "connection_id" in result
         assert len(plugin.mutations) == 1
-        assert plugin.mutations[0]["action"] == "create_connection"
-
-        events = get_published_events()
-        assert len(events) == 1
-        assert events[0]["event_type"] == "ai.board.updated"
+        mut = plugin.mutations[0]
+        assert mut["action"] == "create_connection"
+        assert mut["source_node_id"] == "node-a"
+        assert mut["target_node_id"] == "node-b"
+        assert mut["label"] == "depends on"
+        assert mut["connection_id"] == result["connection_id"]
 
     @pytest.mark.asyncio
     async def test_update_connection(self):

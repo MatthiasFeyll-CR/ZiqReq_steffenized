@@ -2,21 +2,45 @@
   "mutations": [
     {
       "action": "create_node",
+      "node_id": "mock-node-001",
       "node_type": "box",
       "title": "Manual Approvals",
-      "node_id": "mock-node-001"
+      "body": "- Slow turnaround\n- Paper-based",
+      "position_x": 100.0,
+      "position_y": 100.0,
+      "width": null,
+      "height": null,
+      "parent_id": null,
+      "is_locked": false,
+      "created_by": "ai"
     },
     {
       "action": "create_node",
+      "node_id": "mock-node-002",
       "node_type": "box",
       "title": "Digital Signatures",
-      "node_id": "mock-node-002"
+      "body": "- Electronic workflow\n- Faster processing",
+      "position_x": 400.0,
+      "position_y": 100.0,
+      "width": null,
+      "height": null,
+      "parent_id": null,
+      "is_locked": false,
+      "created_by": "ai"
     },
     {
       "action": "create_node",
+      "node_id": "mock-group-001",
       "node_type": "group",
       "title": "Pain Points",
-      "node_id": "mock-group-001"
+      "body": "",
+      "position_x": 50.0,
+      "position_y": 50.0,
+      "width": 700.0,
+      "height": 300.0,
+      "parent_id": null,
+      "is_locked": false,
+      "created_by": "ai"
     }
   ],
   "mutation_count": 3

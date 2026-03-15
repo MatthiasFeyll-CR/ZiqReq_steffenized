@@ -1,6 +1,8 @@
 import logging
 import uuid
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
@@ -22,6 +24,40 @@ def _publish_notification(**kwargs) -> None:
     from events.publisher import publish_notification_event
 
     publish_notification_event(**kwargs)
+
+
+def _broadcast_user_notification(
+    user_id: str,
+    *,
+    event_type: str,
+    title: str,
+    body: str,
+    reference_id: str = "",
+    reference_type: str = "",
+) -> None:
+    """Push a notification directly to a user's WebSocket via their user group."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+
+        group_name = f"user_{user_id}"
+        payload = {
+            "event_type": event_type,
+            "title": title,
+            "body": body,
+            "reference_id": reference_id,
+            "reference_type": reference_type,
+        }
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "notification",
+                "payload": payload,
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast notification to user %s", user_id)
 
 
 def _require_auth(request: Request):
@@ -175,15 +211,19 @@ def send_invitation(request: Request, idea_id: str) -> Response:
             status="pending",
         )
 
-        _publish_notification(
-            routing_key="notification.collaboration.invitation",
-            user_id=str(invitee_uuid),
+        notif_kwargs = dict(
             event_type="collaboration_invitation",
             title="Collaboration Invitation",
             body=f"{user.display_name} invited you to collaborate on \"{idea.title}\"",
             reference_id=str(idea_uuid),
             reference_type="idea",
         )
+        _publish_notification(
+            routing_key="notification.collaboration.invitation",
+            user_id=str(invitee_uuid),
+            **notif_kwargs,
+        )
+        _broadcast_user_notification(str(invitee_uuid), **notif_kwargs)
 
         results.append({"invitee_id": str(invitee_uuid), "invitation_id": str(invitation.id), "status": "pending"})
 
@@ -269,15 +309,19 @@ def accept_invitation(request: Request, invitation_id: str) -> Response:
         idea_title = "an idea"
 
     # Notify inviter that invitation was accepted
-    _publish_notification(
-        routing_key="notification.collaboration.accepted",
-        user_id=str(invitation.inviter_id),
+    accepted_kwargs = dict(
         event_type="collaborator_joined",
         title="Invitation Accepted",
         body=f"{user.display_name} accepted your invitation to \"{idea_title}\"",
         reference_id=str(invitation.idea_id),
         reference_type="idea",
     )
+    _publish_notification(
+        routing_key="notification.collaboration.accepted",
+        user_id=str(invitation.inviter_id),
+        **accepted_kwargs,
+    )
+    _broadcast_user_notification(str(invitation.inviter_id), **accepted_kwargs)
 
     return Response({"message": "Invitation accepted"})
 
@@ -323,15 +367,19 @@ def decline_invitation(request: Request, invitation_id: str) -> Response:
     invitation.save(update_fields=["status", "responded_at"])
 
     # Notify inviter that invitation was declined
-    _publish_notification(
-        routing_key="notification.collaboration.declined",
-        user_id=str(invitation.inviter_id),
+    declined_kwargs = dict(
         event_type="collaborator_left",
         title="Invitation Declined",
         body=f"{user.display_name} declined your collaboration invitation",
         reference_id=str(invitation.idea_id),
         reference_type="idea",
     )
+    _publish_notification(
+        routing_key="notification.collaboration.declined",
+        user_id=str(invitation.inviter_id),
+        **declined_kwargs,
+    )
+    _broadcast_user_notification(str(invitation.inviter_id), **declined_kwargs)
 
     return Response({"message": "Invitation declined"})
 
@@ -485,15 +533,19 @@ def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> R
         )
 
     # Notify removed collaborator
-    _publish_notification(
-        routing_key="notification.collaboration.removed",
-        user_id=str(target_uuid),
+    removed_kwargs = dict(
         event_type="removed_from_idea",
         title="Removed from Idea",
         body=f"You were removed from \"{idea.title}\" by {user.display_name}",
         reference_id=str(idea_uuid),
         reference_type="idea",
     )
+    _publish_notification(
+        routing_key="notification.collaboration.removed",
+        user_id=str(target_uuid),
+        **removed_kwargs,
+    )
+    _broadcast_user_notification(str(target_uuid), **removed_kwargs)
 
     return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -572,15 +624,19 @@ def transfer_ownership(request: Request, idea_id: str) -> Response:
         idea.save(update_fields=["owner_id"])
 
     # Notify new owner of ownership transfer
-    _publish_notification(
-        routing_key="notification.collaboration.transfer",
-        user_id=str(new_owner_uuid),
+    transfer_kwargs = dict(
         event_type="ownership_transferred",
         title="Ownership Transferred",
         body=f"{user.display_name} transferred ownership of \"{idea.title}\" to you",
         reference_id=str(idea_uuid),
         reference_type="idea",
     )
+    _publish_notification(
+        routing_key="notification.collaboration.transfer",
+        user_id=str(new_owner_uuid),
+        **transfer_kwargs,
+    )
+    _broadcast_user_notification(str(new_owner_uuid), **transfer_kwargs)
 
     return Response({"message": "Ownership transferred"})
 
@@ -621,15 +677,19 @@ def leave_idea(request: Request, idea_id: str) -> Response:
         idea.co_owner_id = None
         idea.save(update_fields=["co_owner_id"])
         # Notify owner
-        _publish_notification(
-            routing_key="notification.collaboration.left",
-            user_id=str(idea.owner_id),
+        left_kwargs = dict(
             event_type="collaborator_left",
             title="Collaborator Left",
             body=f"{user.display_name} left \"{idea.title}\"",
             reference_id=str(idea_uuid),
             reference_type="idea",
         )
+        _publish_notification(
+            routing_key="notification.collaboration.left",
+            user_id=str(idea.owner_id),
+            **left_kwargs,
+        )
+        _broadcast_user_notification(str(idea.owner_id), **left_kwargs)
         return Response({"message": "You have left the idea"})
 
     # Regular collaborator leaves
@@ -644,15 +704,19 @@ def leave_idea(request: Request, idea_id: str) -> Response:
         )
 
     # Notify owner
-    _publish_notification(
-        routing_key="notification.collaboration.left",
-        user_id=str(idea.owner_id),
+    left_kwargs = dict(
         event_type="collaborator_left",
         title="Collaborator Left",
         body=f"{user.display_name} left \"{idea.title}\"",
         reference_id=str(idea_uuid),
         reference_type="idea",
     )
+    _publish_notification(
+        routing_key="notification.collaboration.left",
+        user_id=str(idea.owner_id),
+        **left_kwargs,
+    )
+    _broadcast_user_notification(str(idea.owner_id), **left_kwargs)
 
     return Response({"message": "You have left the idea"})
 

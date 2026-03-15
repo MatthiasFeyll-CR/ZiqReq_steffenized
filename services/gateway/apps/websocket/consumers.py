@@ -35,12 +35,25 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         self._idle_disconnect_task: asyncio.Task | None = None
 
         await self.accept()
+
+        # Join a user-specific group so we can deliver targeted notifications
+        self.user_group = f"user_{self.user_id}"
+        await self.channel_layer.group_add(self.user_group, self.channel_name)
+
         logger.info("WebSocket connected: user=%s connection=%s", self.user_id, self.connection_id)
 
     async def disconnect(self, close_code):
         self._cancel_idle_disconnect()
         user_id = getattr(self, "user_id", "unknown")
         connection_id = getattr(self, "connection_id", "unknown")
+
+        # Leave user-specific group
+        user_group = getattr(self, "user_group", None)
+        if user_group:
+            try:
+                await self.channel_layer.group_discard(user_group, self.channel_name)
+            except Exception:
+                logger.exception("Error leaving user group %s on disconnect", user_group)
 
         for group_name in list(getattr(self, "subscribed_groups", set())):
             try:
@@ -353,6 +366,14 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward append_complete group_send to the WebSocket client."""
         await self.send_json({
             "type": "append_complete",
+            "payload": event["payload"],
+        })
+
+    async def brd_ready(self, event: dict) -> None:
+        """Forward brd_ready group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "brd_ready",
+            "idea_id": event["idea_id"],
             "payload": event["payload"],
         })
 

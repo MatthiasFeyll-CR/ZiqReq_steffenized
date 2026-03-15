@@ -586,6 +586,20 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
               const updated = { ...n, data: { ...n.data } };
               if (mut.title != null) updated.data.title = mut.title as string;
               if (mut.body != null) updated.data.body = mut.body as string;
+              if (mut.is_locked != null)
+                updated.data.is_locked = mut.is_locked as boolean;
+              if (mut.position_x != null || mut.position_y != null) {
+                updated.position = {
+                  x: (mut.position_x as number) ?? n.position.x,
+                  y: (mut.position_y as number) ?? n.position.y,
+                };
+              }
+              if (mut.width != null) updated.width = mut.width as number;
+              if (mut.height != null) updated.height = mut.height as number;
+              if (mut.parent_id !== undefined) {
+                updated.parentId = (mut.parent_id as string) || undefined;
+                updated.expandParent = !!mut.parent_id;
+              }
               return updated;
             }),
           );

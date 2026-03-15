@@ -374,13 +374,11 @@ async def test_board_update_broadcast_to_subscriber():
         await _subscribe_and_drain(communicator, idea_id)
 
         channel_layer = get_channel_layer()
+        node_id = str(uuid.uuid4())
         payload = {
-            "nodes_created": [],
-            "nodes_updated": [{"id": str(uuid.uuid4()), "position_x": 150, "position_y": 250}],
-            "nodes_deleted": [],
-            "connections_created": [],
-            "connections_updated": [],
-            "connections_deleted": [],
+            "mutations": [
+                {"action": "update_node", "node_id": node_id, "position_x": 150, "position_y": 250},
+            ],
             "source": "user",
         }
         await channel_layer.group_send(
@@ -391,7 +389,7 @@ async def test_board_update_broadcast_to_subscriber():
         response = await communicator.receive_json_from(timeout=2)
         assert response["type"] == "board_update"
         assert response["idea_id"] == idea_id
-        assert response["payload"]["nodes_updated"] == payload["nodes_updated"]
+        assert response["payload"]["mutations"] == payload["mutations"]
         assert response["payload"]["source"] == "user"
 
         await communicator.disconnect()
@@ -412,7 +410,7 @@ async def test_board_update_not_received_by_unsubscribed():
         channel_layer = get_channel_layer()
         await channel_layer.group_send(
             f"idea_{idea_id}",
-            {"type": "board_update", "idea_id": idea_id, "payload": {"nodes_updated": [], "source": "user"}},
+            {"type": "board_update", "idea_id": idea_id, "payload": {"mutations": [], "source": "user"}},
         )
 
         assert await communicator.receive_nothing(timeout=1) is True
@@ -437,12 +435,9 @@ async def test_board_update_broadcast_node_delete():
 
         channel_layer = get_channel_layer()
         payload = {
-            "nodes_created": [],
-            "nodes_updated": [],
-            "nodes_deleted": [node_id],
-            "connections_created": [],
-            "connections_updated": [],
-            "connections_deleted": [],
+            "mutations": [
+                {"action": "delete_node", "node_id": node_id},
+            ],
             "source": "user",
         }
         await channel_layer.group_send(
@@ -452,7 +447,7 @@ async def test_board_update_broadcast_node_delete():
 
         response = await communicator.receive_json_from(timeout=2)
         assert response["type"] == "board_update"
-        assert node_id in response["payload"]["nodes_deleted"]
+        assert response["payload"]["mutations"][0]["node_id"] == node_id
         assert response["payload"]["source"] == "user"
 
         await communicator.disconnect()
@@ -479,9 +474,7 @@ async def test_board_update_broadcast_source_ai():
                 "type": "board_update",
                 "idea_id": idea_id,
                 "payload": {
-                    "nodes_created": [{"id": str(uuid.uuid4()), "title": "AI Node"}],
-                    "nodes_updated": [], "nodes_deleted": [],
-                    "connections_created": [], "connections_updated": [], "connections_deleted": [],
+                    "mutations": [{"action": "create_node", "node_id": str(uuid.uuid4()), "title": "AI Node"}],
                     "source": "ai",
                 },
             },

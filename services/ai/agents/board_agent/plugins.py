@@ -2,6 +2,10 @@
 
 Each method is decorated with @kernel_function so SK registers it as a
 callable tool for the Azure OpenAI function-calling loop.
+
+Mutations are collected in self.mutations and broadcast as a single batch
+by the pipeline after all tool calls complete — individual tools do NOT
+publish events, ensuring one consistent broadcast from the persisted data.
 """
 
 from __future__ import annotations
@@ -11,7 +15,6 @@ from typing import Any
 
 from semantic_kernel.functions import kernel_function
 
-from events.publishers import publish_event
 from grpc_clients.core_client import CoreClient
 
 logger = logging.getLogger(__name__)
@@ -82,17 +85,19 @@ class BoardPlugin:
             parent_id=parent_id,
         )
 
-        mutation = {
+        self.mutations.append({
             "action": "create_node",
-            "node_type": node_type,
-            "title": title,
-            "node_id": result.get("node_id"),
-        }
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
+            "node_id": result["node_id"],
+            "node_type": result["node_type"],
+            "title": result["title"],
+            "body": result["body"],
+            "position_x": result["position_x"],
+            "position_y": result["position_y"],
+            "width": result["width"],
+            "height": result["height"],
+            "parent_id": result["parent_id"],
+            "is_locked": result["is_locked"],
+            "created_by": result["created_by"],
         })
 
         return result
@@ -111,28 +116,17 @@ class BoardPlugin:
         if self._is_locked(node_id):
             return _error_response("node_locked", f"Node {node_id} is locked and cannot be modified.")
 
-        updated_fields = []
-        if title is not None:
-            updated_fields.append("title")
-        if body is not None:
-            updated_fields.append("body")
-
         result = self._core_client.update_board_node(
             node_id=node_id,
             title=title,
             body=body,
         )
 
-        mutation = {
+        self.mutations.append({
             "action": "update_node",
-            "node_id": node_id,
-            "updated_fields": updated_fields,
-        }
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
+            "node_id": result["node_id"],
+            "title": result["title"],
+            "body": result["body"],
         })
 
         return result
@@ -148,13 +142,7 @@ class BoardPlugin:
 
         result = self._core_client.delete_board_node(node_id=node_id)
 
-        mutation = {"action": "delete_node", "node_id": node_id}
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
-        })
+        self.mutations.append({"action": "delete_node", "node_id": node_id})
 
         return result
 
@@ -180,17 +168,12 @@ class BoardPlugin:
             new_parent_id=new_parent_id,
         )
 
-        mutation = {
+        self.mutations.append({
             "action": "move_node",
-            "node_id": node_id,
-            "position_x": position_x,
-            "position_y": position_y,
-        }
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
+            "node_id": result["node_id"],
+            "position_x": result["position_x"],
+            "position_y": result["position_y"],
+            "new_parent_id": result["new_parent_id"],
         })
 
         return result
@@ -216,17 +199,11 @@ class BoardPlugin:
             height=height,
         )
 
-        mutation = {
+        self.mutations.append({
             "action": "resize_group",
-            "node_id": node_id,
-            "width": width,
-            "height": height,
-        }
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
+            "node_id": result["node_id"],
+            "width": result["width"],
+            "height": result["height"],
         })
 
         return result
@@ -249,17 +226,12 @@ class BoardPlugin:
             label=label,
         )
 
-        mutation = {
+        self.mutations.append({
             "action": "create_connection",
-            "source_node_id": source_node_id,
-            "target_node_id": target_node_id,
-            "connection_id": result.get("connection_id"),
-        }
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
+            "connection_id": result["connection_id"],
+            "source_node_id": result["source_node_id"],
+            "target_node_id": result["target_node_id"],
+            "label": result["label"],
         })
 
         return result
@@ -279,16 +251,10 @@ class BoardPlugin:
             label=label,
         )
 
-        mutation = {
+        self.mutations.append({
             "action": "update_connection",
             "connection_id": connection_id,
             "label": label,
-        }
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
         })
 
         return result
@@ -301,12 +267,6 @@ class BoardPlugin:
         """Delete a board connection via Core gRPC."""
         result = self._core_client.delete_board_connection(connection_id=connection_id)
 
-        mutation = {"action": "delete_connection", "connection_id": connection_id}
-        self.mutations.append(mutation)
-
-        await publish_event("ai.board.updated", {
-            "idea_id": self.idea_id,
-            "mutation": mutation,
-        })
+        self.mutations.append({"action": "delete_connection", "connection_id": connection_id})
 
         return result

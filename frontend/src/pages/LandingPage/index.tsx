@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Lightbulb, Users, Mail, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -78,13 +79,16 @@ export default function LandingPage() {
   const deleteMutation = useDeleteIdea();
   const restoreMutation = useRestoreIdea();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const acceptMutation = useMutation({
-    mutationFn: acceptInvitation,
-    onSuccess: () => {
+    mutationFn: ({ invitationId }: { invitationId: string; ideaId: string }) =>
+      acceptInvitation(invitationId),
+    onSuccess: (_data, { ideaId }) => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
       queryClient.invalidateQueries({ queryKey: ["collaboratingIdeas"] });
       toast.success(t("landing.invitations.accepted", "Invitation accepted"));
+      navigate(`/idea/${ideaId}`);
     },
   });
 
@@ -97,7 +101,8 @@ export default function LandingPage() {
   });
 
   const handleAccept = useCallback(
-    (id: string) => acceptMutation.mutate(id),
+    (id: string, ideaId: string) =>
+      acceptMutation.mutate({ invitationId: id, ideaId }),
     [acceptMutation],
   );
 

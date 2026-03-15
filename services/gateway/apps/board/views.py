@@ -81,15 +81,17 @@ def _access_denied_response() -> Response:
 def _broadcast_board_update(
     idea_id: str,
     *,
-    nodes_created: list | None = None,
-    nodes_updated: list | None = None,
-    nodes_deleted: list | None = None,
-    connections_created: list | None = None,
-    connections_updated: list | None = None,
-    connections_deleted: list | None = None,
+    mutations: list | None = None,
     source: str = "user",
 ) -> None:
-    """Broadcast a board_update event to the idea's WebSocket group."""
+    """Broadcast a board_update event to the idea's WebSocket group.
+
+    Uses the unified ``mutations`` format — each entry carries an ``action``
+    field (create_node, update_node, delete_node, …) plus the relevant data.
+    """
+    if not mutations:
+        return
+
     try:
         channel_layer = get_channel_layer()
         if channel_layer is None:
@@ -97,12 +99,7 @@ def _broadcast_board_update(
 
         group_name = f"idea_{idea_id}"
         payload = {
-            "nodes_created": nodes_created or [],
-            "nodes_updated": nodes_updated or [],
-            "nodes_deleted": nodes_deleted or [],
-            "connections_created": connections_created or [],
-            "connections_updated": connections_updated or [],
-            "connections_deleted": connections_deleted or [],
+            "mutations": mutations,
             "source": source,
         }
         async_to_sync(channel_layer.group_send)(
@@ -146,10 +143,11 @@ def _broadcast_board_lock_change(
         logger.exception("Failed to broadcast board_lock_change for idea %s", idea_id)
 
 
-def _node_to_broadcast_dict(node) -> dict:
-    """Serialize a BoardNode to a dict for WebSocket broadcast."""
+def _node_create_mutation(node) -> dict:
+    """Build a create_node mutation from a BoardNode instance."""
     return {
-        "id": str(node.id),
+        "action": "create_node",
+        "node_id": str(node.id),
         "node_type": node.node_type,
         "title": node.title,
         "body": node.body,
@@ -163,12 +161,38 @@ def _node_to_broadcast_dict(node) -> dict:
     }
 
 
-def _connection_to_broadcast_dict(conn) -> dict:
-    """Serialize a BoardConnection to a dict for WebSocket broadcast."""
+def _node_update_mutation(node) -> dict:
+    """Build an update_node mutation from a BoardNode instance."""
     return {
-        "id": str(conn.id),
+        "action": "update_node",
+        "node_id": str(node.id),
+        "title": node.title,
+        "body": node.body,
+        "position_x": node.position_x,
+        "position_y": node.position_y,
+        "width": node.width,
+        "height": node.height,
+        "parent_id": str(node.parent_id) if node.parent_id else None,
+        "is_locked": node.is_locked,
+    }
+
+
+def _connection_create_mutation(conn) -> dict:
+    """Build a create_connection mutation from a BoardConnection instance."""
+    return {
+        "action": "create_connection",
+        "connection_id": str(conn.id),
         "source_node_id": str(conn.source_node_id),
         "target_node_id": str(conn.target_node_id),
+        "label": conn.label,
+    }
+
+
+def _connection_update_mutation(conn) -> dict:
+    """Build an update_connection mutation from a BoardConnection instance."""
+    return {
+        "action": "update_connection",
+        "connection_id": str(conn.id),
         "label": conn.label,
     }
 
@@ -249,7 +273,7 @@ def _create_node(request: Request, idea_id: str) -> Response:
 
     _broadcast_board_update(
         idea.id,
-        nodes_created=[_node_to_broadcast_dict(node)],
+        mutations=[_node_create_mutation(node)],
         source=node.created_by,
     )
 
@@ -348,7 +372,7 @@ def _update_node(request: Request, idea_id: str, node_id: str) -> Response:
 
     _broadcast_board_update(
         idea.id,
-        nodes_updated=[_node_to_broadcast_dict(node)],
+        mutations=[_node_update_mutation(node)],
         source="user",
     )
 
@@ -384,7 +408,7 @@ def _delete_node(request: Request, idea_id: str, node_id: str) -> Response:
 
     _broadcast_board_update(
         idea.id,
-        nodes_deleted=[deleted_node_id],
+        mutations=[{"action": "delete_node", "node_id": deleted_node_id}],
         source="user",
     )
 
@@ -482,7 +506,7 @@ def _create_connection(request: Request, idea_id: str) -> Response:
 
     _broadcast_board_update(
         idea.id,
-        connections_created=[_connection_to_broadcast_dict(connection)],
+        mutations=[_connection_create_mutation(connection)],
         source="user",
     )
 
@@ -554,7 +578,7 @@ def _update_connection(
 
     _broadcast_board_update(
         idea.id,
-        connections_updated=[_connection_to_broadcast_dict(connection)],
+        mutations=[_connection_update_mutation(connection)],
         source="user",
     )
 
@@ -584,7 +608,7 @@ def _delete_connection(
 
     _broadcast_board_update(
         idea.id,
-        connections_deleted=[deleted_conn_id],
+        mutations=[{"action": "delete_connection", "connection_id": deleted_conn_id}],
         source="user",
     )
 

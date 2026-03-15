@@ -77,11 +77,11 @@ class TestBroadcastBoardUpdate(TestCase):
         mock_a2s.return_value = mock_group_send
 
         idea_id = uuid.uuid4()
-        node = {"id": str(uuid.uuid4()), "title": "New Node"}
+        mutation = {"action": "create_node", "node_id": str(uuid.uuid4()), "title": "New Node"}
 
         _broadcast_board_update(
             str(idea_id),
-            nodes_created=[node],
+            mutations=[mutation],
             source="user",
         )
 
@@ -91,9 +91,7 @@ class TestBroadcastBoardUpdate(TestCase):
         event = args[1]
         assert event["type"] == "board_update"
         assert event["idea_id"] == str(idea_id)
-        assert event["payload"]["nodes_created"] == [node]
-        assert event["payload"]["nodes_updated"] == []
-        assert event["payload"]["nodes_deleted"] == []
+        assert event["payload"]["mutations"] == [mutation]
         assert event["payload"]["source"] == "user"
 
     @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
@@ -106,12 +104,24 @@ class TestBroadcastBoardUpdate(TestCase):
 
         idea_id = uuid.uuid4()
         node_id = str(uuid.uuid4())
+        mutation = {"action": "delete_node", "node_id": node_id}
 
-        _broadcast_board_update(str(idea_id), nodes_deleted=[node_id], source="user")
+        _broadcast_board_update(str(idea_id), mutations=[mutation], source="user")
 
         event = mock_group_send.call_args[0][1]
-        assert event["payload"]["nodes_deleted"] == [node_id]
-        assert event["payload"]["nodes_created"] == []
+        assert event["payload"]["mutations"] == [mutation]
+
+    @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    @patch("apps.board.views.async_to_sync")
+    def test_broadcast_noop_when_no_mutations(self, mock_a2s):
+        from apps.board.views import _broadcast_board_update
+
+        mock_group_send = MagicMock()
+        mock_a2s.return_value = mock_group_send
+
+        _broadcast_board_update(str(uuid.uuid4()), source="ai")
+
+        mock_group_send.assert_not_called()
 
     @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
     @patch("apps.board.views.async_to_sync")
@@ -121,7 +131,8 @@ class TestBroadcastBoardUpdate(TestCase):
         mock_group_send = MagicMock()
         mock_a2s.return_value = mock_group_send
 
-        _broadcast_board_update(str(uuid.uuid4()), source="ai")
+        mutation = {"action": "create_node", "node_id": "test"}
+        _broadcast_board_update(str(uuid.uuid4()), mutations=[mutation], source="ai")
 
         event = mock_group_send.call_args[0][1]
         assert event["payload"]["source"] == "ai"

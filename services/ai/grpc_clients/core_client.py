@@ -180,7 +180,22 @@ class CoreClient:
             created_at = row[0].isoformat() if row else None
 
         logger.info("Created board node %s for idea %s", node_id, idea_id)
-        return {"node_id": node_id, "created_at": created_at}
+        return {
+            "node_id": node_id,
+            "id": node_id,
+            "idea_id": idea_id,
+            "node_type": node_type,
+            "title": title,
+            "body": body,
+            "position_x": position_x,
+            "position_y": position_y,
+            "width": width,
+            "height": height,
+            "parent_id": parent_id,
+            "is_locked": False,
+            "created_by": "ai",
+            "created_at": created_at,
+        }
 
     def update_board_node(
         self,
@@ -200,7 +215,7 @@ class CoreClient:
             params.append(body)
 
         if not updates:
-            return {"updated_fields": []}
+            return {"node_id": node_id, "title": None, "body": None}
 
         updates.append("updated_at = NOW()")
         params.append(node_id)
@@ -211,9 +226,9 @@ class CoreClient:
                 params,
             )
 
-        updated_fields = [k for k, v in [("title", title), ("body", body)] if v is not None]
-        logger.info("Updated board node %s fields: %s", node_id, updated_fields)
-        return {"updated_fields": updated_fields}
+        logger.info("Updated board node %s fields: %s", node_id,
+                     [k for k, v in [("title", title), ("body", body)] if v is not None])
+        return {"node_id": node_id, "title": title, "body": body}
 
     def delete_board_node(self, node_id: str) -> dict[str, Any]:
         from django.db import connection
@@ -250,7 +265,13 @@ class CoreClient:
             )
 
         logger.info("Moved board node %s to (%.1f, %.1f)", node_id, position_x, position_y)
-        return {"parent_changed": new_parent_id is not None}
+        return {
+            "node_id": node_id,
+            "parent_changed": new_parent_id is not None,
+            "position_x": position_x,
+            "position_y": position_y,
+            "new_parent_id": new_parent_id,
+        }
 
     def resize_board_group(
         self,
@@ -268,7 +289,7 @@ class CoreClient:
             )
 
         logger.info("Resized board group %s to %.1fx%.1f", node_id, width, height)
-        return {"success": True}
+        return {"success": True, "node_id": node_id, "width": width, "height": height}
 
     def create_board_connection(
         self,
@@ -291,7 +312,13 @@ class CoreClient:
             )
 
         logger.info("Created board connection %s for idea %s", conn_id, idea_id)
-        return {"connection_id": conn_id}
+        return {
+            "connection_id": conn_id,
+            "id": conn_id,
+            "source_node_id": source_node_id,
+            "target_node_id": target_node_id,
+            "label": label,
+        }
 
     def update_board_connection(
         self,

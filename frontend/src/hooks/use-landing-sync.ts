@@ -20,10 +20,14 @@ export function useLandingSync() {
 
       if (
         eventType === "collaboration_invitation" ||
-        eventType === "collaboration_accepted"
+        eventType === "collaboration_accepted" ||
+        eventType === "collaborator_joined" ||
+        eventType === "collaborator_left" ||
+        eventType === "removed_from_idea" ||
+        eventType === "ownership_transferred"
       ) {
         queryClient.invalidateQueries({ queryKey: ["invitations"] });
-        queryClient.invalidateQueries({ queryKey: ["ideas", "collaborating"] });
+        queryClient.invalidateQueries({ queryKey: ["ideas"] });
       } else {
         // Any other notification may affect idea state
         queryClient.invalidateQueries({ queryKey: ["ideas"] });

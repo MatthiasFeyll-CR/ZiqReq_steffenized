@@ -28,7 +28,8 @@ def _create_ai_client():
     """Create an AiClient instance (lazy import to avoid namespace collisions)."""
     from grpc_clients.ai_client import AiClient
 
-    return AiClient()
+    address = os.environ.get("AI_GRPC_ADDRESS", "localhost:50052")
+    return AiClient(address=address)
 
 
 def _require_auth(request: Request):
