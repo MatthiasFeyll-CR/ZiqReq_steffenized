@@ -128,18 +128,23 @@ class CoreClient:
     def get_rate_limit_status(self, idea_id: str) -> dict[str, Any]:
         from django.db import connection
 
+        # Count user messages created after the last AI message (unprocessed messages)
         with connection.cursor() as cursor:
             cursor.execute(
                 "SELECT COUNT(*) FROM chat_messages "
                 "WHERE idea_id = %s AND sender_type = 'user' "
-                "AND created_at >= NOW() - INTERVAL '1 hour'",
-                [idea_id],
+                "AND created_at > COALESCE("
+                "  (SELECT MAX(created_at) FROM chat_messages "
+                "   WHERE idea_id = %s AND sender_type = 'ai'), "
+                "  '1970-01-01'::timestamptz"
+                ")",
+                [idea_id, idea_id],
             )
             current_count = cursor.fetchone()[0]
 
-        # Read cap from admin_parameters
-        cap = 100
-        cap_result = self.get_admin_parameter("rate_limit_cap")
+        # Read cap from admin_parameters (chat_message_cap, default 5)
+        cap = 5
+        cap_result = self.get_admin_parameter("chat_message_cap")
         if cap_result["value"]:
             try:
                 cap = int(cap_result["value"])
@@ -556,10 +561,14 @@ class CoreClient:
             )
             row = cursor.fetchone()
             if row:
+                locks = row[1] or {}
+                if isinstance(locks, str):
+                    import json
+                    locks = json.loads(locks)
                 return {
                     "id": str(row[0]),
                     "idea_id": idea_id,
-                    "section_locks": row[1] or {},
+                    "section_locks": locks,
                     "allow_information_gaps": row[2],
                 }
         return {
@@ -611,12 +620,22 @@ class CoreClient:
                         values + [idea_id],
                     )
                     if cursor.rowcount == 0:
-                        # Insert new draft
+                        # Insert new draft with section content
+                        insert_fields = ["id", "idea_id", "section_locks",
+                                         "allow_information_gaps", "readiness_evaluation",
+                                         "created_at", "updated_at"]
+                        insert_values: list[Any] = [idea_id, "{}", False, readiness_json]
+                        for key, field in field_map.items():
+                            if key in sections:
+                                insert_fields.append(field)
+                                insert_values.append(sections[key])
+                        placeholders = ", ".join([
+                            "gen_random_uuid()", "%s", "%s", "%s", "%s", "NOW()", "NOW()"
+                        ] + ["%s"] * (len(insert_fields) - 7))
                         cursor.execute(
-                            "INSERT INTO brd_drafts (id, idea_id, section_locks, "
-                            "allow_information_gaps, readiness_evaluation, created_at, updated_at) "
-                            "VALUES (gen_random_uuid(), %s, '{}', false, %s, NOW(), NOW())",
-                            [idea_id, readiness_json],
+                            f"INSERT INTO brd_drafts ({', '.join(insert_fields)}) "
+                            f"VALUES ({placeholders})",
+                            insert_values,
                         )
             logger.info("Upserted BRD draft for idea %s", idea_id)
             return {"success": True}

@@ -54,6 +54,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "monitoring.health_check_task",
         "schedule": 60.0,  # default: every 60 seconds (configurable via admin_parameters)
     },
+    "soft-delete-cleanup": {
+        "task": "ideas.soft_delete_cleanup",
+        "schedule": 86400.0,  # daily
+    },
 }
 
 # gRPC addresses

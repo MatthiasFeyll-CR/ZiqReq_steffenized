@@ -197,10 +197,21 @@ class AIEventConsumer:
         await self._broadcast(idea_id, "brd_ready", payload)
 
     async def _handle_board_updated(self, event: dict[str, Any]) -> None:
-        """ai.board.updated → broadcast board_update to WebSocket subscribers."""
+        """ai.board.updated → persist board mutations + broadcast board_update."""
         idea_id = event["idea_id"]
         mutation = event.get("mutation", {})
         mutations = event.get("mutations", [])
+
+        # Build full mutations list from both singular and plural fields
+        all_mutations = list(mutations)
+        if mutation:
+            all_mutations.append(mutation)
+
+        if all_mutations:
+            self._core_client.persist_board_mutations(
+                idea_id=idea_id,
+                mutations=all_mutations,
+            )
 
         payload = {
             "idea_id": idea_id,

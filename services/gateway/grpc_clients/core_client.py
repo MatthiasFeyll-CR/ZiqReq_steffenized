@@ -145,6 +145,37 @@ class CoreClient:
             })
         return {"messages": messages}
 
+    def get_rate_limit_status(self, idea_id: str) -> dict[str, Any]:
+        from apps.ideas.models import ChatMessage
+
+        # Count user messages created after the last AI message (unprocessed messages)
+        last_ai_message = (
+            ChatMessage.objects.filter(idea_id=idea_id, sender_type="ai")
+            .order_by("-created_at")
+            .values("created_at")
+            .first()
+        )
+
+        qs = ChatMessage.objects.filter(idea_id=idea_id, sender_type="user")
+        if last_ai_message:
+            qs = qs.filter(created_at__gt=last_ai_message["created_at"])
+
+        current_count = qs.count()
+
+        # Read cap from admin_parameters (chat_message_cap, default 5)
+        cap = 5
+        try:
+            from apps.admin_config.services import get_parameter
+            cap = get_parameter("chat_message_cap", default=5, cast=int)
+        except Exception:
+            pass
+
+        return {
+            "current_count": current_count,
+            "cap": cap,
+            "is_locked": current_count >= cap,
+        }
+
     def persist_ai_chat_message(
         self,
         idea_id: str,
@@ -245,3 +276,107 @@ class CoreClient:
         draft.save(update_fields=update_fields)
         logger.info("Updated BRD draft for idea %s", idea_id)
         return {"success": True}
+
+    def persist_board_mutations(
+        self, idea_id: str, mutations: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        from apps.board.models import BoardConnection, BoardNode
+
+        applied = 0
+        for mut in mutations:
+            mut_type = mut.get("action") or mut.get("type", "")
+            try:
+                if mut_type == "create_node":
+                    BoardNode.objects.create(
+                        id=mut.get("node_id"),
+                        idea_id=idea_id,
+                        node_type=mut.get("node_type", "box"),
+                        title=mut.get("title", "") or mut.get("content", ""),
+                        body=mut.get("body", ""),
+                        position_x=mut.get("position_x") or mut.get("x_position", 0),
+                        position_y=mut.get("position_y") or mut.get("y_position", 0),
+                        width=mut.get("width") or 250,
+                        height=mut.get("height"),
+                        parent_id=mut.get("parent_id") or None,
+                        is_locked=mut.get("is_locked", False),
+                        created_by=mut.get("created_by", "ai"),
+                    )
+                    applied += 1
+                elif mut_type == "update_node":
+                    node_id = mut.get("node_id")
+                    updates: dict[str, Any] = {}
+                    if "title" in mut:
+                        updates["title"] = mut["title"]
+                    elif "content" in mut:
+                        updates["title"] = mut["content"]
+                    if "body" in mut:
+                        updates["body"] = mut["body"]
+                    if "node_type" in mut:
+                        updates["node_type"] = mut["node_type"]
+                    if "position_x" in mut:
+                        updates["position_x"] = mut["position_x"]
+                    elif "x_position" in mut:
+                        updates["position_x"] = mut["x_position"]
+                    if "position_y" in mut:
+                        updates["position_y"] = mut["position_y"]
+                    elif "y_position" in mut:
+                        updates["position_y"] = mut["y_position"]
+                    if "width" in mut:
+                        updates["width"] = mut["width"]
+                    if "height" in mut:
+                        updates["height"] = mut["height"]
+                    if "parent_id" in mut:
+                        updates["parent_id"] = mut["parent_id"] or None
+                    if "is_locked" in mut:
+                        updates["is_locked"] = mut["is_locked"]
+                    if updates:
+                        updates["ai_modified_indicator"] = True
+                        BoardNode.objects.filter(id=node_id, idea_id=idea_id).update(**updates)
+                    applied += 1
+                elif mut_type == "move_node":
+                    node_id = mut.get("node_id")
+                    move_updates: dict[str, Any] = {"ai_modified_indicator": True}
+                    if "position_x" in mut:
+                        move_updates["position_x"] = mut["position_x"]
+                    if "position_y" in mut:
+                        move_updates["position_y"] = mut["position_y"]
+                    if "new_parent_id" in mut:
+                        move_updates["parent_id"] = mut["new_parent_id"] or None
+                    BoardNode.objects.filter(id=node_id, idea_id=idea_id).update(**move_updates)
+                    applied += 1
+                elif mut_type == "delete_node":
+                    BoardNode.objects.filter(id=mut.get("node_id"), idea_id=idea_id).delete()
+                    applied += 1
+                elif mut_type == "create_connection":
+                    BoardConnection.objects.create(
+                        idea_id=idea_id,
+                        source_node_id=mut.get("source_node_id"),
+                        target_node_id=mut.get("target_node_id"),
+                        label=mut.get("label", ""),
+                    )
+                    applied += 1
+                elif mut_type == "update_connection":
+                    conn_updates: dict[str, Any] = {}
+                    if "label" in mut:
+                        conn_updates["label"] = mut["label"]
+                    if "source_node_id" in mut:
+                        conn_updates["source_node_id"] = mut["source_node_id"]
+                    if "target_node_id" in mut:
+                        conn_updates["target_node_id"] = mut["target_node_id"]
+                    if conn_updates:
+                        BoardConnection.objects.filter(
+                            id=mut.get("node_id"), idea_id=idea_id
+                        ).update(**conn_updates)
+                    applied += 1
+                elif mut_type == "delete_connection":
+                    BoardConnection.objects.filter(
+                        id=mut.get("node_id"), idea_id=idea_id
+                    ).delete()
+                    applied += 1
+                else:
+                    logger.warning("Unknown board mutation type: %s", mut_type)
+            except Exception:
+                logger.exception("Failed to apply board mutation %s", mut_type)
+
+        logger.info("Applied %d/%d board mutations for idea %s", applied, len(mutations), idea_id)
+        return {"success": True, "mutations_applied": applied}

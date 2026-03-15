@@ -112,7 +112,7 @@ class BrdGenerationPipeline:
                 "processing_id": processing_id,
                 "status": "completed",
                 "sections": {
-                    k: v for k, v in agent_result.items()
+                    k.removeprefix("section_"): v for k, v in agent_result.items()
                     if k.startswith("section_")
                 },
                 "readiness_evaluation": agent_result.get(
@@ -291,7 +291,7 @@ class BrdGenerationPipeline:
         logger.info("BRD Step 5: Publishing ai.brd.generated for idea %s", idea_id)
 
         sections = {
-            k: v for k, v in agent_result.items()
+            k.removeprefix("section_"): v for k, v in agent_result.items()
             if k.startswith("section_")
         }
 

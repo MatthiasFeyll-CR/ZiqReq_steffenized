@@ -13,18 +13,65 @@ class AiContextServicer:
     """
 
     def GetFacilitatorBucket(self, request, context):  # type: ignore[no-untyped-def]
-        return {"id": "", "content": "", "updated_by_id": "", "updated_at": ""}
+        from apps.context.models import FacilitatorContextBucket
+
+        bucket = FacilitatorContextBucket.objects.first()
+        if bucket is None:
+            return {"id": "", "content": "", "updated_by_id": "", "updated_at": ""}
+
+        return {
+            "id": str(bucket.id),
+            "content": bucket.content or "",
+            "updated_by_id": str(bucket.updated_by) if bucket.updated_by else "",
+            "updated_at": bucket.updated_at.isoformat() if bucket.updated_at else "",
+        }
 
     def UpdateFacilitatorBucket(self, request, context):  # type: ignore[no-untyped-def]
-        return {"id": "", "content": "", "updated_by_id": "", "updated_at": ""}
+        from apps.context.models import FacilitatorContextBucket
+
+        content = getattr(request, "content", "")
+        updated_by_id = getattr(request, "updated_by_id", "")
+
+        bucket = FacilitatorContextBucket.objects.first()
+        if bucket is None:
+            bucket = FacilitatorContextBucket.objects.create(
+                content=content,
+                updated_by=updated_by_id or None,
+            )
+        else:
+            bucket.content = content
+            if updated_by_id:
+                bucket.updated_by = updated_by_id
+            bucket.save()
+
+        logger.info("UpdateFacilitatorBucket complete: bucket=%s", bucket.id)
+
+        return {
+            "id": str(bucket.id),
+            "content": bucket.content or "",
+            "updated_by_id": str(bucket.updated_by) if bucket.updated_by else "",
+            "updated_at": bucket.updated_at.isoformat() if bucket.updated_at else "",
+        }
 
     def GetContextAgentBucket(self, request, context):  # type: ignore[no-untyped-def]
+        from apps.context.models import ContextAgentBucket
+
+        bucket = ContextAgentBucket.objects.first()
+        if bucket is None:
+            return {
+                "id": "",
+                "sections_json": "{}",
+                "free_text": "",
+                "updated_by_id": "",
+                "updated_at": "",
+            }
+
         return {
-            "id": "",
-            "sections_json": "{}",
-            "free_text": "",
-            "updated_by_id": "",
-            "updated_at": "",
+            "id": str(bucket.id),
+            "sections_json": json.dumps(bucket.sections) if bucket.sections else "{}",
+            "free_text": bucket.free_text or "",
+            "updated_by_id": str(bucket.updated_by) if bucket.updated_by else "",
+            "updated_at": bucket.updated_at.isoformat() if bucket.updated_at else "",
         }
 
     def UpdateContextAgentBucket(self, request, context):  # type: ignore[no-untyped-def]

@@ -1,3 +1,4 @@
 grpcio>=1.60,<2.0
+protobuf>=6.31,<7.0
 pydyf>=0.10,<0.12
 weasyprint>=62.0,<63.0
