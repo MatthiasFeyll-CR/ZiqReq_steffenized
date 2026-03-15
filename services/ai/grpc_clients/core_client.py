@@ -1,7 +1,7 @@
-"""gRPC client for Core service (used by AI service).
+"""Core service client — direct database access (AI service side).
 
-Provides typed methods for CoreService RPCs needed by the AI service.
-Full implementations will connect to the gRPC channel in later milestones.
+All methods query the shared PostgreSQL database directly instead of
+making gRPC calls, since all services share the same database.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class CoreClient:
-    """gRPC client for Core service (AI service side)."""
+    """Client for Core service data — uses direct DB access (AI service side)."""
 
     def __init__(self, address: str = "localhost:50051") -> None:
         self.address = address
@@ -89,17 +89,68 @@ class CoreClient:
         }
 
     def get_full_chat_history(self, idea_id: str) -> dict[str, Any]:
-        logger.warning("AI CoreClient.get_full_chat_history stub called")
-        return {"messages": []}
+        from django.db import connection
+
+        messages: list[dict[str, Any]] = []
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, sender_type, sender_id, ai_agent, content, message_type, created_at "
+                "FROM chat_messages WHERE idea_id = %s ORDER BY created_at",
+                [idea_id],
+            )
+            for row in cursor.fetchall():
+                messages.append({
+                    "id": str(row[0]),
+                    "sender_type": row[1],
+                    "sender_id": str(row[2]) if row[2] else None,
+                    "ai_agent": row[3],
+                    "content": row[4],
+                    "message_type": row[5],
+                    "created_at": row[6].isoformat() if row[6] else "",
+                    "sender_name": row[3] if row[1] == "ai" else "User",
+                })
+        return {"messages": messages}
 
     def get_admin_parameter(self, key: str) -> dict[str, Any]:
         """Fetch a single admin parameter by key."""
-        logger.warning("AI CoreClient.get_admin_parameter stub called for key=%s", key)
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT value FROM admin_parameters WHERE key = %s",
+                [key],
+            )
+            row = cursor.fetchone()
+            if row:
+                return {"key": key, "value": row[0]}
         return {"key": key, "value": ""}
 
     def get_rate_limit_status(self, idea_id: str) -> dict[str, Any]:
-        logger.warning("AI CoreClient.get_rate_limit_status stub called")
-        return {"current_count": 0, "cap": 100, "is_locked": False}
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM chat_messages "
+                "WHERE idea_id = %s AND sender_type = 'user' "
+                "AND created_at >= NOW() - INTERVAL '1 hour'",
+                [idea_id],
+            )
+            current_count = cursor.fetchone()[0]
+
+        # Read cap from admin_parameters
+        cap = 100
+        cap_result = self.get_admin_parameter("rate_limit_cap")
+        if cap_result["value"]:
+            try:
+                cap = int(cap_result["value"])
+            except (ValueError, TypeError):
+                pass
+
+        return {
+            "current_count": current_count,
+            "cap": cap,
+            "is_locked": current_count >= cap,
+        }
 
     # ── Similarity ──
 
@@ -442,7 +493,7 @@ class CoreClient:
         logger.info("Deleted board connection %s", connection_id)
         return {"success": True}
 
-    # ── Keywords & embeddings (stubs — gRPC wire-up in later milestones) ──
+    # ── Keywords & embeddings ──
 
     def upsert_keywords(
         self,
@@ -473,17 +524,44 @@ class CoreClient:
         embedding: list[float],
         source_text_hash: str,
     ) -> dict[str, Any]:
-        logger.warning("AI CoreClient.upsert_idea_embedding stub called")
-        return {"success": True}
+        """Persist idea embedding vector (insert or update)."""
+        from django.db import connection as db_conn
 
-    # ── BRD operations (stubs — gRPC wire-up in later milestones) ──
+        try:
+            with db_conn.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO idea_embeddings (id, idea_id, embedding, source_text_hash, updated_at) "
+                    "VALUES (gen_random_uuid(), %s, %s, %s, NOW()) "
+                    "ON CONFLICT (idea_id) DO UPDATE SET embedding = EXCLUDED.embedding, "
+                    "source_text_hash = EXCLUDED.source_text_hash, updated_at = NOW()",
+                    [idea_id, embedding, source_text_hash],
+                )
+            logger.info("Upserted embedding for idea %s", idea_id)
+            return {"success": True}
+        except Exception:
+            logger.exception("Failed to upsert embedding for idea %s", idea_id)
+            return {"success": False}
+
+    # ── BRD operations ──
 
     def get_brd_draft(self, idea_id: str) -> dict[str, Any]:
-        """Fetch the current BRD draft for an idea.
+        """Fetch the current BRD draft for an idea."""
+        from django.db import connection as db_conn
 
-        Returns dict with section_locks (dict) and allow_information_gaps (bool).
-        """
-        logger.warning("AI CoreClient.get_brd_draft stub called for idea_id=%s", idea_id)
+        with db_conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, section_locks, allow_information_gaps "
+                "FROM brd_drafts WHERE idea_id = %s",
+                [idea_id],
+            )
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "id": str(row[0]),
+                    "idea_id": idea_id,
+                    "section_locks": row[1] or {},
+                    "allow_information_gaps": row[2],
+                }
         return {
             "id": None,
             "idea_id": idea_id,
@@ -498,10 +576,55 @@ class CoreClient:
         readiness_evaluation: dict[str, str],
     ) -> dict[str, Any]:
         """Create or update a BRD draft for an idea."""
-        logger.warning("AI CoreClient.upsert_brd_draft stub called for idea_id=%s", idea_id)
-        return {"success": True}
+        import json
 
-    # ── Context compression (stubs — gRPC wire-up in later milestones) ──
+        from django.db import connection as db_conn
+
+        field_map = {
+            "title": "section_title",
+            "short_description": "section_short_description",
+            "current_workflow": "section_current_workflow",
+            "affected_department": "section_affected_department",
+            "core_capabilities": "section_core_capabilities",
+            "success_criteria": "section_success_criteria",
+        }
+
+        # Build the SET clause for upserted fields
+        set_parts = []
+        values: list[Any] = []
+        for key, field in field_map.items():
+            if key in sections:
+                set_parts.append(f"{field} = %s")
+                values.append(sections[key])
+
+        readiness_json = json.dumps(readiness_evaluation) if readiness_evaluation else "{}"
+        set_parts.append("readiness_evaluation = %s")
+        values.append(readiness_json)
+        set_parts.append("updated_at = NOW()")
+
+        try:
+            with db_conn.cursor() as cursor:
+                # Try update first
+                if set_parts:
+                    cursor.execute(
+                        f"UPDATE brd_drafts SET {', '.join(set_parts)} WHERE idea_id = %s",
+                        values + [idea_id],
+                    )
+                    if cursor.rowcount == 0:
+                        # Insert new draft
+                        cursor.execute(
+                            "INSERT INTO brd_drafts (id, idea_id, section_locks, "
+                            "allow_information_gaps, readiness_evaluation, created_at, updated_at) "
+                            "VALUES (gen_random_uuid(), %s, '{}', false, %s, NOW(), NOW())",
+                            [idea_id, readiness_json],
+                        )
+            logger.info("Upserted BRD draft for idea %s", idea_id)
+            return {"success": True}
+        except Exception:
+            logger.exception("Failed to upsert BRD draft for idea %s", idea_id)
+            return {"success": False}
+
+    # ── Context compression ──
 
     def upsert_context_summary(
         self,
@@ -511,5 +634,21 @@ class CoreClient:
         compression_iteration: int,
         context_window_usage: float,
     ) -> dict[str, Any]:
-        logger.warning("AI CoreClient.upsert_context_summary stub called")
-        return {"success": True}
+        """Persist a context compression summary."""
+        from django.db import connection as db_conn
+
+        try:
+            with db_conn.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO chat_context_summaries "
+                    "(id, idea_id, summary_text, messages_covered_up_to_id, "
+                    "compression_iteration, context_window_usage_at_compression, created_at) "
+                    "VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, NOW())",
+                    [idea_id, summary_text, messages_covered_up_to_id,
+                     compression_iteration, context_window_usage],
+                )
+            logger.info("Persisted context summary for idea %s (iteration %d)", idea_id, compression_iteration)
+            return {"success": True}
+        except Exception:
+            logger.exception("Failed to persist context summary for idea %s", idea_id)
+            return {"success": False}

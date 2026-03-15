@@ -1,11 +1,12 @@
-"""gRPC client for Core service.
+"""Core service client — direct database access.
 
-Provides typed methods for all CoreService RPCs.
-Full implementations will connect to the gRPC channel in later milestones.
+All methods query the shared PostgreSQL database directly via Django ORM
+instead of making gRPC calls, since all services share the same database.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class CoreClient:
-    """gRPC client for Core service."""
+    """Client for Core service data — uses direct DB access."""
 
     def __init__(self, address: str = "localhost:50051") -> None:
         self.address = address
@@ -25,12 +26,124 @@ class CoreClient:
         include_board: bool = True,
         include_brd_draft: bool = False,
     ) -> dict[str, Any]:
-        logger.warning("CoreClient.get_idea_context stub called")
-        return {}
+        from apps.ideas.models import ChatMessage, Idea
+
+        try:
+            idea = Idea.objects.get(id=idea_id, deleted_at__isnull=True)
+        except Idea.DoesNotExist:
+            return {}
+
+        metadata = {
+            "idea_id": str(idea.id),
+            "title": idea.title or "",
+            "title_manually_edited": idea.title_manually_edited,
+            "state": idea.state,
+            "agent_mode": idea.agent_mode,
+            "owner_display_name": "",
+            "co_owner_display_name": "",
+        }
+
+        recent_messages = []
+        msgs = ChatMessage.objects.filter(idea_id=idea_id).order_by("-created_at")[:recent_message_limit]
+        for msg in reversed(list(msgs)):
+            recent_messages.append({
+                "id": str(msg.id),
+                "sender_type": msg.sender_type,
+                "sender_id": str(msg.sender_id) if msg.sender_id else None,
+                "ai_agent": msg.ai_agent,
+                "content": msg.content,
+                "message_type": msg.message_type,
+                "created_at": msg.created_at.isoformat() if msg.created_at else "",
+            })
+
+        board = {"nodes": [], "connections": []}
+        if include_board:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id, node_type, title, body, position_x, position_y, "
+                    "width, height, parent_id, is_locked, created_by, created_at "
+                    "FROM board_nodes WHERE idea_id = %s ORDER BY created_at",
+                    [idea_id],
+                )
+                for row in cursor.fetchall():
+                    board["nodes"].append({
+                        "id": str(row[0]),
+                        "node_type": row[1],
+                        "title": row[2] or "",
+                        "body": row[3] or "",
+                        "position_x": row[4],
+                        "position_y": row[5],
+                        "width": row[6],
+                        "height": row[7],
+                        "parent_id": str(row[8]) if row[8] else None,
+                        "is_locked": row[9],
+                        "created_by": row[10],
+                        "created_at": row[11].isoformat() if row[11] else "",
+                    })
+                cursor.execute(
+                    "SELECT id, source_node_id, target_node_id, label, created_at "
+                    "FROM board_connections WHERE idea_id = %s ORDER BY created_at",
+                    [idea_id],
+                )
+                for row in cursor.fetchall():
+                    board["connections"].append({
+                        "id": str(row[0]),
+                        "source_node_id": str(row[1]),
+                        "target_node_id": str(row[2]),
+                        "label": row[3] or "",
+                        "created_at": row[4].isoformat() if row[4] else "",
+                    })
+
+        brd_draft = None
+        if include_brd_draft:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT section_title, section_short_description, section_current_workflow, "
+                    "section_affected_department, section_core_capabilities, section_success_criteria, "
+                    "section_locks, updated_at FROM brd_drafts WHERE idea_id = %s",
+                    [idea_id],
+                )
+                row = cursor.fetchone()
+                if row:
+                    brd_draft = {
+                        "idea_id": idea_id,
+                        "sections": {
+                            "title": row[0] or "",
+                            "short_description": row[1] or "",
+                            "current_workflow": row[2] or "",
+                            "affected_department": row[3] or "",
+                            "core_capabilities": row[4] or "",
+                            "success_criteria": row[5] or "",
+                        },
+                        "locked_sections": row[6] or {},
+                        "updated_at": row[7].isoformat() if row[7] else "",
+                    }
+
+        return {
+            "metadata": metadata,
+            "recent_messages": recent_messages,
+            "board": board,
+            "brd_draft": brd_draft,
+            "active_users": [],
+        }
 
     def get_full_chat_history(self, idea_id: str) -> dict[str, Any]:
-        logger.warning("CoreClient.get_full_chat_history stub called")
-        return {"messages": []}
+        from apps.ideas.models import ChatMessage
+
+        messages = []
+        for msg in ChatMessage.objects.filter(idea_id=idea_id).order_by("created_at"):
+            messages.append({
+                "id": str(msg.id),
+                "sender_type": msg.sender_type,
+                "sender_id": str(msg.sender_id) if msg.sender_id else None,
+                "ai_agent": msg.ai_agent,
+                "content": msg.content,
+                "message_type": msg.message_type,
+                "created_at": msg.created_at.isoformat() if msg.created_at else "",
+            })
+        return {"messages": messages}
 
     def persist_ai_chat_message(
         self,
@@ -59,8 +172,20 @@ class CoreClient:
     def persist_ai_reaction(
         self, idea_id: str, message_id: str, reaction_type: str
     ) -> dict[str, Any]:
-        logger.warning("CoreClient.persist_ai_reaction stub called")
-        return {"reaction_id": ""}
+        from django.db import connection
+
+        import uuid
+
+        reaction_id = str(uuid.uuid4())
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "INSERT INTO ai_reactions (id, message_id, reaction_type, created_at) "
+                "VALUES (%s, %s, %s, NOW()) "
+                "ON CONFLICT (message_id) DO UPDATE SET reaction_type = EXCLUDED.reaction_type",
+                [reaction_id, message_id, reaction_type],
+            )
+        logger.info("Persisted AI reaction %s on message %s", reaction_id, message_id)
+        return {"reaction_id": reaction_id}
 
     def update_idea_title(
         self, idea_id: str, new_title: str
@@ -76,19 +201,12 @@ class CoreClient:
             logger.warning("Idea %s not found for title update", idea_id)
         return {"success": bool(updated)}
 
-    def persist_board_mutations(
-        self, idea_id: str, mutations: list[dict[str, Any]]
-    ) -> dict[str, Any]:
-        logger.warning("CoreClient.persist_board_mutations stub called")
-        return {"success": True, "mutations_applied": 0}
-
     def update_brd_draft(
         self,
         idea_id: str,
         sections: dict[str, str],
         readiness_evaluation_json: str = "",
     ) -> dict[str, Any]:
-        import json
         from apps.brd.models import BrdDraft
 
         draft, _created = BrdDraft.objects.get_or_create(
@@ -100,7 +218,6 @@ class CoreClient:
             },
         )
 
-        # Map section keys to model fields
         field_map = {
             "title": "section_title",
             "short_description": "section_short_description",
@@ -113,13 +230,11 @@ class CoreClient:
         update_fields = ["updated_at"]
         for key, field in field_map.items():
             if key in sections:
-                # Only update if the section is not locked
                 locks = draft.section_locks or {}
                 if not locks.get(key, False):
                     setattr(draft, field, sections[key])
                     update_fields.append(field)
 
-        # Update readiness evaluation
         if readiness_evaluation_json:
             try:
                 draft.readiness_evaluation = json.loads(readiness_evaluation_json) if isinstance(readiness_evaluation_json, str) else readiness_evaluation_json
@@ -130,21 +245,3 @@ class CoreClient:
         draft.save(update_fields=update_fields)
         logger.info("Updated BRD draft for idea %s", idea_id)
         return {"success": True}
-
-    def update_idea_keywords(
-        self, idea_id: str, keywords: list[str]
-    ) -> dict[str, Any]:
-        logger.warning("CoreClient.update_idea_keywords stub called")
-        return {"success": True}
-
-    def get_ideas_by_state(self) -> dict[str, Any]:
-        logger.warning("CoreClient.get_ideas_by_state stub called")
-        return {"counts": []}
-
-    def get_user_stats(self, user_id: str) -> dict[str, Any]:
-        logger.warning("CoreClient.get_user_stats stub called")
-        return {"idea_count": 0, "review_count": 0, "contribution_count": 0}
-
-    def get_rate_limit_status(self, idea_id: str) -> dict[str, Any]:
-        logger.warning("CoreClient.get_rate_limit_status stub called")
-        return {"current_count": 0, "cap": 100, "is_locked": False}
