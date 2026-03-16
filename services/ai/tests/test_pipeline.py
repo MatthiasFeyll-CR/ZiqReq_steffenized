@@ -31,12 +31,12 @@ def _clear_pipeline_state():
     ChatProcessingPipeline._abort_flags.clear()
 
 
-def _mock_core_client(idea_context: dict | None = None) -> MagicMock:
+def _mock_core_client(project_context: dict | None = None) -> MagicMock:
     """Create a mock CoreClient with sensible defaults."""
     client = MagicMock()
-    client.get_idea_context.return_value = idea_context or {
-        "idea": {
-            "title": "Test Idea",
+    client.get_project_context.return_value = project_context or {
+        "project": {
+            "title": "Test Project",
             "state": "brainstorming",
             "agent_mode": "interactive",
             "title_manually_edited": False,
@@ -70,19 +70,19 @@ class TestPipelineExecution:
         core_client = _mock_core_client()
         pipeline = ChatProcessingPipeline(core_client=core_client)
 
-        result = await pipeline.execute("idea-1")
+        result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert result["processing_id"] is not None
 
         # Step 1: gRPC was called
-        core_client.get_idea_context.assert_called_once_with("idea-1")
+        core_client.get_project_context.assert_called_once_with("project-1")
 
         # Step 6: completion event published
         events = get_published_events()
         complete_events = [e for e in events if e["event_type"] == "ai.processing.complete"]
         assert len(complete_events) == 1
-        assert complete_events[0]["idea_id"] == "idea-1"
+        assert complete_events[0]["project_id"] == "project-1"
         assert complete_events[0]["counter_reset"] is True
 
     @pytest.mark.asyncio
@@ -95,11 +95,11 @@ class TestPipelineExecution:
         core_client = _mock_core_client()
         pipeline = ChatProcessingPipeline(core_client=core_client)
 
-        assert pipeline.get_version("idea-1") == 0
-        await pipeline.execute("idea-1")
-        assert pipeline.get_version("idea-1") == 1
-        await pipeline.execute("idea-1")
-        assert pipeline.get_version("idea-1") == 2
+        assert pipeline.get_version("project-1") == 0
+        await pipeline.execute("project-1")
+        assert pipeline.get_version("project-1") == 1
+        await pipeline.execute("project-1")
+        assert pipeline.get_version("project-1") == 2
 
 
 # ── T-2.10.03: Abort and restart ──
@@ -117,18 +117,18 @@ class TestPipelineAbort:
         pipeline = ChatProcessingPipeline(core_client=core_client)
 
         # Pre-set abort flag before execution
-        ChatProcessingPipeline._versions["idea-1"] = 0
+        ChatProcessingPipeline._versions["project-1"] = 0
         # The pipeline will call _start_processing which sets version to 1,
         # then we need to set abort before step boundary.
-        # We'll intercept via a side effect on get_idea_context.
+        # We'll intercept via a side effect on get_project_context.
 
         def set_abort_on_load(*args, **kwargs):
-            pipeline.set_abort("idea-1")
-            return _mock_core_client().get_idea_context.return_value
+            pipeline.set_abort("project-1")
+            return _mock_core_client().get_project_context.return_value
 
-        core_client.get_idea_context.side_effect = set_abort_on_load
+        core_client.get_project_context.side_effect = set_abort_on_load
 
-        result = await pipeline.execute("idea-1")
+        result = await pipeline.execute("project-1")
 
         assert result["status"] == "aborted"
         assert result["result"] is None
@@ -150,12 +150,12 @@ class TestPipelineAbort:
 
         # Simulate version bump during step 1 (new message triggers new pipeline)
         def bump_version_on_load(*args, **kwargs):
-            ChatProcessingPipeline._versions["idea-1"] = 999
-            return _mock_core_client().get_idea_context.return_value
+            ChatProcessingPipeline._versions["project-1"] = 999
+            return _mock_core_client().get_project_context.return_value
 
-        core_client.get_idea_context.side_effect = bump_version_on_load
+        core_client.get_project_context.side_effect = bump_version_on_load
 
-        result = await pipeline.execute("idea-1")
+        result = await pipeline.execute("project-1")
 
         assert result["status"] == "aborted"
 
@@ -175,16 +175,16 @@ class TestPipelineAbort:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                pipeline.set_abort("idea-1")
-            return _mock_core_client().get_idea_context.return_value
+                pipeline.set_abort("project-1")
+            return _mock_core_client().get_project_context.return_value
 
-        core_client.get_idea_context.side_effect = abort_first_time
+        core_client.get_project_context.side_effect = abort_first_time
 
-        result1 = await pipeline.execute("idea-1")
+        result1 = await pipeline.execute("project-1")
         assert result1["status"] == "aborted"
 
         # Second run: should succeed (abort flag cleared by _start_processing)
-        result2 = await pipeline.execute("idea-1")
+        result2 = await pipeline.execute("project-1")
         assert result2["status"] == "completed"
 
         # Completion event from second run
@@ -203,22 +203,22 @@ class TestVersionTracking:
 
     def test_set_abort_flag(self, _clear_pipeline_state):
         pipeline = ChatProcessingPipeline()
-        pipeline.set_abort("idea-1")
-        assert ChatProcessingPipeline._abort_flags["idea-1"] is True
+        pipeline.set_abort("project-1")
+        assert ChatProcessingPipeline._abort_flags["project-1"] is True
 
     def test_check_abort_raises_on_flag(self, _clear_pipeline_state):
         pipeline = ChatProcessingPipeline()
-        ChatProcessingPipeline._versions["idea-1"] = 1
-        ChatProcessingPipeline._abort_flags["idea-1"] = True
+        ChatProcessingPipeline._versions["project-1"] = 1
+        ChatProcessingPipeline._abort_flags["project-1"] = True
         with pytest.raises(PipelineAborted, match="Abort flag"):
-            pipeline._check_abort("idea-1", expected_version=1, step=3)
+            pipeline._check_abort("project-1", expected_version=1, step=3)
 
     def test_check_abort_raises_on_version_mismatch(self, _clear_pipeline_state):
         pipeline = ChatProcessingPipeline()
-        ChatProcessingPipeline._versions["idea-1"] = 5
-        ChatProcessingPipeline._abort_flags["idea-1"] = False
+        ChatProcessingPipeline._versions["project-1"] = 5
+        ChatProcessingPipeline._abort_flags["project-1"] = False
         with pytest.raises(PipelineAborted, match="Version mismatch"):
-            pipeline._check_abort("idea-1", expected_version=3, step=2)
+            pipeline._check_abort("project-1", expected_version=3, step=2)
 
 
 # ── Context Agent delegation (M8) ──
@@ -259,7 +259,7 @@ class TestContextAgentDelegation:
         with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
             instance = MockAgent.return_value
             instance.process = mock_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert call_count == 2  # Facilitator invoked twice
@@ -294,12 +294,12 @@ class TestContextAgentDelegation:
 
         with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
             MockAgent.return_value.process = mock_process
-            await pipeline.execute("idea-1")
+            await pipeline.execute("project-1")
 
         events = get_published_events()
         delegation_complete = [e for e in events if e["event_type"] == "ai.delegation.complete"]
         assert len(delegation_complete) == 1
-        assert delegation_complete[0]["idea_id"] == "idea-1"
+        assert delegation_complete[0]["project_id"] == "project-1"
         assert delegation_complete[0]["delegation_type"] == "context_agent"
 
     @pytest.mark.asyncio
@@ -326,7 +326,7 @@ class TestContextAgentDelegation:
 
         with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
             MockAgent.return_value.process = mock_process
-            await pipeline.execute("idea-1")
+            await pipeline.execute("project-1")
 
         assert call_count == 1  # Only one Facilitator invocation
 
@@ -375,12 +375,12 @@ class TestContextAgentDelegation:
              patch("agents.context_agent.agent.ContextAgent") as MockContextAgent:
             MockFacilitator.return_value.process = mock_facilitator_process
             MockContextAgent.return_value.process = mock_context_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert context_agent_called is True
         assert context_agent_input["query"] == "What ERP?"
-        assert context_agent_input["idea_id"] == "idea-1"
+        assert context_agent_input["project_id"] == "project-1"
 
     @pytest.mark.asyncio
     async def test_context_agent_results_injected_into_facilitator(self, _clear_pipeline_state, settings):
@@ -421,7 +421,7 @@ class TestContextAgentDelegation:
              patch("agents.context_agent.agent.ContextAgent") as MockContextAgent:
             MockFacilitator.return_value.process = mock_facilitator_process
             MockContextAgent.return_value.process = mock_context_process
-            await pipeline.execute("idea-1")
+            await pipeline.execute("project-1")
 
         assert received_delegation_results is not None
         assert "context_agent_findings" in received_delegation_results
@@ -471,7 +471,7 @@ class TestContextExtensionDelegation:
         with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
             instance = MockAgent.return_value
             instance.process = mock_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert call_count == 2
@@ -523,12 +523,12 @@ class TestContextExtensionDelegation:
              patch("agents.context_extension.agent.ContextExtensionAgent") as MockExtension:
             MockFacilitator.return_value.process = mock_facilitator_process
             MockExtension.return_value.process = mock_extension_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert extension_agent_called is True
         assert extension_agent_input["query"] == "What did Lisa say about signatures?"
-        assert extension_agent_input["idea_id"] == "idea-1"
+        assert extension_agent_input["project_id"] == "project-1"
 
     @pytest.mark.asyncio
     async def test_context_extension_results_injected_into_facilitator(self, _clear_pipeline_state, settings):
@@ -573,7 +573,7 @@ class TestContextExtensionDelegation:
              patch("agents.context_extension.agent.ContextExtensionAgent") as MockExtension:
             MockFacilitator.return_value.process = mock_facilitator_process
             MockExtension.return_value.process = mock_extension_process
-            await pipeline.execute("idea-1")
+            await pipeline.execute("project-1")
 
         assert received_extension_results is not None
         assert "extension_results" in received_extension_results
@@ -607,7 +607,7 @@ class TestContextExtensionDelegation:
 
         with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
             MockAgent.return_value.process = mock_process
-            await pipeline.execute("idea-1")
+            await pipeline.execute("project-1")
 
         events = get_published_events()
         delegation_complete = [e for e in events if e["event_type"] == "ai.delegation.complete"]
@@ -650,7 +650,7 @@ class TestContextExtensionDelegation:
              patch("agents.context_extension.agent.ContextExtensionAgent") as MockExtension:
             MockFacilitator.return_value.process = mock_facilitator_process
             MockExtension.return_value.process = mock_extension_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert received_extension_results is not None
@@ -667,7 +667,7 @@ class TestContextAssembler:
 
         assembler = ContextAssembler()
         response = {
-            "idea": {
+            "project": {
                 "title": "Invoice Automation",
                 "state": "brainstorming",
                 "agent_mode": "interactive",
@@ -680,11 +680,11 @@ class TestContextAssembler:
             "facilitator_bucket_content": "SAP, DocuSign",
         }
 
-        result = assembler.assemble("idea-123", response)
+        result = assembler.assemble("project-123", response)
 
-        assert result["idea_id"] == "idea-123"
-        assert result["idea_context"]["title"] == "Invoice Automation"
-        assert result["idea_context"]["agent_mode"] == "interactive"
+        assert result["project_id"] == "project-123"
+        assert result["project_context"]["title"] == "Invoice Automation"
+        assert result["project_context"]["agent_mode"] == "interactive"
         assert len(result["recent_messages"]) == 1
         assert result["chat_summary"] == "Previous discussion about workflows."
         assert result["facilitator_bucket_content"] == "SAP, DocuSign"
@@ -695,10 +695,10 @@ class TestContextAssembler:
         from processing.context_assembler import ContextAssembler
 
         assembler = ContextAssembler()
-        result = assembler.assemble("idea-empty", {})
+        result = assembler.assemble("project-empty", {})
 
-        assert result["idea_id"] == "idea-empty"
-        assert result["idea_context"]["title"] == ""
-        assert result["idea_context"]["agent_mode"] == "interactive"
+        assert result["project_id"] == "project-empty"
+        assert result["project_context"]["title"] == ""
+        assert result["project_context"]["agent_mode"] == "interactive"
         assert result["recent_messages"] == []
         assert result["chat_summary"] is None

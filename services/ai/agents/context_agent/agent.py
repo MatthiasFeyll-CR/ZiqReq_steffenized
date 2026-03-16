@@ -40,11 +40,11 @@ class ContextAgent(BaseAgent):
         Args:
             input_data: Dict with keys:
                 - query: str — the user's question
-                - idea_id: str — the idea context
+                - project_id: str — the project context
                 - query_embedding: list[float] — pre-computed embedding of the query
         """
         query: str = input_data["query"]
-        idea_id: str = input_data["idea_id"]
+        project_id: str = input_data["project_id"]
         query_embedding: list[float] = input_data.get("query_embedding", [])
 
         # Retrieve relevant chunks via pgvector cosine similarity
@@ -57,8 +57,8 @@ class ContextAgent(BaseAgent):
         # If no chunks retrieved, return grounding refusal
         if not chunks:
             logger.info(
-                "[context_agent] No relevant chunks for query in idea %s",
-                idea_id,
+                "[context_agent] No relevant chunks for query in project %s",
+                project_id,
             )
             return {
                 "response": (
@@ -99,9 +99,9 @@ class ContextAgent(BaseAgent):
         response_text = str(result[0]) if result else ""
 
         logger.info(
-            "[context_agent] Generated response using %d chunks for idea %s",
+            "[context_agent] Generated response using %d chunks for project %s",
             len(chunks),
-            idea_id,
+            project_id,
         )
 
         return {

@@ -15,7 +15,7 @@ class ChatMessage(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     sender_type = models.CharField(max_length=10, choices=SENDER_TYPE_CHOICES)
     sender_id = models.UUIDField(null=True, blank=True)
     ai_agent = models.CharField(max_length=30, null=True, blank=True)
@@ -26,7 +26,7 @@ class ChatMessage(models.Model):
     class Meta:
         db_table = "chat_messages"
         indexes = [
-            models.Index(fields=["idea_id", "created_at"], name="idx_chat_idea_created"),
+            models.Index(fields=["project_id", "created_at"], name="idx_chat_project_created"),
             models.Index(fields=["sender_id"], name="idx_chat_sender"),
         ]
 

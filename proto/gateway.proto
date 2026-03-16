@@ -6,7 +6,7 @@ service GatewayService {
   rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
   rpc GetUserPreferences(UserPreferencesRequest) returns (UserPreferencesResponse);
   rpc GetAlertRecipients(AlertRecipientsRequest) returns (AlertRecipientsResponse);
-  rpc GetIdeaDetails(IdeaDetailsRequest) returns (IdeaDetailsResponse);
+  rpc GetProjectDetails(ProjectDetailsRequest) returns (ProjectDetailsResponse);
 }
 
 message CreateNotificationRequest {
@@ -45,13 +45,13 @@ message AlertRecipient {
   string display_name = 3;
 }
 
-message IdeaDetailsRequest {
-  string idea_id = 1;
+message ProjectDetailsRequest {
+  string project_id = 1;
   bool ensure_share_link_token = 2;
 }
 
-message IdeaDetailsResponse {
-  string idea_id = 1;
+message ProjectDetailsResponse {
+  string project_id = 1;
   string title = 2;
   string owner_id = 3;
   string share_link_token = 4;

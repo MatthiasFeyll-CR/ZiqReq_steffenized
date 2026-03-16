@@ -12,7 +12,7 @@ REACTION_TYPE_CHOICES = [
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("gateway_ideas", "0001_initial"),
+        ("gateway_projects", "0001_initial"),
     ]
 
     operations = [

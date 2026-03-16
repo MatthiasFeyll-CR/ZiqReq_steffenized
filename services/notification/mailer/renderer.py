@@ -14,8 +14,8 @@ from typing import Any
 BASE_URL = os.environ.get("APP_BASE_URL", "http://localhost:5173")
 
 _REFERENCE_URLS: dict[str, str] = {
-    "idea": "/idea/{reference_id}",
-    "invitation": "/idea/{reference_id}",
+    "project": "/project/{reference_id}",
+    "invitation": "/project/{reference_id}",
 }
 
 # Bilingual email chrome strings

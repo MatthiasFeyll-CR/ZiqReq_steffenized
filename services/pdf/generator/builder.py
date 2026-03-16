@@ -17,7 +17,7 @@ class BrdContent:
     section_affected_department: str
     section_core_capabilities: str
     section_success_criteria: str
-    idea_title: str
+    project_title: str
     generated_date: str
 
 
@@ -64,7 +64,7 @@ def build_html(content: BrdContent) -> str:
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BRD — {html.escape(content.idea_title)}</title>
+  <title>BRD — {html.escape(content.project_title)}</title>
   <style>{css}</style>
 </head>
 <body>
@@ -79,7 +79,7 @@ def build_html(content: BrdContent) -> str:
   </header>
 
   <main>
-    <h1 class="idea-title">{html.escape(content.idea_title)}</h1>
+    <h1 class="project-title">{html.escape(content.project_title)}</h1>
     {sections_html}
   </main>
 

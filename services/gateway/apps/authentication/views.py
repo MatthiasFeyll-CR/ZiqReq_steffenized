@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.ideas.authentication import MiddlewareAuthentication
+from apps.projects.authentication import MiddlewareAuthentication
 
 from .azure_ad import extract_user_data, validate_azure_ad_token
 from .models import User
@@ -153,7 +153,7 @@ NOTIFICATION_PREFERENCE_CATEGORIES: dict[str, dict[str, list[str]]] = {
             "collaboration_invitation",
             "collaborator_joined",
             "collaborator_left",
-            "removed_from_idea",
+            "removed_from_project",
             "ownership_transferred",
         ],
     },
@@ -173,9 +173,9 @@ NOTIFICATION_PREFERENCE_CATEGORIES: dict[str, dict[str, list[str]]] = {
     "Review Management": {
         "roles": ["reviewer"],
         "types": [
-            "idea_submitted",
-            "idea_assigned",
-            "idea_resubmitted",
+            "project_submitted",
+            "project_assigned",
+            "project_resubmitted",
         ],
     },
     "Admin": {
@@ -284,7 +284,7 @@ def admin_users_search(request: Request) -> Response:
     from django.db.models import Count, IntegerField, OuterRef, Subquery
     from django.db.models.functions import Coalesce
 
-    from apps.ideas.models import ChatMessage, Idea
+    from apps.projects.models import ChatMessage, Project
     from apps.review.models import ReviewTimelineEntry
 
     query = request.query_params.get("q", "").strip()
@@ -293,9 +293,9 @@ def admin_users_search(request: Request) -> Response:
     if query:
         qs = qs.filter(Q(display_name__icontains=query) | Q(email__icontains=query))
 
-    # Subquery: idea_count = ideas where owner_id=user
-    idea_count_sq = (
-        Idea.objects.filter(
+    # Subquery: project_count = projects where owner_id=user
+    project_count_sq = (
+        Project.objects.filter(
             owner_id=OuterRef("pk"),
             deleted_at__isnull=True,
         )
@@ -324,7 +324,7 @@ def admin_users_search(request: Request) -> Response:
     )
 
     qs = qs.annotate(
-        idea_count=Coalesce(Subquery(idea_count_sq, output_field=IntegerField()), 0),
+        project_count=Coalesce(Subquery(project_count_sq, output_field=IntegerField()), 0),
         review_count=Coalesce(Subquery(review_count_sq, output_field=IntegerField()), 0),
         _chat_count=Coalesce(Subquery(chat_count_sq, output_field=IntegerField()), 0),
     ).order_by("display_name")
@@ -338,7 +338,7 @@ def admin_users_search(request: Request) -> Response:
             "last_name": u.last_name,
             "display_name": u.display_name,
             "roles": u.roles,
-            "idea_count": u.idea_count,
+            "project_count": u.project_count,
             "review_count": u.review_count,
             "contribution_count": u._chat_count,
         })

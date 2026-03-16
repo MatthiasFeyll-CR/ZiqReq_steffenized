@@ -12,7 +12,7 @@ class CollaborationInvitation(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     inviter_id = models.UUIDField()
     invitee_id = models.UUIDField()
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default="pending")
@@ -23,7 +23,7 @@ class CollaborationInvitation(models.Model):
         db_table = "collaboration_invitations"
         indexes = [
             models.Index(fields=["invitee_id", "status"], name="idx_invite_invitee"),
-            models.Index(fields=["idea_id"], name="idx_invite_idea"),
+            models.Index(fields=["project_id"], name="idx_invite_project"),
         ]
 
     def __str__(self) -> str:

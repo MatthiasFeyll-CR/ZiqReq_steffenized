@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 
 
-class Idea(models.Model):
+class Project(models.Model):
     STATE_CHOICES = [
         ("open", "Open"),
         ("in_review", "In Review"),
@@ -19,6 +19,10 @@ class Idea(models.Model):
         ("interactive", "Interactive"),
         ("silent", "Silent"),
     ]
+    PROJECT_TYPE_CHOICES = [
+        ("software", "Software"),
+        ("non_software", "Non-Software"),
+    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=500, default="")
@@ -26,6 +30,7 @@ class Idea(models.Model):
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default="open")
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default="private")
     agent_mode = models.CharField(max_length=20, choices=AGENT_MODE_CHOICES, default="interactive")
+    project_type = models.CharField(max_length=20, choices=PROJECT_TYPE_CHOICES, default="software")
     owner_id = models.UUIDField()
     share_link_token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
@@ -33,24 +38,24 @@ class Idea(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "ideas"
+        db_table = "projects"
 
     def __str__(self) -> str:
-        return self.title or f"Idea {self.id}"
+        return self.title or f"Project {self.id}"
 
 
-class IdeaCollaborator(models.Model):
+class ProjectCollaborator(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea = models.ForeignKey(Idea, on_delete=models.CASCADE, related_name="collaborators")
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="collaborators")
     user_id = models.UUIDField()
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "idea_collaborators"
-        unique_together = [("idea", "user_id")]
+        db_table = "project_collaborators"
+        unique_together = [("project", "user_id")]
 
     def __str__(self) -> str:
-        return f"Collaborator {self.user_id} on {self.idea_id}"
+        return f"Collaborator {self.user_id} on {self.project_id}"
 
 
 class ChatMessage(models.Model):
@@ -60,7 +65,7 @@ class ChatMessage(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     sender_type = models.CharField(max_length=10, choices=SENDER_TYPE_CHOICES)
     sender_id = models.UUIDField(null=True, blank=True)
     ai_agent = models.CharField(max_length=30, null=True, blank=True)
@@ -79,7 +84,7 @@ class ChatContextSummary(models.Model):
     """Unmanaged mirror — reads AI service's chat_context_summaries table."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     summary_text = models.TextField()
     messages_covered_up_to_id = models.UUIDField()
     compression_iteration = models.IntegerField(default=1)

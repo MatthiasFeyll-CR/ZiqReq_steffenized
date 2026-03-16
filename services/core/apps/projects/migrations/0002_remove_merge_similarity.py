@@ -10,7 +10,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ideas", "0001_initial"),
+        ("projects", "0001_initial"),
     ]
 
     operations = [

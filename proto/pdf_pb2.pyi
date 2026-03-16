@@ -7,7 +7,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class PdfGenerationRequest(_message.Message):
-    __slots__ = ("idea_id", "idea_title", "sections", "generated_at")
+    __slots__ = ("project_id", "project_title", "sections", "generated_at")
     class SectionsEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -15,15 +15,15 @@ class PdfGenerationRequest(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
-    IDEA_ID_FIELD_NUMBER: _ClassVar[int]
-    IDEA_TITLE_FIELD_NUMBER: _ClassVar[int]
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    PROJECT_TITLE_FIELD_NUMBER: _ClassVar[int]
     SECTIONS_FIELD_NUMBER: _ClassVar[int]
     GENERATED_AT_FIELD_NUMBER: _ClassVar[int]
-    idea_id: str
-    idea_title: str
+    project_id: str
+    project_title: str
     sections: _containers.ScalarMap[str, str]
     generated_at: str
-    def __init__(self, idea_id: _Optional[str] = ..., idea_title: _Optional[str] = ..., sections: _Optional[_Mapping[str, str]] = ..., generated_at: _Optional[str] = ...) -> None: ...
+    def __init__(self, project_id: _Optional[str] = ..., project_title: _Optional[str] = ..., sections: _Optional[_Mapping[str, str]] = ..., generated_at: _Optional[str] = ...) -> None: ...
 
 class PdfGenerationResponse(_message.Message):
     __slots__ = ("pdf_data", "filename")

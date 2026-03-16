@@ -22,11 +22,11 @@ from processing.fabrication_validator import (
 # ── Helpers ──
 
 
-def _make_idea_context(
+def _make_project_context(
     chat_summary: str = "Users discussed automating invoice processing for AP department.",
     recent_messages: list | None = None,
 ) -> dict:
-    """Build a mock idea context response."""
+    """Build a mock project context response."""
     if recent_messages is None:
         recent_messages = [
             {"sender_type": "user", "content": "We need to automate invoice processing."},
@@ -39,7 +39,7 @@ def _make_idea_context(
         chat_summary_data = {"summary_text": chat_summary, "compression_iteration": 1}
 
     return {
-        "idea": {"title": "Invoice Automation", "state": "open"},
+        "project": {"title": "Invoice Automation", "state": "open"},
         "chat_summary": chat_summary_data,
         "recent_messages": recent_messages,
     }
@@ -53,7 +53,7 @@ def _make_brd_draft(
         section_locks = {}
     return {
         "id": "draft-001",
-        "idea_id": "idea-001",
+        "project_id": "project-001",
         "section_locks": section_locks,
         "allow_information_gaps": allow_information_gaps,
     }
@@ -229,7 +229,7 @@ class TestContextAssembly:
         pipeline = BrdGenerationPipeline()
 
         context_data = {
-            "idea_context": _make_idea_context(),
+            "project_context": _make_project_context(),
             "brd_draft": _make_brd_draft(
                 section_locks={"title": True, "core_capabilities": False},
                 allow_information_gaps=True,
@@ -252,7 +252,7 @@ class TestContextAssembly:
         pipeline = BrdGenerationPipeline()
 
         context_data = {
-            "idea_context": {
+            "project_context": {
                 "chat_summary": None,
                 "recent_messages": [],
             },
@@ -273,7 +273,7 @@ class TestContextAssembly:
         pipeline = BrdGenerationPipeline()
 
         context_data = {
-            "idea_context": _make_idea_context(),
+            "project_context": _make_project_context(),
             "brd_draft": _make_brd_draft(),
         }
 
@@ -299,12 +299,12 @@ class TestEventPublishing:
 
     @pytest.mark.asyncio
     async def test_publish_generated_event(self):
-        """ai.brd.generated event includes idea_id, mode, sections, readiness_evaluation, fabrication_flags."""
+        """ai.brd.generated event includes project_id, mode, sections, readiness_evaluation, fabrication_flags."""
         pipeline = BrdGenerationPipeline()
         agent_result = _make_agent_result()
 
         await pipeline._step_publish_generated(
-            idea_id="idea-123",
+            project_id="project-123",
             mode="full_generation",
             agent_result=agent_result,
             fabrication_flags=[],
@@ -314,7 +314,7 @@ class TestEventPublishing:
         assert len(events) == 1
         event = events[0]
         assert event["event_type"] == "ai.brd.generated"
-        assert event["idea_id"] == "idea-123"
+        assert event["project_id"] == "project-123"
         assert event["mode"] == "full_generation"
         assert "section_title" in event["sections"]
         assert "section_short_description" in event["sections"]
@@ -339,13 +339,13 @@ class TestEventPublishing:
             },
         ]
 
-        await pipeline._step_publish_fabrication_flags("idea-123", flags)
+        await pipeline._step_publish_fabrication_flags("project-123", flags)
 
         events = get_published_events()
         assert len(events) == 1
         event = events[0]
         assert event["event_type"] == "ai.security.fabrication_flag"
-        assert event["idea_id"] == "idea-123"
+        assert event["project_id"] == "project-123"
         assert event["section"] == "section_title"
         assert "blockchain" in event["ungrounded_keywords"]
 
@@ -356,11 +356,11 @@ class TestEventPublishing:
         settings.BASE_DIR = Path(__file__).resolve().parent.parent
 
         mock_core_client = MagicMock()
-        mock_core_client.get_idea_context.return_value = _make_idea_context()
+        mock_core_client.get_project_context.return_value = _make_project_context()
         mock_core_client.get_brd_draft.return_value = _make_brd_draft()
 
         pipeline = BrdGenerationPipeline(core_client=mock_core_client)
-        result = await pipeline.execute("idea-123", mode="full_generation")
+        result = await pipeline.execute("project-123", mode="full_generation")
 
         assert result["status"] == "completed"
         assert result["sections"] is not None
@@ -376,18 +376,18 @@ class TestEventPublishing:
         settings.BASE_DIR = Path(__file__).resolve().parent.parent
 
         mock_core_client = MagicMock()
-        mock_core_client.get_idea_context.return_value = _make_idea_context()
+        mock_core_client.get_project_context.return_value = _make_project_context()
         mock_core_client.get_brd_draft.return_value = _make_brd_draft()
 
         pipeline = BrdGenerationPipeline(core_client=mock_core_client)
-        await pipeline.execute("idea-456", mode="full_generation")
+        await pipeline.execute("project-456", mode="full_generation")
 
         events = get_published_events()
         brd_events = [e for e in events if e["event_type"] == "ai.brd.generated"]
         assert len(brd_events) == 1
 
         event = brd_events[0]
-        assert event["idea_id"] == "idea-456"
+        assert event["project_id"] == "project-456"
         assert event["mode"] == "full_generation"
         assert "sections" in event
         assert "readiness_evaluation" in event
@@ -411,11 +411,11 @@ class TestBrdPipelineIntegration:
         settings.BASE_DIR = Path(__file__).resolve().parent.parent
 
         mock_core_client = MagicMock()
-        mock_core_client.get_idea_context.return_value = _make_idea_context()
+        mock_core_client.get_project_context.return_value = _make_project_context()
         mock_core_client.get_brd_draft.return_value = _make_brd_draft()
 
         pipeline = BrdGenerationPipeline(core_client=mock_core_client)
-        result = await pipeline.execute("idea-001", mode="full_generation")
+        result = await pipeline.execute("project-001", mode="full_generation")
 
         assert result["status"] == "completed"
         assert result["sections"] is not None
@@ -427,10 +427,10 @@ class TestBrdPipelineIntegration:
     async def test_pipeline_error_returns_error_status(self):
         """Pipeline catches exceptions and returns error status."""
         mock_core_client = MagicMock()
-        mock_core_client.get_idea_context.side_effect = RuntimeError("gRPC failure")
+        mock_core_client.get_project_context.side_effect = RuntimeError("gRPC failure")
 
         pipeline = BrdGenerationPipeline(core_client=mock_core_client)
-        result = await pipeline.execute("idea-002")
+        result = await pipeline.execute("project-002")
 
         assert result["status"] == "error"
         assert result["sections"] is None
@@ -440,34 +440,34 @@ class TestBrdPipelineAbort:
     def test_abort_flag(self):
         """Setting abort flag causes pipeline abort."""
         pipeline = BrdGenerationPipeline()
-        version = pipeline._start_processing("idea-001")
-        pipeline.set_abort("idea-001")
+        version = pipeline._start_processing("project-001")
+        pipeline.set_abort("project-001")
 
         with pytest.raises(BrdPipelineAborted):
-            pipeline._check_abort("idea-001", version, step=1)
+            pipeline._check_abort("project-001", version, step=1)
 
     def test_version_mismatch(self):
         """Version mismatch causes pipeline abort."""
         pipeline = BrdGenerationPipeline()
-        pipeline._start_processing("idea-001")
+        pipeline._start_processing("project-001")
         # Start a new version (simulating a new request arriving)
-        pipeline._start_processing("idea-001")
+        pipeline._start_processing("project-001")
 
         with pytest.raises(BrdPipelineAborted):
-            pipeline._check_abort("idea-001", expected_version=1, step=1)
+            pipeline._check_abort("project-001", expected_version=1, step=1)
 
     @pytest.mark.asyncio
     async def test_abort_returns_aborted_status(self):
         """Pipeline abort returns aborted status."""
         mock_core_client = MagicMock()
-        mock_core_client.get_idea_context.return_value = _make_idea_context()
+        mock_core_client.get_project_context.return_value = _make_project_context()
         mock_core_client.get_brd_draft.return_value = _make_brd_draft()
 
         pipeline = BrdGenerationPipeline(core_client=mock_core_client)
         # Start a processing first then start another (version mismatch)
-        pipeline._start_processing("idea-003")
+        pipeline._start_processing("project-003")
 
-        result = await pipeline.execute("idea-003", mode="full_generation")
+        result = await pipeline.execute("project-003", mode="full_generation")
         # The execute() call increments the version again, but the old version=1
         # is now stale. Actually execute() starts its own version, so it should work.
         # Let's force abort instead:
@@ -481,7 +481,7 @@ class TestFabricationValidationStep:
 
         agent_result = _make_agent_result()
         context_data = {
-            "idea_context": _make_idea_context(),
+            "project_context": _make_project_context(),
         }
 
         flags = pipeline._step_validate_fabrication(agent_result, context_data)

@@ -93,7 +93,7 @@ class TestContextAgentGrounding:
         # Bypass mock mode — call _execute directly
         result = await agent._execute({
             "query": "What is the company's vacation policy?",
-            "idea_id": "idea-1",
+            "project_id": "project-1",
             "query_embedding": [0.1] * 1536,
         })
 
@@ -109,7 +109,7 @@ class TestContextAgentGrounding:
         agent = ContextAgent(retriever=mock_retriever)
         result = await agent._execute({
             "query": "What is the company's vacation policy?",
-            "idea_id": "idea-1",
+            "project_id": "project-1",
             # No query_embedding
         })
 
@@ -150,7 +150,7 @@ class TestContextAgentGrounding:
 
             result = await agent._execute({
                 "query": "How long is onboarding?",
-                "idea_id": "idea-1",
+                "project_id": "project-1",
                 "query_embedding": [0.1] * 1536,
             })
 
@@ -174,7 +174,7 @@ class TestContextAgentMockMode:
         agent = ContextAgent()
         result = await agent.process({
             "query": "test question",
-            "idea_id": "test-idea",
+            "project_id": "test-project",
         })
         assert "response" in result
         assert "chunks_used" in result

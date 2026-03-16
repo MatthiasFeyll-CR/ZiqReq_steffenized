@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.ideas.authentication import MiddlewareAuthentication
+from apps.projects.authentication import MiddlewareAuthentication
 
 from .models import Notification
 

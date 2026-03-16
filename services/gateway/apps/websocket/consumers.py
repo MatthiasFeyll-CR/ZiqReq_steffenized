@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 _presence_registry: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
 
 
-class IdeaConsumer(AsyncJsonWebsocketConsumer):
+class ProjectConsumer(AsyncJsonWebsocketConsumer):
     """Session-level WebSocket consumer with token auth and lifecycle management.
 
     Auth is handled by WebSocketAuthMiddleware which populates scope["user_id"]
@@ -86,35 +86,35 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
 
     # ---- Channel group management (subscribe/unsubscribe) ----
 
-    async def handle_subscribe_idea(self, content: dict) -> None:
-        idea_id = content.get("idea_id")
-        if not idea_id:
-            await self.send_json({"type": "error", "payload": {"message": "Missing idea_id"}})
+    async def handle_subscribe_project(self, content: dict) -> None:
+        project_id = content.get("project_id")
+        if not project_id:
+            await self.send_json({"type": "error", "payload": {"message": "Missing project_id"}})
             return
 
         try:
-            uuid.UUID(idea_id)
+            uuid.UUID(project_id)
         except (ValueError, AttributeError):
-            await self.send_json({"type": "error", "payload": {"message": "Invalid idea_id format"}})
+            await self.send_json({"type": "error", "payload": {"message": "Invalid project_id format"}})
             return
 
-        group_name = f"idea_{idea_id}"
+        group_name = f"project_{project_id}"
 
         if group_name in self.subscribed_groups:
             return
 
-        has_access = await self._check_idea_access(idea_id, self.user_id)
+        has_access = await self._check_project_access(project_id, self.user_id)
         if not has_access:
             await self.send_json({
                 "type": "error",
-                "payload": {"message": "Access denied to idea"},
+                "payload": {"message": "Access denied to project"},
             })
             return
 
         await self.channel_layer.group_add(group_name, self.channel_name)
         self.subscribed_groups.add(group_name)
 
-        # Add to presence registry and broadcast if this is the user's first tab on this idea
+        # Add to presence registry and broadcast if this is the user's first tab on this project
         await self._add_presence(group_name)
 
         logger.info(
@@ -122,13 +122,13 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             self.user_id, group_name, self.connection_id,
         )
 
-    async def handle_unsubscribe_idea(self, content: dict) -> None:
-        idea_id = content.get("idea_id")
-        if not idea_id:
-            await self.send_json({"type": "error", "payload": {"message": "Missing idea_id"}})
+    async def handle_unsubscribe_project(self, content: dict) -> None:
+        project_id = content.get("project_id")
+        if not project_id:
+            await self.send_json({"type": "error", "payload": {"message": "Missing project_id"}})
             return
 
-        group_name = f"idea_{idea_id}"
+        group_name = f"project_{project_id}"
 
         if group_name not in self.subscribed_groups:
             return
@@ -146,14 +146,14 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
     async def handle_presence_update(self, content: dict) -> None:
         """Handle client presence_update (e.g. state='active')."""
         payload = content.get("payload", {})
-        idea_id = payload.get("idea_id")
-        if not idea_id:
-            await self.send_json({"type": "error", "payload": {"message": "Missing idea_id in payload"}})
+        project_id = payload.get("project_id")
+        if not project_id:
+            await self.send_json({"type": "error", "payload": {"message": "Missing project_id in payload"}})
             return
 
-        group_name = f"idea_{idea_id}"
+        group_name = f"project_{project_id}"
         if group_name not in self.subscribed_groups:
-            await self.send_json({"type": "error", "payload": {"message": "Not subscribed to idea"}})
+            await self.send_json({"type": "error", "payload": {"message": "Not subscribed to project"}})
             return
 
         state = payload.get("state", "active")
@@ -164,12 +164,12 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         else:
             self._cancel_idle_disconnect()
 
-        # Broadcast presence update to idea group
+        # Broadcast presence update to project group
         await self.channel_layer.group_send(
             group_name,
             {
                 "type": "presence_update",
-                "idea_id": idea_id,
+                "project_id": project_id,
                 "payload": {
                     "user": {
                         "id": self.user_id,
@@ -187,12 +187,12 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         registry[self.user_id].add(self.channel_name)
 
         if not was_present:
-            idea_id = group_name.removeprefix("idea_")
+            project_id = group_name.removeprefix("project_")
             await self.channel_layer.group_send(
                 group_name,
                 {
                     "type": "presence_update",
-                    "idea_id": idea_id,
+                    "project_id": project_id,
                     "payload": {
                         "user": {
                             "id": self.user_id,
@@ -215,13 +215,13 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             if not registry:
                 _presence_registry.pop(group_name, None)
 
-            idea_id = group_name.removeprefix("idea_")
+            project_id = group_name.removeprefix("project_")
             try:
                 await self.channel_layer.group_send(
                     group_name,
                     {
                         "type": "presence_update",
-                        "idea_id": idea_id,
+                        "project_id": project_id,
                         "payload": {
                             "user": {
                                 "id": self.user_id,
@@ -240,7 +240,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward chat.message.created group_send to the WebSocket client."""
         await self.send_json({
             "type": "chat_message",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -248,7 +248,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward presence_update group_send to the WebSocket client."""
         await self.send_json({
             "type": "presence_update",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -256,7 +256,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward ai_reaction group_send to the WebSocket client."""
         await self.send_json({
             "type": "ai_reaction",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -264,7 +264,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward title_update group_send to the WebSocket client."""
         await self.send_json({
             "type": "title_update",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -272,7 +272,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward ai_processing group_send to the WebSocket client."""
         await self.send_json({
             "type": "ai_processing",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -280,7 +280,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward rate_limit group_send to the WebSocket client."""
         await self.send_json({
             "type": "rate_limit",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -295,7 +295,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward brd_generating group_send to the WebSocket client."""
         await self.send_json({
             "type": "brd_generating",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -303,7 +303,7 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
         """Forward brd_ready group_send to the WebSocket client."""
         await self.send_json({
             "type": "brd_ready",
-            "idea_id": event["idea_id"],
+            "project_id": event["project_id"],
             "payload": event["payload"],
         })
 
@@ -373,18 +373,18 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             return DEFAULT_IDLE_DISCONNECT
 
     @database_sync_to_async
-    def _check_idea_access(self, idea_id: str, user_id: str) -> bool:
-        from apps.ideas.models import Idea, IdeaCollaborator
+    def _check_project_access(self, project_id: str, user_id: str) -> bool:
+        from apps.projects.models import Project, ProjectCollaborator
 
         try:
-            idea = Idea.objects.filter(id=idea_id, deleted_at__isnull=True).first()
-            if idea is None:
+            project = Project.objects.filter(id=project_id, deleted_at__isnull=True).first()
+            if project is None:
                 return False
 
-            if str(idea.owner_id) == user_id:
+            if str(project.owner_id) == user_id:
                 return True
 
-            return IdeaCollaborator.objects.filter(idea_id=idea_id, user_id=user_id).exists()
+            return ProjectCollaborator.objects.filter(project_id=project_id, user_id=user_id).exists()
         except Exception:
-            logger.exception("Error checking idea access for user=%s idea=%s", user_id, idea_id)
+            logger.exception("Error checking project access for user=%s project=%s", user_id, project_id)
             return False

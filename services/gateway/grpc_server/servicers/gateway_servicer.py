@@ -51,8 +51,8 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
             reference_type=request.reference_type or None,
         )
 
-        # Broadcast WebSocket notification to the related idea group
-        if ref_id and request.reference_type == "idea":
+        # Broadcast WebSocket notification to the related project group
+        if ref_id and request.reference_type == "project":
             try:
                 from asgiref.sync import async_to_sync
                 from channels.layers import get_channel_layer
@@ -60,7 +60,7 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
                 channel_layer = get_channel_layer()
                 if channel_layer:
                     async_to_sync(channel_layer.group_send)(
-                        f"idea_{ref_id}",
+                        f"project_{ref_id}",
                         {
                             "type": "notification",
                             "payload": {
@@ -133,27 +133,27 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
         ]
         return gateway_pb2.AlertRecipientsResponse(recipients=recipients)
 
-    def GetIdeaDetails(
+    def GetProjectDetails(
         self,
-        request: gateway_pb2.IdeaDetailsRequest,
+        request: gateway_pb2.ProjectDetailsRequest,
         context: grpc.ServicerContext,
-    ) -> gateway_pb2.IdeaDetailsResponse:
-        from apps.ideas.models import Idea
+    ) -> gateway_pb2.ProjectDetailsResponse:
+        from apps.projects.models import Project
 
         try:
-            idea = Idea.objects.get(id=uuid.UUID(request.idea_id))
-        except (ValueError, Idea.DoesNotExist):
+            project = Project.objects.get(id=uuid.UUID(request.project_id))
+        except (ValueError, Project.DoesNotExist):
             context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("Idea not found")
-            return gateway_pb2.IdeaDetailsResponse()
+            context.set_details("Project not found")
+            return gateway_pb2.ProjectDetailsResponse()
 
-        if request.ensure_share_link_token and not idea.share_link_token:
-            idea.share_link_token = secrets.token_hex(32)
-            idea.save(update_fields=["share_link_token"])
+        if request.ensure_share_link_token and not project.share_link_token:
+            project.share_link_token = secrets.token_hex(32)
+            project.save(update_fields=["share_link_token"])
 
-        return gateway_pb2.IdeaDetailsResponse(
-            idea_id=str(idea.id),
-            title=idea.title,
-            owner_id=str(idea.owner_id),
-            share_link_token=idea.share_link_token or "",
+        return gateway_pb2.ProjectDetailsResponse(
+            project_id=str(project.id),
+            title=project.title,
+            owner_id=str(project.owner_id),
+            share_link_token=project.share_link_token or "",
         )

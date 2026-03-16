@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator
+from apps.projects.models import ChatMessage, Project, ProjectCollaborator
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 USER_2_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -31,7 +31,7 @@ class TestChatMessagesAPI(TestCase):
         self.user1 = _create_user(USER_1_ID, "user1@test.local", "Test User1")
         self.user2 = _create_user(USER_2_ID, "user2@test.local", "Test User2")
         self.user3 = _create_user(USER_3_ID, "user3@test.local", "Test User3")
-        self.idea = Idea.objects.create(owner_id=self.user1.id, title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.user1.id, title="Test Project")
         self.client.post(
             "/api/auth/dev-login",
             {"user_id": str(self.user1.id)},
@@ -45,13 +45,13 @@ class TestChatMessagesAPI(TestCase):
             format="json",
         )
 
-    def _chat_url(self, idea_id=None):
-        return f"/api/ideas/{idea_id or self.idea.id}/chat/"
+    def _chat_url(self, project_id=None):
+        return f"/api/projects/{project_id or self.project.id}/chat/"
 
-    # --- POST /api/ideas/:id/chat ---
+    # --- POST /api/projects/:id/chat ---
 
     def test_create_message_returns_201(self):
-        """POST /api/ideas/:id/chat creates message, returns 201."""
+        """POST /api/projects/:id/chat creates message, returns 201."""
         response = self.client.post(
             self._chat_url(),
             {"content": "Hello world"},
@@ -59,7 +59,7 @@ class TestChatMessagesAPI(TestCase):
         )
         assert response.status_code == 201
         data = response.json()
-        assert data["idea_id"] == str(self.idea.id)
+        assert data["project_id"] == str(self.project.id)
         assert data["sender_type"] == "user"
         assert data["sender_id"] == str(self.user1.id)
         assert data["content"] == "Hello world"
@@ -75,7 +75,7 @@ class TestChatMessagesAPI(TestCase):
             format="json",
         )
         assert ChatMessage.objects.filter(
-            idea_id=self.idea.id, content="Persisted message"
+            project_id=self.project.id, content="Persisted message"
         ).exists()
 
     def test_create_message_empty_content_returns_400(self):
@@ -118,7 +118,7 @@ class TestChatMessagesAPI(TestCase):
 
     def test_create_message_collaborator_allowed(self):
         """POST by collaborator returns 201."""
-        IdeaCollaborator.objects.create(idea=self.idea, user_id=self.user2.id)
+        ProjectCollaborator.objects.create(project=self.project, user_id=self.user2.id)
         self._login_as(self.user2)
         response = self.client.post(
             self._chat_url(),
@@ -129,7 +129,7 @@ class TestChatMessagesAPI(TestCase):
         assert response.json()["sender_id"] == str(self.user2.id)
 
     def test_create_message_nonexistent_idea_returns_404(self):
-        """POST to nonexistent idea returns 404."""
+        """POST to nonexistent project returns 404."""
         fake_id = str(uuid.uuid4())
         response = self.client.post(
             self._chat_url(fake_id),
@@ -138,18 +138,18 @@ class TestChatMessagesAPI(TestCase):
         )
         assert response.status_code == 404
 
-    # --- GET /api/ideas/:id/chat ---
+    # --- GET /api/projects/:id/chat ---
 
     def test_list_messages_returns_200(self):
-        """GET /api/ideas/:id/chat returns 200 with messages."""
+        """GET /api/projects/:id/chat returns 200 with messages."""
         ChatMessage.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             sender_type="user",
             sender_id=self.user1.id,
             content="First message",
         )
         ChatMessage.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             sender_type="ai",
             sender_id=None,
             content="AI response",
@@ -168,13 +168,13 @@ class TestChatMessagesAPI(TestCase):
     def test_list_messages_ordered_by_created_at_asc(self):
         """GET returns messages ordered by created_at ASC."""
         m1 = ChatMessage.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             sender_type="user",
             sender_id=self.user1.id,
             content="First",
         )
         m2 = ChatMessage.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             sender_type="user",
             sender_id=self.user1.id,
             content="Second",
@@ -189,7 +189,7 @@ class TestChatMessagesAPI(TestCase):
         """GET with limit and offset supports pagination."""
         for i in range(5):
             ChatMessage.objects.create(
-                idea_id=self.idea.id,
+                project_id=self.project.id,
                 sender_type="user",
                 sender_id=self.user1.id,
                 content=f"Message {i}",
@@ -216,7 +216,7 @@ class TestChatMessagesAPI(TestCase):
         assert response.status_code == 200
 
     def test_list_messages_nonexistent_idea_returns_404(self):
-        """GET for nonexistent idea returns 404."""
+        """GET for nonexistent project returns 404."""
         fake_id = str(uuid.uuid4())
         response = self.client.get(self._chat_url(fake_id))
         assert response.status_code == 404

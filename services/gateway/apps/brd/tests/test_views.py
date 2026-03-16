@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 
 from apps.authentication.models import User
 from apps.brd.models import BrdDraft
-from apps.ideas.models import Idea, IdeaCollaborator
+from apps.projects.models import Project, ProjectCollaborator
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000011")
 USER_2_ID = uuid.UUID("00000000-0000-0000-0000-000000000012")
@@ -33,7 +33,7 @@ class TestBrdDraftAPI(TestCase):
         self.user1 = _create_user(USER_1_ID, "brd1@test.local", "Brd User1")
         self.user2 = _create_user(USER_2_ID, "brd2@test.local", "Brd User2")
         self.user3 = _create_user(USER_3_ID, "brd3@test.local", "Brd User3")
-        self.idea = Idea.objects.create(owner_id=self.user1.id)
+        self.project = Project.objects.create(owner_id=self.user1.id)
         self._login_as(self.user1)
 
     def _login_as(self, user: User):
@@ -43,17 +43,17 @@ class TestBrdDraftAPI(TestCase):
             format="json",
         )
 
-    def _url(self, idea_id=None):
-        return f"/api/ideas/{idea_id or self.idea.id}/brd/"
+    def _url(self, project_id=None):
+        return f"/api/projects/{project_id or self.project.id}/brd/"
 
     # --- API-4.01: GET returns all BRD fields ---
 
     def test_get_returns_all_fields(self):
-        """API-4.01: GET /api/ideas/:id/brd returns 200 with all fields."""
+        """API-4.01: GET /api/projects/:id/brd returns 200 with all fields."""
         response = self.client.get(self._url())
         assert response.status_code == 200
         data = response.json()
-        assert data["idea_id"] == str(self.idea.id)
+        assert data["project_id"] == str(self.project.id)
         assert data["section_title"] is None
         assert data["section_short_description"] is None
         assert data["section_current_workflow"] is None
@@ -67,15 +67,15 @@ class TestBrdDraftAPI(TestCase):
 
     def test_get_creates_empty_draft_if_none(self):
         """GET creates empty BRD draft on first access."""
-        assert not BrdDraft.objects.filter(idea_id=self.idea.id).exists()
+        assert not BrdDraft.objects.filter(project_id=self.project.id).exists()
         response = self.client.get(self._url())
         assert response.status_code == 200
-        assert BrdDraft.objects.filter(idea_id=self.idea.id).exists()
+        assert BrdDraft.objects.filter(project_id=self.project.id).exists()
 
     def test_get_returns_existing_draft(self):
         """GET returns existing draft data."""
         BrdDraft.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             section_title="My Title",
             section_locks={"title": True},
             readiness_evaluation={"title": "ready"},
@@ -197,24 +197,24 @@ class TestBrdDraftAPI(TestCase):
         )
         assert response.status_code == 403
 
-    # --- 404 if idea not found ---
+    # --- 404 if project not found ---
 
     def test_get_404_if_idea_not_found(self):
-        """GET returns 404 for non-existent idea."""
+        """GET returns 404 for non-existent project."""
         fake_id = uuid.uuid4()
-        response = self.client.get(self._url(idea_id=fake_id))
+        response = self.client.get(self._url(project_id=fake_id))
         assert response.status_code == 404
 
     def test_get_404_for_invalid_uuid(self):
         """GET returns 404 for invalid UUID."""
-        response = self.client.get("/api/ideas/not-a-uuid/brd/")
+        response = self.client.get("/api/projects/not-a-uuid/brd/")
         assert response.status_code == 404
 
     # --- Collaborator access ---
 
     def test_collaborator_can_access(self):
         """Collaborator can GET BRD draft."""
-        IdeaCollaborator.objects.create(idea=self.idea, user_id=self.user3.id)
+        ProjectCollaborator.objects.create(project=self.project, user_id=self.user3.id)
         self._login_as(self.user3)
         response = self.client.get(self._url())
         assert response.status_code == 200
@@ -247,7 +247,7 @@ class TestBrdDraftAPI(TestCase):
 
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 class TestBrdGenerateAPI(TestCase):
-    """Integration tests for POST /api/ideas/:id/brd/generate."""
+    """Integration tests for POST /api/projects/:id/brd/generate."""
 
     def setUp(self):
         self.client = APIClient()
@@ -261,7 +261,7 @@ class TestBrdGenerateAPI(TestCase):
             "gen2@test.local",
             "Gen User2",
         )
-        self.idea = Idea.objects.create(owner_id=self.user1.id, state="open")
+        self.project = Project.objects.create(owner_id=self.user1.id, state="open")
         self._login_as(self.user1)
 
         # Mock the AI client by default to avoid namespace collisions in full suite
@@ -283,8 +283,8 @@ class TestBrdGenerateAPI(TestCase):
             format="json",
         )
 
-    def _url(self, idea_id=None):
-        return f"/api/ideas/{idea_id or self.idea.id}/brd/generate"
+    def _url(self, project_id=None):
+        return f"/api/projects/{project_id or self.project.id}/brd/generate"
 
     # --- API-4.05: POST returns 202 ---
 
@@ -310,7 +310,7 @@ class TestBrdGenerateAPI(TestCase):
         )
         assert response.status_code == 202
         self.mock_ai_client.trigger_brd_generation.assert_called_once_with(
-            idea_id=str(self.idea.id),
+            project_id=str(self.project.id),
             mode="full_generation",
             section_name="",
         )
@@ -395,10 +395,10 @@ class TestBrdGenerateAPI(TestCase):
         assert response.status_code == 403
 
     def test_404_if_idea_not_found(self):
-        """POST returns 404 for non-existent idea."""
+        """POST returns 404 for non-existent project."""
         fake_id = uuid.uuid4()
         response = self.client.post(
-            self._url(idea_id=fake_id),
+            self._url(project_id=fake_id),
             {"mode": "full_generation"},
             format="json",
         )
@@ -407,9 +407,9 @@ class TestBrdGenerateAPI(TestCase):
     # --- State validation ---
 
     def test_non_open_idea_returns_400(self):
-        """POST returns 400 if idea state is not 'open'."""
-        self.idea.state = "in_review"
-        self.idea.save(update_fields=["state"])
+        """POST returns 400 if project state is not 'open'."""
+        self.project.state = "in_review"
+        self.project.save(update_fields=["state"])
         response = self.client.post(
             self._url(),
             {"mode": "full_generation"},

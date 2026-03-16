@@ -235,7 +235,7 @@
   "cost": {
     "budget_usd": 1000
   },
-  "test_infrastructure": {
+  "test_execution": {
     "compose_file": "docker-compose.test.yml",
     "services": [
       {

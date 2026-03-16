@@ -57,9 +57,9 @@ class PdfServicer(pdf_pb2_grpc.PdfServiceServicer):
 
     def GeneratePdf(self, request: Any, context: Any) -> Any:
         """Generate a PDF from BRD content."""
-        idea_title = request.idea_title or ""
-        idea_id = request.idea_id or ""
-        logger.info("GeneratePdf request for idea: %s (id=%s)", idea_title, idea_id)
+        project_title = request.project_title or ""
+        project_id = request.project_id or ""
+        logger.info("GeneratePdf request for project: %s (id=%s)", project_title, project_id)
 
         # Map sections from proto map to builder fields
         sections = dict(request.sections)
@@ -77,7 +77,7 @@ class PdfServicer(pdf_pb2_grpc.PdfServiceServicer):
 
         brd_content = BrdContent(
             **section_fields,
-            idea_title=idea_title,
+            project_title=project_title,
             generated_date=request.generated_at or "",
         )
 
@@ -86,10 +86,10 @@ class PdfServicer(pdf_pb2_grpc.PdfServiceServicer):
             pdf_bytes = render_pdf(html_string)
             logger.info(
                 "PDF generated successfully for '%s' (%d bytes)",
-                idea_title,
+                project_title,
                 len(pdf_bytes),
             )
-            filename = f"brd-{idea_id}.pdf" if idea_id else "brd.pdf"
+            filename = f"brd-{project_id}.pdf" if project_id else "brd.pdf"
             return pdf_pb2.PdfGenerationResponse(
                 pdf_data=pdf_bytes,
                 filename=filename,

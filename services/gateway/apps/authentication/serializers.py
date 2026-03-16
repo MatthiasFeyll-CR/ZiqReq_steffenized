@@ -17,6 +17,6 @@ class AdminUserSearchSerializer(serializers.Serializer):
     last_name = serializers.CharField()
     display_name = serializers.CharField()
     roles = serializers.ListField(child=serializers.CharField())
-    idea_count = serializers.IntegerField()
+    project_count = serializers.IntegerField()
     review_count = serializers.IntegerField()
     contribution_count = serializers.IntegerField()

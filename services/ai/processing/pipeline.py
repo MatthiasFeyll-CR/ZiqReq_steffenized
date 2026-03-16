@@ -1,7 +1,7 @@
 """ChatProcessingPipeline (6-step) — end-to-end AI processing orchestrator.
 
 Steps:
-  1. Load idea state via GetIdeaContext gRPC
+  1. Load project state via GetProjectContext gRPC
   2. Assemble context for Facilitator
   3. Invoke Facilitator agent
   4. If delegation requested → invoke delegate → re-invoke Facilitator
@@ -30,8 +30,8 @@ class ChatProcessingPipeline:
     """Orchestrates the 6-step chat processing pipeline.
 
     Attributes:
-        _versions: Per-idea processing version counters.
-        _abort_flags: Per-idea abort flags (set when new message arrives mid-processing).
+        _versions: Per-project processing version counters.
+        _abort_flags: Per-project abort flags (set when new message arrives mid-processing).
     """
 
     # Class-level state shared across pipeline instances (per-process)
@@ -44,8 +44,8 @@ class ChatProcessingPipeline:
 
     # ── Public API ──
 
-    async def execute(self, idea_id: str) -> dict[str, Any]:
-        """Run the full 6-step pipeline for a given idea.
+    async def execute(self, project_id: str) -> dict[str, Any]:
+        """Run the full 6-step pipeline for a given project.
 
         Returns:
             Dict with processing_id, status, and result details.
@@ -54,30 +54,30 @@ class ChatProcessingPipeline:
             PipelineAborted: If version mismatch or abort flag detected.
         """
         processing_id = str(uuid.uuid4())
-        version = self._start_processing(idea_id)
+        version = self._start_processing(project_id)
 
         logger.info(
-            "Pipeline started for idea %s (processing_id=%s, version=%d)",
-            idea_id, processing_id, version,
+            "Pipeline started for project %s (processing_id=%s, version=%d)",
+            project_id, processing_id, version,
         )
 
         try:
-            # Step 1: Load idea state
-            self._check_abort(idea_id, version, step=1)
-            idea_context_response = await self._step_load_context(idea_id)
+            # Step 1: Load project state
+            self._check_abort(project_id, version, step=1)
+            project_context_response = await self._step_load_context(project_id)
 
             # Step 2: Assemble context
-            self._check_abort(idea_id, version, step=2)
-            input_data = self._step_assemble_context(idea_id, idea_context_response)
+            self._check_abort(project_id, version, step=2)
+            input_data = self._step_assemble_context(project_id, project_context_response)
 
             # Step 3: Invoke Facilitator
-            self._check_abort(idea_id, version, step=3)
+            self._check_abort(project_id, version, step=3)
             facilitator_result = await self._step_invoke_facilitator(input_data)
 
             # Step 4: Delegation continuation
-            self._check_abort(idea_id, version, step=4)
+            self._check_abort(project_id, version, step=4)
             facilitator_result = await self._step_delegation(
-                idea_id, input_data, facilitator_result,
+                project_id, input_data, facilitator_result,
             )
 
             # Fallback: if the LLM didn't call send_chat_message but returned
@@ -86,12 +86,12 @@ class ChatProcessingPipeline:
                 response_text = facilitator_result["response"].strip()
                 if response_text:
                     logger.info(
-                        "Facilitator did not call send_chat_message for idea %s — "
+                        "Facilitator did not call send_chat_message for project %s — "
                         "publishing text response as fallback",
-                        idea_id,
+                        project_id,
                     )
                     await publish_event("ai.chat_response.ready", {
-                        "idea_id": idea_id,
+                        "project_id": project_id,
                         "content": response_text,
                         "message_type": "regular",
                         "sender_type": "ai",
@@ -99,13 +99,13 @@ class ChatProcessingPipeline:
                     })
 
             # Step 5: Publish completion
-            self._check_abort(idea_id, version, step=5)
-            await self._step_publish_complete(idea_id)
+            self._check_abort(project_id, version, step=5)
+            await self._step_publish_complete(project_id)
 
             # Step 6: Cleanup
-            self._step_cleanup(idea_id)
+            self._step_cleanup(project_id)
 
-            logger.info("Pipeline completed for idea %s", idea_id)
+            logger.info("Pipeline completed for project %s", project_id)
             return {
                 "processing_id": processing_id,
                 "status": "completed",
@@ -114,7 +114,7 @@ class ChatProcessingPipeline:
 
         except PipelineAborted:
             logger.warning(
-                "Pipeline aborted for idea %s (version=%d)", idea_id, version,
+                "Pipeline aborted for project %s (version=%d)", project_id, version,
             )
             return {
                 "processing_id": processing_id,
@@ -124,55 +124,55 @@ class ChatProcessingPipeline:
 
     # ── Version tracking & abort ──
 
-    def _start_processing(self, idea_id: str) -> int:
-        """Increment and return version for this idea."""
-        current = self._versions.get(idea_id, 0) + 1
-        self._versions[idea_id] = current
-        self._abort_flags[idea_id] = False
+    def _start_processing(self, project_id: str) -> int:
+        """Increment and return version for this project."""
+        current = self._versions.get(project_id, 0) + 1
+        self._versions[project_id] = current
+        self._abort_flags[project_id] = False
         return current
 
-    def _check_abort(self, idea_id: str, expected_version: int, step: int) -> None:
+    def _check_abort(self, project_id: str, expected_version: int, step: int) -> None:
         """Check version mismatch or abort flag before each step.
 
         Raises PipelineAborted if stale or aborted.
         """
-        if self._abort_flags.get(idea_id, False):
-            logger.info("Abort flag set for idea %s at step %d", idea_id, step)
+        if self._abort_flags.get(project_id, False):
+            logger.info("Abort flag set for project %s at step %d", project_id, step)
             raise PipelineAborted(f"Abort flag set at step {step}")
 
-        current_version = self._versions.get(idea_id, 0)
+        current_version = self._versions.get(project_id, 0)
         if current_version != expected_version:
             logger.info(
-                "Version mismatch for idea %s at step %d: expected=%d, current=%d",
-                idea_id, step, expected_version, current_version,
+                "Version mismatch for project %s at step %d: expected=%d, current=%d",
+                project_id, step, expected_version, current_version,
             )
             raise PipelineAborted(
                 f"Version mismatch at step {step}: "
                 f"expected={expected_version}, current={current_version}"
             )
 
-    def set_abort(self, idea_id: str) -> None:
-        """Set the abort flag for an idea (called when new message arrives mid-processing)."""
-        self._abort_flags[idea_id] = True
-        logger.info("Abort flag set for idea %s", idea_id)
+    def set_abort(self, project_id: str) -> None:
+        """Set the abort flag for a project (called when new message arrives mid-processing)."""
+        self._abort_flags[project_id] = True
+        logger.info("Abort flag set for project %s", project_id)
 
-    def get_version(self, idea_id: str) -> int:
-        """Get the current processing version for an idea."""
-        return self._versions.get(idea_id, 0)
+    def get_version(self, project_id: str) -> int:
+        """Get the current processing version for a project."""
+        return self._versions.get(project_id, 0)
 
     # ── Step implementations ──
 
-    async def _step_load_context(self, idea_id: str) -> dict[str, Any]:
-        """Step 1: Load idea state via Core gRPC GetIdeaContext."""
-        logger.info("Step 1: Loading context for idea %s", idea_id)
-        return self.core_client.get_idea_context(idea_id)
+    async def _step_load_context(self, project_id: str) -> dict[str, Any]:
+        """Step 1: Load project state via Core gRPC GetProjectContext."""
+        logger.info("Step 1: Loading context for project %s", project_id)
+        return self.core_client.get_project_context(project_id)
 
     def _step_assemble_context(
-        self, idea_id: str, idea_context_response: dict[str, Any],
+        self, project_id: str, project_context_response: dict[str, Any],
     ) -> dict[str, Any]:
         """Step 2: Assemble context for Facilitator."""
-        logger.info("Step 2: Assembling context for idea %s", idea_id)
-        return self.context_assembler.assemble(idea_id, idea_context_response)
+        logger.info("Step 2: Assembling context for project %s", project_id)
+        return self.context_assembler.assemble(project_id, project_context_response)
 
     async def _step_invoke_facilitator(
         self, input_data: dict[str, Any],
@@ -180,13 +180,13 @@ class ChatProcessingPipeline:
         """Step 3: Invoke Facilitator agent."""
         from agents.facilitator.agent import FacilitatorAgent
 
-        logger.info("Step 3: Invoking Facilitator for idea %s", input_data["idea_id"])
+        logger.info("Step 3: Invoking Facilitator for project %s", input_data["project_id"])
         agent = FacilitatorAgent()
         return await agent.process(input_data)
 
     async def _step_delegation(
         self,
-        idea_id: str,
+        project_id: str,
         input_data: dict[str, Any],
         facilitator_result: dict[str, Any],
     ) -> dict[str, Any]:
@@ -197,7 +197,7 @@ class ChatProcessingPipeline:
         """
         delegations = facilitator_result.get("delegations", [])
         if not delegations:
-            logger.info("Step 4: No delegations for idea %s", idea_id)
+            logger.info("Step 4: No delegations for project %s", project_id)
             return facilitator_result
 
         for delegation in delegations:
@@ -206,18 +206,18 @@ class ChatProcessingPipeline:
 
             if d_type == "context_agent":
                 delegation_results = await self._invoke_context_agent(
-                    idea_id, d_query,
+                    project_id, d_query,
                 )
                 input_data["delegation_results"] = delegation_results
             elif d_type == "context_extension":
                 extension_results = await self._invoke_context_extension(
-                    idea_id, d_query,
+                    project_id, d_query,
                 )
                 input_data["extension_results"] = extension_results
             else:
                 logger.warning(
-                    "Step 4: Unknown delegation type '%s' for idea %s",
-                    d_type, idea_id,
+                    "Step 4: Unknown delegation type '%s' for project %s",
+                    d_type, project_id,
                 )
 
         # Re-invoke Facilitator with delegation results
@@ -230,7 +230,7 @@ class ChatProcessingPipeline:
         # Publish delegation complete event
         for delegation in delegations:
             await publish_event("ai.delegation.complete", {
-                "idea_id": idea_id,
+                "project_id": project_id,
                 "delegation_id": delegation.get("delegation_id", ""),
                 "delegation_type": delegation.get("delegation_type", "unknown"),
             })
@@ -238,7 +238,7 @@ class ChatProcessingPipeline:
         return result
 
     async def _invoke_context_agent(
-        self, idea_id: str, query: str,
+        self, project_id: str, query: str,
     ) -> str:
         """Invoke the Context Agent with a query and return formatted results.
 
@@ -248,15 +248,15 @@ class ChatProcessingPipeline:
 
         if getattr(django_settings, "AI_MOCK_MODE", False):
             logger.info(
-                "Step 4: Context Agent delegation for idea %s in mock mode — "
+                "Step 4: Context Agent delegation for project %s in mock mode — "
                 "returning empty findings",
-                idea_id,
+                project_id,
             )
             return "(No context findings available in mock mode.)"
 
         logger.info(
-            "Step 4: Invoking Context Agent for idea %s",
-            idea_id,
+            "Step 4: Invoking Context Agent for project %s",
+            project_id,
         )
 
         try:
@@ -265,7 +265,7 @@ class ChatProcessingPipeline:
             agent = ContextAgent()
             result = await agent.process({
                 "query": query,
-                "idea_id": idea_id,
+                "project_id": project_id,
             })
 
             response = result.get("response", "")
@@ -282,12 +282,12 @@ class ChatProcessingPipeline:
 
         except Exception:
             logger.exception(
-                "Step 4: Context Agent failed for idea %s", idea_id,
+                "Step 4: Context Agent failed for project %s", project_id,
             )
             return "(Context Agent encountered an error. No findings available.)"
 
     async def _invoke_context_extension(
-        self, idea_id: str, query: str,
+        self, project_id: str, query: str,
     ) -> str:
         """Invoke the Context Extension Agent with a query and return formatted results.
 
@@ -297,15 +297,15 @@ class ChatProcessingPipeline:
 
         if getattr(django_settings, "AI_MOCK_MODE", False):
             logger.info(
-                "Step 4: Context Extension delegation for idea %s in mock mode — "
+                "Step 4: Context Extension delegation for project %s in mock mode — "
                 "returning empty findings",
-                idea_id,
+                project_id,
             )
             return "(No context extension findings available in mock mode.)"
 
         logger.info(
-            "Step 4: Invoking Context Extension Agent for idea %s",
-            idea_id,
+            "Step 4: Invoking Context Extension Agent for project %s",
+            project_id,
         )
 
         try:
@@ -314,7 +314,7 @@ class ChatProcessingPipeline:
             agent = ContextExtensionAgent()
             result = await agent.process({
                 "query": query,
-                "idea_id": idea_id,
+                "project_id": project_id,
             })
 
             response = result.get("response", "")
@@ -331,22 +331,22 @@ class ChatProcessingPipeline:
 
         except Exception:
             logger.exception(
-                "Step 4: Context Extension Agent failed for idea %s", idea_id,
+                "Step 4: Context Extension Agent failed for project %s", project_id,
             )
             return "(Context Extension Agent encountered an error. No findings available.)"
 
-    async def _step_publish_complete(self, idea_id: str) -> None:
+    async def _step_publish_complete(self, project_id: str) -> None:
         """Step 5: Check compression threshold, then publish ai.processing.complete."""
         # Compression check before publishing
-        await self._check_and_compress(idea_id)
+        await self._check_and_compress(project_id)
 
-        logger.info("Step 5: Publishing completion for idea %s", idea_id)
+        logger.info("Step 5: Publishing completion for project %s", project_id)
         await publish_event("ai.processing.complete", {
-            "idea_id": idea_id,
+            "project_id": project_id,
             "counter_reset": True,
         })
 
-    async def _check_and_compress(self, idea_id: str) -> None:
+    async def _check_and_compress(self, project_id: str) -> None:
         """Check if context window utilization exceeds threshold and trigger compression.
 
         Reads context_compression_threshold admin param (default 60%).
@@ -356,8 +356,8 @@ class ChatProcessingPipeline:
 
         if getattr(django_settings, "AI_MOCK_MODE", False):
             logger.info(
-                "Step 5: Compression check skipped in mock mode for idea %s",
-                idea_id,
+                "Step 5: Compression check skipped in mock mode for project %s",
+                project_id,
             )
             return
 
@@ -376,10 +376,10 @@ class ChatProcessingPipeline:
                 threshold,
             )
 
-        # Load idea context to estimate utilization
-        idea_context = self.core_client.get_idea_context(idea_id)
-        recent_messages = idea_context.get("recent_messages", [])
-        chat_summary = idea_context.get("chat_summary")
+        # Load project context to estimate utilization
+        project_context = self.core_client.get_project_context(project_id)
+        recent_messages = project_context.get("recent_messages", [])
+        chat_summary = project_context.get("chat_summary")
 
         # Estimate context window usage (tokens approximated at ~4 chars/token)
         total_chars = sum(
@@ -394,8 +394,8 @@ class ChatProcessingPipeline:
         usage_pct = (estimated_tokens / context_limit) * 100
 
         logger.info(
-            "Step 5: Context usage for idea %s: %.1f%% (threshold: %d%%)",
-            idea_id, usage_pct, threshold,
+            "Step 5: Context usage for project %s: %.1f%% (threshold: %d%%)",
+            project_id, usage_pct, threshold,
         )
 
         if usage_pct < threshold:
@@ -403,8 +403,8 @@ class ChatProcessingPipeline:
 
         # Trigger compression
         logger.info(
-            "Step 5: Triggering compression for idea %s (usage %.1f%% > %d%%)",
-            idea_id, usage_pct, threshold,
+            "Step 5: Triggering compression for project %s (usage %.1f%% > %d%%)",
+            project_id, usage_pct, threshold,
         )
 
         previous_summary_text: str | None = None
@@ -418,7 +418,7 @@ class ChatProcessingPipeline:
 
             agent = ContextCompressionAgent(core_client=self.core_client)
             await agent.process({
-                "idea_id": idea_id,
+                "project_id": project_id,
                 "messages_to_compress": recent_messages,
                 "previous_summary": previous_summary_text,
                 "compression_iteration": compression_iteration,
@@ -426,10 +426,10 @@ class ChatProcessingPipeline:
             })
         except Exception:
             logger.exception(
-                "Step 5: Compression failed for idea %s", idea_id,
+                "Step 5: Compression failed for project %s", project_id,
             )
 
-    def _step_cleanup(self, idea_id: str) -> None:
+    def _step_cleanup(self, project_id: str) -> None:
         """Step 6: Cleanup — clear abort flag."""
-        logger.info("Step 6: Cleanup for idea %s", idea_id)
-        self._abort_flags.pop(idea_id, None)
+        logger.info("Step 6: Cleanup for project %s", project_id)
+        self._abort_flags.pop(project_id, None)

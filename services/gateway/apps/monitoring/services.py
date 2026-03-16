@@ -5,7 +5,7 @@ import logging
 from django.db.models import Count
 
 from apps.authentication.models import User
-from apps.ideas.models import Idea
+from apps.projects.models import Project
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +48,10 @@ def get_online_users() -> int:
     return len(all_users)
 
 
-def get_ideas_by_state() -> dict[str, int]:
-    """Count ideas grouped by state."""
+def get_projects_by_state() -> dict[str, int]:
+    """Count projects grouped by state."""
     counts = (
-        Idea.objects.filter(deleted_at__isnull=True)
+        Project.objects.filter(deleted_at__isnull=True)
         .values("state")
         .annotate(count=Count("id"))
     )
@@ -111,7 +111,7 @@ def get_dashboard_stats() -> dict:
     """Aggregate all monitoring dashboard stats."""
     return {
         "active_connections": get_active_connections(),
-        "ideas_by_state": get_ideas_by_state(),
+        "projects_by_state": get_projects_by_state(),
         "active_users": get_active_users(),
         "online_users": get_online_users(),
         "ai_processing": get_ai_processing_stats(),

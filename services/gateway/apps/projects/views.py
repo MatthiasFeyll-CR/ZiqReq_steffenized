@@ -12,11 +12,11 @@ from rest_framework.response import Response
 from apps.authentication.models import User
 
 from .authentication import MiddlewareAuthentication
-from .models import ChatContextSummary, ChatMessage, Idea, IdeaCollaborator
+from .models import ChatContextSummary, ChatMessage, Project, ProjectCollaborator
 from .serializers import (
-    IdeaCreateSerializer,
-    IdeaDetailSerializer,
-    IdeaPatchSerializer,
+    ProjectCreateSerializer,
+    ProjectDetailSerializer,
+    ProjectPatchSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,78 +42,78 @@ def _unauthorized_response() -> Response:
 
 @api_view(["GET", "POST"])
 @authentication_classes([MiddlewareAuthentication])
-def ideas_root(request: Request) -> Response:
-    """Route /api/ideas/ — GET lists, POST creates."""
+def projects_root(request: Request) -> Response:
+    """Route /api/projects/ — GET lists, POST creates."""
     if request.method == "POST":
-        return _create_idea(request)
-    return _list_ideas(request)
+        return _create_project(request)
+    return _list_projects(request)
 
 
 @api_view(["GET", "PATCH", "DELETE"])
 @authentication_classes([MiddlewareAuthentication])
-def ideas_detail(request: Request, idea_id: str) -> Response:
-    """Route /api/ideas/:id — GET detail, PATCH update, DELETE soft-delete."""
+def projects_detail(request: Request, project_id: str) -> Response:
+    """Route /api/projects/:id — GET detail, PATCH update, DELETE soft-delete."""
     if request.method == "DELETE":
-        return _delete_idea(request, idea_id)
+        return _delete_project(request, project_id)
     if request.method == "PATCH":
-        return _patch_idea(request, idea_id)
-    return _get_idea(request, idea_id)
+        return _patch_project(request, project_id)
+    return _get_project(request, project_id)
 
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def restore_idea(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/restore — Restore from trash."""
+def restore_project(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/restore — Restore from trash."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
             {"error": "ACCESS_DENIED", "message": "Only owner can restore"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    idea.deleted_at = None
-    idea.save(update_fields=["deleted_at", "updated_at"])
+    project.deleted_at = None
+    project.save(update_fields=["deleted_at", "updated_at"])
 
-    return Response({"message": "Idea restored"})
+    return Response({"message": "Project restored"})
 
 
 # --- Internal handlers (called from router views above) ---
 
 
-def _create_idea(request: Request) -> Response:
+def _create_project(request: Request) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    serializer = IdeaCreateSerializer(data=request.data)
+    serializer = ProjectCreateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     first_message = serializer.validated_data["first_message"]
 
-    idea = Idea.objects.create(owner_id=user.id)
+    project = Project.objects.create(owner_id=user.id)
 
     message = ChatMessage.objects.create(
-        idea_id=idea.id,
+        project_id=project.id,
         sender_type="user",
         sender_id=user.id,
         content=first_message,
@@ -123,19 +123,19 @@ def _create_idea(request: Request) -> Response:
     try:
         from apps.chat.views import _trigger_ai_processing
 
-        _trigger_ai_processing(str(idea.id), str(message.id))
+        _trigger_ai_processing(str(project.id), str(message.id))
     except Exception:
         logger.exception(
-            "AI processing trigger failed for first message idea=%s message=%s",
-            idea.id, message.id,
+            "AI processing trigger failed for first message project=%s message=%s",
+            project.id, message.id,
         )
 
     user_map = {user.id: user}
-    detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
+    detail_serializer = ProjectDetailSerializer(project, context={"user_map": user_map})
     return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
 
 
-def _list_ideas(request: Request) -> Response:
+def _list_projects(request: Request) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
@@ -146,20 +146,20 @@ def _list_ideas(request: Request) -> Response:
     page = max(int(request.query_params.get("page", 1)), 1)
     page_size = min(int(request.query_params.get("page_size", DEFAULT_PAGE_SIZE)), MAX_PAGE_SIZE)
 
-    if filter_param == "my_ideas":
-        qs = Idea.objects.filter(owner_id=user.id, deleted_at__isnull=True)
+    if filter_param == "my_projects":
+        qs = Project.objects.filter(owner_id=user.id, deleted_at__isnull=True)
     elif filter_param == "collaborating":
-        collab_idea_ids = IdeaCollaborator.objects.filter(user_id=user.id).values_list("idea_id", flat=True)
-        qs = Idea.objects.filter(id__in=collab_idea_ids, deleted_at__isnull=True)
+        collab_project_ids = ProjectCollaborator.objects.filter(user_id=user.id).values_list("project_id", flat=True)
+        qs = Project.objects.filter(id__in=collab_project_ids, deleted_at__isnull=True)
     elif filter_param == "trash":
-        qs = Idea.objects.filter(
+        qs = Project.objects.filter(
             owner_id=user.id,
             deleted_at__isnull=False,
         )
     else:
-        collab_idea_ids = IdeaCollaborator.objects.filter(user_id=user.id).values_list("idea_id", flat=True)
-        qs = Idea.objects.filter(
-            Q(owner_id=user.id) | Q(id__in=collab_idea_ids),
+        collab_project_ids = ProjectCollaborator.objects.filter(user_id=user.id).values_list("project_id", flat=True)
+        qs = Project.objects.filter(
+            Q(owner_id=user.id) | Q(id__in=collab_project_ids),
             deleted_at__isnull=True,
         )
 
@@ -173,30 +173,30 @@ def _list_ideas(request: Request) -> Response:
 
     total_count = qs.count()
     offset = (page - 1) * page_size
-    ideas = list(qs[offset : offset + page_size])
+    projects = list(qs[offset : offset + page_size])
 
-    owner_ids = {idea.owner_id for idea in ideas}
+    owner_ids = {project.owner_id for project in projects}
     users = User.objects.filter(id__in=owner_ids)
     user_map = {u.id: u for u in users}
 
     results = []
-    for idea in ideas:
-        role = "owner" if idea.owner_id == user.id else "collaborator"
-        owner = user_map.get(idea.owner_id)
+    for project in projects:
+        role = "owner" if project.owner_id == user.id else "collaborator"
+        owner = user_map.get(project.owner_id)
         results.append(
             {
-                "id": str(idea.id),
-                "title": idea.title,
-                "state": idea.state,
-                "visibility": idea.visibility,
+                "id": str(project.id),
+                "title": project.title,
+                "state": project.state,
+                "visibility": project.visibility,
                 "role": role,
                 "owner": {
-                    "id": str(owner.id) if owner else str(idea.owner_id),
+                    "id": str(owner.id) if owner else str(project.owner_id),
                     "display_name": owner.display_name if owner else "",
                 },
-                "collaborator_count": idea.collab_count,
-                "updated_at": idea.updated_at.isoformat(),
-                "deleted_at": idea.deleted_at.isoformat() if idea.deleted_at else None,
+                "collaborator_count": project.collab_count,
+                "updated_at": project.updated_at.isoformat(),
+                "deleted_at": project.deleted_at.isoformat() if project.deleted_at else None,
             }
         )
 
@@ -213,63 +213,63 @@ def _list_ideas(request: Request) -> Response:
     )
 
 
-def _get_idea(request: Request, idea_id: str) -> Response:
+def _get_project(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    is_owner = idea.owner_id == user.id
-    is_collaborator = IdeaCollaborator.objects.filter(idea_id=idea.id, user_id=user.id).exists()
+    is_owner = project.owner_id == user.id
+    is_collaborator = ProjectCollaborator.objects.filter(project_id=project.id, user_id=user.id).exists()
     has_write_access = is_owner or is_collaborator
 
-    users = User.objects.filter(id=idea.owner_id)
+    users = User.objects.filter(id=project.owner_id)
     user_map = {u.id: u for u in users}
 
-    detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
+    detail_serializer = ProjectDetailSerializer(project, context={"user_map": user_map})
     data = detail_serializer.data
     data["read_only"] = not has_write_access
 
     return Response(data)
 
 
-def _patch_idea(request: Request, idea_id: str) -> Response:
+def _patch_project(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
             {"error": "ACCESS_DENIED", "message": "Only owner can update"},
             status=status.HTTP_403_FORBIDDEN,
@@ -281,95 +281,95 @@ def _patch_idea(request: Request, idea_id: str) -> Response:
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    serializer = IdeaPatchSerializer(data=request.data)
+    serializer = ProjectPatchSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     update_fields = ["updated_at"]
     if "title" in serializer.validated_data:
-        idea.title = serializer.validated_data["title"]
-        idea.title_manually_edited = True
+        project.title = serializer.validated_data["title"]
+        project.title_manually_edited = True
         update_fields.extend(["title", "title_manually_edited"])
     if "agent_mode" in serializer.validated_data:
-        idea.agent_mode = serializer.validated_data["agent_mode"]
+        project.agent_mode = serializer.validated_data["agent_mode"]
         update_fields.append("agent_mode")
 
-    idea.save(update_fields=update_fields)
+    project.save(update_fields=update_fields)
 
-    users = User.objects.filter(id=idea.owner_id)
+    users = User.objects.filter(id=project.owner_id)
     user_map = {u.id: u for u in users}
 
-    detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
+    detail_serializer = ProjectDetailSerializer(project, context={"user_map": user_map})
     return Response(detail_serializer.data)
 
 
-def _delete_idea(request: Request, idea_id: str) -> Response:
+def _delete_project(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
             {"error": "ACCESS_DENIED", "message": "Only owner can delete"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    idea.deleted_at = timezone.now()
-    idea.save(update_fields=["deleted_at", "updated_at"])
+    project.deleted_at = timezone.now()
+    project.save(update_fields=["deleted_at", "updated_at"])
 
-    return Response({"message": "Idea moved to trash"})
+    return Response({"message": "Project moved to trash"})
 
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def context_window(request: Request, idea_id: str) -> Response:
-    """GET /api/ideas/:id/context-window — context window usage for AI indicator."""
+def context_window(request: Request, project_id: str) -> Response:
+    """GET /api/projects/:id/context-window — context window usage for AI indicator."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     # Any authenticated user can read context window (read-only access)
 
-    # Count all messages for this idea
-    message_count = ChatMessage.objects.filter(idea_id=idea_id).count()
+    # Count all messages for this project
+    message_count = ChatMessage.objects.filter(project_id=project_id).count()
 
     # Get latest compression summary (table may not exist yet if AI service hasn't run migrations)
     latest_summary = None
     try:
         latest_summary = (
-            ChatContextSummary.objects.filter(idea_id=idea_id)
+            ChatContextSummary.objects.filter(project_id=project_id)
             .order_by("-compression_iteration")
             .first()
         )
@@ -393,11 +393,11 @@ def context_window(request: Request, idea_id: str) -> Response:
     # Calculate recent messages (those after compression, or all if no compression)
     if latest_summary:
         recent_messages = ChatMessage.objects.filter(
-            idea_id=idea_id,
+            project_id=project_id,
             created_at__gt=latest_summary.created_at,
         )
     else:
-        recent_messages = ChatMessage.objects.filter(idea_id=idea_id)
+        recent_messages = ChatMessage.objects.filter(project_id=project_id)
 
     recent_message_count = recent_messages.count()
 
@@ -420,42 +420,42 @@ def context_window(request: Request, idea_id: str) -> Response:
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def generate_share_link(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/share-link — Generate read-only share link token (owner only)."""
+def generate_share_link(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/share-link — Generate read-only share link token (owner only)."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
-            {"error": "FORBIDDEN", "message": "Only the idea owner can generate share links"},
+            {"error": "FORBIDDEN", "message": "Only the project owner can generate share links"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
     token = secrets.token_hex(32)
-    idea.share_link_token = token
-    idea.save(update_fields=["share_link_token"])
+    project.share_link_token = token
+    project.save(update_fields=["share_link_token"])
 
     return Response(
         {
             "share_link_token": token,
-            "share_url": f"/idea/{idea_id}?token={token}",
+            "share_url": f"/project/{project_id}?token={token}",
         },
         status=status.HTTP_201_CREATED,
     )

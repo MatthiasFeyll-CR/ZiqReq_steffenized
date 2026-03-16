@@ -3,7 +3,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("ideas", "0002_remove_merge_similarity"),
+        ("projects", "0002_remove_merge_similarity"),
     ]
 
     operations = [

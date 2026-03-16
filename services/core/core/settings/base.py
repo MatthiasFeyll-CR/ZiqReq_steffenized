@@ -9,7 +9,7 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
-    "apps.ideas",
+    "apps.projects",
     "apps.chat",
     "apps.brd",
     "apps.review",
@@ -45,7 +45,7 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60.0,  # default: every 60 seconds (configurable via admin_parameters)
     },
     "soft-delete-cleanup": {
-        "task": "ideas.soft_delete_cleanup",
+        "task": "projects.soft_delete_cleanup",
         "schedule": 86400.0,  # daily
     },
 }

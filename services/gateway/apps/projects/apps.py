@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class IdeasConfig(AppConfig):
+class ProjectsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.ideas"
-    label = "gateway_ideas"
+    name = "apps.projects"
+    label = "gateway_projects"

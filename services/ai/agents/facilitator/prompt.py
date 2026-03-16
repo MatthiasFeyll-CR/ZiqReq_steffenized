@@ -9,7 +9,7 @@ FACILITATOR_SYSTEM_PROMPT_TEMPLATE = """\
 <identity>
 You are the AI Facilitator for ZiqReq, a brainstorming platform at Commerz Real.
 You guide employees through structured brainstorming to help them turn workflow
-improvement ideas into Business Requirements Documents.
+improvement projects into Business Requirements Documents.
 
 You are NOT a general-purpose assistant. You are scoped exclusively to brainstorming
 business requirements within Commerz Real's context. Refuse off-topic requests politely
@@ -94,8 +94,8 @@ Rules:
 {facilitator_bucket_content}
 </facilitator_bucket>
 
-<idea>
-<metadata title="{idea_title}" state="{idea_state}" agent_mode="{agent_mode}" />
+<project>
+<metadata title="{project_title}" state="{project_state}" agent_mode="{agent_mode}" />
 
 <chat_history>
 {chat_history_block}
@@ -104,7 +104,7 @@ Rules:
 </recent_messages>
 </chat_history>
 
-</idea>
+</project>
 
 {delegation_results_block}
 {extension_results_block}
@@ -127,7 +127,7 @@ INTERACTIVE MODE RULES:
    cannot find in the <chat_history> below (it was likely compressed) → delegate to the
    context extension agent AND respond with a delegation message first.
 4. If you have substantive value to add — you can advance the brainstorming, ask a
-   clarifying question, identify a gap in the idea, suggest structure, or challenge an
+   clarifying question, identify a gap in the project, suggest structure, or challenge an
    assumption → respond with a full response.
 5. If the message is an acknowledgment, agreement, or purely informational with nothing
    for you to add → react with thumbs_up ("I've seen this, nothing to add").
@@ -142,7 +142,7 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     Args:
         context: Dict with keys:
             - agent_mode: "interactive" or "silent"
-            - idea_title, idea_state
+            - project_title, project_state
             - title_manually_edited: bool
             - facilitator_bucket_content: str
             - recent_messages_formatted: str
@@ -189,13 +189,13 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     # Title management
     if context.get("title_manually_edited"):
         title_management_block = (
-            "The user has manually edited the idea title. Do NOT call update_title under any "
-            "circumstances. Title generation is permanently disabled for this idea."
+            "The user has manually edited the project title. Do NOT call update_title under any "
+            "circumstances. Title generation is permanently disabled for this project."
         )
     else:
         title_management_block = (
             "When the conversation starts, generate a short, concise title (under 60 characters) "
-            "from the first meaningful message. Periodically re-evaluate: if the idea's direction "
+            "from the first meaningful message. Periodically re-evaluate: if the project's direction "
             "has shifted and the current title no longer fits, update it. Do not update the title "
             "on every cycle — only when the current title is clearly outdated."
         )
@@ -210,7 +210,7 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     # Context extension guidance
     if chat_summary:
         context_extension_block = (
-            "This idea has a compressed chat history (the <compressed_summary> above). The summary "
+            "This project has a compressed chat history (the <compressed_summary> above). The summary "
             "preserves key decisions and topics but loses verbatim detail.\n\n"
             "If the user refers to something specific from earlier in the conversation and you cannot "
             "find it in the summary or recent messages, delegate to the context extension agent:\n"
@@ -220,7 +220,7 @@ def build_system_prompt(context: dict[str, Any]) -> str:
         )
     else:
         context_extension_block = (
-            "No compressed context exists for this idea. All messages are available in recent_messages. "
+            "No compressed context exists for this project. All messages are available in recent_messages. "
             "Context extension delegation is not needed."
         )
 
@@ -258,8 +258,8 @@ def build_system_prompt(context: dict[str, Any]) -> str:
         multi_user_block=multi_user_block,
         title_management_block=title_management_block,
         facilitator_bucket_content=context.get("facilitator_bucket_content", ""),
-        idea_title=context.get("idea_title", ""),
-        idea_state=context.get("idea_state", "brainstorming"),
+        project_title=context.get("project_title", ""),
+        project_state=context.get("project_state", "brainstorming"),
         chat_history_block=chat_history_block,
         recent_messages_formatted=context.get("recent_messages_formatted", ""),
         delegation_results_block=delegation_results_block,

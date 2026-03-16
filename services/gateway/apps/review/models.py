@@ -8,7 +8,7 @@ class BrdVersion(models.Model):
     """Unmanaged mirror — reads Core service's brd_versions table."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     version_number = models.IntegerField()
     section_title = models.TextField(null=True, blank=True)
     section_short_description = models.TextField(null=True, blank=True)
@@ -24,7 +24,7 @@ class BrdVersion(models.Model):
         db_table = "brd_versions"
 
     def __str__(self) -> str:
-        return f"BrdVersion {self.version_number} for idea {self.idea_id}"
+        return f"BrdVersion {self.version_number} for project {self.project_id}"
 
 
 class ReviewAssignment(models.Model):
@@ -36,7 +36,7 @@ class ReviewAssignment(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     reviewer_id = models.UUIDField()
     assigned_by = models.CharField(max_length=10, choices=ASSIGNED_BY_CHOICES)
     assigned_at = models.DateTimeField(auto_now_add=True)
@@ -47,7 +47,7 @@ class ReviewAssignment(models.Model):
         db_table = "review_assignments"
 
     def __str__(self) -> str:
-        return f"ReviewAssignment {self.reviewer_id} on idea {self.idea_id}"
+        return f"ReviewAssignment {self.reviewer_id} on project {self.project_id}"
 
 
 class ReviewTimelineEntry(models.Model):
@@ -60,7 +60,7 @@ class ReviewTimelineEntry(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     entry_type = models.CharField(max_length=20, choices=ENTRY_TYPE_CHOICES)
     author_id = models.UUIDField(null=True, blank=True)
     content = models.TextField(null=True, blank=True)
@@ -81,4 +81,4 @@ class ReviewTimelineEntry(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f"TimelineEntry {self.entry_type} on idea {self.idea_id}"
+        return f"TimelineEntry {self.entry_type} on project {self.project_id}"

@@ -1,4 +1,4 @@
-"""Tests for POST /api/ideas/:id/submit — US-001: Submit Idea for Review.
+"""Tests for POST /api/projects/:id/submit — US-001: Submit Project for Review.
 
 Test IDs: T-1.5.01, T-1.5.05, T-4.7.01, T-4.10.01, T-4.10.02,
           API-SUBMIT.01, API-SUBMIT.02, API-SUBMIT.03, API-SUBMIT.04
@@ -12,7 +12,7 @@ from rest_framework.test import APIClient
 
 from apps.authentication.models import User
 from apps.brd.models import BrdDraft
-from apps.ideas.models import Idea
+from apps.projects.models import Project
 from apps.review.models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000101")
@@ -34,18 +34,18 @@ def _create_user(user_id: uuid.UUID, email: str, display_name: str, roles: list[
 
 
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
-class TestSubmitIdea(TestCase):
-    """Integration tests for POST /api/ideas/:id/submit."""
+class TestSubmitProject(TestCase):
+    """Integration tests for POST /api/projects/:id/submit."""
 
     def setUp(self):
         self.client = APIClient()
-        self.user1 = _create_user(USER_1_ID, "owner@test.local", "Idea Owner")
+        self.user1 = _create_user(USER_1_ID, "owner@test.local", "Project Owner")
         self.user2 = _create_user(USER_2_ID, "other@test.local", "Other User")
         self.reviewer1 = _create_user(REVIEWER_1_ID, "reviewer1@test.local", "Reviewer One", ["user", "reviewer"])
         self.reviewer2 = _create_user(REVIEWER_2_ID, "reviewer2@test.local", "Reviewer Two", ["user", "reviewer"])
-        self.idea = Idea.objects.create(owner_id=self.user1.id, state="open", title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.user1.id, state="open", title="Test Project")
         BrdDraft.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             section_title="My Title",
             section_short_description="My Description",
             section_current_workflow="Current workflow",
@@ -58,15 +58,15 @@ class TestSubmitIdea(TestCase):
     def _login_as(self, user: User):
         self.client.post("/api/auth/dev-login", {"user_id": str(user.id)}, format="json")
 
-    def _url(self, idea_id=None):
-        return f"/api/ideas/{idea_id or self.idea.id}/submit"
+    def _url(self, project_id=None):
+        return f"/api/projects/{project_id or self.project.id}/submit"
 
     # --- T-1.5.01: Open -> In Review via submit ---
 
     @unittest.mock.patch("apps.review.views._create_pdf_client")
     def test_submit_open_to_in_review(self, mock_pdf_client_factory):
         """T-1.5.01 | Integration | Open -> In Review via submit.
-        Input: POST /api/ideas/:id/submit on open idea.
+        Input: POST /api/projects/:id/submit on open project.
         Expected: State = in_review, BRD version created, timeline entry.
         """
         mock_client = unittest.mock.MagicMock()
@@ -79,12 +79,12 @@ class TestSubmitIdea(TestCase):
         assert data["state"] == "in_review"
         assert data["version_number"] == 1
 
-        self.idea.refresh_from_db()
-        assert self.idea.state == "in_review"
+        self.project.refresh_from_db()
+        assert self.project.state == "in_review"
 
-        assert BrdVersion.objects.filter(idea_id=self.idea.id, version_number=1).exists()
+        assert BrdVersion.objects.filter(project_id=self.project.id, version_number=1).exists()
         assert ReviewTimelineEntry.objects.filter(
-            idea_id=self.idea.id, entry_type="state_change", old_state="open", new_state="in_review"
+            project_id=self.project.id, entry_type="state_change", old_state="open", new_state="in_review"
         ).exists()
 
     # --- T-1.5.05: Rejected -> In Review via resubmit ---
@@ -92,7 +92,7 @@ class TestSubmitIdea(TestCase):
     @unittest.mock.patch("apps.review.views._create_pdf_client")
     def test_resubmit_rejected_to_in_review(self, mock_pdf_client_factory):
         """T-1.5.05 | Integration | Rejected -> In Review via resubmit.
-        Input: POST /api/ideas/:id/submit on rejected idea.
+        Input: POST /api/projects/:id/submit on rejected project.
         Expected: State = in_review, new BRD version, resubmission timeline entry.
         """
         mock_client = unittest.mock.MagicMock()
@@ -101,12 +101,12 @@ class TestSubmitIdea(TestCase):
 
         # First submit
         self.client.post(self._url(), {}, format="json")
-        self.idea.refresh_from_db()
-        assert self.idea.state == "in_review"
+        self.project.refresh_from_db()
+        assert self.project.state == "in_review"
 
         # Manually set to rejected (simulating reviewer action)
-        self.idea.state = "rejected"
-        self.idea.save(update_fields=["state"])
+        self.project.state = "rejected"
+        self.project.save(update_fields=["state"])
 
         # Resubmit
         response = self.client.post(self._url(), {"message": "Fixed issues"}, format="json")
@@ -115,12 +115,12 @@ class TestSubmitIdea(TestCase):
         assert data["state"] == "in_review"
         assert data["version_number"] == 2
 
-        self.idea.refresh_from_db()
-        assert self.idea.state == "in_review"
+        self.project.refresh_from_db()
+        assert self.project.state == "in_review"
 
-        assert BrdVersion.objects.filter(idea_id=self.idea.id).count() == 2
+        assert BrdVersion.objects.filter(project_id=self.project.id).count() == 2
         assert ReviewTimelineEntry.objects.filter(
-            idea_id=self.idea.id, entry_type="resubmission"
+            project_id=self.project.id, entry_type="resubmission"
         ).exists()
 
     # --- T-4.7.01: Submit creates immutable BRD version ---
@@ -128,7 +128,7 @@ class TestSubmitIdea(TestCase):
     @unittest.mock.patch("apps.review.views._create_pdf_client")
     def test_submit_creates_brd_version(self, mock_pdf_client_factory):
         """T-4.7.01 | Integration | Submit creates immutable BRD version.
-        Input: POST /api/ideas/:id/submit.
+        Input: POST /api/projects/:id/submit.
         Expected: New brd_versions row with correct section content.
         """
         mock_client = unittest.mock.MagicMock()
@@ -138,7 +138,7 @@ class TestSubmitIdea(TestCase):
         response = self.client.post(self._url(), {}, format="json")
         assert response.status_code == 200
 
-        version = BrdVersion.objects.get(idea_id=self.idea.id, version_number=1)
+        version = BrdVersion.objects.get(project_id=self.project.id, version_number=1)
         assert version.section_title == "My Title"
         assert version.section_short_description == "My Description"
         assert version.section_current_workflow == "Current workflow"
@@ -165,7 +165,7 @@ class TestSubmitIdea(TestCase):
         )
         assert response.status_code == 200
 
-        assignments = ReviewAssignment.objects.filter(idea_id=self.idea.id)
+        assignments = ReviewAssignment.objects.filter(project_id=self.project.id)
         assert assignments.count() == 2
         assert assignments.filter(reviewer_id=self.reviewer1.id, assigned_by="submitter").exists()
         assert assignments.filter(reviewer_id=self.reviewer2.id, assigned_by="submitter").exists()
@@ -176,7 +176,7 @@ class TestSubmitIdea(TestCase):
     def test_submit_without_reviewers(self, mock_pdf_client_factory):
         """T-4.10.02 | Integration | Submit without reviewers goes to shared queue.
         Input: POST submit without reviewer_ids.
-        Expected: No review_assignments, idea appears in unassigned list.
+        Expected: No review_assignments, project appears in unassigned list.
         """
         mock_client = unittest.mock.MagicMock()
         mock_client.generate_pdf.return_value = {"pdf_data": b"%PDF", "filename": "test.pdf"}
@@ -185,13 +185,13 @@ class TestSubmitIdea(TestCase):
         response = self.client.post(self._url(), {}, format="json")
         assert response.status_code == 200
 
-        assert ReviewAssignment.objects.filter(idea_id=self.idea.id).count() == 0
+        assert ReviewAssignment.objects.filter(project_id=self.project.id).count() == 0
 
     # --- API-SUBMIT.01: Success ---
 
     @unittest.mock.patch("apps.review.views._create_pdf_client")
     def test_submit_success(self, mock_pdf_client_factory):
-        """API-SUBMIT.01 | POST /api/ideas/:id/submit | Success.
+        """API-SUBMIT.01 | POST /api/projects/:id/submit | Success.
         Input: Valid request.
         Expected: 200 with version data.
         """
@@ -213,30 +213,30 @@ class TestSubmitIdea(TestCase):
     # --- API-SUBMIT.02: Invalid state ---
 
     def test_submit_invalid_state(self):
-        """API-SUBMIT.02 | POST /api/ideas/:id/submit | Invalid state.
-        Input: Idea state = accepted.
+        """API-SUBMIT.02 | POST /api/projects/:id/submit | Invalid state.
+        Input: Project state = accepted.
         Expected: 400 INVALID_STATE.
         """
-        self.idea.state = "accepted"
-        self.idea.save(update_fields=["state"])
+        self.project.state = "accepted"
+        self.project.save(update_fields=["state"])
 
         response = self.client.post(self._url(), {}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "INVALID_STATE"
 
     def test_submit_invalid_state_in_review(self):
-        """Submit on in_review idea returns 400."""
-        self.idea.state = "in_review"
-        self.idea.save(update_fields=["state"])
+        """Submit on in_review project returns 400."""
+        self.project.state = "in_review"
+        self.project.save(update_fields=["state"])
 
         response = self.client.post(self._url(), {}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "INVALID_STATE"
 
     def test_submit_invalid_state_dropped(self):
-        """Submit on dropped idea returns 400."""
-        self.idea.state = "dropped"
-        self.idea.save(update_fields=["state"])
+        """Submit on dropped project returns 400."""
+        self.project.state = "dropped"
+        self.project.save(update_fields=["state"])
 
         response = self.client.post(self._url(), {}, format="json")
         assert response.status_code == 400
@@ -245,7 +245,7 @@ class TestSubmitIdea(TestCase):
     # --- API-SUBMIT.03: Access control ---
 
     def test_submit_non_owner_forbidden(self):
-        """API-SUBMIT.03 | POST /api/ideas/:id/submit | Access control.
+        """API-SUBMIT.03 | POST /api/projects/:id/submit | Access control.
         Input: Non-owner.
         Expected: 403 ACCESS_DENIED.
         """
@@ -258,7 +258,7 @@ class TestSubmitIdea(TestCase):
 
     @unittest.mock.patch("apps.review.views._create_pdf_client")
     def test_submit_pdf_failure(self, mock_pdf_client_factory):
-        """API-SUBMIT.04 | POST /api/ideas/:id/submit | PDF failure.
+        """API-SUBMIT.04 | POST /api/projects/:id/submit | PDF failure.
         Input: PDF service down.
         Expected: 503 PDF_GENERATION_FAILED.
         """
@@ -271,8 +271,8 @@ class TestSubmitIdea(TestCase):
         assert response.json()["error"] == "PDF_GENERATION_FAILED"
 
         # State should NOT have changed
-        self.idea.refresh_from_db()
-        assert self.idea.state == "open"
+        self.project.refresh_from_db()
+        assert self.project.state == "open"
 
     # --- Submit message creates comment timeline entry ---
 
@@ -289,7 +289,7 @@ class TestSubmitIdea(TestCase):
         assert response.status_code == 200
 
         assert ReviewTimelineEntry.objects.filter(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="comment",
             content="Please review this carefully",
         ).exists()
@@ -308,7 +308,7 @@ class TestSubmitIdea(TestCase):
         assert response.json()["version_number"] == 1
 
         # Reject and resubmit
-        self.idea.state = "rejected"
-        self.idea.save(update_fields=["state"])
+        self.project.state = "rejected"
+        self.project.save(update_fields=["state"])
         response = self.client.post(self._url(), {}, format="json")
         assert response.json()["version_number"] == 2

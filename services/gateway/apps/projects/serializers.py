@@ -1,11 +1,11 @@
 from rest_framework import serializers
 
 
-class IdeaCreateSerializer(serializers.Serializer):
+class ProjectCreateSerializer(serializers.Serializer):
     first_message = serializers.CharField(min_length=1)
 
 
-class IdeaPatchSerializer(serializers.Serializer):
+class ProjectPatchSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=500, required=False)
     agent_mode = serializers.ChoiceField(
         choices=["interactive", "silent"], required=False
@@ -17,7 +17,7 @@ class IdeaPatchSerializer(serializers.Serializer):
         return attrs
 
 
-class IdeaDetailSerializer(serializers.Serializer):
+class ProjectDetailSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()
     state = serializers.CharField()
@@ -31,9 +31,9 @@ class IdeaDetailSerializer(serializers.Serializer):
 
     def get_collaborators(self, obj):
         from apps.authentication.models import User
-        from apps.ideas.models import IdeaCollaborator
+        from apps.projects.models import ProjectCollaborator
 
-        collabs = IdeaCollaborator.objects.filter(idea_id=obj.id)
+        collabs = ProjectCollaborator.objects.filter(project_id=obj.id)
         user_ids = [c.user_id for c in collabs]
         if not user_ids:
             return []

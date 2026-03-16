@@ -94,19 +94,19 @@ class GatewayClient:
             ]
         }
 
-    def get_idea_details(
+    def get_project_details(
         self,
-        idea_id: str,
+        project_id: str,
         ensure_share_link_token: bool = False,
     ) -> dict[str, Any]:
         stub = self._ensure_channel()
-        request = gateway_pb2.IdeaDetailsRequest(
-            idea_id=idea_id,
+        request = gateway_pb2.ProjectDetailsRequest(
+            project_id=project_id,
             ensure_share_link_token=ensure_share_link_token,
         )
-        response = stub.GetIdeaDetails(request)
+        response = stub.GetProjectDetails(request)
         return {
-            "idea_id": response.idea_id,
+            "project_id": response.project_id,
             "title": response.title,
             "owner_id": response.owner_id,
             "share_link_token": response.share_link_token,

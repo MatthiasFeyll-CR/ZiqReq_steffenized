@@ -9,7 +9,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.ideas.models import Idea
+from apps.projects.models import Project
 from apps.review.models import ReviewTimelineEntry
 
 OWNER_ID = uuid.UUID("00000000-0000-0000-0000-000000000401")
@@ -34,28 +34,28 @@ class TestReviewTimeline(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.owner = _create_user(OWNER_ID, "owner@test.local", "Idea Owner")
+        self.owner = _create_user(OWNER_ID, "owner@test.local", "Project Owner")
         self.reviewer = _create_user(REVIEWER_ID, "reviewer@test.local", "Reviewer One", ["user", "reviewer"])
         self.other_user = _create_user(OTHER_USER_ID, "other@test.local", "Other User")
-        self.idea = Idea.objects.create(owner_id=self.owner.id, state="in_review", title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Test Project")
         self._login_as(self.owner)
 
     def _login_as(self, user: User):
         self.client.post("/api/auth/dev-login", {"user_id": str(user.id)}, format="json")
 
-    def _url(self, idea_id=None):
-        return f"/api/ideas/{idea_id or self.idea.id}/review/timeline"
+    def _url(self, project_id=None):
+        return f"/api/projects/{project_id or self.project.id}/review/timeline"
 
     # --- API-TIMELINE.01: GET timeline success ---
 
     def test_get_timeline_success(self):
-        """API-TIMELINE.01 | GET /api/ideas/:id/review/timeline | Success.
-        Input: Valid idea with timeline entries.
+        """API-TIMELINE.01 | GET /api/projects/:id/review/timeline | Success.
+        Input: Valid project with timeline entries.
         Expected: 200 with timeline array ordered by created_at ASC.
         """
         # Create entries of different types
         ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="state_change",
             author_id=self.owner.id,
             content="Submitted for review",
@@ -63,13 +63,13 @@ class TestReviewTimeline(TestCase):
             new_state="in_review",
         )
         ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="comment",
             author_id=self.reviewer.id,
             content="Looks good so far",
         )
         ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="resubmission",
             author_id=self.owner.id,
             old_version_id=uuid.uuid4(),
@@ -97,7 +97,7 @@ class TestReviewTimeline(TestCase):
         assert data[2]["new_version_id"] is not None
 
     def test_get_timeline_empty(self):
-        """GET timeline returns empty array for idea with no entries."""
+        """GET timeline returns empty array for project with no entries."""
         response = self.client.get(self._url())
         assert response.status_code == 200
         assert response.json() == []
@@ -105,13 +105,13 @@ class TestReviewTimeline(TestCase):
     def test_get_timeline_ordered_asc(self):
         """Entries ordered by created_at ASC."""
         e1 = ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="comment",
             author_id=self.owner.id,
             content="First",
         )
         e2 = ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="comment",
             author_id=self.owner.id,
             content="Second",
@@ -122,7 +122,7 @@ class TestReviewTimeline(TestCase):
         assert data[1]["id"] == str(e2.id)
 
     def test_get_timeline_idea_not_found(self):
-        """GET timeline returns 404 for non-existent idea."""
+        """GET timeline returns 404 for non-existent project."""
         fake_id = uuid.uuid4()
         response = self.client.get(self._url(fake_id))
         assert response.status_code == 404
@@ -130,7 +130,7 @@ class TestReviewTimeline(TestCase):
     # --- API-TIMELINE.02: GET timeline access control ---
 
     def test_get_timeline_unauthenticated(self):
-        """API-TIMELINE.02 | GET /api/ideas/:id/review/timeline | Access control.
+        """API-TIMELINE.02 | GET /api/projects/:id/review/timeline | Access control.
         Unauthenticated user gets 401.
         """
         self.client.logout()
@@ -142,36 +142,36 @@ class TestReviewTimeline(TestCase):
     # --- API-TIMELINE.03: POST comment success ---
 
     def test_post_comment_success(self):
-        """API-TIMELINE.03 | POST /api/ideas/:id/review/timeline | Create comment.
-        Input: {content: "Great idea"}.
+        """API-TIMELINE.03 | POST /api/projects/:id/review/timeline | Create comment.
+        Input: {content: "Great project"}.
         Expected: 201 with new entry.
         """
         response = self.client.post(
             self._url(),
-            {"content": "Great idea"},
+            {"content": "Great project"},
             format="json",
         )
         assert response.status_code == 201, response.json()
         data = response.json()
         assert data["entry_type"] == "comment"
-        assert data["content"] == "Great idea"
+        assert data["content"] == "Great project"
         assert data["author"]["id"] == str(self.owner.id)
         assert data["parent_entry_id"] is None
 
         # Verify in DB
         entry = ReviewTimelineEntry.objects.get(id=data["id"])
-        assert entry.content == "Great idea"
+        assert entry.content == "Great project"
         assert entry.author_id == self.owner.id
 
     # --- API-TIMELINE.04: POST nested reply ---
 
     def test_post_nested_reply(self):
-        """API-TIMELINE.04 | POST /api/ideas/:id/review/timeline | Nested reply.
+        """API-TIMELINE.04 | POST /api/projects/:id/review/timeline | Nested reply.
         Input: {content: "Reply", parent_entry_id: uuid}.
         Expected: 201 with parent link.
         """
         parent = ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="comment",
             author_id=self.reviewer.id,
             content="Parent comment",
@@ -197,13 +197,13 @@ class TestReviewTimeline(TestCase):
         assert response.status_code == 404
 
     def test_post_reply_parent_wrong_idea(self):
-        """POST with parent_entry_id from different idea returns 404."""
-        other_idea = Idea.objects.create(owner_id=self.owner.id, state="in_review", title="Other Idea")
+        """POST with parent_entry_id from different project returns 404."""
+        other_idea = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Other Project")
         parent = ReviewTimelineEntry.objects.create(
-            idea_id=other_idea.id,
+            project_id=other_idea.id,
             entry_type="comment",
             author_id=self.owner.id,
-            content="Other idea comment",
+            content="Other project comment",
         )
         response = self.client.post(
             self._url(),
@@ -215,7 +215,7 @@ class TestReviewTimeline(TestCase):
     # --- API-TIMELINE.05: POST validation ---
 
     def test_post_comment_empty_content(self):
-        """API-TIMELINE.05 | POST /api/ideas/:id/review/timeline | Validation.
+        """API-TIMELINE.05 | POST /api/projects/:id/review/timeline | Validation.
         Input: Empty content.
         Expected: 400.
         """
@@ -228,7 +228,7 @@ class TestReviewTimeline(TestCase):
         assert response.status_code == 400
 
     def test_post_comment_idea_not_found(self):
-        """POST comment on non-existent idea returns 404."""
+        """POST comment on non-existent project returns 404."""
         fake_id = uuid.uuid4()
         response = self.client.post(
             self._url(fake_id),
@@ -252,7 +252,7 @@ class TestReviewTimeline(TestCase):
     def test_author_info_included(self):
         """Author object includes id and display_name."""
         ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="comment",
             author_id=self.owner.id,
             content="Test",
@@ -260,12 +260,12 @@ class TestReviewTimeline(TestCase):
         response = self.client.get(self._url())
         data = response.json()
         assert data[0]["author"]["id"] == str(self.owner.id)
-        assert data[0]["author"]["display_name"] == "Idea Owner"
+        assert data[0]["author"]["display_name"] == "Project Owner"
 
     def test_system_entry_null_author(self):
         """System entries (null author_id) return null author."""
         ReviewTimelineEntry.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             entry_type="state_change",
             author_id=None,
             content="System action",

@@ -9,7 +9,7 @@ class ChatMessageCreateSerializer(serializers.Serializer):
 
 class ChatMessageResponseSerializer(serializers.Serializer):
     id = serializers.UUIDField()
-    idea_id = serializers.UUIDField()
+    project_id = serializers.UUIDField()
     sender_type = serializers.CharField()
     sender_id = serializers.UUIDField(allow_null=True)
     ai_agent = serializers.CharField(allow_null=True)

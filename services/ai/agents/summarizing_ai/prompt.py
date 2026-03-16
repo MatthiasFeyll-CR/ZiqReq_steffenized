@@ -92,12 +92,12 @@ Minimum information anchors:
 {mode_instructions}
 </mode_instructions>
 
-<idea>
+<project>
   <chat_summary>{chat_summary}</chat_summary>
   <recent_messages>
 {messages_formatted}
   </recent_messages>
-</idea>
+</project>
 
 <output_format>
 Respond with ONLY a valid JSON object containing these keys:

@@ -41,18 +41,18 @@ class ContextExtensionAgent(BaseAgent):
         Args:
             input_data: Dict with keys:
                 - query: str — the search query for conversation details
-                - idea_id: str — the idea context
+                - project_id: str — the project context
         """
         query: str = input_data["query"]
-        idea_id: str = input_data["idea_id"]
+        project_id: str = input_data["project_id"]
 
         # Load full chat history via CoreClient gRPC
         try:
-            history_result = self._core_client.get_full_chat_history(idea_id)
+            history_result = self._core_client.get_full_chat_history(project_id)
         except Exception:
             logger.exception(
-                "[context_extension] Failed to load chat history for idea %s",
-                idea_id,
+                "[context_extension] Failed to load chat history for project %s",
+                project_id,
             )
             return {
                 "response": (
@@ -67,8 +67,8 @@ class ContextExtensionAgent(BaseAgent):
         # If no messages, return early
         if not messages:
             logger.info(
-                "[context_extension] No messages in history for idea %s",
-                idea_id,
+                "[context_extension] No messages in history for project %s",
+                project_id,
             )
             return {
                 "response": (
@@ -114,9 +114,9 @@ class ContextExtensionAgent(BaseAgent):
         message_ids = [m.get("id", "") for m in messages if m.get("id")]
 
         logger.info(
-            "[context_extension] Generated response from %d messages for idea %s",
+            "[context_extension] Generated response from %d messages for project %s",
             len(messages),
-            idea_id,
+            project_id,
         )
 
         return {

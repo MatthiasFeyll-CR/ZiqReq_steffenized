@@ -3,7 +3,7 @@
 Subscribes to:
   - ai.chat_response.ready → Core CreateChatMessage + broadcast chat_message
   - ai.reaction.ready → Core CreateAIReaction + broadcast ai_reaction
-  - ai.title.updated → Core UpdateIdeaTitle + broadcast title_update
+  - ai.title.updated → Core UpdateProjectTitle + broadcast title_update
 
 Retry: 3 attempts (1s, 2s, 4s backoff), then dead-letter queue.
 Idempotency: event_id tracking prevents duplicate processing.
@@ -109,20 +109,20 @@ class AIEventConsumer:
 
     async def _handle_chat_response(self, event: dict[str, Any]) -> None:
         """ai.chat_response.ready → Core CreateChatMessage + broadcast chat_message."""
-        idea_id = event["idea_id"]
+        project_id = event["project_id"]
         content = event["content"]
         message_type = event.get("message_type", "regular")
         ai_agent = event.get("ai_agent", "facilitator")
 
         result = self._core_client.persist_ai_chat_message(
-            idea_id=idea_id,
+            project_id=project_id,
             content=content,
             message_type=message_type,
         )
 
         payload = {
             "id": result.get("message_id", ""),
-            "idea_id": idea_id,
+            "project_id": project_id,
             "sender_type": "ai",
             "sender_id": None,
             "ai_agent": ai_agent,
@@ -131,16 +131,16 @@ class AIEventConsumer:
             "created_at": result.get("created_at", ""),
         }
 
-        await self._broadcast(idea_id, "chat_message", payload)
+        await self._broadcast(project_id, "chat_message", payload)
 
     async def _handle_reaction(self, event: dict[str, Any]) -> None:
         """ai.reaction.ready → Core CreateAIReaction + broadcast ai_reaction."""
-        idea_id = event["idea_id"]
+        project_id = event["project_id"]
         message_id = event["message_id"]
         reaction_type = event["reaction_type"]
 
         result = self._core_client.persist_ai_reaction(
-            idea_id=idea_id,
+            project_id=project_id,
             message_id=message_id,
             reaction_type=reaction_type,
         )
@@ -151,28 +151,28 @@ class AIEventConsumer:
             "reaction_type": reaction_type,
         }
 
-        await self._broadcast(idea_id, "ai_reaction", payload)
+        await self._broadcast(project_id, "ai_reaction", payload)
 
     async def _handle_title_update(self, event: dict[str, Any]) -> None:
-        """ai.title.updated → Core UpdateIdeaTitle + broadcast title_update."""
-        idea_id = event["idea_id"]
+        """ai.title.updated → Core UpdateProjectTitle + broadcast title_update."""
+        project_id = event["project_id"]
         title = event["title"]
 
-        self._core_client.update_idea_title(
-            idea_id=idea_id,
+        self._core_client.update_project_title(
+            project_id=project_id,
             new_title=title,
         )
 
         payload = {
-            "idea_id": idea_id,
+            "project_id": project_id,
             "title": title,
         }
 
-        await self._broadcast(idea_id, "title_update", payload)
+        await self._broadcast(project_id, "title_update", payload)
 
     async def _handle_brd_ready(self, event: dict[str, Any]) -> None:
         """ai.brd.ready → persist BRD sections to brd_drafts + broadcast brd_ready."""
-        idea_id = event["idea_id"]
+        project_id = event["project_id"]
         sections = event.get("sections", {})
         readiness_evaluation = event.get("readiness_evaluation", {})
         fabrication_flags = event.get("fabrication_flags", [])
@@ -180,20 +180,20 @@ class AIEventConsumer:
 
         # Persist via CoreClient gRPC (stub in M9)
         self._core_client.update_brd_draft(
-            idea_id=idea_id,
+            project_id=project_id,
             sections=sections,
             readiness_evaluation_json=json.dumps(readiness_evaluation),
         )
 
         payload = {
-            "idea_id": idea_id,
+            "project_id": project_id,
             "mode": mode,
             "sections": sections,
             "readiness_evaluation": readiness_evaluation,
             "fabrication_flags": fabrication_flags,
         }
 
-        await self._broadcast(idea_id, "brd_ready", payload)
+        await self._broadcast(project_id, "brd_ready", payload)
 
     async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
         """ai.processing.complete → broadcast ai_processing {state: completed}.
@@ -201,48 +201,48 @@ class AIEventConsumer:
         Rate limiting is now handled by querying unprocessed messages in the DB,
         so no explicit counter reset is needed here.
         """
-        idea_id = event["idea_id"]
+        project_id = event["project_id"]
 
         payload = {
-            "idea_id": idea_id,
+            "project_id": project_id,
             "state": "completed",
         }
-        await self._broadcast(idea_id, "ai_processing", payload)
+        await self._broadcast(project_id, "ai_processing", payload)
 
         # Publish AI delegation complete notification
-        self._publish_ai_delegation_notification(idea_id)
+        self._publish_ai_delegation_notification(project_id)
 
-    def _publish_ai_delegation_notification(self, idea_id: str) -> None:
-        """Look up the idea owner and publish an AI delegation complete notification."""
+    def _publish_ai_delegation_notification(self, project_id: str) -> None:
+        """Look up the project owner and publish an AI delegation complete notification."""
         try:
-            from apps.ideas.models import Idea
+            from apps.projects.models import Project
             from events.publisher import publish_notification_event
 
-            idea = Idea.objects.get(id=idea_id)
+            project = Project.objects.get(id=project_id)
             publish_notification_event(
                 routing_key="notification.ai.delegation_complete",
-                user_id=str(idea.owner_id),
+                user_id=str(project.owner_id),
                 event_type="ai_delegation_complete",
                 title="AI Processing Complete",
-                body=f'AI has finished processing your request for "{idea.title}"',
-                reference_id=str(idea.id),
-                reference_type="idea",
+                body=f'AI has finished processing your request for "{project.title}"',
+                reference_id=str(project.id),
+                reference_type="project",
             )
         except Exception:
             logger.exception(
-                "Failed to publish AI delegation notification for idea %s", idea_id
+                "Failed to publish AI delegation notification for project %s", project_id
             )
 
     async def _broadcast(
-        self, idea_id: str, event_type: str, payload: dict[str, Any]
+        self, project_id: str, event_type: str, payload: dict[str, Any]
     ) -> None:
-        """Send event to WebSocket group idea_{idea_id}."""
+        """Send event to WebSocket group project_{project_id}."""
         channel_layer = get_channel_layer()
         if channel_layer is None:
             logger.warning("[BROADCAST] No channel layer available, skipping broadcast")
             return
 
-        group_name = f"idea_{idea_id}"
+        group_name = f"project_{project_id}"
         logger.info(
             "[BROADCAST] Sending %s to group %s via %s",
             event_type, group_name, type(channel_layer).__name__,
@@ -251,7 +251,7 @@ class AIEventConsumer:
             group_name,
             {
                 "type": event_type,
-                "idea_id": idea_id,
+                "project_id": project_id,
                 "payload": payload,
             },
         )
