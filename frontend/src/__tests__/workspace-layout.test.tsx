@@ -6,10 +6,6 @@ vi.mock("@/components/board/BoardCanvas", () => ({
   BoardCanvas: () => <div data-testid="board-canvas">BoardCanvas</div>,
 }));
 
-vi.mock("@/components/workspace/ReviewTab", () => ({
-  ReviewTab: () => <div data-testid="review-tab">ReviewTab</div>,
-}));
-
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 
 beforeAll(async () => {
@@ -68,8 +64,6 @@ describe("T-1.1.02: drag resizes panels", () => {
     const stored = localStorage.getItem("workspace-panel-split");
     expect(stored).toBeTruthy();
     const val = parseFloat(stored!);
-    // Should be back near default (0.4), clamped by container width
-    // In jsdom container width is 0, so clampRatio returns DEFAULT_RATIO (0.4)
     expect(val).toBeCloseTo(0.4, 1);
   });
 
@@ -79,38 +73,14 @@ describe("T-1.1.02: drag resizes panels", () => {
     render(<WorkspaceLayout />);
 
     const chatPanel = screen.getByTestId("chat-panel");
-    // Should reflect stored ratio (clamped by container width; in jsdom 0 width → DEFAULT_RATIO)
-    // The point is that it reads from localStorage and applies a width style
     expect(chatPanel.style.width).toBeTruthy();
   });
 });
 
-describe("T-1.1.03: Board tab default active", () => {
-  it("renders Board tab as default active tab", () => {
+describe("T-1.1.03: Board renders directly (no tabs)", () => {
+  it("renders board canvas directly in context panel", () => {
     render(<WorkspaceLayout />);
 
-    const boardTab = screen.getByTestId("tab-board");
-    expect(boardTab).toBeInTheDocument();
-    expect(boardTab).toHaveAttribute("data-state", "active");
-  });
-
-  it("renders Board and Review tabs when reviewVisible is true", () => {
-    render(<WorkspaceLayout reviewVisible={true} />);
-
-    expect(screen.getByTestId("tab-board")).toBeInTheDocument();
-    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
-  });
-
-  it("hides Review tab when reviewVisible is false", () => {
-    render(<WorkspaceLayout reviewVisible={false} />);
-
-    expect(screen.getByTestId("tab-board")).toBeInTheDocument();
-    expect(screen.queryByTestId("tab-review")).not.toBeInTheDocument();
-  });
-
-  it("shows Board content by default", () => {
-    render(<WorkspaceLayout />);
-
-    expect(screen.getByTestId("board-content")).toBeInTheDocument();
+    expect(screen.getByTestId("board-canvas")).toBeInTheDocument();
   });
 });

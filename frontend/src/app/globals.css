@@ -151,10 +151,18 @@
   animation: typing-dot 1.4s infinite ease-in-out;
 }
 
+/* Shake animation for gated step clicks */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-3px); }
+  30%, 70% { transform: translateX(3px); }
+}
+
 /* Prefers-reduced-motion: disable all animations and transitions */
 @media (prefers-reduced-motion: reduce) {
   .animate-scale-in,
-  .typing-dot {
+  .typing-dot,
+  .animate-\[shake_0\.5s_ease-in-out\] {
     animation: none;
   }
 }

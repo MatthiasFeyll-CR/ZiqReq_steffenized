@@ -16,6 +16,9 @@ vi.mock("@/components/workspace/WorkspaceHeader", () => ({
     <div data-testid="workspace-header">{idea.title}</div>
   ),
 }));
+vi.mock("@/components/workspace/DocumentView", () => ({
+  DocumentView: () => <div data-testid="document-view">DocumentView</div>,
+}));
 vi.mock("@/components/workspace/ChatPanel", () => ({
   ChatPanel: () => <div data-testid="chat-panel">ChatPanel</div>,
 }));
@@ -38,6 +41,11 @@ vi.mock("@/api/ideas", async () => {
     fetchIdea: vi.fn(),
   };
 });
+
+vi.mock("@/api/chat", () => ({
+  fetchChatMessages: vi.fn().mockResolvedValue({ messages: [], total: 0, limit: 1, offset: 0 }),
+  sendChatMessage: vi.fn(),
+}));
 
 import { fetchIdea } from "@/api/ideas";
 import type { Idea } from "@/api/ideas";

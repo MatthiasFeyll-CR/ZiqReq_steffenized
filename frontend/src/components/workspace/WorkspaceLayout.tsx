@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PanelDivider } from "./PanelDivider";
 import { ReactFlowProvider } from "@xyflow/react";
 import { BoardCanvas } from "@/components/board/BoardCanvas";
-import { ReviewTab } from "@/components/workspace/ReviewTab";
 
 const STORAGE_KEY = "workspace-panel-split";
 const DEFAULT_RATIO = 0.4;
@@ -41,15 +38,12 @@ function saveRatio(ratio: number) {
 
 interface WorkspaceLayoutProps {
   chatPanel?: React.ReactNode;
-  reviewVisible?: boolean;
   ideaId?: string;
-  ideaState?: string;
   disabled?: boolean;
   readOnly?: boolean;
 }
 
-export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId, ideaState, disabled, readOnly }: WorkspaceLayoutProps) {
-  const { t } = useTranslation();
+export function WorkspaceLayout({ chatPanel, ideaId, disabled, readOnly }: WorkspaceLayoutProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [ratio, setRatio] = useState(loadRatio);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -101,47 +95,22 @@ export function WorkspaceLayout({ chatPanel, reviewVisible = true, ideaId, ideaS
       >
         {chatPanel ?? (
           <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            {t("workspace.chatPlaceholder", "Chat")}
+            Chat
           </div>
         )}
       </div>
 
       <PanelDivider onDrag={handleDrag} onDoubleClick={handleDoubleClick} />
 
-      {/* Context Panel (Board/Review tabs) */}
+      {/* Board Panel */}
       <div
         className="flex flex-col overflow-hidden"
         style={{ width: boardWidth, transition }}
         data-testid="context-panel"
       >
-        <Tabs defaultValue="board" className="flex flex-col h-full">
-          <TabsList className="shrink-0">
-            <TabsTrigger value="board" data-testid="tab-board">
-              {t("workspace.boardTab", "Board")}
-            </TabsTrigger>
-            {reviewVisible && (
-              <TabsTrigger value="review" data-testid="tab-review">
-                {t("workspace.reviewTab", "Review")}
-              </TabsTrigger>
-            )}
-          </TabsList>
-          <TabsContent value="board" className="flex-1 overflow-hidden" data-testid="board-content">
-            <ReactFlowProvider>
-              <BoardCanvas ideaId={ideaId} disabled={disabled} readOnly={readOnly} />
-            </ReactFlowProvider>
-          </TabsContent>
-          {reviewVisible && (
-            <TabsContent value="review" className="flex-1 overflow-auto" data-testid="review-content">
-              {ideaId ? (
-                <ReviewTab ideaId={ideaId} ideaState={ideaState} disabled={disabled} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  {t("workspace.reviewPlaceholder", "Review")}
-                </div>
-              )}
-            </TabsContent>
-          )}
-        </Tabs>
+        <ReactFlowProvider>
+          <BoardCanvas ideaId={ideaId} disabled={disabled} readOnly={readOnly} />
+        </ReactFlowProvider>
       </div>
     </div>
   );

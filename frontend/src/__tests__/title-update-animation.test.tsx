@@ -79,7 +79,14 @@ function renderHeader(idea: Idea = MOCK_IDEA) {
     <QueryClientProvider client={qc}>
       <Provider store={store}>
         <MemoryRouter>
-          <WorkspaceHeader idea={idea} onIdeaUpdate={onIdeaUpdate} />
+          <WorkspaceHeader
+              idea={idea}
+              onIdeaUpdate={onIdeaUpdate}
+              activeStep="brainstorm"
+              onStepChange={() => {}}
+              canAccessDocument={true}
+              canAccessReview={false}
+            />
         </MemoryRouter>
       </Provider>
     </QueryClientProvider>,
@@ -113,7 +120,14 @@ describe("T-2.3.03: Title update animates", () => {
       <QueryClientProvider client={qc}>
         <Provider store={store}>
           <MemoryRouter>
-            <WorkspaceHeader idea={updatedIdea} onIdeaUpdate={onIdeaUpdate} />
+            <WorkspaceHeader
+                idea={updatedIdea}
+                onIdeaUpdate={onIdeaUpdate}
+                activeStep="brainstorm"
+                onStepChange={() => {}}
+                canAccessDocument={true}
+                canAccessReview={false}
+              />
           </MemoryRouter>
         </Provider>
       </QueryClientProvider>,

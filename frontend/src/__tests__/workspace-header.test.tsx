@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
@@ -49,23 +48,19 @@ import { patchIdea } from "@/api/ideas";
 // Radix Select uses pointer events; stub for jsdom
 beforeAll(async () => {
   await i18n.changeLanguage("en");
-  // jsdom doesn't support PointerEvent; stub it for Radix
   window.PointerEvent = class PointerEvent extends Event {
     constructor(type: string, props: PointerEventInit = {}) {
       super(type, props);
     }
   } as unknown as typeof PointerEvent;
-  // Radix Select Content uses ResizeObserver
   window.ResizeObserver = class {
     observe() {}
     unobserve() {}
     disconnect() {}
   } as unknown as typeof ResizeObserver;
-  // Radix Select Content expects hasPointerCapture/setPointerCapture
   Element.prototype.hasPointerCapture = () => false;
   Element.prototype.setPointerCapture = () => {};
   Element.prototype.releasePointerCapture = () => {};
-  // Radix relies on scrollIntoView
   Element.prototype.scrollIntoView = () => {};
 });
 
@@ -85,12 +80,18 @@ const MOCK_IDEA: Idea = {
   appended_idea_ref: null,
 };
 
-function renderHeader(props: Partial<{ idea: Idea; onIdeaUpdate: (idea: Idea) => void; readOnly: boolean }> = {}) {
+function renderHeader(props: Partial<{
+  idea: Idea;
+  onIdeaUpdate: (idea: Idea) => void;
+  readOnly: boolean;
+}> = {}) {
   const onIdeaUpdate = props.onIdeaUpdate ?? vi.fn();
+  const onStepChange = vi.fn();
   const store = configureStore({ reducer: { presence: presenceReducer } });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return {
     onIdeaUpdate,
+    onStepChange,
     ...render(
       <QueryClientProvider client={qc}>
         <Provider store={store}>
@@ -99,6 +100,10 @@ function renderHeader(props: Partial<{ idea: Idea; onIdeaUpdate: (idea: Idea) =>
               idea={props.idea ?? MOCK_IDEA}
               onIdeaUpdate={onIdeaUpdate}
               readOnly={props.readOnly ?? false}
+              activeStep="brainstorm"
+              onStepChange={onStepChange}
+              canAccessDocument={true}
+              canAccessReview={false}
             />
           </MemoryRouter>
         </Provider>
@@ -137,19 +142,16 @@ describe("T-1.6.01: title editable", () => {
     const onIdeaUpdate = vi.fn();
     renderHeader({ onIdeaUpdate });
 
-    // Click to edit
     fireEvent.click(screen.getByTestId("title-display"));
 
     const input = screen.getByTestId("title-input");
     fireEvent.change(input, { target: { value: "New Title" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    // Should optimistically update
     expect(onIdeaUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ title: "New Title" }),
     );
 
-    // Should call patchIdea
     await waitFor(() => {
       expect(patchIdea).toHaveBeenCalledWith(MOCK_IDEA.id, { title: "New Title" });
     });
@@ -163,7 +165,6 @@ describe("T-1.6.01: title editable", () => {
     fireEvent.change(input, { target: { value: "Changed" } });
     fireEvent.keyDown(input, { key: "Escape" });
 
-    // Should be back to display mode
     expect(screen.getByTestId("title-display")).toBeInTheDocument();
     expect(screen.queryByTestId("title-input")).not.toBeInTheDocument();
   });
@@ -173,7 +174,6 @@ describe("T-1.6.01: title editable", () => {
 
     fireEvent.click(screen.getByTestId("title-display"));
 
-    // Should NOT show input
     expect(screen.queryByTestId("title-input")).not.toBeInTheDocument();
   });
 });
@@ -185,7 +185,6 @@ describe("T-1.6.02: sets title_manually_edited", () => {
     const onIdeaUpdate = vi.fn();
     renderHeader({ onIdeaUpdate });
 
-    // Click to edit, change, save
     fireEvent.click(screen.getByTestId("title-display"));
     const input = screen.getByTestId("title-input");
     fireEvent.change(input, { target: { value: "Edited Title" } });
@@ -195,7 +194,6 @@ describe("T-1.6.02: sets title_manually_edited", () => {
       expect(patchIdea).toHaveBeenCalledWith(MOCK_IDEA.id, { title: "Edited Title" });
     });
 
-    // After PATCH resolves, should update with server response
     await waitFor(() => {
       expect(onIdeaUpdate).toHaveBeenCalledWith(updatedIdea);
     });
@@ -211,12 +209,10 @@ describe("T-1.6.02: sets title_manually_edited", () => {
     fireEvent.change(input, { target: { value: "Will Fail" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    // Optimistic update first
     expect(onIdeaUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Will Fail" }),
     );
 
-    // Then revert
     await waitFor(() => {
       expect(onIdeaUpdate).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Test Brainstorm" }),
@@ -227,8 +223,6 @@ describe("T-1.6.02: sets title_manually_edited", () => {
 
 describe("T-1.6.03: updates document.title", () => {
   it("title change via optimistic update flows to parent which sets document.title", async () => {
-    // This test verifies the header calls onIdeaUpdate with new title,
-    // which the parent (IdeaWorkspacePage) uses to set document.title
     const updatedIdea = { ...MOCK_IDEA, title: "Updated Doc Title" };
     vi.mocked(patchIdea).mockResolvedValue(updatedIdea);
     const onIdeaUpdate = vi.fn();
@@ -240,89 +234,38 @@ describe("T-1.6.03: updates document.title", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
-      // Verify the updated idea is passed to onIdeaUpdate
       expect(onIdeaUpdate).toHaveBeenCalledWith(updatedIdea);
     });
   });
 });
 
-describe("T-2.1.01: dropdown renders", () => {
-  it("renders agent mode select trigger with current value", () => {
+describe("Process stepper in header", () => {
+  it("renders the process stepper", () => {
     renderHeader();
 
-    const trigger = screen.getByTestId("agent-mode-trigger");
-    expect(trigger).toBeInTheDocument();
-    expect(trigger).toHaveTextContent("Interactive");
+    expect(screen.getByTestId("process-stepper")).toBeInTheDocument();
+    expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
+    expect(screen.getByTestId("step-document")).toBeInTheDocument();
+    expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });
 
-  it("renders with Silent when agent_mode is silent", () => {
-    renderHeader({ idea: { ...MOCK_IDEA, agent_mode: "silent" } });
+  it("shows state badge", () => {
+    renderHeader();
 
-    const trigger = screen.getByTestId("agent-mode-trigger");
-    expect(trigger).toHaveTextContent("Silent");
+    expect(screen.getByText("Open")).toBeInTheDocument();
   });
 
-  it("renders dropdown as disabled when readOnly", () => {
-    renderHeader({ readOnly: true });
+  it("calls onStepChange when clicking a step", () => {
+    const { onStepChange } = renderHeader();
 
-    const trigger = screen.getByTestId("agent-mode-trigger");
-    expect(trigger).toBeDisabled();
-  });
-});
+    fireEvent.click(screen.getByTestId("step-document"));
 
-describe("T-2.1.02: mode persists", () => {
-  it("calls patchIdea with agent_mode when dropdown value changes", async () => {
-    const user = userEvent.setup();
-    const updatedIdea = { ...MOCK_IDEA, agent_mode: "silent" as const };
-    vi.mocked(patchIdea).mockResolvedValue(updatedIdea);
-    const onIdeaUpdate = vi.fn();
-    renderHeader({ onIdeaUpdate });
-
-    // Open the select dropdown
-    const trigger = screen.getByTestId("agent-mode-trigger");
-    await user.click(trigger);
-
-    // Select "Silent" option
-    const silentOption = await screen.findByTestId("mode-silent");
-    await user.click(silentOption);
-
-    // Should have called onIdeaUpdate optimistically
-    await waitFor(() => {
-      expect(onIdeaUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ agent_mode: "silent" }),
-      );
-    });
-
-    // Should have called patchIdea
-    await waitFor(() => {
-      expect(patchIdea).toHaveBeenCalledWith(MOCK_IDEA.id, { agent_mode: "silent" });
-    });
+    expect(onStepChange).toHaveBeenCalledWith("document");
   });
 
-  it("reverts agent_mode on PATCH failure", async () => {
-    const user = userEvent.setup();
-    vi.mocked(patchIdea).mockRejectedValue(new Error("Server error"));
-    const onIdeaUpdate = vi.fn();
-    renderHeader({ onIdeaUpdate });
+  it("renders options menu trigger button", () => {
+    renderHeader();
 
-    const trigger = screen.getByTestId("agent-mode-trigger");
-    await user.click(trigger);
-
-    const silentOption = await screen.findByTestId("mode-silent");
-    await user.click(silentOption);
-
-    // Optimistic update first
-    await waitFor(() => {
-      expect(onIdeaUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ agent_mode: "silent" }),
-      );
-    });
-
-    // Then revert
-    await waitFor(() => {
-      expect(onIdeaUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ agent_mode: "interactive" }),
-      );
-    });
+    expect(screen.getByTestId("options-menu-trigger")).toBeInTheDocument();
   });
 });

@@ -19,6 +19,9 @@ vi.mock("@/components/workspace/WorkspaceHeader", () => ({
 vi.mock("@/components/workspace/ChatPanel", () => ({
   ChatPanel: () => <div data-testid="chat-panel">ChatPanel</div>,
 }));
+vi.mock("@/components/workspace/DocumentView", () => ({
+  DocumentView: () => <div data-testid="document-view">DocumentView</div>,
+}));
 vi.mock("@/components/workspace/InvitationBanner", () => ({
   InvitationBanner: () => null,
 }));
@@ -40,6 +43,11 @@ vi.mock("@/api/ideas", async () => {
     fetchIdea: mockFetchIdea,
   };
 });
+
+vi.mock("@/api/chat", () => ({
+  fetchChatMessages: vi.fn().mockResolvedValue({ messages: [], total: 0, limit: 1, offset: 0 }),
+  sendChatMessage: vi.fn(),
+}));
 
 vi.mock("@/api/review", async () => {
   const actual = await vi.importActual("@/api/review");
@@ -71,12 +79,12 @@ function makeIdea(state: Idea["state"]): Idea {
     updated_at: "2024-01-01T00:00:00Z",
     collaborators: [],
     merge_request_pending: null,
-  merged_idea_ref: null,
-  appended_idea_ref: null,
+    merged_idea_ref: null,
+    appended_idea_ref: null,
   };
 }
 
-function renderWorkspace(idea: Idea) {
+function renderWorkspace(idea: Idea, step?: string) {
   mockFetchIdea.mockResolvedValue(idea);
 
   const store = configureStore({
@@ -89,10 +97,14 @@ function renderWorkspace(idea: Idea) {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
+  const url = step
+    ? `/idea/${idea.id}?step=${step}`
+    : `/idea/${idea.id}`;
+
   return render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/idea/${idea.id}`]}>
+        <MemoryRouter initialEntries={[url]}>
           <Routes>
             <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
           </Routes>
@@ -106,83 +118,64 @@ beforeEach(() => {
   mockFetchIdea.mockReset();
   mockFetchTimeline.mockReset();
   mockFetchIdeaReviewers.mockReset();
-  // Set default mocks (individual tests can override before renderWorkspace)
   mockFetchTimeline.mockResolvedValue([]);
   mockFetchIdeaReviewers.mockResolvedValue({ reviewers: [] });
-  // Mock scrollIntoView since jsdom doesn't support it
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-describe("T-1.2.01: Review section hidden for never-submitted idea", () => {
-  it("does not render review section when state is open", async () => {
+describe("T-1.2.01: Review step not accessible for never-submitted idea", () => {
+  it("does not show review section when state is open (brainstorm step active)", async () => {
     renderWorkspace(makeIdea("open"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.queryByTestId("review-section-wrapper")).not.toBeInTheDocument();
+    // Should be on brainstorm step, review section not rendered
+    expect(screen.queryByTestId("review-section")).not.toBeInTheDocument();
   });
 });
 
-describe("T-1.2.02: Review section visible after first submission", () => {
-  it("renders review section when state is in_review", async () => {
+describe("T-1.2.02: Review step accessible after first submission", () => {
+  it("auto-navigates to review step when state is in_review", async () => {
     renderWorkspace(makeIdea("in_review"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("review-section-wrapper")).toBeInTheDocument();
     expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 
-  it("renders review section when state is accepted", async () => {
+  it("auto-navigates to review step when state is accepted", async () => {
     renderWorkspace(makeIdea("accepted"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("review-section-wrapper")).toBeInTheDocument();
+    expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 
-  it("renders review section when state is rejected", async () => {
+  it("shows brainstorm step when state is rejected (user can refine)", async () => {
     renderWorkspace(makeIdea("rejected"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("review-section-wrapper")).toBeInTheDocument();
+    // Rejected auto-navigates to brainstorm, but review step should be accessible
+    expect(screen.getByTestId("workspace-layout")).toBeInTheDocument();
   });
 
-  it("renders review section when state is dropped", async () => {
+  it("auto-navigates to review step when state is dropped", async () => {
     renderWorkspace(makeIdea("dropped"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("review-section-wrapper")).toBeInTheDocument();
-  });
-});
-
-describe("T-1.3.01: Auto-scroll on state transition", () => {
-  it("scrolls to review section when state becomes in_review", async () => {
-    const idea = makeIdea("in_review");
-    // Set initial prevState to something different to trigger scroll
-    renderWorkspace(idea);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
-    });
-
-    // scrollIntoView should be called for the review section on initial render
-    // since prevStateRef starts undefined and state is in_review
-    // Note: the first render where state is already in_review won't trigger
-    // because prevStateRef.current starts as the same state
-    // auto-scroll triggers when state *changes*, which requires re-render with new state
+    expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 });
 
@@ -212,7 +205,7 @@ describe("UI-REVIEW.03: Review section rendering with timeline", () => {
       expect(screen.getByTestId("review-section")).toBeInTheDocument();
     });
 
-    // Header: title in review section (also appears in mocked workspace header)
+    // Header: title in review section
     const reviewHeader = screen.getByTestId("review-section-header");
     expect(reviewHeader).toHaveTextContent("Test Idea");
     expect(screen.getByText("In Review")).toBeInTheDocument();

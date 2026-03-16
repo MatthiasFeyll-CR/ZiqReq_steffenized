@@ -33,9 +33,6 @@ vi.mock("@/components/chat/ChatInput", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/workspace/ReviewTab", () => ({
-  ReviewTab: () => <div data-testid="review-tab">ReviewTab</div>,
-}));
 vi.mock("@/components/review/ReviewSection", () => ({
   ReviewSection: () => <div data-testid="review-section">ReviewSection</div>,
 }));
@@ -73,6 +70,11 @@ vi.mock("@/api/ideas", async () => {
     fetchInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
   };
 });
+
+vi.mock("@/api/chat", () => ({
+  fetchChatMessages: vi.fn().mockResolvedValue({ messages: [], total: 0, limit: 1, offset: 0 }),
+  sendChatMessage: vi.fn(),
+}));
 
 import { fetchIdea } from "@/api/ideas";
 import IdeaWorkspacePage from "@/pages/IdeaWorkspace/index";

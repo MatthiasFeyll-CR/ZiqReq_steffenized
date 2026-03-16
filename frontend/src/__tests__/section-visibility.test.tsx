@@ -30,9 +30,6 @@ vi.mock("@/components/chat/ChatInput", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/workspace/ReviewTab", () => ({
-  ReviewTab: () => <div data-testid="review-tab">ReviewTab</div>,
-}));
 vi.mock("@/components/review/ReviewSection", () => ({
   ReviewSection: () => <div data-testid="review-section">ReviewSection</div>,
 }));
@@ -63,7 +60,7 @@ vi.mock("@/hooks/use-auth", () => ({
   AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));
 
-// Mock fetchIdea and fetchInvitations
+// Mock fetchIdea, fetchInvitations, and fetchChatMessages
 vi.mock("@/api/ideas", async () => {
   const actual = await vi.importActual("@/api/ideas");
   return {
@@ -72,6 +69,11 @@ vi.mock("@/api/ideas", async () => {
     fetchInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
   };
 });
+
+vi.mock("@/api/chat", () => ({
+  fetchChatMessages: vi.fn().mockResolvedValue({ messages: [], total: 0, limit: 1, offset: 0 }),
+  sendChatMessage: vi.fn(),
+}));
 
 import { fetchIdea } from "@/api/ideas";
 import IdeaWorkspacePage from "@/pages/IdeaWorkspace/index";
@@ -98,12 +100,12 @@ function makeIdea(state: Idea["state"]): Idea {
     updated_at: "2024-01-01T00:00:00Z",
     collaborators: [],
     merge_request_pending: null,
-  merged_idea_ref: null,
-  appended_idea_ref: null,
+    merged_idea_ref: null,
+    appended_idea_ref: null,
   };
 }
 
-function renderWorkspace(idea: Idea) {
+function renderWorkspace(idea: Idea, step?: string) {
   vi.mocked(fetchIdea).mockResolvedValue(idea);
   const store = configureStore({
     reducer: { presence: presenceReducer, websocket: websocketReducer },
@@ -112,10 +114,11 @@ function renderWorkspace(idea: Idea) {
     },
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const url = step ? `/idea/${idea.id}?step=${step}` : `/idea/${idea.id}`;
   return render(
     <QueryClientProvider client={qc}>
       <Provider store={store}>
-        <MemoryRouter initialEntries={[`/idea/${idea.id}`]}>
+        <MemoryRouter initialEntries={[url]}>
           <Routes>
             <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
           </Routes>
@@ -125,79 +128,51 @@ function renderWorkspace(idea: Idea) {
   );
 }
 
-describe("T-1.2.01: review visible for open state (BRD generation available)", () => {
-  it("shows Review tab when idea state is open", async () => {
+describe("T-1.2.01: process stepper renders with correct steps", () => {
+  it("shows process stepper with brainstorm step active by default", async () => {
     renderWorkspace(makeIdea("open"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("tab-board")).toBeInTheDocument();
-    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
+    expect(screen.getByTestId("process-stepper")).toBeInTheDocument();
+    expect(screen.getByTestId("step-brainstorm")).toHaveAttribute("aria-current", "step");
+  });
+
+  it("shows all three process steps", async () => {
+    renderWorkspace(makeIdea("open"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
+    expect(screen.getByTestId("step-document")).toBeInTheDocument();
+    expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });
 });
 
-describe("T-1.2.02: review visible after submit", () => {
-  it("shows Review tab when idea is in_review", async () => {
+describe("T-1.2.02: review step accessible after submit", () => {
+  it("auto-navigates to review step when idea is in_review", async () => {
     renderWorkspace(makeIdea("in_review"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
+    expect(screen.getByTestId("step-review")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 
-  it("shows Review tab when idea is rejected", async () => {
-    renderWorkspace(makeIdea("rejected"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
-    });
-
-    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
-  });
-
-  it("shows Review tab when idea is accepted", async () => {
+  it("auto-navigates to review step when idea is accepted", async () => {
     renderWorkspace(makeIdea("accepted"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
-  });
-});
-
-describe("T-1.2.03: review visibility persists across all states", () => {
-  const statesWithReview: Idea["state"][] = [
-    "in_review",
-    "accepted",
-    "dropped",
-    "rejected",
-  ];
-
-  for (const state of statesWithReview) {
-    it(`shows Review tab in ${state} state`, async () => {
-      renderWorkspace(makeIdea(state));
-
-      await waitFor(() => {
-        expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
-      });
-
-      expect(screen.getByTestId("tab-review")).toBeInTheDocument();
-    });
-  }
-
-  it("shows Review tab in open state (BRD generation)", async () => {
-    renderWorkspace(makeIdea("open"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
-    });
-
-    expect(screen.getByTestId("tab-review")).toBeInTheDocument();
+    expect(screen.getByTestId("step-review")).toHaveAttribute("aria-current", "step");
   });
 });
 
@@ -217,33 +192,27 @@ describe("T-1.4.01: open state — chat enabled, no lock overlay", () => {
   });
 });
 
-describe("T-1.4.02: in_review state — chat locked with overlay", () => {
-  it("shows lock overlay with explanation when idea is in_review", async () => {
+describe("T-1.4.02: in_review state — auto-navigated to review step", () => {
+  it("shows review section when idea is in_review", async () => {
     renderWorkspace(makeIdea("in_review"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("lock-overlay")).toBeInTheDocument();
-    expect(
-      screen.getByText("Chat is locked while the idea is under review."),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("chat-input")).toHaveAttribute(
-      "data-disabled",
-      "true",
-    );
+    expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 });
 
-describe("T-1.4.03: rejected state — chat enabled, no lock", () => {
-  it("does not show lock overlay when idea is rejected", async () => {
+describe("T-1.4.03: rejected state — auto-navigated to brainstorm, chat enabled", () => {
+  it("shows brainstorm view when idea is rejected", async () => {
     renderWorkspace(makeIdea("rejected"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
+    expect(screen.getByTestId("step-brainstorm")).toHaveAttribute("aria-current", "step");
     expect(screen.queryByTestId("lock-overlay")).not.toBeInTheDocument();
     expect(screen.getByTestId("chat-input")).toHaveAttribute(
       "data-disabled",
@@ -252,44 +221,28 @@ describe("T-1.4.03: rejected state — chat enabled, no lock", () => {
   });
 });
 
-describe("T-1.4.04: accepted state — all read-only with lock overlay", () => {
-  it("shows lock overlay when idea is accepted", async () => {
+describe("T-1.4.04: accepted state — review step with read-only", () => {
+  it("auto-navigates to review step when idea is accepted", async () => {
     renderWorkspace(makeIdea("accepted"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("lock-overlay")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "This idea has been accepted. All sections are read-only.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("chat-input")).toHaveAttribute(
-      "data-disabled",
-      "true",
-    );
+    expect(screen.getByTestId("step-review")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 });
 
-describe("T-1.4.05: dropped state — all read-only with lock overlay", () => {
-  it("shows lock overlay when idea is dropped", async () => {
+describe("T-1.4.05: dropped state — review step with read-only", () => {
+  it("auto-navigates to review step when idea is dropped", async () => {
     renderWorkspace(makeIdea("dropped"));
 
     await waitFor(() => {
       expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("lock-overlay")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "This idea has been dropped. All sections are read-only.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("chat-input")).toHaveAttribute(
-      "data-disabled",
-      "true",
-    );
+    expect(screen.getByTestId("step-review")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 });
