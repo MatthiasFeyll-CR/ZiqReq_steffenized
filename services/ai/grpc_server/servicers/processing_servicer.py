@@ -89,8 +89,8 @@ class AiProcessingServicer:
     async def _run_brd_pipeline(self, idea_id: str, mode: str, section_name: str) -> None:
         """Run BRD pipeline."""
         try:
-            from processing.brd_pipeline import BrdGenerationPipeline
             from events.publishers import publish_event
+            from processing.brd_pipeline import BrdGenerationPipeline
 
             pipeline = BrdGenerationPipeline()
             result = await pipeline.execute(

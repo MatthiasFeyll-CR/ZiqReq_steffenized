@@ -9,6 +9,7 @@ from typing import Any
 
 import grpc
 
+
 # Ensure proto directory is on sys.path for generated imports
 def _find_proto_dir() -> str:
     current = Path(__file__).resolve().parent

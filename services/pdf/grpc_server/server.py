@@ -12,6 +12,7 @@ import grpc
 
 from services.pdf.grpc_server.servicers.pdf_servicer import PdfServicer
 
+
 # Ensure proto directory is on sys.path for generated imports
 def _find_proto_dir() -> str:
     current = Path(__file__).resolve().parent

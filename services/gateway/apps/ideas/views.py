@@ -353,7 +353,7 @@ def context_window(request: Request, idea_id: str) -> Response:
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
+        Idea.objects.get(id=idea_id)
     except Idea.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Idea not found"},

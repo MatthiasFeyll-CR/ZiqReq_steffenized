@@ -137,6 +137,7 @@ def serve(port: int = DEFAULT_PORT) -> grpc.Server:
 
 if __name__ == "__main__":
     import os
+
     import django
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ai_service.settings.development")
     django.setup()

@@ -161,9 +161,9 @@ class CoreClient:
     def persist_ai_reaction(
         self, idea_id: str, message_id: str, reaction_type: str
     ) -> dict[str, Any]:
-        from django.db import connection
-
         import uuid
+
+        from django.db import connection
 
         reaction_id = str(uuid.uuid4())
         with connection.cursor() as cursor:
@@ -226,7 +226,11 @@ class CoreClient:
 
         if readiness_evaluation_json:
             try:
-                draft.readiness_evaluation = json.loads(readiness_evaluation_json) if isinstance(readiness_evaluation_json, str) else readiness_evaluation_json
+                draft.readiness_evaluation = (
+                    json.loads(readiness_evaluation_json)
+                    if isinstance(readiness_evaluation_json, str)
+                    else readiness_evaluation_json
+                )
             except (json.JSONDecodeError, TypeError):
                 draft.readiness_evaluation = {}
             update_fields.append("readiness_evaluation")

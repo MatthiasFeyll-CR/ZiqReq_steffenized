@@ -16,6 +16,7 @@ from services.pdf.generator.renderer import (
     validate_no_todo_markers,
 )
 
+
 # Ensure proto directory is on sys.path for generated imports
 def _find_proto_dir() -> str:
     current = Path(__file__).resolve().parent

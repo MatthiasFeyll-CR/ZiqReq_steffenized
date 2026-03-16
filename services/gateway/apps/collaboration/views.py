@@ -201,7 +201,11 @@ def send_invitation(request: Request, idea_id: str) -> Response:
             results.append({"invitee_id": str(invitee_uuid), "status": "error", "message": "Already a collaborator"})
             continue
         if invitee_uuid in existing_pending:
-            results.append({"invitee_id": str(invitee_uuid), "status": "error", "message": "Pending invitation already exists"})
+            results.append({
+                "invitee_id": str(invitee_uuid),
+                "status": "error",
+                "message": "Pending invitation already exists",
+            })
             continue
 
         invitation = CollaborationInvitation.objects.create(
