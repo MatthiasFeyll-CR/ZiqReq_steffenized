@@ -30,7 +30,6 @@ def soft_delete_cleanup() -> dict:
     if count:
         # Related tables use bare UUIDFields (not Django ForeignKeys),
         # so we must delete associated records manually.
-        from apps.board.models import BoardConnection, BoardNode
         from apps.brd.models import BrdDraft, BrdVersion
         from apps.chat.models import AiReaction, ChatMessage, UserReaction
         from apps.collaboration.models import CollaborationInvitation
@@ -45,8 +44,6 @@ def soft_delete_cleanup() -> dict:
             UserReaction.objects.filter(message_id__in=message_ids).delete()
 
         ChatMessage.objects.filter(idea_id__in=idea_ids).delete()
-        BoardConnection.objects.filter(idea_id__in=idea_ids).delete()
-        BoardNode.objects.filter(idea_id__in=idea_ids).delete()
         BrdDraft.objects.filter(idea_id__in=idea_ids).delete()
         BrdVersion.objects.filter(idea_id__in=idea_ids).delete()
         CollaborationInvitation.objects.filter(idea_id__in=idea_ids).delete()

@@ -45,7 +45,6 @@ BINDING_KEYS = [
     "ai.title.updated",
     "ai.processing.complete",
     "ai.brd.ready",
-    "ai.board.updated",
 ]
 
 RECONNECT_DELAY = 5  # seconds

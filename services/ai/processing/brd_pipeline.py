@@ -191,7 +191,6 @@ class BrdGenerationPipeline:
         idea_context = self.core_client.get_idea_context(
             idea_id,
             recent_message_limit=20,
-            include_board=True,
             include_brd_draft=True,
         )
 
@@ -221,7 +220,6 @@ class BrdGenerationPipeline:
             chat_summary = chat_summary_data.get("summary_text", "")
 
         recent_messages = idea_context.get("recent_messages", [])
-        board_state = idea_context.get("board_state", {"nodes": [], "connections": []})
 
         # Extract locked sections and gaps toggle from BRD draft
         section_locks = brd_draft.get("section_locks", {})
@@ -234,7 +232,6 @@ class BrdGenerationPipeline:
             "mode": mode,
             "chat_summary": chat_summary,
             "recent_messages": recent_messages,
-            "board_state": board_state,
             "locked_sections": locked_sections,
             "allow_information_gaps": allow_information_gaps,
             "section_name": section_name,
@@ -266,10 +263,9 @@ class BrdGenerationPipeline:
             chat_summary = chat_summary_data.get("summary_text", "")
 
         recent_messages = idea_context.get("recent_messages", [])
-        board_state = idea_context.get("board_state", {"nodes": [], "connections": []})
 
         source_material = build_source_material(
-            chat_summary, recent_messages, board_state,
+            chat_summary, recent_messages,
         )
 
         # Extract only section fields for validation

@@ -129,7 +129,6 @@ class AiProcessingServicer:
             "total_output_tokens": 0,
             "delegation_count": 0,
             "compression_count": 0,
-            "board_agent_count": 0,
             "error_count": 0,
             "abort_count": 0,
             "extension_count": 0,

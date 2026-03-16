@@ -31,7 +31,6 @@ _EVENT_HANDLERS = {
     "ai.title.updated": "_handle_title_update",
     "ai.processing.complete": "_handle_processing_complete",
     "ai.brd.ready": "_handle_brd_ready",
-    "ai.board.updated": "_handle_board_updated",
 }
 
 
@@ -195,31 +194,6 @@ class AIEventConsumer:
         }
 
         await self._broadcast(idea_id, "brd_ready", payload)
-
-    async def _handle_board_updated(self, event: dict[str, Any]) -> None:
-        """ai.board.updated → persist board mutations + broadcast board_update."""
-        idea_id = event["idea_id"]
-        mutation = event.get("mutation", {})
-        mutations = event.get("mutations", [])
-
-        # Build full mutations list from both singular and plural fields
-        all_mutations = list(mutations)
-        if mutation:
-            all_mutations.append(mutation)
-
-        if all_mutations:
-            self._core_client.persist_board_mutations(
-                idea_id=idea_id,
-                mutations=all_mutations,
-            )
-
-        payload = {
-            "idea_id": idea_id,
-            "mutation": mutation,
-            "mutations": mutations,
-        }
-
-        await self._broadcast(idea_id, "board_update", payload)
 
     async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
         """ai.processing.complete → broadcast ai_processing {state: completed}.

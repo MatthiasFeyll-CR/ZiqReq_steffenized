@@ -25,7 +25,6 @@ from processing.fabrication_validator import (
 def _make_idea_context(
     chat_summary: str = "Users discussed automating invoice processing for AP department.",
     recent_messages: list | None = None,
-    board_state: dict | None = None,
 ) -> dict:
     """Build a mock idea context response."""
     if recent_messages is None:
@@ -34,14 +33,6 @@ def _make_idea_context(
             {"sender_type": "ai", "ai_agent": "facilitator", "content": "What departments are involved?"},
             {"sender_type": "user", "content": "Accounts Payable and Finance."},
         ]
-    if board_state is None:
-        board_state = {
-            "nodes": [
-                {"node_type": "box", "title": "Invoice Upload", "body": "OCR extraction"},
-                {"node_type": "box", "title": "Approval Flow", "body": "Digital routing"},
-            ],
-            "connections": [],
-        }
 
     chat_summary_data = None
     if chat_summary:
@@ -51,7 +42,6 @@ def _make_idea_context(
         "idea": {"title": "Invoice Automation", "state": "open"},
         "chat_summary": chat_summary_data,
         "recent_messages": recent_messages,
-        "board_state": board_state,
     }
 
 
@@ -213,25 +203,18 @@ class TestKeywordExtraction:
 
 
 class TestBuildSourceMaterial:
-    def test_combines_chat_and_board(self):
+    def test_combines_chat_summary_and_messages(self):
         source = build_source_material(
             chat_summary="Users want invoice automation.",
             recent_messages=[
                 {"content": "Automate AP department."},
             ],
-            board_state={
-                "nodes": [
-                    {"title": "OCR Upload", "body": "Extract data"},
-                ],
-            },
         )
         assert "invoice automation" in source
         assert "Automate AP department" in source
-        assert "OCR Upload" in source
-        assert "Extract data" in source
 
     def test_empty_inputs(self):
-        source = build_source_material("", [], {"nodes": []})
+        source = build_source_material("", [])
         assert source == ""
 
 
@@ -242,7 +225,7 @@ class TestContextAssembly:
     """T-4.1.03: Context assembly includes all required fields."""
 
     def test_assembles_all_fields(self):
-        """Pipeline assembles chat_summary, recent_messages, board_state, locked_sections, allow_information_gaps."""
+        """Pipeline assembles chat_summary, recent_messages, locked_sections, allow_information_gaps."""
         pipeline = BrdGenerationPipeline()
 
         context_data = {
@@ -260,7 +243,6 @@ class TestContextAssembly:
         assert input_data["mode"] == "full_generation"
         assert "invoice processing" in input_data["chat_summary"].lower()
         assert len(input_data["recent_messages"]) == 3
-        assert len(input_data["board_state"]["nodes"]) == 2
         assert "title" in input_data["locked_sections"]
         assert "core_capabilities" not in input_data["locked_sections"]
         assert input_data["allow_information_gaps"] is True
@@ -273,7 +255,6 @@ class TestContextAssembly:
             "idea_context": {
                 "chat_summary": None,
                 "recent_messages": [],
-                "board_state": {"nodes": [], "connections": []},
             },
             "brd_draft": _make_brd_draft(),
         }

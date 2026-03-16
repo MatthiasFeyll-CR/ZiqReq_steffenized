@@ -21,7 +21,6 @@ class CoreClient:
         self,
         idea_id: str,
         recent_message_limit: int = 0,
-        include_board: bool = False,
         include_brd_draft: bool = False,
     ) -> dict[str, Any]:
         from django.db import connection

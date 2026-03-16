@@ -152,7 +152,6 @@ class AiClient:
             "total_output_tokens": response.total_output_tokens,
             "delegation_count": response.delegation_count,
             "compression_count": response.compression_count,
-            "board_agent_count": response.board_agent_count,
             "error_count": response.error_count,
             "abort_count": response.abort_count,
             "extension_count": response.extension_count,

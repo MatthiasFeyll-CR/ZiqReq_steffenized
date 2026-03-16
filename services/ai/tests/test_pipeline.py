@@ -50,7 +50,6 @@ def _mock_core_client(idea_context: dict | None = None) -> MagicMock:
                 "has_ai_reaction": False,
             },
         ],
-        "board_state": {"nodes": [], "connections": []},
         "chat_summary": None,
         "facilitator_bucket_content": "",
     }
@@ -677,8 +676,7 @@ class TestContextAssembler:
             "recent_messages": [
                 {"id": "msg-1", "content": "Hello", "sender_type": "user"},
             ],
-            "board_state": {"nodes": [], "connections": []},
-            "chat_summary": "Previous discussion about workflows.",
+                "chat_summary": "Previous discussion about workflows.",
             "facilitator_bucket_content": "SAP, DocuSign",
         }
 

@@ -234,69 +234,12 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             except Exception:
                 logger.exception("Error broadcasting offline presence for user=%s group=%s", self.user_id, group_name)
 
-    # ---- Board awareness (ephemeral, no persistence) ----
-
-    async def handle_board_selection(self, content: dict) -> None:
-        """Broadcast node selection/deselection to idea group (excluding sender)."""
-        idea_id = content.get("idea_id")
-        if not idea_id:
-            await self.send_json({"type": "error", "payload": {"message": "Missing idea_id"}})
-            return
-
-        group_name = f"idea_{idea_id}"
-        if group_name not in self.subscribed_groups:
-            await self.send_json({"type": "error", "payload": {"message": "Not subscribed to idea"}})
-            return
-
-        payload = content.get("payload", {})
-        await self.channel_layer.group_send(
-            group_name,
-            {
-                "type": "board_selection",
-                "idea_id": idea_id,
-                "payload": {
-                    "node_id": payload.get("node_id"),
-                    "user": {
-                        "id": self.user_id,
-                        "display_name": self.user_display_name,
-                    },
-                },
-                "sender_channel": self.channel_name,
-            },
-        )
-
     # ---- Group message handlers (forwarded to WebSocket clients) ----
 
     async def chat_message(self, event: dict) -> None:
         """Forward chat.message.created group_send to the WebSocket client."""
         await self.send_json({
             "type": "chat_message",
-            "idea_id": event["idea_id"],
-            "payload": event["payload"],
-        })
-
-    async def board_update(self, event: dict) -> None:
-        """Forward board_update group_send to the WebSocket client."""
-        await self.send_json({
-            "type": "board_update",
-            "idea_id": event["idea_id"],
-            "payload": event["payload"],
-        })
-
-    async def board_selection(self, event: dict) -> None:
-        """Forward board_selection to all subscribers except the sender."""
-        if event.get("sender_channel") == self.channel_name:
-            return
-        await self.send_json({
-            "type": "board_selection",
-            "idea_id": event["idea_id"],
-            "payload": event["payload"],
-        })
-
-    async def board_lock_change(self, event: dict) -> None:
-        """Forward board_lock_change group_send to the WebSocket client."""
-        await self.send_json({
-            "type": "board_lock_change",
             "idea_id": event["idea_id"],
             "payload": event["payload"],
         })

@@ -110,7 +110,7 @@ class AiMetricsRequest(_message.Message):
     def __init__(self, time_range: _Optional[str] = ...) -> None: ...
 
 class AiMetricsResponse(_message.Message):
-    __slots__ = ("processing_count", "success_rate", "latency_p50_ms", "latency_p95_ms", "total_input_tokens", "total_output_tokens", "delegation_count", "compression_count", "board_agent_count", "error_count", "abort_count", "extension_count")
+    __slots__ = ("processing_count", "success_rate", "latency_p50_ms", "latency_p95_ms", "total_input_tokens", "total_output_tokens", "delegation_count", "compression_count", "error_count", "abort_count", "extension_count")
     PROCESSING_COUNT_FIELD_NUMBER: _ClassVar[int]
     SUCCESS_RATE_FIELD_NUMBER: _ClassVar[int]
     LATENCY_P50_MS_FIELD_NUMBER: _ClassVar[int]
@@ -119,7 +119,6 @@ class AiMetricsResponse(_message.Message):
     TOTAL_OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     DELEGATION_COUNT_FIELD_NUMBER: _ClassVar[int]
     COMPRESSION_COUNT_FIELD_NUMBER: _ClassVar[int]
-    BOARD_AGENT_COUNT_FIELD_NUMBER: _ClassVar[int]
     ERROR_COUNT_FIELD_NUMBER: _ClassVar[int]
     ABORT_COUNT_FIELD_NUMBER: _ClassVar[int]
     EXTENSION_COUNT_FIELD_NUMBER: _ClassVar[int]
@@ -131,8 +130,7 @@ class AiMetricsResponse(_message.Message):
     total_output_tokens: int
     delegation_count: int
     compression_count: int
-    board_agent_count: int
     error_count: int
     abort_count: int
     extension_count: int
-    def __init__(self, processing_count: _Optional[int] = ..., success_rate: _Optional[float] = ..., latency_p50_ms: _Optional[float] = ..., latency_p95_ms: _Optional[float] = ..., total_input_tokens: _Optional[int] = ..., total_output_tokens: _Optional[int] = ..., delegation_count: _Optional[int] = ..., compression_count: _Optional[int] = ..., board_agent_count: _Optional[int] = ..., error_count: _Optional[int] = ..., abort_count: _Optional[int] = ..., extension_count: _Optional[int] = ...) -> None: ...
+    def __init__(self, processing_count: _Optional[int] = ..., success_rate: _Optional[float] = ..., latency_p50_ms: _Optional[float] = ..., latency_p95_ms: _Optional[float] = ..., total_input_tokens: _Optional[int] = ..., total_output_tokens: _Optional[int] = ..., delegation_count: _Optional[int] = ..., compression_count: _Optional[int] = ..., error_count: _Optional[int] = ..., abort_count: _Optional[int] = ..., extension_count: _Optional[int] = ...) -> None: ...

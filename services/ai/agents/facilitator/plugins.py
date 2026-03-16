@@ -232,25 +232,6 @@ class FacilitatorPlugin:
             return False
 
 
-def _validate_board_refs(content: str, board_state: dict[str, Any]) -> str:
-    """Validate [[Item Title]] references against board state.
-
-    Invalid references are stripped to plain text (brackets removed).
-    """
-    import re
-
-    nodes = board_state.get("nodes", [])
-    node_titles = {n.get("title", "") for n in nodes if n.get("title")}
-
-    def _replace(match: re.Match[str]) -> str:
-        title = match.group(1)
-        if title in node_titles:
-            return match.group(0)  # valid — keep [[Title]]
-        return title  # invalid — strip brackets
-
-    return re.sub(r"\[\[([^\]]+)\]\]", _replace, content)
-
-
 def _find_message(
     messages: list[dict[str, Any]], message_id: str
 ) -> dict[str, Any] | None:

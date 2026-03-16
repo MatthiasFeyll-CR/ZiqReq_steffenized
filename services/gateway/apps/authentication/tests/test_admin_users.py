@@ -9,7 +9,6 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.board.models import BoardNode
 from apps.ideas.models import ChatMessage, Idea
 from apps.review.models import ReviewTimelineEntry
 
@@ -154,28 +153,6 @@ class TestAdminUsersSearch(TestCase):
         ChatMessage.objects.create(
             id=uuid.uuid4(), idea_id=idea.id, sender_type="ai",
             sender_id=None, content="AI response",
-        )
-        response = self.client.get("/api/admin/users/search", {"q": "alice"})
-        data = response.json()
-        assert data[0]["contribution_count"] >= 2
-
-    def test_contribution_count_board_nodes(self):
-        """contribution_count includes board nodes created by user on their ideas."""
-        idea = Idea.objects.create(
-            id=uuid.uuid4(), title="Idea", owner_id=self.alice.id,
-        )
-        BoardNode.objects.create(
-            id=uuid.uuid4(), idea_id=idea.id, node_type="box",
-            title="Node 1", created_by="user",
-        )
-        BoardNode.objects.create(
-            id=uuid.uuid4(), idea_id=idea.id, node_type="box",
-            title="Node 2", created_by="user",
-        )
-        # AI-created nodes should not count
-        BoardNode.objects.create(
-            id=uuid.uuid4(), idea_id=idea.id, node_type="box",
-            title="AI Node", created_by="ai",
         )
         response = self.client.get("/api/admin/users/search", {"q": "alice"})
         data = response.json()
