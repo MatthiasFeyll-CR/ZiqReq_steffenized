@@ -109,16 +109,6 @@ class TestAdminUsersSearch(TestCase):
         data = response.json()
         assert data[0]["idea_count"] == 2
 
-    def test_idea_count_co_owner(self):
-        """idea_count counts ideas where user is co_owner."""
-        Idea.objects.create(
-            id=uuid.uuid4(), title="Idea 1", owner_id=self.admin.id,
-            co_owner_id=self.alice.id,
-        )
-        response = self.client.get("/api/admin/users/search", {"q": "alice"})
-        data = response.json()
-        assert data[0]["idea_count"] == 1
-
     def test_idea_count_excludes_deleted(self):
         """idea_count excludes soft-deleted ideas."""
         from django.utils import timezone

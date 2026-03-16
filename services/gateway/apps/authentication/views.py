@@ -176,7 +176,6 @@ NOTIFICATION_PREFERENCE_CATEGORIES: dict[str, dict[str, list[str]]] = {
             "idea_submitted",
             "idea_assigned",
             "idea_resubmitted",
-            "append_request_received",
         ],
     },
     "Admin": {
@@ -285,7 +284,6 @@ def admin_users_search(request: Request) -> Response:
     from django.db.models import Count, IntegerField, OuterRef, Subquery
     from django.db.models.functions import Coalesce
 
-    from apps.board.models import BoardNode
     from apps.ideas.models import ChatMessage, Idea
     from apps.review.models import ReviewTimelineEntry
 
@@ -295,14 +293,14 @@ def admin_users_search(request: Request) -> Response:
     if query:
         qs = qs.filter(Q(display_name__icontains=query) | Q(email__icontains=query))
 
-    # Subquery: idea_count = ideas where owner_id=user OR co_owner_id=user
+    # Subquery: idea_count = ideas where owner_id=user
     idea_count_sq = (
         Idea.objects.filter(
-            Q(owner_id=OuterRef("pk")) | Q(co_owner_id=OuterRef("pk")),
+            owner_id=OuterRef("pk"),
             deleted_at__isnull=True,
         )
         .order_by()
-        .values("owner_id")  # dummy group-by column
+        .values("owner_id")
         .annotate(cnt=Count("id"))
         .values("cnt")
     )
@@ -325,24 +323,10 @@ def admin_users_search(request: Request) -> Response:
         .values("cnt")
     )
 
-    # Subquery: board_node_count = board_nodes where created_by='user' AND idea is owned by user
-    user_idea_ids = Idea.objects.filter(
-        Q(owner_id=OuterRef(OuterRef("pk"))) | Q(co_owner_id=OuterRef(OuterRef("pk"))),
-        deleted_at__isnull=True,
-    ).values("id")
-    board_count_sq = (
-        BoardNode.objects.filter(created_by="user", idea_id__in=user_idea_ids)
-        .order_by()
-        .values("created_by")
-        .annotate(cnt=Count("id"))
-        .values("cnt")
-    )
-
     qs = qs.annotate(
         idea_count=Coalesce(Subquery(idea_count_sq, output_field=IntegerField()), 0),
         review_count=Coalesce(Subquery(review_count_sq, output_field=IntegerField()), 0),
         _chat_count=Coalesce(Subquery(chat_count_sq, output_field=IntegerField()), 0),
-        _board_count=Coalesce(Subquery(board_count_sq, output_field=IntegerField()), 0),
     ).order_by("display_name")
 
     results = []
@@ -356,7 +340,7 @@ def admin_users_search(request: Request) -> Response:
             "roles": u.roles,
             "idea_count": u.idea_count,
             "review_count": u.review_count,
-            "contribution_count": u._chat_count + u._board_count,
+            "contribution_count": u._chat_count,
         })
 
     return Response(results)

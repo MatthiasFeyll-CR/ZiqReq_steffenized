@@ -99,18 +99,6 @@ class TestReviewAssignment(TestCase):
         assert response.status_code == 400
         assert response.json()["error"] == "CONFLICT_OF_INTEREST"
 
-    def test_conflict_of_interest_co_owner(self):
-        """Conflict of interest check also covers co_owner_id."""
-        co_owned_idea = Idea.objects.create(
-            owner_id=self.owner.id,
-            co_owner_id=self.reviewer1.id,
-            state="in_review",
-            title="Co-owned Idea",
-        )
-
-        response = self.client.post(self._assign_url(co_owned_idea.id), {}, format="json")
-        assert response.status_code == 400
-        assert response.json()["error"] == "CONFLICT_OF_INTEREST"
 
     # --- API-REVIEW.03: Conflict of interest (same as T-10.4.01) ---
 

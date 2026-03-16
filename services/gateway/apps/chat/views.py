@@ -145,10 +145,8 @@ def _get_idea_or_error(idea_id: str):
 
 
 def _check_access(user, idea) -> bool:
-    """Check if user has access to idea (owner, co-owner, or collaborator)."""
+    """Check if user has access to idea (owner or collaborator)."""
     if idea.owner_id == user.id:
-        return True
-    if idea.co_owner_id == user.id:
         return True
     return IdeaCollaborator.objects.filter(
         idea_id=idea.id, user_id=user.id

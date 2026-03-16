@@ -81,10 +81,10 @@ def submit_idea(request: Request, idea_id: str) -> Response:
     if error:
         return error
 
-    # Access control: only owner or co-owner
-    if idea.owner_id != user.id and idea.co_owner_id != user.id:
+    # Access control: only owner
+    if idea.owner_id != user.id:
         return Response(
-            {"error": "ACCESS_DENIED", "message": "Only owner or co-owner can submit"},
+            {"error": "ACCESS_DENIED", "message": "Only owner can submit"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -267,7 +267,7 @@ def assign_review(request: Request, idea_id: str) -> Response:
         )
 
     # Conflict of interest: reviewer cannot assign to own idea
-    if user.id == idea.owner_id or user.id == idea.co_owner_id:
+    if user.id == idea.owner_id:
         return Response(
             {"error": "CONFLICT_OF_INTEREST", "message": "Cannot review your own idea"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -413,18 +413,6 @@ def _handle_review_action(request: Request, idea_id: str, action: str) -> Respon
         reference_id=str(idea.id),
         reference_type="idea",
     )
-    # Also notify co-owner if present
-    if idea.co_owner_id and idea.co_owner_id != idea.owner_id:
-        _publish_notification(
-            routing_key="notification.review.state_changed",
-            user_id=str(idea.co_owner_id),
-            event_type="review_state_changed",
-            title=f"Idea {action.capitalize()}ed",
-            body=f'"{idea.title}" was {action}ed by {user.display_name}',
-            reference_id=str(idea.id),
-            reference_type="idea",
-        )
-
     return Response({"state": new_state})
 
 
@@ -515,7 +503,6 @@ def list_reviews(request: Request) -> Response:
             "title": idea.title,
             "state": idea.state,
             "owner_id": str(idea.owner_id),
-            "co_owner_id": str(idea.co_owner_id) if idea.co_owner_id else None,
             "owner_name": owner.display_name if owner else "",
             "submitted_at": idea.updated_at.isoformat() if idea.updated_at else None,
             "reviewers": reviewer_info,
@@ -679,18 +666,6 @@ def _post_timeline_comment(request: Request, idea: Idea, user) -> Response:
             reference_id=str(idea.id),
             reference_type="idea",
         )
-    # Also notify co-owner if present and not the commenter
-    if idea.co_owner_id and idea.co_owner_id != user.id:
-        _publish_notification(
-            routing_key="notification.review.comment",
-            user_id=str(idea.co_owner_id),
-            event_type="review_comment",
-            title="New Review Comment",
-            body=f'{user.display_name} commented on "{idea.title}"',
-            reference_id=str(idea.id),
-            reference_type="idea",
-        )
-
     author_map = {user.id: user}
     data = _serialize_timeline_entry(entry, author_map)
     return Response(data, status=status.HTTP_201_CREATED)

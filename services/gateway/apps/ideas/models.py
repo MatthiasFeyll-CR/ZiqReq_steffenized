@@ -27,7 +27,6 @@ class Idea(models.Model):
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default="private")
     agent_mode = models.CharField(max_length=20, choices=AGENT_MODE_CHOICES, default="interactive")
     owner_id = models.UUIDField()
-    co_owner_id = models.UUIDField(null=True, blank=True)
     share_link_token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -44,19 +44,8 @@ class TestListCollaborators(TestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["owner"]["id"] == str(self.owner.id)
-        assert data["co_owner"] is None
         assert len(data["collaborators"]) == 1
         assert data["collaborators"][0]["id"] == str(self.collab.id)
-
-    def test_list_with_co_owner(self):
-        co_owner = _create_user(USER_3_ID, "coowner@test.local", "CoOwner User")
-        self.idea.co_owner_id = co_owner.id
-        self.idea.save(update_fields=["co_owner_id"])
-
-        response = self.client.get(f"/api/ideas/{self.idea.id}/collaborators")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["co_owner"]["id"] == str(co_owner.id)
 
     def test_idea_not_found(self):
         response = self.client.get(f"/api/ideas/{uuid.uuid4()}/collaborators")
@@ -183,24 +172,11 @@ class TestLeaveIdea(TestCase):
             idea_id=self.idea.id, user_id=self.collab.id
         ).exists()
 
-    def test_single_owner_cannot_leave(self):
-        """T-8.4.01: Single owner (no co-owner) gets 400."""
+    def test_owner_cannot_leave(self):
+        """Owner gets 400 when trying to leave."""
         _login(self.client, self.owner.id)
         response = self.client.post(f"/api/ideas/{self.idea.id}/leave")
         assert response.status_code == 400
-
-    def test_co_owner_can_leave(self):
-        """T-8.4.02: Co-owner can leave, co_owner_id set to NULL."""
-        co_owner = _create_user(USER_3_ID, "coowner@test.local", "CoOwner User")
-        self.idea.co_owner_id = co_owner.id
-        self.idea.save(update_fields=["co_owner_id"])
-
-        _login(self.client, co_owner.id)
-        response = self.client.post(f"/api/ideas/{self.idea.id}/leave")
-        assert response.status_code == 200
-
-        self.idea.refresh_from_db()
-        assert self.idea.co_owner_id is None
 
     def test_non_collaborator_cannot_leave(self):
         other = _create_user(USER_4_ID, "other@test.local", "Other User")

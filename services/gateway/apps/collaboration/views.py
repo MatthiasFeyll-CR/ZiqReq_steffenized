@@ -460,8 +460,6 @@ def list_collaborators(request: Request, idea_id: str) -> Response:
 
     # Batch-load all relevant users
     user_ids = {idea.owner_id}
-    if idea.co_owner_id:
-        user_ids.add(idea.co_owner_id)
 
     collab_entries = IdeaCollaborator.objects.filter(idea_id=idea_uuid)
     for c in collab_entries:
@@ -479,11 +477,6 @@ def list_collaborators(request: Request, idea_id: str) -> Response:
     owner_user = users_map.get(idea.owner_id)
     owner_data = _user_dict(owner_user) if owner_user else {"id": str(idea.owner_id)}
 
-    co_owner_data = None
-    if idea.co_owner_id:
-        co_owner_user = users_map.get(idea.co_owner_id)
-        co_owner_data = _user_dict(co_owner_user) if co_owner_user else {"id": str(idea.co_owner_id)}
-
     collaborators_data = []
     for c in collab_entries:
         u = users_map.get(c.user_id)
@@ -493,7 +486,6 @@ def list_collaborators(request: Request, idea_id: str) -> Response:
 
     return Response({
         "owner": owner_data,
-        "co_owner": co_owner_data,
         "collaborators": collaborators_data,
     })
 
@@ -692,38 +684,12 @@ def leave_idea(request: Request, idea_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # Single owner cannot leave
-    if idea.owner_id == user.id and idea.co_owner_id is None:
+    # Owner cannot leave their own idea
+    if idea.owner_id == user.id:
         return Response(
-            {"error": "BAD_REQUEST", "message": "Single owner cannot leave without transferring ownership"},
+            {"error": "BAD_REQUEST", "message": "Owner cannot leave without transferring ownership"},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
-    # Co-owner leaves: set co_owner_id to NULL
-    if idea.co_owner_id == user.id:
-        idea.co_owner_id = None
-        idea.save(update_fields=["co_owner_id"])
-        # System event for comment timeline
-        try:
-            from apps.comments.system_events import on_collaborator_left
-            on_collaborator_left(str(idea_uuid), user.display_name)
-        except Exception:
-            logger.exception("Failed to create collaborator_left system event")
-        # Notify owner
-        left_kwargs = dict(
-            event_type="collaborator_left",
-            title="Collaborator Left",
-            body=f"{user.display_name} left \"{idea.title}\"",
-            reference_id=str(idea_uuid),
-            reference_type="idea",
-        )
-        _publish_notification(
-            routing_key="notification.collaboration.left",
-            user_id=str(idea.owner_id),
-            **left_kwargs,
-        )
-        _broadcast_user_notification(str(idea.owner_id), **left_kwargs)
-        return Response({"message": "You have left the idea"})
 
     # Regular collaborator leaves
     deleted_count, _ = IdeaCollaborator.objects.filter(

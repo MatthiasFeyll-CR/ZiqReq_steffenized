@@ -52,12 +52,11 @@ def _check_idea_access(idea_id: str, user_id, request=None) -> tuple:
         return None, False, False
 
     is_owner = idea.owner_id == user_id
-    is_co_owner = idea.co_owner_id == user_id
     is_collaborator = IdeaCollaborator.objects.filter(
         idea_id=idea.id, user_id=user_id
     ).exists()
 
-    has_access = is_owner or is_co_owner or is_collaborator
+    has_access = is_owner or is_collaborator
 
     # Share-link users: the ShareLinkMiddleware validates the token and either
     # adds 'share_link_viewer' to user.roles or sets request.share_link_viewer.
@@ -69,7 +68,7 @@ def _check_idea_access(idea_id: str, user_id, request=None) -> tuple:
         elif getattr(request, "share_link_viewer", False):
             has_access = True
 
-    is_privileged = is_owner or is_co_owner or is_collaborator
+    is_privileged = is_owner or is_collaborator
     return idea, has_access, is_privileged
 
 

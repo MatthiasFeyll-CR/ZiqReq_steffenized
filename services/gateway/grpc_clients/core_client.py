@@ -40,7 +40,6 @@ class CoreClient:
             "state": idea.state,
             "agent_mode": idea.agent_mode,
             "owner_display_name": "",
-            "co_owner_display_name": "",
         }
 
         recent_messages = []

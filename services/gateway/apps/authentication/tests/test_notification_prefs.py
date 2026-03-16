@@ -45,11 +45,10 @@ class TestGetNotificationPreferences(TestCase):
         data = response.json()
         assert "categories" in data
         cats = data["categories"]
-        # Regular user sees Collaboration, Review, Chat, Similarity (not Admin, not Review Management)
+        # Regular user sees Collaboration, Review, Chat (not Admin, not Review Management)
         assert "Collaboration" in cats
         assert "Review" in cats
         assert "Chat" in cats
-        assert "Similarity" in cats
         assert "Admin" not in cats
         assert "Review Management" not in cats
         # All values default to True

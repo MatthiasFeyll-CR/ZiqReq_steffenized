@@ -401,55 +401,6 @@ class CoreClient:
         logger.info("Deleted board connection %s", connection_id)
         return {"success": True}
 
-    # ── Keywords & embeddings ──
-
-    def upsert_keywords(
-        self,
-        idea_id: str,
-        keywords: list[str],
-    ) -> dict[str, Any]:
-        """Persist keywords for an idea (insert or update)."""
-        from django.db import connection as db_conn
-
-        try:
-            with db_conn.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO idea_keywords (id, idea_id, keywords, last_updated_at) "
-                    "VALUES (gen_random_uuid(), %s, %s, NOW()) "
-                    "ON CONFLICT (idea_id) DO UPDATE SET keywords = EXCLUDED.keywords, "
-                    "last_updated_at = NOW()",
-                    [idea_id, keywords],
-                )
-            logger.info("Upserted %d keywords for idea %s", len(keywords), idea_id)
-            return {"success": True}
-        except Exception:
-            logger.exception("Failed to upsert keywords for idea %s", idea_id)
-            return {"success": False}
-
-    def upsert_idea_embedding(
-        self,
-        idea_id: str,
-        embedding: list[float],
-        source_text_hash: str,
-    ) -> dict[str, Any]:
-        """Persist idea embedding vector (insert or update)."""
-        from django.db import connection as db_conn
-
-        try:
-            with db_conn.cursor() as cursor:
-                cursor.execute(
-                    "INSERT INTO idea_embeddings (id, idea_id, embedding, source_text_hash, updated_at) "
-                    "VALUES (gen_random_uuid(), %s, %s, %s, NOW()) "
-                    "ON CONFLICT (idea_id) DO UPDATE SET embedding = EXCLUDED.embedding, "
-                    "source_text_hash = EXCLUDED.source_text_hash, updated_at = NOW()",
-                    [idea_id, embedding, source_text_hash],
-                )
-            logger.info("Upserted embedding for idea %s", idea_id)
-            return {"success": True}
-        except Exception:
-            logger.exception("Failed to upsert embedding for idea %s", idea_id)
-            return {"success": False}
-
     # ── BRD operations ──
 
     def get_brd_draft(self, idea_id: str) -> dict[str, Any]:

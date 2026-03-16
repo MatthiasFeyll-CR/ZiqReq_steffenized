@@ -440,8 +440,6 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
 
             if str(idea.owner_id) == user_id:
                 return True
-            if idea.co_owner_id and str(idea.co_owner_id) == user_id:
-                return True
 
             return IdeaCollaborator.objects.filter(idea_id=idea_id, user_id=user_id).exists()
         except Exception:
