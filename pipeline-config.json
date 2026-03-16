@@ -17,6 +17,13 @@
   },
   "milestones": [
     {
+      "id": 16,
+      "slug": "polish",
+      "name": "Polish & Cross-Cutting (completed)",
+      "stories": 10,
+      "dependencies": []
+    },
+    {
       "id": 17,
       "slug": "remove-features",
       "name": "Remove Features (Clean Slate)",

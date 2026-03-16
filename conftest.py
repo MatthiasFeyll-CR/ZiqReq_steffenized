@@ -3,6 +3,5 @@
 collect_ignore_glob = [
     "services/*/apps/*/migrations/*",
     "frontend/*",
-    "e2e/*",
     "node_modules/*",
 ]
