@@ -83,3 +83,15 @@ Started: 2026-03-11T23:51:55+0100
   - i18n.test.tsx had "board" in requiredNamespaces — needed update
   - ai-modified-indicator.test.tsx was entirely about board BoxNode/GroupNode/FreeTextNode indicator behavior — deleted entirely
 ---
+
+## BF-001: Fix: Ruff lint errors introduced by M17
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/grpc_server/server.py, services/ai/grpc_server/servicers/processing_servicer.py, services/gateway/apps/chat/views.py, services/gateway/apps/collaboration/views.py, services/gateway/apps/comments/migrations/0001_initial.py, services/gateway/apps/comments/views.py, services/gateway/apps/ideas/views.py, services/gateway/grpc_clients/ai_client.py, services/gateway/grpc_clients/core_client.py, services/gateway/grpc_clients/pdf_client.py, services/gateway/grpc_server/server.py, services/notification/consumers/base.py, services/notification/consumers/monitoring_events.py, services/notification/grpc_clients/gateway_client.py, services/pdf/grpc_server/server.py, services/pdf/grpc_server/servicers/pdf_servicer.py
+- Tests: ruff check services/ down from 19 errors to 2 pre-existing E501 errors. Frontend typecheck passes.
+- Learnings for future iterations:
+  - `ruff check services/ --fix` auto-fixes I001 (import sorting) and F401 (unused imports) reliably
+  - E501 (line too long) and F841 (unused variable) need manual fixes
+  - Pre-existing errors in admin_config migration and notification sender.py are known and acceptable
+  - ruff also found and auto-fixed import sorting in files not listed in PRD (comments migration, pdf servicer, notification consumers, gateway grpc server, pdf grpc server) — always run full ruff check, not just listed files
+---
