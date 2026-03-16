@@ -79,12 +79,11 @@ def _get_idea_or_error(idea_id: str):
 def _check_access(user, idea) -> Response | None:
     """Return 403 response if user lacks access, or None if access is granted."""
     is_owner = idea.owner_id == user.id
-    is_co_owner = idea.co_owner_id == user.id
     is_collaborator = IdeaCollaborator.objects.filter(
         idea_id=idea.id, user_id=user.id
     ).exists()
 
-    if not (is_owner or is_co_owner or is_collaborator):
+    if not (is_owner or is_collaborator):
         return Response(
             {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
             status=status.HTTP_403_FORBIDDEN,

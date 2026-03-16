@@ -52,6 +52,7 @@ def _broadcast_ai_processing_started(idea_id: str) -> None:
 def _trigger_ai_processing(idea_id: str, message_id: str) -> None:
     """Trigger AI chat processing via the AI gRPC client."""
     import os
+
     from grpc_clients.ai_client import AiClient
 
     address = os.environ.get("AI_GRPC_ADDRESS", "localhost:50052")
@@ -145,10 +146,8 @@ def _get_idea_or_error(idea_id: str):
 
 
 def _check_access(user, idea) -> bool:
-    """Check if user has access to idea (owner, co-owner, or collaborator)."""
+    """Check if user has access to idea (owner or collaborator)."""
     if idea.owner_id == user.id:
-        return True
-    if idea.co_owner_id == user.id:
         return True
     return IdeaCollaborator.objects.filter(
         idea_id=idea.id, user_id=user.id

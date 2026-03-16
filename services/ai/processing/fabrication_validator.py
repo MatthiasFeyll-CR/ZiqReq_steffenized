@@ -1,8 +1,8 @@
 """Fabrication validator — lightweight heuristic checks for BRD content.
 
 Uses keyword extraction + fuzzy string matching to flag sections that
-contain claims not traceable to the source material (chat messages and
-board content). This is NOT AI-based — purely heuristic.
+contain claims not traceable to the source material (chat messages).
+This is NOT AI-based — purely heuristic.
 
 Flagged sections receive a 'fabrication_warning' flag but content is
 still returned (the user decides whether to keep it).
@@ -31,7 +31,7 @@ class FabricationValidator:
     """Validates BRD sections against source material for fabrication.
 
     Uses keyword extraction and fuzzy string matching to detect
-    claims that are not traceable to chat messages or board content.
+    claims that are not traceable to chat messages.
     """
 
     def validate(
@@ -44,8 +44,8 @@ class FabricationValidator:
         Args:
             sections: Dict mapping section field names (e.g. 'section_title')
                 to their content strings. None values are skipped.
-            source_material: Combined text from chat messages and board content
-                used as the ground truth for validation.
+            source_material: Combined text from chat messages used as the
+                ground truth for validation.
 
         Returns:
             List of fabrication flag dicts, each with:
@@ -171,14 +171,12 @@ def _is_grounded(keyword: str, source_lower: str, source_words: set[str]) -> boo
 def build_source_material(
     chat_summary: str,
     recent_messages: list[dict[str, Any]],
-    board_state: dict[str, Any],
 ) -> str:
     """Build a combined source material string from brainstorming data.
 
     Args:
         chat_summary: Summary of chat context.
         recent_messages: Last N chat messages.
-        board_state: Board nodes and connections.
 
     Returns:
         Combined text string for validation.
@@ -192,15 +190,6 @@ def build_source_material(
         content = msg.get("content", "")
         if content:
             parts.append(content)
-
-    nodes = board_state.get("nodes", [])
-    for node in nodes:
-        title = node.get("title", "")
-        body = node.get("body", "")
-        if title:
-            parts.append(title)
-        if body:
-            parts.append(body)
 
     return " ".join(parts)
 

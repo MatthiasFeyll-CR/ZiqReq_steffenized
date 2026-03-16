@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-from mailer.renderer import render_email
-from mailer.sender import send_email
 from typing import Any
 
 from grpc_clients.gateway_client import GatewayClient
+from mailer.renderer import render_email
+from mailer.sender import send_email
 
 logger = logging.getLogger(__name__)
 

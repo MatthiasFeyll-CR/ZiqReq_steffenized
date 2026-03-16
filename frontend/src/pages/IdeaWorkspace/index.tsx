@@ -21,9 +21,6 @@ import { DocumentView } from "@/components/workspace/DocumentView";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
-import { MergeRequestBanner } from "@/components/workspace/MergeRequestBanner";
-import { MergedIdeaBanner } from "@/components/workspace/MergedIdeaBanner";
-import { AppendedIdeaBanner } from "@/components/workspace/AppendedIdeaBanner";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useIdeaSync } from "@/hooks/useIdeaSync";
@@ -305,11 +302,7 @@ function IdeaWorkspaceContent({
   const onIdeaUpdateRef = useRef(onIdeaUpdate);
   onIdeaUpdateRef.current = onIdeaUpdate;
 
-  const hasMergePending = !!idea.merge_request_pending;
-  const isClosedByMerge = !!idea.merged_idea_ref;
-  const isClosedByAppend = !!idea.appended_idea_ref;
   const isDeleted = idea.state === "deleted";
-  const isClosedIdea = isClosedByMerge || isClosedByAppend || isDeleted;
   const isInReview = idea.state === "in_review";
   const isInReviewReadOnly = isInReview && activeStep !== "review";
 
@@ -324,29 +317,6 @@ function IdeaWorkspaceContent({
     window.addEventListener("ws:title_update", handler);
     return () => window.removeEventListener("ws:title_update", handler);
   }, []);
-
-  // Listen for WebSocket merge_request events
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      const targetId = detail?.target_idea_id ?? detail?.idea_id;
-      if (targetId === ideaRef.current.id) {
-        fetchIdea(ideaRef.current.id).then((updated) => {
-          onIdeaUpdateRef.current(updated);
-        }).catch(() => {});
-      }
-    };
-    window.addEventListener("ws:merge_request", handler);
-    return () => window.removeEventListener("ws:merge_request", handler);
-  }, []);
-
-  const handleMergeResolved = useCallback(() => {
-    fetchIdea(idea.id).then((updated) => {
-      onIdeaUpdate(updated);
-    }).catch(() => {
-      onIdeaUpdate({ ...idea, merge_request_pending: null });
-    });
-  }, [idea, onIdeaUpdate]);
 
   const [isRestoring, setIsRestoring] = useState(false);
   const handleRestore = useCallback(async () => {
@@ -363,23 +333,17 @@ function IdeaWorkspaceContent({
     }
   }, [idea, onIdeaUpdate]);
 
-  const effectiveChatLocked = chatLocked || !isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly;
+  const effectiveChatLocked = chatLocked || !isOnline || readOnly || isDeleted || isInReviewReadOnly;
   const effectiveLockReason = readOnly
     ? "Viewing shared idea — chat is read-only"
     : !isOnline
       ? "You are currently offline. Chat is disabled."
       : isDeleted
         ? "This idea has been deleted. All sections are read-only."
-        : isClosedByMerge
-          ? "This idea was merged. Content is read-only."
-          : isClosedByAppend
-            ? "This idea was appended. Content is read-only."
-            : hasMergePending
-              ? "This idea has a pending merge request. Accept or decline to continue editing."
-              : isInReviewReadOnly
-                ? "This idea is currently under review. Content is read-only."
-                : lockReason;
-  const effectiveReadOnly = allReadOnly || readOnly || isClosedIdea || isInReviewReadOnly;
+        : isInReviewReadOnly
+          ? "This idea is currently under review. Content is read-only."
+          : lockReason;
+  const effectiveReadOnly = allReadOnly || readOnly || isDeleted || isInReviewReadOnly;
 
   const handleAgentModeChange = useCallback(
     async (value: string) => {
@@ -401,7 +365,7 @@ function IdeaWorkspaceContent({
       <WorkspaceHeader
         idea={idea}
         onIdeaUpdate={onIdeaUpdate}
-        readOnly={effectiveReadOnly || hasMergePending}
+        readOnly={effectiveReadOnly}
         activeStep={activeStep}
         onStepChange={handleStepChange}
         canAccessDocument={canAccessDocument}
@@ -413,16 +377,7 @@ function IdeaWorkspaceContent({
 
       {/* Banners */}
       {readOnly && <ReadOnlyBanner />}
-      {!readOnly && isClosedByMerge && idea.merged_idea_ref && (
-        <MergedIdeaBanner mergedIdeaRef={idea.merged_idea_ref} />
-      )}
-      {!readOnly && isClosedByAppend && idea.appended_idea_ref && (
-        <AppendedIdeaBanner appendedIdeaRef={idea.appended_idea_ref} />
-      )}
-      {!readOnly && idea.merge_request_pending && (
-        <MergeRequestBanner mergeRequest={idea.merge_request_pending} onResolved={handleMergeResolved} />
-      )}
-      {!readOnly && !isClosedIdea && <InvitationBanner ideaId={idea.id} />}
+      {!readOnly && !isDeleted && <InvitationBanner ideaId={idea.id} />}
       {isDeleted && (
         <div
           className="shrink-0 flex items-center gap-3 px-6 py-3 bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-900/30"
@@ -497,13 +452,10 @@ function IdeaWorkspaceContent({
             chatPanel={
               <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly || isInReviewReadOnly} />
             }
-            ideaId={idea.id}
-            disabled={!isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly}
-            readOnly={readOnly || isInReviewReadOnly}
           />
 
           {/* Next step CTA — shown when user has chat messages and idea is still open */}
-          {hasMessages && !effectiveReadOnly && !hasMergePending && !isClosedIdea && !isInReviewReadOnly && (
+          {hasMessages && !effectiveReadOnly && !isDeleted && !isInReviewReadOnly && (
             <div className="shrink-0 border-t border-border bg-surface/80 backdrop-blur-sm px-6 py-3" data-testid="next-step-cta">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-sm text-muted-foreground">
@@ -539,7 +491,7 @@ function IdeaWorkspaceContent({
             <DocumentView
               ideaId={idea.id}
               ideaState={idea.state}
-              disabled={!isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly}
+              disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
               onStepChange={handleStepChange}
               onSubmitted={() => {
                 fetchIdea(idea.id).then((updated) => {

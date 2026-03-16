@@ -115,13 +115,9 @@ function makeIdea(overrides: Partial<Idea> = {}): Idea {
     agent_mode: "interactive",
     visibility: "collaborating",
     owner_id: OWNER_ID,
-    co_owner_id: null,
     created_at: "2024-01-01T00:00:00Z",
     updated_at: "2024-01-01T00:00:00Z",
     collaborators: [],
-    merge_request_pending: null,
-  merged_idea_ref: null,
-  appended_idea_ref: null,
     ...overrides,
   };
 }
@@ -146,7 +142,6 @@ beforeEach(() => {
   mockFetchPendingInvitations.mockResolvedValue({ invitations: [] });
   mockFetchCollaborators.mockResolvedValue({
     owner: { id: OWNER_ID, display_name: "Owner User", email: "owner@test.com" },
-    co_owner: null,
     collaborators: [],
   });
 });
@@ -246,8 +241,8 @@ describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
 
 /* ---------- Leave button (T-8.4.07) ---------- */
 
-describe("T-8.4.07: Co-owner leave, single owner disabled", () => {
-  function renderModal(props: { ownerId?: string; coOwnerId?: string | null } = {}) {
+describe("T-8.4.07: Single owner leave disabled", () => {
+  function renderModal(props: { ownerId?: string } = {}) {
     const qc = createQueryClient();
     const onOpenChange = vi.fn();
     return {
@@ -257,7 +252,6 @@ describe("T-8.4.07: Co-owner leave, single owner disabled", () => {
           <CollaboratorModal
             ideaId={IDEA_ID}
             ownerId={props.ownerId ?? OWNER_ID}
-            coOwnerId={props.coOwnerId ?? null}
             open={true}
             onOpenChange={onOpenChange}
           />
@@ -269,7 +263,7 @@ describe("T-8.4.07: Co-owner leave, single owner disabled", () => {
   it("shows disabled Leave button with tooltip for single owner", async () => {
     const user = userEvent.setup();
 
-    renderModal({ ownerId: OWNER_ID, coOwnerId: null });
+    renderModal({ ownerId: OWNER_ID });
 
     await user.click(screen.getByTestId("tab-collaborators"));
 
@@ -281,51 +275,4 @@ describe("T-8.4.07: Co-owner leave, single owner disabled", () => {
     expect(leaveButton).toBeDisabled();
   });
 
-  it("shows enabled Leave button for co-owner", async () => {
-    // Mock user as co-owner
-    const user = userEvent.setup();
-
-    mockFetchCollaborators.mockResolvedValue({
-      owner: { id: "other-owner", display_name: "Other Owner", email: "other@test.com" },
-      co_owner: { id: OWNER_ID, display_name: "Owner User", email: "owner@test.com" },
-      collaborators: [],
-    });
-
-    renderModal({ ownerId: "other-owner", coOwnerId: OWNER_ID });
-
-    await user.click(screen.getByTestId("tab-collaborators"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("collaborators-tab")).toBeInTheDocument();
-    });
-
-    const leaveButton = screen.getByTestId("leave-button");
-    expect(leaveButton).not.toBeDisabled();
-  });
-
-  it("calls leaveIdea API when co-owner clicks Leave", async () => {
-    const user = userEvent.setup();
-    mockLeaveIdea.mockResolvedValue({ message: "You have left the idea" });
-
-    mockFetchCollaborators.mockResolvedValue({
-      owner: { id: "other-owner", display_name: "Other Owner", email: "other@test.com" },
-      co_owner: { id: OWNER_ID, display_name: "Owner User", email: "owner@test.com" },
-      collaborators: [],
-    });
-
-    renderModal({ ownerId: "other-owner", coOwnerId: OWNER_ID });
-
-    await user.click(screen.getByTestId("tab-collaborators"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("leave-button")).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByTestId("leave-button"));
-
-    await waitFor(() => {
-      expect(mockLeaveIdea).toHaveBeenCalledWith(IDEA_ID);
-    });
-    expect(mockToastSuccess).toHaveBeenCalledWith("You have left the idea");
-  });
 });

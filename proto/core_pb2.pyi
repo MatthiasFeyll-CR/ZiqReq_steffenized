@@ -8,30 +8,26 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class IdeaContextRequest(_message.Message):
-    __slots__ = ("idea_id", "recent_message_limit", "include_board", "include_brd_draft")
+    __slots__ = ("idea_id", "recent_message_limit", "include_brd_draft")
     IDEA_ID_FIELD_NUMBER: _ClassVar[int]
     RECENT_MESSAGE_LIMIT_FIELD_NUMBER: _ClassVar[int]
-    INCLUDE_BOARD_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_BRD_DRAFT_FIELD_NUMBER: _ClassVar[int]
     idea_id: str
     recent_message_limit: int
-    include_board: bool
     include_brd_draft: bool
-    def __init__(self, idea_id: _Optional[str] = ..., recent_message_limit: _Optional[int] = ..., include_board: bool = ..., include_brd_draft: bool = ...) -> None: ...
+    def __init__(self, idea_id: _Optional[str] = ..., recent_message_limit: _Optional[int] = ..., include_brd_draft: bool = ...) -> None: ...
 
 class IdeaContextResponse(_message.Message):
-    __slots__ = ("metadata", "recent_messages", "board", "brd_draft", "active_users")
+    __slots__ = ("metadata", "recent_messages", "brd_draft", "active_users")
     METADATA_FIELD_NUMBER: _ClassVar[int]
     RECENT_MESSAGES_FIELD_NUMBER: _ClassVar[int]
-    BOARD_FIELD_NUMBER: _ClassVar[int]
     BRD_DRAFT_FIELD_NUMBER: _ClassVar[int]
     ACTIVE_USERS_FIELD_NUMBER: _ClassVar[int]
     metadata: IdeaMetadata
     recent_messages: _containers.RepeatedCompositeFieldContainer[ChatMessage]
-    board: BoardState
     brd_draft: BrdDraftState
     active_users: _containers.RepeatedCompositeFieldContainer[UserInfo]
-    def __init__(self, metadata: _Optional[_Union[IdeaMetadata, _Mapping]] = ..., recent_messages: _Optional[_Iterable[_Union[ChatMessage, _Mapping]]] = ..., board: _Optional[_Union[BoardState, _Mapping]] = ..., brd_draft: _Optional[_Union[BrdDraftState, _Mapping]] = ..., active_users: _Optional[_Iterable[_Union[UserInfo, _Mapping]]] = ...) -> None: ...
+    def __init__(self, metadata: _Optional[_Union[IdeaMetadata, _Mapping]] = ..., recent_messages: _Optional[_Iterable[_Union[ChatMessage, _Mapping]]] = ..., brd_draft: _Optional[_Union[BrdDraftState, _Mapping]] = ..., active_users: _Optional[_Iterable[_Union[UserInfo, _Mapping]]] = ...) -> None: ...
 
 class IdeaMetadata(_message.Message):
     __slots__ = ("idea_id", "title", "title_manually_edited", "state", "agent_mode", "owner_display_name", "co_owner_display_name")
@@ -50,14 +46,6 @@ class IdeaMetadata(_message.Message):
     owner_display_name: str
     co_owner_display_name: str
     def __init__(self, idea_id: _Optional[str] = ..., title: _Optional[str] = ..., title_manually_edited: bool = ..., state: _Optional[str] = ..., agent_mode: _Optional[str] = ..., owner_display_name: _Optional[str] = ..., co_owner_display_name: _Optional[str] = ...) -> None: ...
-
-class BoardState(_message.Message):
-    __slots__ = ("nodes", "connections")
-    NODES_FIELD_NUMBER: _ClassVar[int]
-    CONNECTIONS_FIELD_NUMBER: _ClassVar[int]
-    nodes: _containers.RepeatedCompositeFieldContainer[_common_pb2.BoardNode]
-    connections: _containers.RepeatedCompositeFieldContainer[_common_pb2.BoardConnection]
-    def __init__(self, nodes: _Optional[_Iterable[_Union[_common_pb2.BoardNode, _Mapping]]] = ..., connections: _Optional[_Iterable[_Union[_common_pb2.BoardConnection, _Mapping]]] = ...) -> None: ...
 
 class BrdDraftState(_message.Message):
     __slots__ = ("idea_id", "sections", "locked_sections", "updated_at")
@@ -176,46 +164,6 @@ class UpdateTitleResponse(_message.Message):
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     success: bool
     def __init__(self, success: bool = ...) -> None: ...
-
-class BoardMutationsRequest(_message.Message):
-    __slots__ = ("idea_id", "mutations")
-    IDEA_ID_FIELD_NUMBER: _ClassVar[int]
-    MUTATIONS_FIELD_NUMBER: _ClassVar[int]
-    idea_id: str
-    mutations: _containers.RepeatedCompositeFieldContainer[BoardMutation]
-    def __init__(self, idea_id: _Optional[str] = ..., mutations: _Optional[_Iterable[_Union[BoardMutation, _Mapping]]] = ...) -> None: ...
-
-class BoardMutation(_message.Message):
-    __slots__ = ("type", "node_id", "content", "node_type", "x_position", "y_position", "parent_id", "source_node_id", "target_node_id", "label")
-    TYPE_FIELD_NUMBER: _ClassVar[int]
-    NODE_ID_FIELD_NUMBER: _ClassVar[int]
-    CONTENT_FIELD_NUMBER: _ClassVar[int]
-    NODE_TYPE_FIELD_NUMBER: _ClassVar[int]
-    X_POSITION_FIELD_NUMBER: _ClassVar[int]
-    Y_POSITION_FIELD_NUMBER: _ClassVar[int]
-    PARENT_ID_FIELD_NUMBER: _ClassVar[int]
-    SOURCE_NODE_ID_FIELD_NUMBER: _ClassVar[int]
-    TARGET_NODE_ID_FIELD_NUMBER: _ClassVar[int]
-    LABEL_FIELD_NUMBER: _ClassVar[int]
-    type: str
-    node_id: str
-    content: str
-    node_type: str
-    x_position: float
-    y_position: float
-    parent_id: str
-    source_node_id: str
-    target_node_id: str
-    label: str
-    def __init__(self, type: _Optional[str] = ..., node_id: _Optional[str] = ..., content: _Optional[str] = ..., node_type: _Optional[str] = ..., x_position: _Optional[float] = ..., y_position: _Optional[float] = ..., parent_id: _Optional[str] = ..., source_node_id: _Optional[str] = ..., target_node_id: _Optional[str] = ..., label: _Optional[str] = ...) -> None: ...
-
-class BoardMutationsResponse(_message.Message):
-    __slots__ = ("success", "mutations_applied")
-    SUCCESS_FIELD_NUMBER: _ClassVar[int]
-    MUTATIONS_APPLIED_FIELD_NUMBER: _ClassVar[int]
-    success: bool
-    mutations_applied: int
-    def __init__(self, success: bool = ..., mutations_applied: _Optional[int] = ...) -> None: ...
 
 class UpdateBrdDraftRequest(_message.Message):
     __slots__ = ("idea_id", "sections", "readiness_evaluation_json")

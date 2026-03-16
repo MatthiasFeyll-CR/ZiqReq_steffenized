@@ -13,7 +13,7 @@ import uuid
 import pytest
 
 from agents.facilitator.agent import FacilitatorAgent
-from agents.facilitator.plugins import FacilitatorPlugin, _validate_board_refs
+from agents.facilitator.plugins import FacilitatorPlugin
 from agents.facilitator.prompt import build_system_prompt
 from events.publishers import clear_published_events, get_published_events
 
@@ -487,42 +487,6 @@ class TestSendChatMessage:
         assert "error" in result
         assert len(get_published_events()) == 0
 
-    @pytest.mark.asyncio
-    async def test_board_ref_validation_strips_invalid(self):
-        """AC-2: [[Title]] references not on board are stripped to plain text."""
-        content = "Check out [[Valid Item]] and [[Nonexistent]]"
-        board_state = {"nodes": [{"title": "Valid Item", "node_type": "box"}]}
-        result = _validate_board_refs(content, board_state)
-        assert "[[Valid Item]]" in result
-        assert "[[Nonexistent]]" not in result
-        assert "Nonexistent" in result
-
-    @pytest.mark.asyncio
-    async def test_board_ref_validated_through_send(self):
-        """AC-2: Board refs validated end-to-end through send_chat_message."""
-        plugin = FacilitatorPlugin(
-            idea_id="idea-1",
-            idea_context={
-                "board_state": {"nodes": [{"title": "Auth Module", "node_type": "box"}]},
-            },
-        )
-        await plugin.send_chat_message(
-            content="Let's discuss [[Auth Module]] and [[Missing Item]]",
-            message_type="regular",
-        )
-        events = get_published_events()
-        assert "[[Auth Module]]" in events[0]["content"]
-        assert "[[Missing Item]]" not in events[0]["content"]
-        assert "Missing Item" in events[0]["content"]
-
-    @pytest.mark.asyncio
-    async def test_board_ref_no_board_state(self):
-        """AC-2: No board state means all refs are stripped."""
-        plugin = FacilitatorPlugin(idea_id="idea-1", idea_context={})
-        await plugin.send_chat_message(content="See [[Item A]]", message_type="regular")
-        events = get_published_events()
-        assert "[[Item A]]" not in events[0]["content"]
-        assert "Item A" in events[0]["content"]
 
 
 # ── T-2.15.01: Facilitator delegates ──

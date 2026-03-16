@@ -7,7 +7,6 @@ import {
   setIdleDisconnected,
 } from "@/store/websocket-slice";
 import { updatePresence } from "@/store/presence-slice";
-import { updateSelection } from "@/store/selections-slice";
 import { env } from "@/config/env";
 
 const INITIAL_BACKOFF_MS = 1000;
@@ -139,24 +138,6 @@ export function useWebSocket() {
                 detail: data.payload,
               }),
             );
-          } else if (data.type === "merge_request" && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:merge_request", {
-                detail: data.payload,
-              }),
-            );
-          } else if (data.type === "merge_complete" && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:merge_complete", {
-                detail: data.payload,
-              }),
-            );
-          } else if (data.type === "append_complete" && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:append_complete", {
-                detail: data.payload,
-              }),
-            );
           } else if (data.type === "chat_message" && data.idea_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:chat_message", {
@@ -166,12 +147,6 @@ export function useWebSocket() {
           } else if (data.type === "ai_reaction" && data.idea_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:ai_reaction", {
-                detail: { idea_id: data.idea_id, ...data.payload },
-              }),
-            );
-          } else if (data.type === "board_update" && data.idea_id && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:board_update", {
                 detail: { idea_id: data.idea_id, ...data.payload },
               }),
             );
@@ -209,19 +184,6 @@ export function useWebSocket() {
             window.dispatchEvent(
               new CustomEvent("ws:comment_reaction", {
                 detail: data.payload,
-              }),
-            );
-          } else if (
-            data.type === "board_selection" &&
-            data.idea_id &&
-            data.payload
-          ) {
-            dispatch(
-              updateSelection({
-                idea_id: data.idea_id,
-                user_id: data.payload.user.id,
-                display_name: data.payload.user.display_name,
-                node_id: data.payload.node_id,
               }),
             );
           }

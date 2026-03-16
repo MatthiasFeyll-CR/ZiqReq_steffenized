@@ -11,7 +11,6 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "apps.ideas",
     "apps.chat",
-    "apps.board",
     "apps.brd",
     "apps.review",
     "apps.collaboration",

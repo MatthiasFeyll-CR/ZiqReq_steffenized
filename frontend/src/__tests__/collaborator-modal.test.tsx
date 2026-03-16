@@ -113,7 +113,6 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockFetchCollaborators.mockResolvedValue({
     owner: { id: OWNER_ID, display_name: "Owner User", email: "owner@test.com" },
-    co_owner: null,
     collaborators: [
       { id: COLLAB_ID, display_name: "Collab User", email: "collab@test.com", joined_at: "2024-01-01T00:00:00Z" },
     ],

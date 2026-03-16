@@ -25,7 +25,6 @@ function getNavigationPath(refType?: string | null, refId?: string | null): stri
   switch (refType) {
     case "idea":
     case "invitation":
-    case "merge_request":
       return `/idea/${refId}`;
     default:
       return null;

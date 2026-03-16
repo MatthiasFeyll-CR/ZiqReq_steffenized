@@ -17,7 +17,6 @@ export interface CollaboratorUser {
 
 export interface CollaboratorsResponse {
   owner: CollaboratorUser;
-  co_owner: CollaboratorUser | null;
   collaborators: CollaboratorUser[];
 }
 

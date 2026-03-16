@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import logging
-from mailer.sender import send_email
 from typing import Any
 
 from grpc_clients.gateway_client import GatewayClient
+from mailer.sender import send_email
 
 from consumers.base import notify_user
 

@@ -59,11 +59,6 @@ class CoreServiceStub(object):
                 request_serializer=core__pb2.UpdateTitleRequest.SerializeToString,
                 response_deserializer=core__pb2.UpdateTitleResponse.FromString,
                 _registered_method=True)
-        self.PersistBoardMutations = channel.unary_unary(
-                '/ziqreq.core.CoreService/PersistBoardMutations',
-                request_serializer=core__pb2.BoardMutationsRequest.SerializeToString,
-                response_deserializer=core__pb2.BoardMutationsResponse.FromString,
-                _registered_method=True)
         self.UpdateBrdDraft = channel.unary_unary(
                 '/ziqreq.core.CoreService/UpdateBrdDraft',
                 request_serializer=core__pb2.UpdateBrdDraftRequest.SerializeToString,
@@ -114,12 +109,6 @@ class CoreServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def UpdateIdeaTitle(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def PersistBoardMutations(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -176,11 +165,6 @@ def add_CoreServiceServicer_to_server(servicer, server):
                     servicer.UpdateIdeaTitle,
                     request_deserializer=core__pb2.UpdateTitleRequest.FromString,
                     response_serializer=core__pb2.UpdateTitleResponse.SerializeToString,
-            ),
-            'PersistBoardMutations': grpc.unary_unary_rpc_method_handler(
-                    servicer.PersistBoardMutations,
-                    request_deserializer=core__pb2.BoardMutationsRequest.FromString,
-                    response_serializer=core__pb2.BoardMutationsResponse.SerializeToString,
             ),
             'UpdateBrdDraft': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateBrdDraft,
@@ -338,33 +322,6 @@ class CoreService(object):
             '/ziqreq.core.CoreService/UpdateIdeaTitle',
             core__pb2.UpdateTitleRequest.SerializeToString,
             core__pb2.UpdateTitleResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def PersistBoardMutations(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ziqreq.core.CoreService/PersistBoardMutations',
-            core__pb2.BoardMutationsRequest.SerializeToString,
-            core__pb2.BoardMutationsResponse.FromString,
             options,
             channel_credentials,
             insecure,

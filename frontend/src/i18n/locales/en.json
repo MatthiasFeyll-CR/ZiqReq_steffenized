@@ -235,30 +235,6 @@
     "failedToPost": "Failed to post comment",
     "by": "by {{name}}"
   },
-  "merge": {
-    "requestTitle": "Request Merge",
-    "requestDescription": "Enter a UUID or idea URL, or browse similar ideas to request a merge.",
-    "tabUuid": "Enter UUID/URL",
-    "tabBrowse": "Browse Similar",
-    "uuidPlaceholder": "Paste UUID or idea URL...",
-    "pasteClipboard": "Paste from clipboard",
-    "invalidUuid": "Enter a valid UUID or idea URL",
-    "invalidUuidUrl": "Enter a valid UUID or idea URL containing /idea/uuid",
-    "requestMerge": "Request Merge",
-    "mergeRequestSent": "Merge request sent",
-    "failedToCreate": "Failed to create merge request",
-    "noSimilar": "No similar ideas found",
-    "previouslyDeclined": "Previously declined",
-    "bannerText": "Merge request from <bold>{{name}}</bold>: merge your idea with \"{{title}}\"",
-    "accept": "Accept",
-    "decline": "Decline",
-    "declineTitle": "Decline merge request?",
-    "declineDescription": "This will permanently dismiss the merge suggestion between your idea and \"{{title}}\". This pair will not be suggested again.",
-    "mergeAccepted": "Merge request accepted. Creating merged idea...",
-    "failedToAccept": "Failed to accept merge request",
-    "mergeDeclined": "Merge request declined",
-    "failedToDecline": "Failed to decline merge request"
-  },
   "notifications": {
     "title": "Notifications",
     "allCaughtUp": "All caught up"
@@ -273,7 +249,6 @@
       "collaboration": "Collaboration",
       "review": "Review",
       "chat": "Chat",
-      "similarity": "Similarity",
       "reviewManagement": "Review Management",
       "system": "System"
     },
@@ -286,15 +261,9 @@
       "review_state_changed": "Review state changed",
       "review_comment": "Review comment",
       "chat_mention": "@mention in chat",
-      "similarity_alert": "Similarity alert",
-      "merge_request_received": "Merge request received",
-      "merge_accepted": "Merge accepted",
-      "merge_declined": "Merge declined",
-      "idea_closed_append": "Idea closed (append)",
       "idea_submitted": "Idea submitted",
       "idea_assigned": "Idea assigned",
       "idea_resubmitted": "Idea resubmitted",
-      "append_request_received": "Append request received",
       "monitoring_alert": "Monitoring alert"
     }
   },
@@ -358,26 +327,14 @@
       "next": "Next"
     }
   },
-  "board": {
-    "addBox": "Add Box",
-    "deleteSelected": "Delete Selected",
-    "fitView": "Fit View",
-    "undo": "Undo",
-    "redo": "Redo",
-    "undoAi": "Undo AI Action",
-    "redoAi": "Redo AI Action",
-    "unlockNode": "Unlock node",
-    "lockNode": "Lock node",
-    "referenceNode": "Reference node",
-    "regenerateSection": "Regenerate section",
-    "unlockSection": "Unlock section",
-    "lockSection": "Lock section"
-  },
   "brd": {
     "editDocument": "Edit Document",
     "allowGaps": "Allow information gaps",
     "saveError": "Failed to save changes",
-    "regenerateError": "Failed to regenerate section"
+    "regenerateError": "Failed to regenerate section",
+    "regenerateSection": "Regenerate section",
+    "unlockSection": "Unlock section",
+    "lockSection": "Lock section"
   },
   "chat": {
     "inputPlaceholder": "Type a message...",
@@ -386,7 +343,6 @@
     "messageList": "Chat messages",
     "emptyState": "Start brainstorming...",
     "quickReplies": {
-      "similarIdea": "Does anyone have a similar idea?"
     }
   },
   "submit": {

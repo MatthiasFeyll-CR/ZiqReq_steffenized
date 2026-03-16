@@ -86,7 +86,6 @@ message AiMetricsResponse {
   int64 total_output_tokens = 6;
   int64 delegation_count = 7;
   int64 compression_count = 8;
-  int64 board_agent_count = 9;
   int64 error_count = 10;
   int64 abort_count = 11;
   int64 extension_count = 12;

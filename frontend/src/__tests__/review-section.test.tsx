@@ -74,13 +74,9 @@ function makeIdea(state: Idea["state"]): Idea {
     agent_mode: "interactive",
     visibility: "private",
     owner_id: "00000000-0000-0000-0000-000000000001",
-    co_owner_id: null,
     created_at: "2024-01-01T00:00:00Z",
     updated_at: "2024-01-01T00:00:00Z",
     collaborators: [],
-    merge_request_pending: null,
-    merged_idea_ref: null,
-    appended_idea_ref: null,
   };
 }
 

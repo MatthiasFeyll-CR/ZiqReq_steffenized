@@ -9,11 +9,6 @@ export function useLandingSync() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const invalidateAll = () => {
-      queryClient.invalidateQueries({ queryKey: ["ideas"] });
-      queryClient.invalidateQueries({ queryKey: ["invitations"] });
-    };
-
     const onNotification = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       const eventType: string | undefined = detail?.event_type;
@@ -38,19 +33,12 @@ export function useLandingSync() {
       queryClient.invalidateQueries({ queryKey: ["ideas"] });
     };
 
-    const onMergeComplete = () => invalidateAll();
-    const onAppendComplete = () => invalidateAll();
-
     window.addEventListener("ws:notification", onNotification);
     window.addEventListener("ws:title_update", onTitleUpdate);
-    window.addEventListener("ws:merge_complete", onMergeComplete);
-    window.addEventListener("ws:append_complete", onAppendComplete);
 
     return () => {
       window.removeEventListener("ws:notification", onNotification);
       window.removeEventListener("ws:title_update", onTitleUpdate);
-      window.removeEventListener("ws:merge_complete", onMergeComplete);
-      window.removeEventListener("ws:append_complete", onAppendComplete);
     };
   }, [queryClient]);
 }

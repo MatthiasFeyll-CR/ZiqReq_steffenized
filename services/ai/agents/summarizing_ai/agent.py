@@ -41,7 +41,6 @@ class SummarizingAIAgent(BaseAgent):
                 - mode: str — generation mode
                 - chat_summary: str — summary of chat context
                 - recent_messages: list[dict] — last 20 messages
-                - board_state: dict — nodes and connections
                 - locked_sections: list[str] — locked section names
                 - allow_information_gaps: bool — /TODO vs 'Not enough information'
                 - section_name: str | None — for section_regeneration mode

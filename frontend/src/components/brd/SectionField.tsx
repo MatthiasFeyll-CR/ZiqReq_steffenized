@@ -74,7 +74,7 @@ export function SectionField({
               className="p-1 rounded hover:bg-muted text-muted-foreground"
               onClick={() => onRegenerate(sectionKey)}
               disabled={regenerating}
-              title={t("board.regenerateSection")}
+              title={t("brd.regenerateSection")}
               data-testid={`regenerate-${sectionKey}`}
             >
               {regenerating ? (
@@ -88,7 +88,7 @@ export function SectionField({
             type="button"
             className="p-1 rounded hover:bg-muted text-muted-foreground"
             onClick={() => onToggleLock(sectionKey, !locked)}
-            title={locked ? t("board.unlockSection") : t("board.lockSection")}
+            title={locked ? t("brd.unlockSection") : t("brd.lockSection")}
             data-testid={`lock-toggle-${sectionKey}`}
           >
             {locked ? (

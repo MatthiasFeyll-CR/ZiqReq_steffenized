@@ -219,14 +219,6 @@ class TestBrdDraftAPI(TestCase):
         response = self.client.get(self._url())
         assert response.status_code == 200
 
-    def test_co_owner_can_access(self):
-        """Co-owner can GET BRD draft."""
-        self.idea.co_owner_id = self.user2.id
-        self.idea.save(update_fields=["co_owner_id"])
-        self._login_as(self.user2)
-        response = self.client.get(self._url())
-        assert response.status_code == 200
-
     # --- Readiness evaluation is read-only ---
 
     def test_readiness_evaluation_not_writable(self):

@@ -84,9 +84,9 @@ def restore_idea(request: Request, idea_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id and idea.co_owner_id != user.id:
+    if idea.owner_id != user.id:
         return Response(
-            {"error": "ACCESS_DENIED", "message": "Only owner or co-owner can restore"},
+            {"error": "ACCESS_DENIED", "message": "Only owner can restore"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -153,7 +153,7 @@ def _list_ideas(request: Request) -> Response:
         qs = Idea.objects.filter(id__in=collab_idea_ids, deleted_at__isnull=True)
     elif filter_param == "trash":
         qs = Idea.objects.filter(
-            Q(owner_id=user.id) | Q(co_owner_id=user.id),
+            owner_id=user.id,
             deleted_at__isnull=False,
         )
     else:
@@ -235,14 +235,10 @@ def _get_idea(request: Request, idea_id: str) -> Response:
         )
 
     is_owner = idea.owner_id == user.id
-    is_co_owner = idea.co_owner_id == user.id
     is_collaborator = IdeaCollaborator.objects.filter(idea_id=idea.id, user_id=user.id).exists()
-    has_write_access = is_owner or is_co_owner or is_collaborator
+    has_write_access = is_owner or is_collaborator
 
-    owner_ids = {idea.owner_id}
-    if idea.co_owner_id:
-        owner_ids.add(idea.co_owner_id)
-    users = User.objects.filter(id__in=owner_ids)
+    users = User.objects.filter(id=idea.owner_id)
     user_map = {u.id: u for u in users}
 
     detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
@@ -273,9 +269,9 @@ def _patch_idea(request: Request, idea_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id and idea.co_owner_id != user.id:
+    if idea.owner_id != user.id:
         return Response(
-            {"error": "ACCESS_DENIED", "message": "Only owner or co-owner can update"},
+            {"error": "ACCESS_DENIED", "message": "Only owner can update"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -300,10 +296,7 @@ def _patch_idea(request: Request, idea_id: str) -> Response:
 
     idea.save(update_fields=update_fields)
 
-    owner_ids = {idea.owner_id}
-    if idea.co_owner_id:
-        owner_ids.add(idea.co_owner_id)
-    users = User.objects.filter(id__in=owner_ids)
+    users = User.objects.filter(id=idea.owner_id)
     user_map = {u.id: u for u in users}
 
     detail_serializer = IdeaDetailSerializer(idea, context={"user_map": user_map})
@@ -331,9 +324,9 @@ def _delete_idea(request: Request, idea_id: str) -> Response:
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id and idea.co_owner_id != user.id:
+    if idea.owner_id != user.id:
         return Response(
-            {"error": "ACCESS_DENIED", "message": "Only owner or co-owner can delete"},
+            {"error": "ACCESS_DENIED", "message": "Only owner can delete"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -360,7 +353,7 @@ def context_window(request: Request, idea_id: str) -> Response:
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
+        Idea.objects.get(id=idea_id)
     except Idea.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Idea not found"},

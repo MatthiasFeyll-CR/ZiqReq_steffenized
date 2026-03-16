@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, GitMerge, MessageCircle, MoreVertical, Trash2, Users } from "lucide-react";
+import { ArrowLeft, MessageCircle, MoreVertical, Trash2, Users } from "lucide-react";
 import { fetchUnreadCommentCount } from "@/api/comments";
 import { CommentsPanel } from "@/components/comments/CommentsPanel";
 import { useAuth } from "@/hooks/use-auth";
@@ -14,9 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { patchIdea, fetchIdea, deleteIdea, type Idea } from "@/api/ideas";
+import { patchIdea, deleteIdea, type Idea } from "@/api/ideas";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
-import { ManualMergeModal } from "./ManualMergeModal";
 import { PresenceIndicators } from "./PresenceIndicators";
 import { ProcessStepper, type ProcessStep } from "./ProcessStepper";
 
@@ -62,7 +61,6 @@ export function WorkspaceHeader({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(idea.title);
   const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
-  const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
   const [unreadComments, setUnreadComments] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -212,19 +210,6 @@ export function WorkspaceHeader({
           </Button>
         )}
 
-        {/* Request merge */}
-        {!readOnly && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMergeModalOpen(true)}
-            data-testid="request-merge-button"
-          >
-            <GitMerge className="mr-1 h-4 w-4" />
-            {t("workspace.requestMerge", "Merge")}
-          </Button>
-        )}
-
         {/* Comments button */}
         <Button
           variant="outline"
@@ -287,20 +272,8 @@ export function WorkspaceHeader({
       <CollaboratorModal
         ideaId={idea.id}
         ownerId={idea.owner_id}
-        coOwnerId={idea.co_owner_id}
         open={collaboratorModalOpen}
         onOpenChange={setCollaboratorModalOpen}
-      />
-
-      <ManualMergeModal
-        ideaId={idea.id}
-        open={mergeModalOpen}
-        onOpenChange={setMergeModalOpen}
-        onSuccess={() => {
-          fetchIdea(idea.id).then((updated) => {
-            onIdeaUpdate(updated);
-          }).catch(() => {});
-        }}
       />
 
       <CommentsPanel

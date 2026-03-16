@@ -92,44 +92,6 @@
   --radius-lg: calc(var(--radius) + 2px);
 }
 
-/* Connection edge hover effect */
-.react-flow__edge:hover .connection-edge {
-  stroke-width: 2.5px;
-}
-
-/* Board zoom controls — ghost button style */
-.react-flow__controls {
-  box-shadow: none !important;
-  border: none !important;
-  background: transparent !important;
-}
-
-.react-flow__controls-button {
-  width: 32px !important;
-  height: 32px !important;
-  background: transparent !important;
-  border: none !important;
-  border-radius: var(--radius) !important;
-  color: var(--foreground) !important;
-  fill: var(--foreground) !important;
-  cursor: pointer;
-}
-
-.react-flow__controls-button:hover {
-  background: var(--accent) !important;
-}
-
-.react-flow__controls-button svg {
-  max-width: 16px;
-  max-height: 16px;
-}
-
-/* Board minimap node colors */
-.react-flow__minimap-node {
-  fill: var(--border-strong) !important;
-  stroke: none !important;
-}
-
 /* Notification badge scale-in animation */
 @keyframes scale-in {
   0% { transform: scale(0); }

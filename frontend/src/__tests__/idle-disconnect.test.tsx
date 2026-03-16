@@ -66,7 +66,7 @@ describe("T-15.2.01: Disconnect after prolonged idle", () => {
     expect(screen.getByTestId("reconnect-button")).toBeInTheDocument();
   });
 
-  it("chat and board inputs are locked when offline (isOnline=false)", () => {
+  it("chat inputs are locked when offline (isOnline=false)", () => {
     // When connectionState is "offline", selectIsOnline returns false.
     // IdeaWorkspaceContent uses: effectiveChatLocked = chatLocked || !isOnline
     // and disabled={!isOnline} for WorkspaceLayout.

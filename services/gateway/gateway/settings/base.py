@@ -21,7 +21,6 @@ INSTALLED_APPS = [
     "apps.admin_config",
     "apps.ideas",
     "apps.chat",
-    "apps.board",
     "apps.collaboration",
     "apps.brd",
     "apps.review",

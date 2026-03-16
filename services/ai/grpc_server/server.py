@@ -118,7 +118,6 @@ class CombinedAiServicer(ai_pb2_grpc.AiServiceServicer):
             total_output_tokens=result.get("total_output_tokens", 0),
             delegation_count=result.get("delegation_count", 0),
             compression_count=result.get("compression_count", 0),
-            board_agent_count=result.get("board_agent_count", 0),
             error_count=result.get("error_count", 0),
             abort_count=result.get("abort_count", 0),
             extension_count=result.get("extension_count", 0),
@@ -138,6 +137,7 @@ def serve(port: int = DEFAULT_PORT) -> grpc.Server:
 
 if __name__ == "__main__":
     import os
+
     import django
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ai_service.settings.development")
     django.setup()

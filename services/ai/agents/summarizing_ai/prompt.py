@@ -29,7 +29,7 @@ SECTION_LABELS = {
 
 # Minimum information anchors for readiness evaluation
 READINESS_ANCHORS = {
-    "title": "3+ keywords from chat/board",
+    "title": "3+ keywords from chat",
     "short_description": "1+ pain point or goal",
     "current_workflow": "2+ process steps",
     "affected_department": "1+ team/department",
@@ -46,7 +46,6 @@ def build_system_prompt(input_data: dict[str, Any]) -> str:
             - mode: str — generation mode
             - chat_summary: str — summary of chat context
             - recent_messages: list[dict] — last 20 chat messages
-            - board_state: dict — board nodes and connections
             - locked_sections: list[str] — locked section names
             - allow_information_gaps: bool — whether to allow /TODO markers
             - section_name: str | None — for section_regeneration mode
@@ -57,13 +56,11 @@ def build_system_prompt(input_data: dict[str, Any]) -> str:
     mode = input_data.get("mode", "full_generation")
     chat_summary = input_data.get("chat_summary", "")
     recent_messages = input_data.get("recent_messages", [])
-    board_state = input_data.get("board_state", {})
     locked_sections = input_data.get("locked_sections", [])
     allow_information_gaps = input_data.get("allow_information_gaps", False)
     section_name = input_data.get("section_name")
 
     messages_formatted = _format_messages(recent_messages)
-    board_formatted = _format_board_state(board_state)
     mode_instructions = _build_mode_instructions(mode, locked_sections, section_name)
     gaps_instructions = _build_gaps_instructions(allow_information_gaps)
     sections_spec = _build_sections_spec()
@@ -76,7 +73,7 @@ structured Business Requirements Documents (BRDs) from brainstorming session dat
 <critical_rule>
 NEVER FABRICATE INFORMATION. If the brainstorming did not produce enough information for a \
 section, output "Not enough information." Do NOT fill gaps with invented, inferred, or assumed \
-content. Every claim in the BRD must be traceable to the chat messages or board content provided.
+content. Every claim in the BRD must be traceable to the chat messages provided.
 </critical_rule>
 
 <sections>
@@ -100,9 +97,6 @@ Minimum information anchors:
   <recent_messages>
 {messages_formatted}
   </recent_messages>
-  <board_state>
-{board_formatted}
-  </board_state>
 </idea>
 
 <output_format>
@@ -132,22 +126,6 @@ def _format_messages(messages: list[dict[str, Any]]) -> str:
         content = msg.get("content", "")
         label = f"{sender}" if not agent else f"{sender}({agent})"
         lines.append(f"    <message sender=\"{label}\">{content}</message>")
-    return "\n".join(lines)
-
-
-def _format_board_state(board_state: dict[str, Any]) -> str:
-    """Format board state (nodes + connections) for the prompt."""
-    nodes = board_state.get("nodes", [])
-    if not nodes:
-        return "    (no board content)"
-    lines = []
-    for node in nodes:
-        node_type = node.get("node_type", "box")
-        title = node.get("title", "")
-        body = node.get("body", "")
-        lines.append(
-            f'    <node type="{node_type}" title="{title}">{body}</node>'
-        )
     return "\n".join(lines)
 
 

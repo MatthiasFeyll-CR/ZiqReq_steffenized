@@ -27,7 +27,6 @@ class Idea(models.Model):
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default="private")
     agent_mode = models.CharField(max_length=20, choices=AGENT_MODE_CHOICES, default="interactive")
     owner_id = models.UUIDField()
-    co_owner_id = models.UUIDField(null=True, blank=True)
     share_link_token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -37,7 +36,6 @@ class Idea(models.Model):
         db_table = "ideas"
         indexes = [
             models.Index(fields=["owner_id"], name="idx_ideas_owner"),
-            models.Index(fields=["co_owner_id"], name="idx_ideas_co_owner"),
             models.Index(fields=["state"], name="idx_ideas_state"),
             models.Index(fields=["deleted_at"], name="idx_ideas_deleted_at"),
             models.Index(fields=["state", "deleted_at"], name="idx_ideas_state_deleted"),

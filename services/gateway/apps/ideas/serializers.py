@@ -24,7 +24,6 @@ class IdeaDetailSerializer(serializers.Serializer):
     visibility = serializers.CharField()
     agent_mode = serializers.CharField()
     owner = serializers.SerializerMethodField()
-    co_owner = serializers.SerializerMethodField()
     collaborators = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
@@ -54,11 +53,3 @@ class IdeaDetailSerializer(serializers.Serializer):
             return {"id": str(owner.id), "display_name": owner.display_name}
         return {"id": str(obj.owner_id), "display_name": ""}
 
-    def get_co_owner(self, obj):
-        if not obj.co_owner_id:
-            return None
-        user_map = self.context.get("user_map", {})
-        co_owner = user_map.get(obj.co_owner_id)
-        if co_owner:
-            return {"id": str(co_owner.id), "display_name": co_owner.display_name}
-        return {"id": str(obj.co_owner_id), "display_name": ""}

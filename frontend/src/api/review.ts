@@ -6,7 +6,6 @@ export interface ReviewIdea {
   title: string;
   state: string;
   owner_id: string;
-  co_owner_id: string | null;
   owner_name: string;
   submitted_at: string;
   reviewers: Array<{ id: string; display_name: string }>;

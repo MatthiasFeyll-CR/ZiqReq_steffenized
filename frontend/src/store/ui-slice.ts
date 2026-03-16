@@ -4,7 +4,7 @@ const uiSlice = createSlice({
   name: "ui",
   initialState: {
     dividerPosition: 50,
-    activeTab: "board" as "board" | "review",
+    activeTab: "chat" as "chat" | "review",
   },
   reducers: {},
 });

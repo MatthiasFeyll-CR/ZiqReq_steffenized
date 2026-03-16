@@ -48,23 +48,12 @@ const PREFERENCE_GROUPS: PreferenceGroup[] = [
     items: [{ key: "chat_mention", label: "@mention in chat" }],
   },
   {
-    label: "Similarity",
-    items: [
-      { key: "similarity_alert", label: "Similarity alert" },
-      { key: "merge_request_received", label: "Merge request received" },
-      { key: "merge_accepted", label: "Merge accepted" },
-      { key: "merge_declined", label: "Merge declined" },
-      { key: "idea_closed_append", label: "Idea closed (append)" },
-    ],
-  },
-  {
     label: "Review Management",
     requiredRole: "reviewer",
     items: [
       { key: "idea_submitted", label: "Idea submitted" },
       { key: "idea_assigned", label: "Idea assigned" },
       { key: "idea_resubmitted", label: "Idea resubmitted" },
-      { key: "append_request_received", label: "Append request received" },
     ],
   },
   {
@@ -90,7 +79,6 @@ const groupLabelKey: Record<string, string> = {
   Collaboration: "collaboration",
   Review: "review",
   Chat: "chat",
-  Similarity: "similarity",
   "Review Management": "reviewManagement",
   System: "system",
 }

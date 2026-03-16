@@ -26,7 +26,6 @@ def _make_input_data(
     mode: str = "full_generation",
     chat_summary: str = "Users discussed automating invoice processing.",
     recent_messages: list | None = None,
-    board_state: dict | None = None,
     locked_sections: list | None = None,
     allow_information_gaps: bool = False,
     section_name: str | None = None,
@@ -37,20 +36,12 @@ def _make_input_data(
             {"sender_type": "ai", "ai_agent": "facilitator", "content": "What departments are involved?"},
             {"sender_type": "user", "content": "Accounts Payable and Finance."},
         ]
-    if board_state is None:
-        board_state = {
-            "nodes": [
-                {"node_type": "box", "title": "Invoice Upload", "body": "OCR extraction"},
-                {"node_type": "box", "title": "Approval Flow", "body": "Digital routing"},
-            ],
-        }
     if locked_sections is None:
         locked_sections = []
     return {
         "mode": mode,
         "chat_summary": chat_summary,
         "recent_messages": recent_messages,
-        "board_state": board_state,
         "locked_sections": locked_sections,
         "allow_information_gaps": allow_information_gaps,
         "section_name": section_name,
@@ -111,12 +102,6 @@ class TestSystemPrompt:
         prompt = build_system_prompt(input_data)
         assert "automate invoice processing" in prompt
 
-    def test_prompt_includes_board_state(self):
-        input_data = _make_input_data()
-        prompt = build_system_prompt(input_data)
-        assert "Invoice Upload" in prompt
-        assert "OCR extraction" in prompt
-
     def test_prompt_full_generation_mode(self):
         input_data = _make_input_data(mode="full_generation")
         prompt = build_system_prompt(input_data)
@@ -176,11 +161,6 @@ class TestSystemPrompt:
         input_data = _make_input_data(recent_messages=[])
         prompt = build_system_prompt(input_data)
         assert "(no recent messages)" in prompt
-
-    def test_prompt_empty_board(self):
-        input_data = _make_input_data(board_state={"nodes": []})
-        prompt = build_system_prompt(input_data)
-        assert "(no board content)" in prompt
 
 
 # ── Response Parsing Tests ──
@@ -277,7 +257,7 @@ class TestAllSectionsGenerated:
 
 
 class TestInsufficientSections:
-    """T-4.2.01: Empty chat + board → 'Not enough information'."""
+    """T-4.2.01: Empty chat → 'Not enough information'."""
 
     def test_fallback_on_parse_failure(self):
         parsed = _parse_response("not json")

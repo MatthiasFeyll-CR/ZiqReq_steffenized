@@ -34,6 +34,7 @@ if _proto_dir and _proto_dir not in sys.path:
     sys.path.insert(0, _proto_dir)
 
 import gateway_pb2_grpc  # noqa: E402
+
 try:
     from services.gateway.grpc_server.servicers.gateway_servicer import GatewayServicer  # noqa: E402
 except ModuleNotFoundError:

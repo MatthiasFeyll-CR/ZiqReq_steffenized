@@ -9,15 +9,6 @@ import { presenceReducer } from "@/store/presence-slice";
 import { websocketReducer } from "@/store/websocket-slice";
 import type { Idea } from "@/api/ideas";
 
-// Mock BoardCanvas to avoid React Flow's ResizeObserver dependency in jsdom
-vi.mock("@/components/board/BoardCanvas", () => ({
-  BoardCanvas: ({ disabled, readOnly }: { disabled?: boolean; readOnly?: boolean }) => (
-    <div data-testid="board-canvas" data-disabled={disabled} data-readonly={readOnly}>
-      BoardCanvas
-    </div>
-  ),
-}));
-
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
   useWsSend: () => vi.fn(),
@@ -40,7 +31,7 @@ vi.mock("@/components/review/ReviewSection", () => ({
 vi.mock("@/api/collaboration", () => ({
   searchUsers: vi.fn().mockResolvedValue([]),
   sendInvitation: vi.fn(),
-  fetchCollaborators: vi.fn().mockResolvedValue({ owner: null, co_owner: null, collaborators: [] }),
+  fetchCollaborators: vi.fn().mockResolvedValue({ owner: null, collaborators: [] }),
   removeCollaborator: vi.fn(),
   transferOwnership: vi.fn(),
   fetchPendingInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
@@ -90,13 +81,9 @@ const MOCK_IDEA: Idea = {
   agent_mode: "interactive",
   visibility: "private",
   owner_id: "00000000-0000-0000-0000-000000000001",
-  co_owner_id: null,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
   collaborators: [],
-  merge_request_pending: null,
-  merged_idea_ref: null,
-  appended_idea_ref: null,
 };
 
 const TOKEN = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
@@ -185,18 +172,6 @@ describe("UI-SHARE.02: Hide edit controls in read-only mode", () => {
 
     expect(screen.getByTestId("chat-input")).toBeInTheDocument();
     expect(screen.queryByTestId("chat-read-only-notice")).not.toBeInTheDocument();
-  });
-
-  it("passes readOnly to BoardCanvas", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}?token=${TOKEN}`);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
-    });
-
-    const boardCanvas = screen.getByTestId("board-canvas");
-    expect(boardCanvas.getAttribute("data-readonly")).toBe("true");
-    expect(boardCanvas.getAttribute("data-disabled")).toBe("true");
   });
 
   it("hides manage collaborators button", async () => {

@@ -379,7 +379,6 @@ class TestPipelineCompressionTrigger:
             "recent_messages": [
                 {"id": "msg-1", "content": big_content, "sender_type": "user"},
             ],
-            "board_state": {"nodes": [], "connections": []},
             "chat_summary": None,
             "facilitator_bucket_content": "",
         }
@@ -433,7 +432,6 @@ class TestPipelineCompressionTrigger:
             "recent_messages": [
                 {"id": "msg-1", "content": "Short message", "sender_type": "user"},
             ],
-            "board_state": {"nodes": [], "connections": []},
             "chat_summary": None,
             "facilitator_bucket_content": "",
         }
@@ -480,7 +478,6 @@ class TestPipelineCompressionTrigger:
             "idea": {"title": "Test", "state": "brainstorming",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [],
-            "board_state": {"nodes": [], "connections": []},
             "chat_summary": None,
             "facilitator_bucket_content": "",
         }
@@ -520,7 +517,6 @@ class TestPipelineCompressionTrigger:
             "recent_messages": [
                 {"id": "msg-5", "content": big_content, "sender_type": "user"},
             ],
-            "board_state": {"nodes": [], "connections": []},
             "chat_summary": {
                 "summary_text": "Previous decisions about auth.",
                 "compression_iteration": 2,
