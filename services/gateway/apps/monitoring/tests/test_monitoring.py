@@ -89,7 +89,7 @@ class TestMonitoringDashboard(TestCase):
         assert projects["dropped"] == 0
         assert projects["rejected"] == 0
 
-    def test_deleted_ideas_not_counted(self):
+    def test_deleted_projects_not_counted(self):
         """projects_by_state excludes soft-deleted projects."""
         from django.utils import timezone
         Project.objects.create(title="Deleted", state="open", owner_id=ADMIN_ID, deleted_at=timezone.now())

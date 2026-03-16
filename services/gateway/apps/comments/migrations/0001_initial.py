@@ -12,10 +12,10 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="IdeaComment",
+            name="ProjectComment",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField(db_index=True)),
+                ("project_id", models.UUIDField(db_index=True)),
                 ("author_id", models.UUIDField(blank=True, null=True)),
                 ("content", models.TextField()),
                 ("is_system_event", models.BooleanField(default=False)),
@@ -30,18 +30,18 @@ class Migration(migrations.Migration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="replies",
-                        to="gateway_comments.ideacomment",
+                        to="gateway_comments.projectcomment",
                     ),
                 ),
             ],
             options={
-                "db_table": "idea_comments",
+                "db_table": "project_comments",
                 "ordering": ["created_at"],
             },
         ),
         migrations.AddIndex(
-            model_name="ideacomment",
-            index=models.Index(fields=["idea_id", "created_at"], name="idx_comments_idea_ts"),
+            model_name="projectcomment",
+            index=models.Index(fields=["project_id", "created_at"], name="idx_comments_project_ts"),
         ),
         migrations.CreateModel(
             name="CommentReaction",
@@ -55,7 +55,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="reactions",
-                        to="gateway_comments.ideacomment",
+                        to="gateway_comments.projectcomment",
                     ),
                 ),
             ],
@@ -68,13 +68,13 @@ class Migration(migrations.Migration):
             name="CommentReadStatus",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 ("user_id", models.UUIDField()),
                 ("last_read_at", models.DateTimeField()),
             ],
             options={
                 "db_table": "comment_read_status",
-                "unique_together": {("idea_id", "user_id")},
+                "unique_together": {("project_id", "user_id")},
             },
         ),
     ]

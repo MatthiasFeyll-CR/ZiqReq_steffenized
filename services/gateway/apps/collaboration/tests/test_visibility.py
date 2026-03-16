@@ -37,7 +37,7 @@ class TestVisibilityDefaults(TestCase):
             format="json",
         )
 
-    def test_new_idea_defaults_to_private(self):
+    def test_new_project_defaults_to_private(self):
         response = self.client.post(
             "/api/projects/",
             {"first_message": "Hello world"},

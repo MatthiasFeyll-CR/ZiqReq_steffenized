@@ -163,8 +163,8 @@ class TestReviewActions(TestCase):
         Input: POST /api/projects/:id/review/accept on open project.
         Expected: 400 INVALID_STATE.
         """
-        open_idea = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project")
-        response = self.client.post(self._url("accept", open_idea.id), {}, format="json")
+        open_project = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project")
+        response = self.client.post(self._url("accept", open_project.id), {}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "INVALID_STATE"
 
@@ -176,8 +176,8 @@ class TestReviewActions(TestCase):
 
     def test_undo_invalid_state_open(self):
         """Undo on open project is invalid."""
-        open_idea = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project 2")
-        response = self.client.post(self._url("undo", open_idea.id), {"comment": "Nope"}, format="json")
+        open_project = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project 2")
+        response = self.client.post(self._url("undo", open_project.id), {"comment": "Nope"}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "INVALID_STATE"
 
@@ -256,8 +256,8 @@ class TestReviewActions(TestCase):
         Input: Project state = open.
         Expected: 400 INVALID_STATE.
         """
-        open_idea = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project 3")
-        response = self.client.post(self._url("drop", open_idea.id), {"comment": "Drop it"}, format="json")
+        open_project = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project 3")
+        response = self.client.post(self._url("drop", open_project.id), {"comment": "Drop it"}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "INVALID_STATE"
 

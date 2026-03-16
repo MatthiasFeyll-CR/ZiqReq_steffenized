@@ -81,7 +81,7 @@ class TestUnprocessedMessageCount(TestCase):
         )
         assert get_unprocessed_message_count(self.project_id_str) == 1
 
-    def test_nonexistent_idea_returns_zero(self):
+    def test_nonexistent_project_returns_zero(self):
         fake_id = str(uuid.uuid4())
         assert get_unprocessed_message_count(fake_id) == 0
 
@@ -168,9 +168,9 @@ class TestRateLimitAPI(TestCase):
         self.client.post(self._chat_url(), {"content": "msg2"}, format="json")
         assert get_unprocessed_message_count(project_id_str) == 2
 
-    def test_rate_limit_per_idea(self):
+    def test_rate_limit_per_project(self):
         """Rate limit counters are per-project."""
-        idea2 = Project.objects.create(owner_id=self.user.id, title="Other Project")
+        project2 = Project.objects.create(owner_id=self.user.id, title="Other Project")
 
         # Fill first project's counter
         for i in range(5):
@@ -178,7 +178,7 @@ class TestRateLimitAPI(TestCase):
 
         # Second project should still accept messages
         resp = self.client.post(
-            f"/api/projects/{idea2.id}/chat/",
+            f"/api/projects/{project2.id}/chat/",
             {"content": "Different project"},
             format="json",
         )

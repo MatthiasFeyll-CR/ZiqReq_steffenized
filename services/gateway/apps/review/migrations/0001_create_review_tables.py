@@ -9,14 +9,17 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     initial = True
-    dependencies = []
+    dependencies = [
+        ("gateway_projects", "0001_initial"),
+        ("authentication", "0001_initial"),
+    ]
 
     operations = [
         migrations.RunSQL(
             sql="""
                 CREATE TABLE IF NOT EXISTS brd_versions (
                     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                    idea_id uuid NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+                    project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
                     version_number integer NOT NULL,
                     section_title text,
                     section_short_description text,
@@ -26,7 +29,7 @@ class Migration(migrations.Migration):
                     section_success_criteria text,
                     pdf_file_path varchar(500),
                     created_at timestamptz NOT NULL DEFAULT now(),
-                    UNIQUE (idea_id, version_number)
+                    UNIQUE (project_id, version_number)
                 );
             """,
             reverse_sql="DROP TABLE IF EXISTS brd_versions;",
@@ -35,14 +38,14 @@ class Migration(migrations.Migration):
             sql="""
                 CREATE TABLE IF NOT EXISTS review_assignments (
                     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                    idea_id uuid NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+                    project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
                     reviewer_id uuid NOT NULL REFERENCES users(id),
                     assigned_by varchar(10) NOT NULL CHECK (assigned_by IN ('submitter', 'self')),
                     assigned_at timestamptz NOT NULL DEFAULT now(),
                     unassigned_at timestamptz
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS uq_active_review_assignment
-                    ON review_assignments (idea_id, reviewer_id)
+                    ON review_assignments (project_id, reviewer_id)
                     WHERE unassigned_at IS NULL;
             """,
             reverse_sql="DROP TABLE IF EXISTS review_assignments;",
@@ -51,7 +54,7 @@ class Migration(migrations.Migration):
             sql="""
                 CREATE TABLE IF NOT EXISTS review_timeline_entries (
                     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                    idea_id uuid NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+                    project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
                     entry_type varchar(20) NOT NULL CHECK (entry_type IN ('comment', 'state_change', 'resubmission')),
                     author_id uuid REFERENCES users(id),
                     content text,
@@ -62,8 +65,8 @@ class Migration(migrations.Migration):
                     new_version_id uuid,
                     created_at timestamptz NOT NULL DEFAULT now()
                 );
-                CREATE INDEX IF NOT EXISTS idx_timeline_idea
-                    ON review_timeline_entries (idea_id, created_at);
+                CREATE INDEX IF NOT EXISTS idx_timeline_project
+                    ON review_timeline_entries (project_id, created_at);
                 CREATE INDEX IF NOT EXISTS idx_timeline_parent
                     ON review_timeline_entries (parent_entry_id);
             """,

@@ -71,7 +71,7 @@ class TestGenerateShareLink(TestCase):
         response = self.client.post(f"/api/projects/{self.project.id}/share-link")
         assert response.status_code == 403
 
-    def test_idea_not_found(self):
+    def test_project_not_found(self):
         fake_id = uuid.uuid4()
         response = self.client.post(f"/api/projects/{fake_id}/share-link")
         assert response.status_code == 404
@@ -112,7 +112,7 @@ class TestShareLinkMiddleware(TestCase):
         response = self.client.get(f"/api/projects/{self.project.id}/")
         assert response.status_code == 200
 
-    def test_token_not_applied_to_non_ideas_paths(self):
+    def test_token_not_applied_to_non_projects_paths(self):
         # Token on non-projects path should pass through without validation
         response = self.client.get("/api/auth/dev-users?token=invalidtoken")
         # Should not return 403 from middleware

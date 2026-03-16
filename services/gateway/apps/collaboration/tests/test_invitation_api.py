@@ -99,7 +99,7 @@ class TestSendInvitation(TestCase):
         )
         assert response.status_code == 400
 
-    def test_idea_not_found(self):
+    def test_project_not_found(self):
         fake_id = uuid.uuid4()
         response = self.client.post(
             f"/api/projects/{fake_id}/collaborators/invite",

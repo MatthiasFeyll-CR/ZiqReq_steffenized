@@ -272,8 +272,8 @@ async def test_unsubscribe_project_not_subscribed():
 async def test_disconnect_cleans_up_groups():
     """T-6.1.06c: Disconnect automatically unsubscribes from all groups."""
     user = _fake_user()
-    idea1 = str(uuid.uuid4())
-    idea2 = str(uuid.uuid4())
+    project1 = str(uuid.uuid4())
+    project2 = str(uuid.uuid4())
     app = _make_application()
 
     with _patch_auth(user), _patch_access(True):
@@ -281,8 +281,8 @@ async def test_disconnect_cleans_up_groups():
         connected, _ = await communicator.connect()
         assert connected is True
 
-        await _subscribe_and_drain(communicator, idea1)
-        await _subscribe_and_drain(communicator, idea2)
+        await _subscribe_and_drain(communicator, project1)
+        await _subscribe_and_drain(communicator, project2)
 
         await communicator.disconnect()
 

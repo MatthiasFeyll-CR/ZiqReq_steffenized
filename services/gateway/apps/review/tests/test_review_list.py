@@ -82,17 +82,17 @@ class TestReviewList(TestCase):
 
     # --- T-10.2.01: Projects grouped correctly ---
 
-    def test_ideas_grouped_correctly(self):
+    def test_projects_grouped_correctly(self):
         """T-10.2.01 | Integration | Projects grouped correctly.
         Input: GET /api/reviews with various project states.
         Expected: 5 groups: assigned, unassigned, accepted, rejected, dropped.
         """
         # Create projects in different states
         project_assigned = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Assigned Project")
-        idea_unassigned = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Unassigned Project")
-        idea_accepted = Project.objects.create(owner_id=self.owner.id, state="accepted", title="Accepted Project")
-        idea_rejected = Project.objects.create(owner_id=self.owner.id, state="rejected", title="Rejected Project")
-        idea_dropped = Project.objects.create(owner_id=self.owner.id, state="dropped", title="Dropped Project")
+        project_unassigned = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Unassigned Project")
+        project_accepted = Project.objects.create(owner_id=self.owner.id, state="accepted", title="Accepted Project")
+        project_rejected = Project.objects.create(owner_id=self.owner.id, state="rejected", title="Rejected Project")
+        project_dropped = Project.objects.create(owner_id=self.owner.id, state="dropped", title="Dropped Project")
 
         # Assign reviewer1 to one project
         ReviewAssignment.objects.create(
@@ -111,17 +111,17 @@ class TestReviewList(TestCase):
 
         # Unassigned should contain the unassigned in_review project
         unassigned_ids = [i["id"] for i in data["unassigned"]]
-        self.assertIn(str(idea_unassigned.id), unassigned_ids)
+        self.assertIn(str(project_unassigned.id), unassigned_ids)
 
         # Final states
         accepted_ids = [i["id"] for i in data["accepted"]]
-        self.assertIn(str(idea_accepted.id), accepted_ids)
+        self.assertIn(str(project_accepted.id), accepted_ids)
 
         rejected_ids = [i["id"] for i in data["rejected"]]
-        self.assertIn(str(idea_rejected.id), rejected_ids)
+        self.assertIn(str(project_rejected.id), rejected_ids)
 
         dropped_ids = [i["id"] for i in data["dropped"]]
-        self.assertIn(str(idea_dropped.id), dropped_ids)
+        self.assertIn(str(project_dropped.id), dropped_ids)
 
     def test_assigned_to_other_reviewer_not_in_assigned_to_me(self):
         """An project assigned to reviewer2 should NOT appear in reviewer1's assigned_to_me."""
@@ -163,7 +163,7 @@ class TestReviewList(TestCase):
         unassigned_ids = [i["id"] for i in data["unassigned"]]
         self.assertIn(str(project.id), unassigned_ids)
 
-    def test_response_includes_idea_metadata(self):
+    def test_response_includes_project_metadata(self):
         """Response includes project title, state, owner_name, submitted_at, reviewers."""
         project = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Metadata Test")
         ReviewAssignment.objects.create(
@@ -185,7 +185,7 @@ class TestReviewList(TestCase):
         self.assertIn("reviewers", item)
         self.assertIsInstance(item["reviewers"], list)
 
-    def test_open_ideas_excluded(self):
+    def test_open_projects_excluded(self):
         """Open projects should not appear in any category."""
         Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project")
 
@@ -197,8 +197,8 @@ class TestReviewList(TestCase):
             all_ids.extend(i["id"] for i in data[category])
 
         # Open project should not appear
-        open_ideas = Project.objects.filter(state="open")
-        for project in open_ideas:
+        open_projects = Project.objects.filter(state="open")
+        for project in open_projects:
             self.assertNotIn(str(project.id), all_ids)
 
     def test_unauthenticated_returns_401(self):

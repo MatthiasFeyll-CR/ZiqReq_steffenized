@@ -316,12 +316,12 @@ class TestEventPublishing:
         assert event["event_type"] == "ai.brd.generated"
         assert event["project_id"] == "project-123"
         assert event["mode"] == "full_generation"
-        assert "section_title" in event["sections"]
-        assert "section_short_description" in event["sections"]
-        assert "section_current_workflow" in event["sections"]
-        assert "section_affected_department" in event["sections"]
-        assert "section_core_capabilities" in event["sections"]
-        assert "section_success_criteria" in event["sections"]
+        assert "title" in event["sections"]
+        assert "short_description" in event["sections"]
+        assert "current_workflow" in event["sections"]
+        assert "affected_department" in event["sections"]
+        assert "core_capabilities" in event["sections"]
+        assert "success_criteria" in event["sections"]
         assert "title" in event["readiness_evaluation"]
         assert isinstance(event["fabrication_flags"], list)
 
@@ -419,7 +419,7 @@ class TestBrdPipelineIntegration:
 
         assert result["status"] == "completed"
         assert result["sections"] is not None
-        assert "section_title" in result["sections"]
+        assert "title" in result["sections"]
         assert result["readiness_evaluation"] is not None
         assert isinstance(result["fabrication_flags"], list)
 

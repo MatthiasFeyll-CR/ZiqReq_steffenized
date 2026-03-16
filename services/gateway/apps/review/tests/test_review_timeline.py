@@ -121,7 +121,7 @@ class TestReviewTimeline(TestCase):
         assert data[0]["id"] == str(e1.id)
         assert data[1]["id"] == str(e2.id)
 
-    def test_get_timeline_idea_not_found(self):
+    def test_get_timeline_project_not_found(self):
         """GET timeline returns 404 for non-existent project."""
         fake_id = uuid.uuid4()
         response = self.client.get(self._url(fake_id))
@@ -196,11 +196,11 @@ class TestReviewTimeline(TestCase):
         )
         assert response.status_code == 404
 
-    def test_post_reply_parent_wrong_idea(self):
+    def test_post_reply_parent_wrong_project(self):
         """POST with parent_entry_id from different project returns 404."""
-        other_idea = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Other Project")
+        other_project = Project.objects.create(owner_id=self.owner.id, state="in_review", title="Other Project")
         parent = ReviewTimelineEntry.objects.create(
-            project_id=other_idea.id,
+            project_id=other_project.id,
             entry_type="comment",
             author_id=self.owner.id,
             content="Other project comment",
@@ -227,7 +227,7 @@ class TestReviewTimeline(TestCase):
         response = self.client.post(self._url(), {}, format="json")
         assert response.status_code == 400
 
-    def test_post_comment_idea_not_found(self):
+    def test_post_comment_project_not_found(self):
         """POST comment on non-existent project returns 404."""
         fake_id = uuid.uuid4()
         response = self.client.post(

@@ -23,6 +23,11 @@ AGENT_MODE_CHOICES = [
     ("silent", "Silent"),
 ]
 
+PROJECT_TYPE_CHOICES = [
+    ("software", "Software"),
+    ("non_software", "Non-Software"),
+]
+
 
 class Migration(migrations.Migration):
 
@@ -43,7 +48,7 @@ class Migration(migrations.Migration):
                         serialize=False,
                     ),
                 ),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 (
                     "sender_type",
                     models.CharField(
@@ -68,7 +73,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="Idea",
+            name="Project",
             fields=[
                 (
                     "id",
@@ -108,29 +113,20 @@ class Migration(migrations.Migration):
                         max_length=20,
                     ),
                 ),
+                (
+                    "project_type",
+                    models.CharField(
+                        choices=PROJECT_TYPE_CHOICES,
+                        default="software",
+                        max_length=20,
+                    ),
+                ),
                 ("owner_id", models.UUIDField()),
-                ("co_owner_id", models.UUIDField(blank=True, null=True)),
                 (
                     "share_link_token",
                     models.CharField(
                         blank=True, max_length=64, null=True, unique=True
                     ),
-                ),
-                (
-                    "merged_from_idea_1_id",
-                    models.UUIDField(blank=True, null=True),
-                ),
-                (
-                    "merged_from_idea_2_id",
-                    models.UUIDField(blank=True, null=True),
-                ),
-                (
-                    "closed_by_merge_id",
-                    models.UUIDField(blank=True, null=True),
-                ),
-                (
-                    "closed_by_append_id",
-                    models.UUIDField(blank=True, null=True),
                 ),
                 (
                     "deleted_at",
@@ -140,11 +136,11 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                "db_table": "ideas",
+                "db_table": "projects",
             },
         ),
         migrations.CreateModel(
-            name="IdeaCollaborator",
+            name="ProjectCollaborator",
             fields=[
                 (
                     "id",
@@ -158,17 +154,17 @@ class Migration(migrations.Migration):
                 ("user_id", models.UUIDField()),
                 ("joined_at", models.DateTimeField(auto_now_add=True)),
                 (
-                    "idea",
+                    "project",
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="collaborators",
-                        to="gateway_ideas.idea",
+                        to="gateway_projects.project",
                     ),
                 ),
             ],
             options={
-                "db_table": "idea_collaborators",
-                "unique_together": {("idea", "user_id")},
+                "db_table": "project_collaborators",
+                "unique_together": {("project", "user_id")},
             },
         ),
     ]

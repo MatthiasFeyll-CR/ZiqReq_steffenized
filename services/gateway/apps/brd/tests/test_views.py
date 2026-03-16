@@ -199,7 +199,7 @@ class TestBrdDraftAPI(TestCase):
 
     # --- 404 if project not found ---
 
-    def test_get_404_if_idea_not_found(self):
+    def test_get_404_if_project_not_found(self):
         """GET returns 404 for non-existent project."""
         fake_id = uuid.uuid4()
         response = self.client.get(self._url(project_id=fake_id))
@@ -394,7 +394,7 @@ class TestBrdGenerateAPI(TestCase):
         )
         assert response.status_code == 403
 
-    def test_404_if_idea_not_found(self):
+    def test_404_if_project_not_found(self):
         """POST returns 404 for non-existent project."""
         fake_id = uuid.uuid4()
         response = self.client.post(
@@ -406,7 +406,7 @@ class TestBrdGenerateAPI(TestCase):
 
     # --- State validation ---
 
-    def test_non_open_idea_returns_400(self):
+    def test_non_open_project_returns_400(self):
         """POST returns 400 if project state is not 'open'."""
         self.project.state = "in_review"
         self.project.save(update_fields=["state"])

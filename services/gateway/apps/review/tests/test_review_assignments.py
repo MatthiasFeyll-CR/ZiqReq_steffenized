@@ -55,7 +55,7 @@ class TestReviewAssignment(TestCase):
 
     def test_self_assign_success(self):
         """T-10.3.01 | Integration | Self-assignment works.
-        Input: POST /api/reviews/:ideaId/assign.
+        Input: POST /api/reviews/:projectId/assign.
         Expected: 200, assignment created with assigned_by='self'.
         """
         response = self.client.post(self._assign_url(), {}, format="json")
@@ -69,7 +69,7 @@ class TestReviewAssignment(TestCase):
 
     def test_unassign_success(self):
         """T-10.3.02 | Integration | Unassign works.
-        Input: POST /api/reviews/:ideaId/unassign.
+        Input: POST /api/reviews/:projectId/unassign.
         Expected: 200, unassigned_at set.
         """
         # First assign
@@ -89,13 +89,13 @@ class TestReviewAssignment(TestCase):
 
     def test_conflict_of_interest_owner(self):
         """T-10.4.01 | Integration | Conflict of interest blocked.
-        Input: POST /api/reviews/:ideaId/assign on own project.
+        Input: POST /api/reviews/:projectId/assign on own project.
         Expected: 400 CONFLICT_OF_INTEREST.
         """
         # Create project owned by reviewer1
-        own_idea = Project.objects.create(owner_id=self.reviewer1.id, state="in_review", title="Own Project")
+        own_project = Project.objects.create(owner_id=self.reviewer1.id, state="in_review", title="Own Project")
 
-        response = self.client.post(self._assign_url(own_idea.id), {}, format="json")
+        response = self.client.post(self._assign_url(own_project.id), {}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "CONFLICT_OF_INTEREST"
 
@@ -107,8 +107,8 @@ class TestReviewAssignment(TestCase):
         Input: Reviewer = owner.
         Expected: 400 CONFLICT_OF_INTEREST.
         """
-        own_idea = Project.objects.create(owner_id=self.reviewer1.id, state="in_review", title="My Project")
-        response = self.client.post(self._assign_url(own_idea.id), {}, format="json")
+        own_project = Project.objects.create(owner_id=self.reviewer1.id, state="in_review", title="My Project")
+        response = self.client.post(self._assign_url(own_project.id), {}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "CONFLICT_OF_INTEREST"
 
@@ -148,15 +148,15 @@ class TestReviewAssignment(TestCase):
 
     def test_assign_invalid_state_open(self):
         """Only in_review projects can be assigned — 400 INVALID_STATE for open."""
-        open_idea = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project")
-        response = self.client.post(self._assign_url(open_idea.id), {}, format="json")
+        open_project = Project.objects.create(owner_id=self.owner.id, state="open", title="Open Project")
+        response = self.client.post(self._assign_url(open_project.id), {}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "INVALID_STATE"
 
     def test_assign_invalid_state_accepted(self):
         """Only in_review projects can be assigned — 400 INVALID_STATE for accepted."""
-        accepted_idea = Project.objects.create(owner_id=self.owner.id, state="accepted", title="Accepted Project")
-        response = self.client.post(self._assign_url(accepted_idea.id), {}, format="json")
+        accepted_project = Project.objects.create(owner_id=self.owner.id, state="accepted", title="Accepted Project")
+        response = self.client.post(self._assign_url(accepted_project.id), {}, format="json")
         assert response.status_code == 400
         assert response.json()["error"] == "INVALID_STATE"
 
@@ -187,7 +187,7 @@ class TestReviewAssignment(TestCase):
 
     # --- Project not found ---
 
-    def test_assign_idea_not_found(self):
+    def test_assign_project_not_found(self):
         """Assign on non-existent project returns 404."""
         fake_id = uuid.uuid4()
         response = self.client.post(self._assign_url(fake_id), {}, format="json")

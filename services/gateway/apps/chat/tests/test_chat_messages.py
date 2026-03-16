@@ -128,7 +128,7 @@ class TestChatMessagesAPI(TestCase):
         assert response.status_code == 201
         assert response.json()["sender_id"] == str(self.user2.id)
 
-    def test_create_message_nonexistent_idea_returns_404(self):
+    def test_create_message_nonexistent_project_returns_404(self):
         """POST to nonexistent project returns 404."""
         fake_id = str(uuid.uuid4())
         response = self.client.post(
@@ -215,7 +215,7 @@ class TestChatMessagesAPI(TestCase):
         response = self.client.get(self._chat_url())
         assert response.status_code == 200
 
-    def test_list_messages_nonexistent_idea_returns_404(self):
+    def test_list_messages_nonexistent_project_returns_404(self):
         """GET for nonexistent project returns 404."""
         fake_id = str(uuid.uuid4())
         response = self.client.get(self._chat_url(fake_id))

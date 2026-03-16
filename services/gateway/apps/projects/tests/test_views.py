@@ -239,8 +239,8 @@ class TestProjectsCRUD(TestCase):
     def test_filter_my_projects(self):
         """GET /api/projects?filter=my_projects returns owned projects only."""
         Project.objects.create(owner_id=self.user1.id, title="My Project")
-        other_idea = Project.objects.create(owner_id=self.user2.id, title="Other Project")
-        ProjectCollaborator.objects.create(project=other_idea, user_id=self.user1.id)
+        other_project = Project.objects.create(owner_id=self.user2.id, title="Other Project")
+        ProjectCollaborator.objects.create(project=other_project, user_id=self.user1.id)
 
         response = self.client.get("/api/projects/?filter=my_projects")
         data = response.json()
@@ -250,8 +250,8 @@ class TestProjectsCRUD(TestCase):
     def test_filter_collaborating(self):
         """GET /api/projects?filter=collaborating returns only collaborating projects."""
         Project.objects.create(owner_id=self.user1.id, title="My Project")
-        other_idea = Project.objects.create(owner_id=self.user2.id, title="Collab Project")
-        ProjectCollaborator.objects.create(project=other_idea, user_id=self.user1.id)
+        other_project = Project.objects.create(owner_id=self.user2.id, title="Collab Project")
+        ProjectCollaborator.objects.create(project=other_project, user_id=self.user1.id)
 
         response = self.client.get("/api/projects/?filter=collaborating")
         data = response.json()

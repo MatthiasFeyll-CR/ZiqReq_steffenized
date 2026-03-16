@@ -59,11 +59,11 @@ class TestCheckProjectAccess(TestCase):
     def test_stranger_denied(self):
         assert self._check(str(self.project.id), str(self.stranger.id)) is False
 
-    def test_nonexistent_idea_denied(self):
+    def test_nonexistent_project_denied(self):
         """Replaces dropped test_subscribe_project_nonexistent."""
         assert self._check(str(uuid.uuid4()), str(self.owner.id)) is False
 
-    def test_deleted_idea_denied(self):
+    def test_deleted_project_denied(self):
         from django.utils import timezone
 
         self.project.deleted_at = timezone.now()

@@ -47,7 +47,7 @@ class TestListCollaborators(TestCase):
         assert len(data["collaborators"]) == 1
         assert data["collaborators"][0]["id"] == str(self.collab.id)
 
-    def test_idea_not_found(self):
+    def test_project_not_found(self):
         response = self.client.get(f"/api/projects/{uuid.uuid4()}/collaborators")
         assert response.status_code == 404
 
