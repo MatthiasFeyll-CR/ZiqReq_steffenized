@@ -36,3 +36,17 @@ Started: 2026-03-11T23:51:55+0100
   - prd.json is a symlink to tasks/prd-m17.json — commit via git add tasks/prd-m17.json
   - The _validate_board_refs function remains in facilitator/plugins.py — that's US-003 (board removal) scope
 ---
+
+## US-002: [Frontend] Remove merge/similarity/keyword UI
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/MergeRequestBanner.tsx (deleted), frontend/src/components/workspace/MergedIdeaBanner.tsx (deleted), frontend/src/components/workspace/AppendedIdeaBanner.tsx (deleted), frontend/src/components/workspace/ManualMergeModal.tsx (deleted), frontend/src/api/similarity.ts (deleted), frontend/src/api/ideas.ts, frontend/src/api/review.ts, frontend/src/api/collaboration.ts, frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/components/workspace/WorkspaceHeader.tsx, frontend/src/hooks/use-websocket.ts, frontend/src/hooks/use-landing-sync.ts, frontend/src/components/notifications/EmailPreferencesPanel.tsx, frontend/src/components/notifications/NotificationItem.tsx, frontend/src/components/notifications/NotificationPanel.tsx, frontend/src/components/layout/NotificationBell.tsx, frontend/src/components/chat/QuickReplyChips.tsx, frontend/src/components/collaboration/CollaboratorModal.tsx, frontend/src/components/review/ReviewCard.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, 15 test files
+- Tests: Frontend typecheck passes, ESLint passes on changed files (pre-existing errors in board/brd components), docker compose build succeeds
+- Learnings for future iterations:
+  - co_owner_id was also in frontend types (Idea, ReviewIdea, CollaboratorsResponse) and CollaboratorModal — removing it cascaded to ReviewCard conflict-of-interest check and CollaboratorModal leave button logic
+  - The "merge" concept touched many components: IdeaWorkspace (hasMergePending/isClosedByMerge/isClosedByAppend locks), WorkspaceHeader (merge button + ManualMergeModal), WebSocket handlers (merge_request/merge_complete/append_complete), use-landing-sync (merge/append listeners), EmailPreferencesPanel (Similarity group), NotificationBell (merge_accepted/merge_declined toast types), NotificationPanel (merge_request navigation), QuickReplyChips (similarIdea)
+  - Empty `[] as const` array causes TypeScript to infer `never[]` type — use explicit type annotation instead
+  - The chat.quickReplies.similarIdea translation key and QuickReplyChips component needed cleanup
+  - Test mocks needed co_owner_id, merge_request_pending, merged_idea_ref, appended_idea_ref removed from ~15 test files
+  - "merge" in twMerge (tailwind-merge) and "append" in appendToken are unrelated utility usages — do NOT remove
+---

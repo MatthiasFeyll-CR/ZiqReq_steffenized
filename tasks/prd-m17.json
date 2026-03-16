@@ -56,7 +56,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Idea type definition — remove merge_request_pending, merged_idea_ref, appended_idea_ref fields\nDesign: docs/03-design/component-specs.md § MergeRequestBanner, MergedIdeaBanner, AppendedIdeaBanner — REMOVE components\nTesting: No test-matrix entries for removal stories — implement-first workflow\nFiles: frontend/src/components/workspace/MergeRequestBanner.tsx, frontend/src/components/workspace/MergedIdeaBanner.tsx, frontend/src/components/workspace/AppendedIdeaBanner.tsx, frontend/src/components/workspace/ManualMergeModal.tsx, frontend/src/api/similarity.ts, frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/hooks/use-websocket.ts, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json\nGotchas: Frontend deletions are more isolated than backend (lower blast radius). IdeaWorkspace.tsx will need simplification: remove hasMergePending/isClosedByMerge/isClosedByAppend logic and related lock conditions. Translation file updates require both en.json and de.json changes.\nDeviations: None expected",
       "context": {
