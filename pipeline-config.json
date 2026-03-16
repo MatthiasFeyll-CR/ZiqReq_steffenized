@@ -236,81 +236,56 @@
     "budget_usd": 1000
   },
   "test_execution": {
-    "compose_file": "docker-compose.test.yml",
+    "test_command": "docker compose -f docker-compose.test.yml run --rm python-tests pytest",
+    "integration_test_command": "docker compose -f docker-compose.test.yml run --rm node-tests npx vitest run",
+    "setup_command": "docker compose -f docker-compose.test.yml up -d --build",
+    "teardown_command": "docker compose -f docker-compose.test.yml down",
+    "force_teardown_command": "docker compose -f docker-compose.test.yml down -v --remove-orphans",
+    "build_command": "docker compose -f docker-compose.test.yml build",
+    "condition": "command -v docker",
+    "setup_timeout_seconds": 120,
+    "timeout_seconds": 600,
+    "build_timeout_seconds": 300,
+    "tier1": {
+      "compose_file": "docker-compose.test.yml",
+      "environments": [
+        {
+          "name": "python",
+          "service": "python",
+          "test_command": "docker compose -f docker-compose.test.yml run --rm python-tests pytest",
+          "timeout_seconds": 600
+        },
+        {
+          "name": "node",
+          "service": "node",
+          "test_command": "docker compose -f docker-compose.test.yml run --rm node-tests npx vitest run",
+          "timeout_seconds": 600
+        }
+      ]
+    },
     "services": [
       {
         "name": "postgres",
-        "image": "pgvector/pgvector:pg16",
+        "type": "tcp",
+        "host": "localhost",
         "port": 5432,
-        "environment": {
-          "POSTGRES_USER": "testuser",
-          "POSTGRES_PASSWORD": "testpass",
-          "POSTGRES_DB": "ziqreq_test"
-        },
-        "readiness": "pg_isready"
+        "startup_timeout": 120
       },
       {
         "name": "redis",
-        "image": "redis:7-alpine",
+        "type": "tcp",
+        "host": "localhost",
         "port": 6379,
-        "readiness": "redis-cli ping"
+        "startup_timeout": 120
       },
       {
         "name": "rabbitmq",
-        "image": "rabbitmq:3-management-alpine",
+        "type": "tcp",
+        "host": "localhost",
         "port": 5672,
-        "environment": {
-          "RABBITMQ_DEFAULT_USER": "testuser",
-          "RABBITMQ_DEFAULT_PASS": "testpass"
-        },
-        "readiness": "rabbitmq-diagnostics check_port_connectivity"
+        "startup_timeout": 120
       }
-    ],
-    "runtimes": [
-      {
-        "name": "python",
-        "base_image": "python:3.12-slim",
-        "source_dir": ".",
-        "workdir": "/app",
-        "dependency_files": ["requirements.txt", "requirements-dev.txt"],
-        "install_cmd": "pip install --no-cache-dir -r requirements-dev.txt",
-        "test_framework": "pytest",
-        "test_cmd": "pytest",
-        "ci_flags": "--ci",
-        "dockerfile": "infra/docker/Dockerfile.test-python"
-      },
-      {
-        "name": "node",
-        "base_image": "node:20-slim",
-        "source_dir": "frontend",
-        "workdir": "/app",
-        "dependency_files": ["package.json", "package-lock.json"],
-        "install_cmd": "npm ci",
-        "test_framework": "vitest",
-        "test_cmd": "npx vitest run",
-        "dockerfile": "infra/docker/Dockerfile.test-node"
-      }
-    ],
-    "databases": [
-      {
-        "service": "postgres",
-        "db_name": "ziqreq_test",
-        "user": "testuser",
-        "password": "testpass"
-      },
-      {
-        "service": "postgres",
-        "db_name": "test_ziqreq_test",
-        "user": "testuser",
-        "password": "testpass",
-        "note": "Django test runner creates this via init-test-db.sql"
-      }
-    ],
-    "timeouts": {
-      "setup_seconds": 120,
-      "build_seconds": 300,
-      "test_seconds": 300
-    }
+    ]
   },
   "scaffolding": {
     "enabled": false,
