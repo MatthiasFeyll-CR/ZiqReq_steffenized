@@ -39,7 +39,7 @@ export function ReviewSection({ ideaId, idea }: ReviewSectionProps) {
   const reviewers = reviewerData?.reviewers ?? [];
 
   return (
-    <div className="border-t border-border bg-surface p-6" data-testid="review-section">
+    <div className="bg-surface rounded-lg border border-border p-6" data-testid="review-section">
       {/* Header area: PDF thumbnail, title, reviewers, state badge */}
       <div className="flex items-start gap-4 mb-6" data-testid="review-section-header">
         {/* PDF preview thumbnail */}

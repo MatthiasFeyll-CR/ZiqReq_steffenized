@@ -109,7 +109,7 @@ export function WorkspaceHeader({
       data-testid="workspace-header"
     >
       {/* Top row: back, title, state badge, actions */}
-      <div className="h-14 flex items-center gap-3 px-4">
+      <div className="h-14 flex items-center gap-3 px-6">
         {/* Back button */}
         <Button
           variant="ghost"
@@ -219,7 +219,7 @@ export function WorkspaceHeader({
       </div>
 
       {/* Bottom row: process stepper */}
-      <div className="h-10 flex items-center px-4 border-t border-border/50">
+      <div className="h-10 flex items-center px-6 border-t border-border/50">
         <ProcessStepper
           activeStep={activeStep}
           onStepChange={onStepChange}

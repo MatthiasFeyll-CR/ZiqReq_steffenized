@@ -391,7 +391,7 @@ function IdeaWorkspaceContent({
           )}
 
           {/* Agent mode selector — contextual to brainstorm step */}
-          <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border/50 bg-surface">
+          <div className="shrink-0 flex items-center gap-2 px-6 py-2 border-b border-border/50 bg-surface">
             <span className="text-sm text-muted-foreground">
               {t("workspace.agentMode", "AI Mode")}
             </span>
@@ -422,7 +422,7 @@ function IdeaWorkspaceContent({
       )}
 
       {activeStep === "document" && (
-        <div className="relative flex-1 min-h-0 flex flex-col">
+        <div className="relative flex-1 min-h-0 flex flex-col px-6 py-4">
           {(hasMergePending || isClosedIdea) && (
             <LockOverlay reason={isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
           )}
@@ -441,10 +441,10 @@ function IdeaWorkspaceContent({
       )}
 
       {activeStep === "review" && (
-        <div className="relative flex-1 min-h-0 flex flex-col overflow-y-auto">
+        <div className="relative flex-1 min-h-0 flex flex-col overflow-y-auto px-6 py-6">
           <ReviewSection ideaId={idea.id} idea={idea} />
           {idea.state === "rejected" && (
-            <div className="px-6 py-4 border-t border-border bg-orange-50 dark:bg-orange-950/20">
+            <div className="px-6 py-4 mt-4 rounded-lg border-t border-border bg-orange-50 dark:bg-orange-950/20">
               <p className="text-sm text-orange-700 dark:text-orange-400 mb-2">
                 {t("review.rejectedHint", "Your idea was rejected. You can go back to brainstorming to refine it.")}
               </p>

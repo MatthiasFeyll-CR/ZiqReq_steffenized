@@ -284,7 +284,7 @@ export function DocumentView({
 
   if (isDraftLoading) {
     return (
-      <div className="flex flex-1 min-h-0 p-6 gap-6" data-testid="document-view-loading">
+      <div className="flex flex-1 min-h-0 gap-6" data-testid="document-view-loading">
         <div className="flex-1 space-y-4">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-24 w-full" />
@@ -299,9 +299,9 @@ export function DocumentView({
   }
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden" data-testid="document-view">
+    <div className="flex flex-1 min-h-0 overflow-hidden gap-6" data-testid="document-view">
       {/* Left: BRD Sections Editor */}
-      <div className="flex-1 min-w-0 overflow-y-auto px-6 py-4 space-y-6">
+      <div className="flex-1 min-w-0 overflow-y-auto space-y-6">
         {/* Progress + Gaps + Action Buttons */}
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-4">
@@ -403,7 +403,7 @@ export function DocumentView({
       </div>
 
       {/* Right: PDF Preview */}
-      <div className="w-[360px] shrink-0 border-l border-border bg-muted/30 p-4 overflow-y-auto hidden lg:block">
+      <div className="w-[360px] shrink-0 rounded-lg border border-border bg-muted/30 p-4 overflow-y-auto hidden lg:block">
         {pdfBlob ? (
           <PDFPreview pdfBlob={pdfBlob} className="h-full" />
         ) : hasBrdContent ? (
