@@ -66,3 +66,20 @@ Started: 2026-03-11T23:51:55+0100
   - Proto changes: BoardState, BoardNode, BoardConnection messages removed from common.proto; PersistBoardMutations RPC removed from core.proto; board_agent_count removed from ai.proto
   - "board" substring appears in many unrelated contexts: "dashboard", "onboarding", "keyboard" — grep carefully
 ---
+
+## US-004: [Frontend] Remove Board (XYFlow) UI
+- Status: PASS
+- Attempts: 1
+- Changes: Deleted frontend/src/components/board/ (7 components), frontend/src/api/board.ts, frontend/src/store/board-slice.ts, frontend/src/store/selections-slice.ts, frontend/src/hooks/use-board-undo.ts, frontend/src/components/workspace/PanelDivider.tsx, 13 board test files, frontend/src/__tests__/ai-modified-indicator.test.tsx. Modified frontend/src/components/workspace/WorkspaceLayout.tsx (chat-only full width), frontend/src/store/index.ts, frontend/src/store/ui-slice.ts, frontend/src/hooks/use-websocket.ts, frontend/src/types/models.ts, frontend/src/types/websocket.ts, frontend/src/components/chat/ChatInput.tsx, frontend/src/components/brd/SectionField.tsx, frontend/src/hooks/use-create-idea.ts, frontend/src/app/globals.css, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/package.json, 7 test files.
+- Tests: Frontend typecheck passes, Docker build passes, ruff has only pre-existing errors, ESLint has only pre-existing errors
+- Learnings for future iterations:
+  - selections-slice.ts was board-only (node selections) — safe to remove entirely
+  - SectionField.tsx used "board.regenerateSection"/"board.lockSection"/"board.unlockSection" translation keys — these are BRD-related keys that were placed under the "board" namespace. Moved them to "brd" namespace
+  - globals.css had .react-flow__* CSS styles for board zoom controls and minimap — removed
+  - ChatInput.tsx had a "board:reference" custom event listener for inserting [[Item Title]] references — removed
+  - PanelDivider component became unused after removing the split panel layout — deleted
+  - WorkspaceLayout simplified from a resizable split panel (chat + board) to a single full-width chat panel
+  - "board" substring appears in many unrelated contexts: "keyboard", "clipboard", "ClipboardList", "dashboard" — grep carefully
+  - i18n.test.tsx had "board" in requiredNamespaces — needed update
+  - ai-modified-indicator.test.tsx was entirely about board BoxNode/GroupNode/FreeTextNode indicator behavior — deleted entirely
+---
