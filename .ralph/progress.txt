@@ -50,3 +50,19 @@ Started: 2026-03-11T23:51:55+0100
   - Test mocks needed co_owner_id, merge_request_pending, merged_idea_ref, appended_idea_ref removed from ~15 test files
   - "merge" in twMerge (tailwind-merge) and "append" in appendToken are unrelated utility usages — do NOT remove
 ---
+
+## US-003: [Backend] Remove Board (XYFlow)
+- Status: PASS
+- Attempts: 1
+- Changes: Deleted services/core/apps/board/, services/gateway/apps/board/, services/ai/agents/board_agent/, services/gateway/events/board_consumer.py, services/ai/tests/test_board_agent.py, services/gateway/apps/websocket/tests/test_broadcast.py. Modified 30+ files across core, gateway, AI, notification services. Created migration 0003_remove_board.py. Updated proto files (core.proto, common.proto, ai.proto) and regenerated stubs.
+- Tests: Docker build passes, frontend typecheck passes, ruff has only pre-existing errors (not from our changes)
+- Learnings for future iterations:
+  - Board system had wide blast radius: core models, gateway REST+WebSocket+events, AI agent+pipeline+prompts+gRPC, notification gRPC, proto files
+  - The board agent (8 SK tools) was defined but NOT invoked in the main AI pipeline — it was a standalone agent
+  - Summarizing AI prompt had board_state parameter and _format_board_state helper — both removed
+  - Facilitator plugins had _validate_board_refs for [[Item Title]] syntax — removed
+  - fabrication_validator.py extracted board node titles/bodies as source material — removed board_state param
+  - test_admin_users.py imported BoardNode for contribution_count test — removed test since production code only uses chat count
+  - Proto changes: BoardState, BoardNode, BoardConnection messages removed from common.proto; PersistBoardMutations RPC removed from core.proto; board_agent_count removed from ai.proto
+  - "board" substring appears in many unrelated contexts: "dashboard", "onboarding", "keyboard" — grep carefully
+---
