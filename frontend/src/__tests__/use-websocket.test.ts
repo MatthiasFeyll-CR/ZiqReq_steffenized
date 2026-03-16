@@ -4,7 +4,6 @@ import React from "react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { websocketReducer } from "@/store/websocket-slice";
-import { boardReducer } from "@/store/board-slice";
 import { presenceReducer } from "@/store/presence-slice";
 import { uiReducer } from "@/store/ui-slice";
 import { rateLimitReducer } from "@/store/rate-limit-slice";
@@ -51,7 +50,6 @@ vi.stubGlobal("WebSocket", MockWebSocket);
 function createStore() {
   return configureStore({
     reducer: {
-      board: boardReducer,
       websocket: websocketReducer,
       presence: presenceReducer,
       ui: uiReducer,

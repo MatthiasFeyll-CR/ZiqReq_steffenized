@@ -12,8 +12,7 @@ export function useCreateIdea() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["ideas"] });
       // Mark that AI processing is in progress for this idea — the backend
-      // broadcast happens before the client subscribes to the WebSocket group,
-      // so BoardCanvas checks this flag on mount to show the lock overlay.
+      // broadcast happens before the client subscribes to the WebSocket group.
       markAiProcessing(data.id);
       navigate(`/idea/${data.id}`);
     },

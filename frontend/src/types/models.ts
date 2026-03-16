@@ -20,26 +20,3 @@ export interface ChatMessage {
   messageType: "regular" | "delegation";
   createdAt: string;
 }
-
-export interface BoardNode {
-  id: string;
-  ideaId: string;
-  nodeType: "box" | "group" | "free_text";
-  title: string | null;
-  body: string | null;
-  positionX: number;
-  positionY: number;
-  width: number | null;
-  height: number | null;
-  parentId: string | null;
-  isLocked: boolean;
-  createdBy: "user" | "ai";
-  createdAt: string;
-}
-
-export interface BoardConnection {
-  id: string;
-  sourceNodeId: string;
-  targetNodeId: string;
-  label: string | null;
-}

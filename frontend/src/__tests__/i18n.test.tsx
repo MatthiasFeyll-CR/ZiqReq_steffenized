@@ -63,7 +63,6 @@ describe("T-16.1.01: All text in both languages", () => {
       "notifications",
       "emailPrefs",
       "admin",
-      "board",
       "brd",
       "chat",
       "submit",

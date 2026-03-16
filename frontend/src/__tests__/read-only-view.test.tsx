@@ -9,15 +9,6 @@ import { presenceReducer } from "@/store/presence-slice";
 import { websocketReducer } from "@/store/websocket-slice";
 import type { Idea } from "@/api/ideas";
 
-// Mock BoardCanvas to avoid React Flow's ResizeObserver dependency in jsdom
-vi.mock("@/components/board/BoardCanvas", () => ({
-  BoardCanvas: ({ disabled, readOnly }: { disabled?: boolean; readOnly?: boolean }) => (
-    <div data-testid="board-canvas" data-disabled={disabled} data-readonly={readOnly}>
-      BoardCanvas
-    </div>
-  ),
-}));
-
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
   useWsSend: () => vi.fn(),
@@ -181,18 +172,6 @@ describe("UI-SHARE.02: Hide edit controls in read-only mode", () => {
 
     expect(screen.getByTestId("chat-input")).toBeInTheDocument();
     expect(screen.queryByTestId("chat-read-only-notice")).not.toBeInTheDocument();
-  });
-
-  it("passes readOnly to BoardCanvas", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}?token=${TOKEN}`);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
-    });
-
-    const boardCanvas = screen.getByTestId("board-canvas");
-    expect(boardCanvas.getAttribute("data-readonly")).toBe("true");
-    expect(boardCanvas.getAttribute("data-disabled")).toBe("true");
   });
 
   it("hides manage collaborators button", async () => {

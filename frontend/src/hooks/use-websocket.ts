@@ -7,7 +7,6 @@ import {
   setIdleDisconnected,
 } from "@/store/websocket-slice";
 import { updatePresence } from "@/store/presence-slice";
-import { updateSelection } from "@/store/selections-slice";
 import { env } from "@/config/env";
 
 const INITIAL_BACKOFF_MS = 1000;
@@ -151,12 +150,6 @@ export function useWebSocket() {
                 detail: { idea_id: data.idea_id, ...data.payload },
               }),
             );
-          } else if (data.type === "board_update" && data.idea_id && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:board_update", {
-                detail: { idea_id: data.idea_id, ...data.payload },
-              }),
-            );
           } else if (data.type === "brd_generating" && data.idea_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:brd_generating", {
@@ -191,19 +184,6 @@ export function useWebSocket() {
             window.dispatchEvent(
               new CustomEvent("ws:comment_reaction", {
                 detail: data.payload,
-              }),
-            );
-          } else if (
-            data.type === "board_selection" &&
-            data.idea_id &&
-            data.payload
-          ) {
-            dispatch(
-              updateSelection({
-                idea_id: data.idea_id,
-                user_id: data.payload.user.id,
-                display_name: data.payload.user.display_name,
-                node_id: data.payload.node_id,
               }),
             );
           }

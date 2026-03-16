@@ -10,8 +10,6 @@ import { AuthContext, type AuthContextValue } from "@/hooks/use-auth";
 import { uiReducer } from "@/store/ui-slice";
 import { websocketReducer } from "@/store/websocket-slice";
 import { presenceReducer } from "@/store/presence-slice";
-import { selectionsReducer } from "@/store/selections-slice";
-import { boardReducer } from "@/store/board-slice";
 import { rateLimitReducer } from "@/store/rate-limit-slice";
 import i18n from "@/i18n/config";
 
@@ -26,10 +24,8 @@ beforeEach(() => {
 function makeStore() {
   return configureStore({
     reducer: {
-      board: boardReducer,
       websocket: websocketReducer,
       presence: presenceReducer,
-      selections: selectionsReducer,
       ui: uiReducer,
       rateLimit: rateLimitReducer,
     },

@@ -9,11 +9,6 @@ import { presenceReducer } from "@/store/presence-slice";
 import { websocketReducer } from "@/store/websocket-slice";
 import type { Idea } from "@/api/ideas";
 
-// Mock BoardCanvas to avoid React Flow's ResizeObserver dependency in jsdom
-vi.mock("@/components/board/BoardCanvas", () => ({
-  BoardCanvas: () => <div data-testid="board-canvas">BoardCanvas</div>,
-}));
-
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
   useWsSend: () => vi.fn(),

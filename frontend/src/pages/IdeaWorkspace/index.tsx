@@ -452,9 +452,6 @@ function IdeaWorkspaceContent({
             chatPanel={
               <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly || isInReviewReadOnly} />
             }
-            ideaId={idea.id}
-            disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
-            readOnly={readOnly || isInReviewReadOnly}
           />
 
           {/* Next step CTA — shown when user has chat messages and idea is still open */}

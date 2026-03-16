@@ -327,26 +327,14 @@
       "next": "Weiter"
     }
   },
-  "board": {
-    "addBox": "Box hinzufügen",
-    "deleteSelected": "Auswahl löschen",
-    "fitView": "Ansicht anpassen",
-    "undo": "Rückgängig",
-    "redo": "Wiederholen",
-    "undoAi": "KI-Aktion rückgängig",
-    "redoAi": "KI-Aktion wiederholen",
-    "unlockNode": "Knoten entsperren",
-    "lockNode": "Knoten sperren",
-    "referenceNode": "Knoten referenzieren",
-    "regenerateSection": "Abschnitt neu generieren",
-    "unlockSection": "Abschnitt entsperren",
-    "lockSection": "Abschnitt sperren"
-  },
   "brd": {
     "editDocument": "Dokument bearbeiten",
     "allowGaps": "Informationslücken zulassen",
     "saveError": "Änderungen konnten nicht gespeichert werden",
-    "regenerateError": "Abschnitt konnte nicht neu generiert werden"
+    "regenerateError": "Abschnitt konnte nicht neu generiert werden",
+    "regenerateSection": "Abschnitt neu generieren",
+    "unlockSection": "Abschnitt entsperren",
+    "lockSection": "Abschnitt sperren"
   },
   "chat": {
     "inputPlaceholder": "Nachricht eingeben...",

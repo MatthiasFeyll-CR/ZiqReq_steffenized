@@ -327,26 +327,14 @@
       "next": "Next"
     }
   },
-  "board": {
-    "addBox": "Add Box",
-    "deleteSelected": "Delete Selected",
-    "fitView": "Fit View",
-    "undo": "Undo",
-    "redo": "Redo",
-    "undoAi": "Undo AI Action",
-    "redoAi": "Redo AI Action",
-    "unlockNode": "Unlock node",
-    "lockNode": "Lock node",
-    "referenceNode": "Reference node",
-    "regenerateSection": "Regenerate section",
-    "unlockSection": "Unlock section",
-    "lockSection": "Lock section"
-  },
   "brd": {
     "editDocument": "Edit Document",
     "allowGaps": "Allow information gaps",
     "saveError": "Failed to save changes",
-    "regenerateError": "Failed to regenerate section"
+    "regenerateError": "Failed to regenerate section",
+    "regenerateSection": "Regenerate section",
+    "unlockSection": "Unlock section",
+    "lockSection": "Lock section"
   },
   "chat": {
     "inputPlaceholder": "Type a message...",

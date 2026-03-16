@@ -91,7 +91,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § board_nodes, board_connections — DROP tables\nArchitecture: docs/02-architecture/project-structure.md § AI service framework — verify AI pipeline after board agent removal\nAI: docs/03-ai/system-prompts.md § Facilitator prompt — remove <board_references>, <board_instructions_guidance>, <board_state> sections\nAI: docs/03-ai/tools-and-functions.md § request_board_changes tool — REMOVE from Facilitator plugin\nTesting: No test-matrix entries for removal stories — implement-first workflow\nFiles: services/core/apps/board/, services/gateway/apps/board/, services/ai/agents/board_agent/, services/gateway/apps/websocket/consumers.py, services/ai/agents/facilitator/plugins.py, services/ai/agents/facilitator/prompt.py, services/ai/processing/pipeline.py, services/ai/agents/summarizing_ai/prompt.py, proto/core.proto\nGotchas: This story touches the AI pipeline significantly — removing board state assembly and board agent invocation. The Facilitator prompt currently has [[Item Title]] board reference syntax in the send_chat_message tool description — remove that too. Pipeline.py may have board-specific context assembly that needs to be stripped out.\nDeviations: None expected",
       "context": {
@@ -130,7 +130,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/project-structure.md § Frontend structure — verify workspace layout after board removal\nDesign: docs/03-design/component-specs.md § Board canvas components — REMOVE all board-related components\nDesign: docs/03-design/page-layouts.md § Workspace layout — will become chat-only temporarily (structured panel comes in M19)\nTesting: No test-matrix entries for removal stories — implement-first workflow\nFiles: frontend/src/components/board/, frontend/src/pages/IdeaWorkspace/index.tsx, frontend/src/components/workspace/WorkspaceLayout.tsx, frontend/src/hooks/use-websocket.ts, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/package.json\nGotchas: WorkspaceLayout currently renders chat + board side-by-side. For M17, make it render chat only (full width). The structured requirements panel is added later in M19. Remove ReactFlowProvider import. After removing @xyflow/react, run npm install to update package-lock.json.\nDeviations: WorkspaceLayout will temporarily be chat-only (no right panel). The structured requirements panel comes in M19, so this is an expected intermediate state.",
       "context": {
