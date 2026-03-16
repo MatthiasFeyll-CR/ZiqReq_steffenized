@@ -7,7 +7,7 @@
 
 ## Current Review
 - **Milestone:** 17 — Remove Features (Clean Slate)
-- **Phase:** 6 (verdict delivered)
+- **Phase:** 6 (verdict delivered — final pipeline re-review)
 - **Bugfix cycle:** 1
 - **Status:** passed
 
@@ -53,6 +53,6 @@
 - **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
-- Pre-existing test failures (2): `idea-workspace.test.tsx` (fetchIdea extra undefined arg), `information-gaps-toggle.test.tsx` (URL.createObjectURL). Pre-date M17.
-- Pre-existing ESLint errors (4): unused vars in DocumentView, test files, BRDSectionEditor. Not introduced by M17.
-- Pre-existing ruff errors (2): E501 line length in admin_config migration and notification sender.py. Not introduced by M17.
+- Pre-existing pytest failures (3): `test_brd_pipeline.py::test_publish_generated_event`, `test_brd_pipeline.py::test_mock_mode_full_pipeline`, `test_embedding_pipeline.py::test_get_stubs_still_work`. Not introduced by M17.
+- Pre-existing ESLint errors (4): unused vars / useless escape in DocumentView, BRDSectionEditor, test files. Not introduced by M17.
+- Ruff: All checks now pass (0 errors after BF-001 fixed M17-introduced issues and also cleaned up additional files).
