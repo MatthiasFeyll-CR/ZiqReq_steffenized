@@ -3,10 +3,10 @@
 ## Project
 - **Name:** ZiqReq
 - **Started:** 2026-03-09
-- **Last updated:** 2026-03-11
+- **Last updated:** 2026-03-16
 
 ## Current Review
-- **Milestone:** 16 — Polish & Cross-Cutting
+- **Milestone:** 17 — Remove Features (Clean Slate)
 - **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 1
 - **Status:** passed
@@ -30,44 +30,29 @@
 | M14 — Merge Advanced | `qa-m14-merge-advanced.md` | 0 | PASS | 2026-03-11 |
 | M15 — Admin Panel | `qa-m15-admin.md` | 0 | PASS | 2026-03-11 |
 | M16 — Polish & Cross-Cutting | `qa-m16-polish.md` | 1 | PASS | 2026-03-11 |
+| M17 — Remove Features | `qa-m17-remove-features.md` | 1 | PASS | 2026-03-16 |
 
 ## Input Consumed
 - .ralph/prd.json
 - .ralph/progress.txt
-- docs/01-requirements/*.md
-- docs/02-architecture/*.md
-- docs/03-design/component-specs.md
-- docs/04-test-architecture/test-matrix.md
-- docs/05-milestones/milestone-16.md
-- tasks/prd-m16.json
-- .ralph/test-manifest.json
-- frontend/src/components/common/ErrorToast.tsx
-- frontend/src/components/common/ErrorLogModal.tsx
-- frontend/src/components/common/OfflineBanner.tsx
-- frontend/src/components/ui/skeleton.tsx
-- frontend/src/hooks/useErrorHandler.ts
-- frontend/src/hooks/useIdleDetection.ts
-- frontend/src/hooks/useIdeaSync.ts
-- frontend/src/hooks/useMsalAuth.ts
-- frontend/src/utils/errorLogger.ts
-- frontend/src/config/msalConfig.ts
-- frontend/src/config/env.ts
-- frontend/src/lib/auth-token.ts
-- frontend/src/app/providers.tsx
-- frontend/src/app/app.tsx
-- frontend/src/i18n/locales/de.json
-- frontend/src/i18n/locales/en.json
-- services/gateway/apps/websocket/consumers.py
-- services/gateway/apps/websocket/middleware.py
-- services/gateway/apps/authentication/middleware.py
+- docs/05-milestones/milestone-17.md
+- tasks/prd-m17.json
+- services/core/apps/ideas/migrations/0002_remove_merge_similarity.py
+- services/core/apps/ideas/migrations/0003_remove_board.py
+- services/ai/agents/facilitator/prompt.py
+- services/ai/agents/summarizing_ai/prompt.py
+- services/ai/processing/pipeline.py
+- frontend/src/components/workspace/WorkspaceLayout.tsx
+- frontend/package.json
+- proto/*.proto
 
 ## Handoff
 - **Ready for merge:** true
-- **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m16-polish.md, docs/08-qa/_status.md
+- **Next phase:** Merge + Verify, then Spec Reconciler
+- **Files produced:** docs/08-qa/qa-m17-remove-features.md, docs/08-qa/_status.md
 - **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
-- Pre-existing test failures (2): `idea-workspace.test.tsx` (fetchIdea extra undefined arg), `information-gaps-toggle.test.tsx` (URL.createObjectURL). These pre-date M16 and should be addressed in a maintenance pass.
-- Pre-existing ESLint errors (3): unused vars in test files and BRDSectionEditor. Not introduced by M16.
-- ESLint warnings (6): `react-hooks/exhaustive-deps` for `t` in 4 admin tabs (from M16 i18n), `shareToken` in IdeaWorkspace (pre-existing). Non-blocking — `t` is stable.
+- Pre-existing test failures (2): `idea-workspace.test.tsx` (fetchIdea extra undefined arg), `information-gaps-toggle.test.tsx` (URL.createObjectURL). Pre-date M17.
+- Pre-existing ESLint errors (4): unused vars in DocumentView, test files, BRDSectionEditor. Not introduced by M17.
+- Pre-existing ruff errors (2): E501 line length in admin_config migration and notification sender.py. Not introduced by M17.

@@ -193,7 +193,7 @@
     "checks": [
       {
         "name": "Docker build",
-        "command": "docker compose build",
+        "command": "docker compose -f docker-compose.test.yml up -d --build",
         "condition": "command -v docker && test -f docker-compose.yml",
         "required": true
       },
@@ -211,7 +211,7 @@
       },
       {
         "name": "Backend typecheck (mypy)",
-        "command": "mypy services/",
+        "command": "docker compose -f docker-compose.test.yml run --rm python-tests pytest",
         "condition": "test -d services && command -v mypy",
         "required": false
       },
