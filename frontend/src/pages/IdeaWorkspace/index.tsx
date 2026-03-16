@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { fetchIdea, type Idea } from "@/api/ideas";
+import { fetchIdea, restoreIdea, type Idea } from "@/api/ideas";
 import { fetchChatMessages } from "@/api/chat";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -179,7 +179,7 @@ function IdeaWorkspaceContent({
     const urlStep = parseStep(searchParams.get("step"));
     // If no explicit step in URL, derive from idea state
     if (!searchParams.get("step")) {
-      if (idea.state === "rejected") return "brainstorm";
+      if (idea.state === "rejected" || idea.state === "deleted") return "brainstorm";
       if (["in_review", "accepted", "dropped"].includes(idea.state)) return "review";
     }
     return urlStep;
@@ -228,8 +228,8 @@ function IdeaWorkspaceContent({
     [setSearchParams],
   );
 
-  // has_been_submitted heuristic
-  const hasBeenSubmitted = idea.state !== "open";
+  // has_been_submitted heuristic — deleted doesn't count
+  const hasBeenSubmitted = idea.state !== "open" && idea.state !== "deleted";
 
   // Access gates
   const canAccessDocument = hasMessages === true;
@@ -250,7 +250,7 @@ function IdeaWorkspaceContent({
     if (prevStateRef.current === idea.state) return;
     prevStateRef.current = idea.state;
 
-    if (idea.state === "rejected") {
+    if (idea.state === "rejected" || idea.state === "deleted") {
       handleStepChange("brainstorm");
     } else if (["in_review", "accepted", "dropped"].includes(idea.state)) {
       handleStepChange("review");
@@ -289,7 +289,10 @@ function IdeaWorkspaceContent({
   const hasMergePending = !!idea.merge_request_pending;
   const isClosedByMerge = !!idea.merged_idea_ref;
   const isClosedByAppend = !!idea.appended_idea_ref;
-  const isClosedIdea = isClosedByMerge || isClosedByAppend;
+  const isDeleted = idea.state === "deleted";
+  const isClosedIdea = isClosedByMerge || isClosedByAppend || isDeleted;
+  const isInReview = idea.state === "in_review";
+  const isInReviewReadOnly = isInReview && activeStep !== "review";
 
   // Listen for WebSocket title_update events
   useEffect(() => {
@@ -326,19 +329,38 @@ function IdeaWorkspaceContent({
     });
   }, [idea, onIdeaUpdate]);
 
-  const effectiveChatLocked = chatLocked || !isOnline || readOnly || hasMergePending || isClosedIdea;
+  const [isRestoring, setIsRestoring] = useState(false);
+  const handleRestore = useCallback(async () => {
+    setIsRestoring(true);
+    try {
+      await restoreIdea(idea.id);
+      const updated = await fetchIdea(idea.id);
+      onIdeaUpdate(updated);
+    } catch {
+      // If refetch fails, optimistically set state back to open
+      onIdeaUpdate({ ...idea, state: "open" });
+    } finally {
+      setIsRestoring(false);
+    }
+  }, [idea, onIdeaUpdate]);
+
+  const effectiveChatLocked = chatLocked || !isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly;
   const effectiveLockReason = readOnly
     ? "Viewing shared idea — chat is read-only"
     : !isOnline
       ? "You are currently offline. Chat is disabled."
-      : isClosedByMerge
-        ? "This idea was merged. Content is read-only."
-        : isClosedByAppend
-          ? "This idea was appended. Content is read-only."
-          : hasMergePending
-            ? "This idea has a pending merge request. Accept or decline to continue editing."
-            : lockReason;
-  const effectiveReadOnly = allReadOnly || readOnly || isClosedIdea;
+      : isDeleted
+        ? "This idea has been deleted. All sections are read-only."
+        : isClosedByMerge
+          ? "This idea was merged. Content is read-only."
+          : isClosedByAppend
+            ? "This idea was appended. Content is read-only."
+            : hasMergePending
+              ? "This idea has a pending merge request. Accept or decline to continue editing."
+              : isInReviewReadOnly
+                ? "This idea is currently under review. Content is read-only."
+                : lockReason;
+  const effectiveReadOnly = allReadOnly || readOnly || isClosedIdea || isInReviewReadOnly;
 
   const handleAgentModeChange = useCallback(
     async (value: string) => {
@@ -381,13 +403,57 @@ function IdeaWorkspaceContent({
         <MergeRequestBanner mergeRequest={idea.merge_request_pending} onResolved={handleMergeResolved} />
       )}
       {!readOnly && !isClosedIdea && <InvitationBanner ideaId={idea.id} />}
+      {isDeleted && (
+        <div
+          className="shrink-0 flex items-center gap-3 px-6 py-3 bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-900/30"
+          data-testid="deleted-banner"
+        >
+          <p className="text-sm text-red-700 dark:text-red-400 flex-1">
+            {t("workspace.deletedReason", "This idea has been deleted. All content is read-only.")}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRestore}
+            disabled={isRestoring}
+            data-testid="restore-idea-button"
+            className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
+          >
+            {isRestoring ? (
+              <RotateCcw className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="mr-1 h-4 w-4" />
+            )}
+            {t("workspace.restoreIdea", "Restore")}
+          </Button>
+        </div>
+      )}
+      {isInReviewReadOnly && (
+        <div
+          className="shrink-0 flex items-center gap-3 px-6 py-3 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-900/30"
+          data-testid="in-review-banner"
+        >
+          <p className="text-sm text-amber-700 dark:text-amber-400 flex-1">
+            {t("workspace.inReviewReadOnly", "This idea is currently under review. Content is read-only until the review is complete.")}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleStepChange("review")}
+            data-testid="go-to-review-button"
+            className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
+          >
+            {t("workspace.goToReview", "Go to Review")}
+          </Button>
+        </div>
+      )}
       <OfflineBanner />
 
       {/* Step Content */}
       {activeStep === "brainstorm" && (
         <div className="relative flex-1 min-h-0 flex flex-col">
-          {(hasMergePending || isClosedIdea) && (
-            <LockOverlay reason={isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
+          {(hasMergePending || isClosedIdea || isInReviewReadOnly) && (
+            <LockOverlay reason={isDeleted ? "This idea has been deleted. All sections are read-only." : isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : isInReviewReadOnly ? "This idea is currently under review. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
           )}
 
           {/* Agent mode selector — contextual to brainstorm step */}
@@ -412,24 +478,24 @@ function IdeaWorkspaceContent({
 
           <WorkspaceLayout
             chatPanel={
-              <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly} />
+              <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly || isInReviewReadOnly} />
             }
             ideaId={idea.id}
-            disabled={!isOnline || readOnly || hasMergePending || isClosedIdea}
-            readOnly={readOnly}
+            disabled={!isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly}
+            readOnly={readOnly || isInReviewReadOnly}
           />
         </div>
       )}
 
       {activeStep === "document" && (
         <div className="relative flex-1 min-h-0 flex flex-col px-6 py-4">
-          {(hasMergePending || isClosedIdea) && (
-            <LockOverlay reason={isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
+          {(hasMergePending || isClosedIdea || isInReviewReadOnly) && (
+            <LockOverlay reason={isDeleted ? "This idea has been deleted. All sections are read-only." : isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : isInReviewReadOnly ? "This idea is currently under review. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
           )}
           <DocumentView
             ideaId={idea.id}
             ideaState={idea.state}
-            disabled={!isOnline || readOnly || hasMergePending || isClosedIdea}
+            disabled={!isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly}
             onStepChange={handleStepChange}
             onSubmitted={() => {
               fetchIdea(idea.id).then((updated) => {

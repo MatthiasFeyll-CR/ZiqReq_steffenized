@@ -153,7 +153,15 @@ export function ManualMergeModal({
           </TabsList>
 
           <TabsContent value="uuid" data-testid="tab-content-uuid">
-            <div className="flex flex-col gap-3 py-2">
+            <div
+              className="flex flex-col gap-3 py-2"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSubmitUuid();
+                }
+              }}
+            >
               <div className="flex gap-2">
                 <Input
                   value={inputValue}

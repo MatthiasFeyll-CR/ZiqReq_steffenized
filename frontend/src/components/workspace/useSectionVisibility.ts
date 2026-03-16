@@ -48,6 +48,12 @@ export function useSectionVisibility(idea: Idea): SectionVisibility {
           allReadOnly: true,
           lockReason: "This idea has been dropped. All sections are read-only.",
         };
+      case "deleted":
+        return {
+          chatLocked: true,
+          allReadOnly: true,
+          lockReason: "This idea has been deleted. All sections are read-only.",
+        };
       default:
         return {
           chatLocked: false,

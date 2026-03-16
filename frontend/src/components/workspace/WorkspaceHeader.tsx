@@ -23,6 +23,7 @@ const STATE_LABELS: Record<string, string> = {
   accepted: "Accepted",
   dropped: "Dropped",
   rejected: "Rejected",
+  deleted: "Deleted",
 };
 
 interface WorkspaceHeaderProps {
@@ -97,11 +98,11 @@ export function WorkspaceHeader({
   const handleDelete = useCallback(async () => {
     try {
       await deleteIdea(idea.id);
-      navigate("/");
+      onIdeaUpdate({ ...idea, state: "deleted" });
     } catch {
       // Error handled silently — user stays on page
     }
-  }, [idea.id, navigate]);
+  }, [idea, onIdeaUpdate]);
 
   return (
     <div
@@ -156,7 +157,7 @@ export function WorkspaceHeader({
 
         {/* State badge */}
         <Badge
-          variant={idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected"}
+          variant={idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted"}
           className="shrink-0"
         >
           {STATE_LABELS[idea.state] || idea.state}
@@ -193,29 +194,31 @@ export function WorkspaceHeader({
         {/* Presence indicators */}
         <PresenceIndicators ideaId={idea.id} />
 
-        {/* Options dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label={t("workspace.options", "Options")}
-              data-testid="options-menu-trigger"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={handleDelete}
-              data-testid="delete-idea-option"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {t("workspace.deleteIdea", "Delete Idea")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Options dropdown — hidden when deleted */}
+        {idea.state !== "deleted" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("workspace.options", "Options")}
+                data-testid="options-menu-trigger"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={handleDelete}
+                data-testid="delete-idea-option"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {t("workspace.deleteIdea", "Delete Idea")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Bottom row: process stepper */}

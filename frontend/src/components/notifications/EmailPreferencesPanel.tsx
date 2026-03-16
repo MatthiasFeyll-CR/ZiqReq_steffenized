@@ -44,12 +44,6 @@ const PREFERENCE_GROUPS: PreferenceGroup[] = [
     ],
   },
   {
-    label: "AI",
-    items: [
-      { key: "ai_delegation_complete", label: "AI processing complete" },
-    ],
-  },
-  {
     label: "Chat",
     items: [{ key: "chat_mention", label: "@mention in chat" }],
   },
@@ -86,7 +80,7 @@ interface EmailPreferencesPanelProps {
 }
 
 // Event types that default to OFF (opt-in). Must match backend.
-const DEFAULT_DISABLED_KEYS = new Set(["ai_delegation_complete"])
+const DEFAULT_DISABLED_KEYS = new Set<string>([])
 
 function defaultFor(key: string): boolean {
   return !DEFAULT_DISABLED_KEYS.has(key)
@@ -95,7 +89,6 @@ function defaultFor(key: string): boolean {
 const groupLabelKey: Record<string, string> = {
   Collaboration: "collaboration",
   Review: "review",
-  AI: "ai",
   Chat: "chat",
   Similarity: "similarity",
   "Review Management": "reviewManagement",
@@ -147,6 +140,7 @@ export function EmailPreferencesPanel({
       toast.success(t("emailPrefs.saved"))
       queryClient.invalidateQueries({ queryKey: ["emailPreferences"] })
       setDirty(false)
+      onOpenChange(false)
     },
     onError: () => {
       toast.error(t("emailPrefs.failedToSave"))
@@ -190,7 +184,15 @@ export function EmailPreferencesPanel({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[480px] max-w-[90vw]">
+      <DialogContent
+        className="w-[480px] max-w-[90vw]"
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            handleSave();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t("emailPrefs.title")}</DialogTitle>
           <DialogDescription>

@@ -17,7 +17,7 @@ export interface IdeaRef {
 export interface Idea {
   id: string;
   title: string;
-  state: "open" | "in_review" | "accepted" | "dropped" | "rejected";
+  state: "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted";
   agent_mode: "interactive" | "silent";
   visibility: "private" | "collaborating";
   owner_id: string;

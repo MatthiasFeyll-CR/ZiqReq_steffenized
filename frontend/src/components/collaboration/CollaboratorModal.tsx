@@ -202,6 +202,7 @@ function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void })
       setSearchQuery("");
       setDebouncedQuery("");
       queryClient.invalidateQueries({ queryKey: ["invitations", ideaId] });
+      onClose();
     },
     onError: (error: Error) => {
       toast.error(error.message || t("collaboration.failedToInvite"));
@@ -233,7 +234,16 @@ function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void })
   }, [selectedUsers, bulkInviteMutation]);
 
   return (
-    <div className="space-y-4 py-2" data-testid="invite-tab">
+    <div
+      className="space-y-4 py-2"
+      data-testid="invite-tab"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && !e.defaultPrevented) {
+          e.preventDefault();
+          handleInviteSelected();
+        }
+      }}
+    >
       {/* Selected users chips */}
       {selectedUsers.length > 0 && (
         <div className="flex flex-wrap gap-1.5" data-testid="selected-users">
@@ -411,6 +421,7 @@ function CollaboratorsTab({
       toast.success(t("collaboration.collaboratorRemoved"));
       setRemoveTarget(null);
       queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
+      onCloseModal();
     },
     onError: (error: Error) => {
       toast.error(error.message || t("collaboration.failedToRemove"));
@@ -553,7 +564,15 @@ function CollaboratorsTab({
       {/* Remove confirmation dialog */}
       {removeTarget && (
         <Dialog open={!!removeTarget} onOpenChange={() => setRemoveTarget(null)}>
-          <DialogContent data-testid="remove-confirm-dialog">
+          <DialogContent
+            data-testid="remove-confirm-dialog"
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                removeMutation.mutate(removeTarget.id);
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>{t("collaboration.removeCollaborator")}</DialogTitle>
               <DialogDescription>
@@ -580,7 +599,15 @@ function CollaboratorsTab({
       {/* Transfer confirmation dialog */}
       {transferDialogOpen && transferTarget && (
         <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
-          <DialogContent data-testid="transfer-confirm-dialog">
+          <DialogContent
+            data-testid="transfer-confirm-dialog"
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                transferMutation.mutate(transferTarget.id);
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>{t("collaboration.transferOwnership")}</DialogTitle>
               <DialogDescription>
@@ -646,6 +673,7 @@ function PendingTab({ ideaId, isOwner, onClose }: { ideaId: string; isOwner: boo
     onSuccess: () => {
       toast.success(t("collaboration.invitationRevoked"));
       queryClient.invalidateQueries({ queryKey: ["invitations", ideaId] });
+      onClose();
     },
     onError: (error: Error) => {
       toast.error(error.message || t("collaboration.failedToRevoke"));

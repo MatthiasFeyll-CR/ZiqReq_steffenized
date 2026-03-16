@@ -101,7 +101,14 @@ export function MergeRequestBanner({ mergeRequest, onResolved }: MergeRequestBan
       </AnimatePresence>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
+        <DialogContent
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleDecline();
+            }
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{t("merge.declineTitle")}</DialogTitle>
             <DialogDescription>
