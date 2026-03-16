@@ -3,7 +3,7 @@
   "version": "1.0",
   "project": {
     "name": "ZiqReq",
-    "description": "AI-powered brainstorming and idea management platform with real-time collaboration, BRD generation, and review workflows"
+    "description": "Refactoring ZiqReq from AI-brainstorming platform to structured requirements assembly platform (M17-M21)"
   },
   "paths": {
     "docs_dir": "docs",
@@ -17,116 +17,39 @@
   },
   "milestones": [
     {
-      "id": 1,
-      "slug": "foundation",
-      "name": "Foundation & Auth",
-      "stories": 10,
-      "dependencies": []
+      "id": 17,
+      "slug": "remove-features",
+      "name": "Remove Features (Clean Slate)",
+      "stories": 4,
+      "dependencies": [16]
     },
     {
-      "id": 2,
-      "slug": "landing",
-      "name": "Landing Page & Idea CRUD",
-      "stories": 8,
-      "dependencies": [1]
+      "id": 18,
+      "slug": "rename-project",
+      "name": "Rename Idea to Project",
+      "stories": 4,
+      "dependencies": [17]
     },
     {
-      "id": 3,
-      "slug": "workspace-chat",
-      "name": "Idea Workspace - Layout & Chat",
-      "stories": 10,
-      "dependencies": [2]
+      "id": 19,
+      "slug": "structured-requirements",
+      "name": "Project Types & Structured Requirements",
+      "stories": 4,
+      "dependencies": [18]
     },
     {
-      "id": 4,
-      "slug": "board-core",
-      "name": "Digital Board - Core",
-      "stories": 9,
-      "dependencies": [3]
+      "id": 20,
+      "slug": "ai-rework",
+      "name": "AI System Prompt Rework",
+      "stories": 3,
+      "dependencies": [19]
     },
     {
-      "id": 5,
-      "slug": "board-advanced",
-      "name": "Board Interactions & Undo",
-      "stories": 8,
-      "dependencies": [4]
-    },
-    {
-      "id": 6,
-      "slug": "websocket",
-      "name": "WebSocket & Real-Time",
-      "stories": 10,
-      "dependencies": [3]
-    },
-    {
-      "id": 7,
-      "slug": "ai-chat",
-      "name": "AI Core - Chat Processing Pipeline",
-      "stories": 10,
-      "dependencies": [5, 6]
-    },
-    {
-      "id": 8,
-      "slug": "ai-context",
-      "name": "AI Board Agent & Context",
-      "stories": 10,
-      "dependencies": [7]
-    },
-    {
-      "id": 9,
-      "slug": "brd-pdf",
-      "name": "BRD & PDF Generation",
-      "stories": 9,
-      "dependencies": [8]
-    },
-    {
-      "id": 10,
-      "slug": "review",
-      "name": "Review Workflow",
-      "stories": 10,
-      "dependencies": [9]
-    },
-    {
-      "id": 11,
-      "slug": "collaboration",
-      "name": "Collaboration & Sharing",
-      "stories": 9,
-      "dependencies": [6]
-    },
-    {
-      "id": 12,
-      "slug": "notifications",
-      "name": "Notification System",
-      "stories": 9,
-      "dependencies": [6]
-    },
-    {
-      "id": 13,
-      "slug": "similarity",
-      "name": "Similarity Detection & Merge",
-      "stories": 10,
-      "dependencies": [8, 12]
-    },
-    {
-      "id": 14,
-      "slug": "merge-advanced",
-      "name": "Merge Advanced & Manual",
-      "stories": 7,
-      "dependencies": [13]
-    },
-    {
-      "id": 15,
-      "slug": "admin",
-      "name": "Admin Panel",
-      "stories": 10,
-      "dependencies": [8]
-    },
-    {
-      "id": 16,
-      "slug": "polish",
-      "name": "Polish & Cross-Cutting",
-      "stories": 10,
-      "dependencies": [10, 11, 12]
+      "id": 21,
+      "slug": "polish-final",
+      "name": "Document View, PDF Generation & Final Polish",
+      "stories": 5,
+      "dependencies": [20]
     }
   ],
   "models": {
@@ -178,18 +101,6 @@
         "command": "cd frontend && npx eslint src/ && cd ..",
         "condition": "test -f frontend/eslint.config.js",
         "required": false
-      },
-      {
-        "name": "E2E typecheck",
-        "command": "cd e2e && npx tsc --noEmit && cd ..",
-        "condition": "test -f e2e/tsconfig.json",
-        "required": true
-      },
-      {
-        "name": "E2E tests",
-        "command": "cd e2e && npx playwright test && cd ..",
-        "condition": "test -f e2e/playwright.config.ts",
-        "required": true
       }
     ]
   },
@@ -205,41 +116,82 @@
   "cost": {
     "budget_usd": 1000
   },
-  "test_execution": {
-    "compose_file": "docker-compose.e2e.yml",
-    "test_command": "cd e2e && npx playwright test && cd ..",
-    "test_single_command": "cd e2e && npx playwright test {spec_file} && cd ..",
-    "integration_test_command": "echo 'integration test skipped' || true",
-    "setup_command": "docker container rm $(docker container ls -aq) || true; docker volume rm $(docker volume ls -q) || true; docker compose -f docker-compose.e2e.yml up -d --build",
-    "teardown_command": "docker compose -f docker-compose.e2e.yml down",
-    "force_teardown_command": "docker compose -f docker-compose.e2e.yml down -v --remove-orphans",
-    "build_command": "docker compose -f docker-compose.e2e.yml build",
-    "condition": "command -v docker",
-    "setup_timeout_seconds": 600,
-    "timeout_seconds": 900,
-    "build_timeout_seconds": 600,
-    "health_poll": {
-      "gateway": "http://localhost:8000/api/auth/dev-users",
-      "frontend": "http://localhost:5173",
-      "poll_interval_ms": 2000,
-      "max_wait_ms": 120000
-    },
+  "test_infrastructure": {
+    "compose_file": "docker-compose.test.yml",
     "services": [
       {
-        "name": "gateway",
-        "type": "tcp",
-        "host": "localhost",
-        "port": 8000,
-        "startup_timeout": 180
+        "name": "postgres",
+        "image": "pgvector/pgvector:pg16",
+        "port": 5432,
+        "environment": {
+          "POSTGRES_USER": "testuser",
+          "POSTGRES_PASSWORD": "testpass",
+          "POSTGRES_DB": "ziqreq_test"
+        },
+        "readiness": "pg_isready"
       },
       {
-        "name": "frontend",
-        "type": "tcp",
-        "host": "localhost",
-        "port": 5173,
-        "startup_timeout": 180
+        "name": "redis",
+        "image": "redis:7-alpine",
+        "port": 6379,
+        "readiness": "redis-cli ping"
+      },
+      {
+        "name": "rabbitmq",
+        "image": "rabbitmq:3-management-alpine",
+        "port": 5672,
+        "environment": {
+          "RABBITMQ_DEFAULT_USER": "testuser",
+          "RABBITMQ_DEFAULT_PASS": "testpass"
+        },
+        "readiness": "rabbitmq-diagnostics check_port_connectivity"
       }
-    ]
+    ],
+    "runtimes": [
+      {
+        "name": "python",
+        "base_image": "python:3.12-slim",
+        "source_dir": ".",
+        "workdir": "/app",
+        "dependency_files": ["requirements.txt", "requirements-dev.txt"],
+        "install_cmd": "pip install --no-cache-dir -r requirements-dev.txt",
+        "test_framework": "pytest",
+        "test_cmd": "pytest",
+        "ci_flags": "--ci",
+        "dockerfile": "infra/docker/Dockerfile.test-python"
+      },
+      {
+        "name": "node",
+        "base_image": "node:20-slim",
+        "source_dir": "frontend",
+        "workdir": "/app",
+        "dependency_files": ["package.json", "package-lock.json"],
+        "install_cmd": "npm ci",
+        "test_framework": "vitest",
+        "test_cmd": "npx vitest run",
+        "dockerfile": "infra/docker/Dockerfile.test-node"
+      }
+    ],
+    "databases": [
+      {
+        "service": "postgres",
+        "db_name": "ziqreq_test",
+        "user": "testuser",
+        "password": "testpass"
+      },
+      {
+        "service": "postgres",
+        "db_name": "test_ziqreq_test",
+        "user": "testuser",
+        "password": "testpass",
+        "note": "Django test runner creates this via init-test-db.sql"
+      }
+    ],
+    "timeouts": {
+      "setup_seconds": 120,
+      "build_seconds": 300,
+      "test_seconds": 300
+    }
   },
   "scaffolding": {
     "enabled": false,
