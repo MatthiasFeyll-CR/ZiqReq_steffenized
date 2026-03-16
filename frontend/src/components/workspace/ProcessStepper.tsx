@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { MessageSquare, FileText, CheckCircle, Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -34,16 +34,16 @@ export function ProcessStepper({
 
   const stepConfig = {
     brainstorm: {
-      icon: MessageSquare,
       label: t("process.brainstorm", "Brainstorm"),
+      description: t("process.brainstormDesc", "Chat with AI to shape your idea"),
     },
     document: {
-      icon: FileText,
       label: t("process.document", "Document"),
+      description: t("process.documentDesc", "Generate & refine your BRD"),
     },
     review: {
-      icon: CheckCircle,
       label: t("process.review", "Review"),
+      description: t("process.reviewDesc", "Submit for approval"),
     },
   };
 
@@ -51,43 +51,42 @@ export function ProcessStepper({
 
   return (
     <TooltipProvider delayDuration={200}>
-    <nav
-      className="flex items-center gap-1"
-      aria-label={t("process.stepper", "Process steps")}
-      data-testid="process-stepper"
-    >
-      {STEPS.map((step, index) => {
-        const config = stepConfig[step];
-        const Icon = config.icon;
-        const isActive = step === activeStep;
-        const isCompleted = index < activeIndex;
-        const isGated =
-          (step === "document" && !canAccessDocument) ||
-          (step === "review" && !canAccessReview);
-        const gateMessage =
-          step === "document"
-            ? documentGateMessage
-            : step === "review"
-              ? reviewGateMessage
-              : undefined;
+      <nav
+        className="flex items-center gap-0 w-full"
+        aria-label={t("process.stepper", "Process steps")}
+        data-testid="process-stepper"
+      >
+        {STEPS.map((step, index) => {
+          const config = stepConfig[step];
+          const isActive = step === activeStep;
+          const isCompleted = index < activeIndex;
+          const isGated =
+            (step === "document" && !canAccessDocument) ||
+            (step === "review" && !canAccessReview);
+          const gateMessage =
+            step === "document"
+              ? documentGateMessage
+              : step === "review"
+                ? reviewGateMessage
+                : undefined;
 
-        return (
-          <StepItem
-            key={step}
-            step={step}
-            index={index}
-            icon={Icon}
-            label={config.label}
-            isActive={isActive}
-            isCompleted={isCompleted}
-            isGated={isGated}
-            gateMessage={gateMessage}
-            isLast={index === STEPS.length - 1}
-            onStepChange={onStepChange}
-          />
-        );
-      })}
-    </nav>
+          return (
+            <StepItem
+              key={step}
+              step={step}
+              index={index}
+              label={config.label}
+              description={config.description}
+              isActive={isActive}
+              isCompleted={isCompleted}
+              isGated={isGated}
+              gateMessage={gateMessage}
+              isLast={index === STEPS.length - 1}
+              onStepChange={onStepChange}
+            />
+          );
+        })}
+      </nav>
     </TooltipProvider>
   );
 }
@@ -95,8 +94,8 @@ export function ProcessStepper({
 interface StepItemProps {
   step: ProcessStep;
   index: number;
-  icon: React.ComponentType<{ className?: string }>;
   label: string;
+  description: string;
   isActive: boolean;
   isCompleted: boolean;
   isGated: boolean;
@@ -107,8 +106,9 @@ interface StepItemProps {
 
 function StepItem({
   step,
-  icon: Icon,
+  index,
   label,
+  description,
   isActive,
   isCompleted,
   isGated,
@@ -121,7 +121,6 @@ function StepItem({
 
   const handleClick = useCallback(() => {
     if (isGated) {
-      // Trigger shake animation
       if (shakeTimeoutRef.current) clearTimeout(shakeTimeoutRef.current);
       setShaking(true);
       shakeTimeoutRef.current = setTimeout(() => setShaking(false), 500);
@@ -130,34 +129,66 @@ function StepItem({
     onStepChange(step);
   }, [isGated, onStepChange, step]);
 
-  const button = (
+  const stepNumber = index + 1;
+
+  const content = (
     <button
       type="button"
       onClick={handleClick}
       className={cn(
-        "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-150",
-        isActive &&
-          "bg-secondary text-white dark:bg-primary dark:text-primary-foreground shadow-sm",
-        isCompleted &&
-          !isActive &&
-          "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50",
-        !isActive &&
-          !isCompleted &&
-          !isGated &&
-          "text-muted-foreground hover:bg-muted hover:text-foreground",
-        isGated &&
-          "text-muted-foreground/50 cursor-not-allowed",
-        shaking && "animate-[shake_0.5s_ease-in-out]"
+        "group flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all duration-150 min-w-0",
+        isActive && "bg-secondary/10 dark:bg-primary/10",
+        !isActive && !isGated && "hover:bg-muted/50",
+        isGated && "cursor-not-allowed opacity-60",
+        shaking && "animate-[shake_0.5s_ease-in-out]",
       )}
       aria-current={isActive ? "step" : undefined}
       data-testid={`step-${step}`}
     >
-      {isCompleted && !isActive ? (
-        <Check className="h-4 w-4" />
-      ) : (
-        <Icon className="h-4 w-4" />
-      )}
-      <span className="hidden sm:inline">{label}</span>
+      {/* Step number circle */}
+      <div
+        className={cn(
+          "shrink-0 flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors duration-150",
+          isActive && "bg-secondary text-white dark:bg-primary dark:text-primary-foreground",
+          isCompleted && !isActive && "bg-green-500 text-white dark:bg-green-600",
+          !isActive && !isCompleted && !isGated && "bg-muted text-muted-foreground border border-border",
+          isGated && "bg-muted text-muted-foreground/50 border border-border/50",
+        )}
+      >
+        {isCompleted && !isActive ? (
+          <Check className="h-4 w-4" />
+        ) : isGated ? (
+          <Lock className="h-3.5 w-3.5" />
+        ) : (
+          stepNumber
+        )}
+      </div>
+
+      {/* Label + description */}
+      <div className="min-w-0 hidden sm:block">
+        <div
+          className={cn(
+            "text-sm font-medium leading-tight truncate",
+            isActive && "text-foreground",
+            isCompleted && !isActive && "text-green-700 dark:text-green-400",
+            !isActive && !isCompleted && !isGated && "text-muted-foreground group-hover:text-foreground",
+            isGated && "text-muted-foreground/50",
+          )}
+        >
+          {label}
+        </div>
+        <div
+          className={cn(
+            "text-xs leading-tight truncate mt-0.5",
+            isActive && "text-muted-foreground",
+            isCompleted && !isActive && "text-green-600/70 dark:text-green-500/70",
+            !isActive && !isCompleted && "text-muted-foreground/60",
+            isGated && "text-muted-foreground/40",
+          )}
+        >
+          {description}
+        </div>
+      </div>
     </button>
   );
 
@@ -165,21 +196,24 @@ function StepItem({
     <>
       {isGated && gateMessage ? (
         <Tooltip>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
           <TooltipContent side="bottom" className="max-w-[240px] text-center">
             <p>{gateMessage}</p>
           </TooltipContent>
         </Tooltip>
       ) : (
-        button
+        content
       )}
+      {/* Connector line */}
       {!isLast && (
-        <div
-          className={cn(
-            "w-6 h-px",
-            isCompleted ? "bg-green-400 dark:bg-green-600" : "bg-border"
-          )}
-        />
+        <div className="flex-1 flex items-center px-1 min-w-4 max-w-12">
+          <div
+            className={cn(
+              "h-0.5 w-full rounded-full transition-colors duration-300",
+              isCompleted ? "bg-green-400 dark:bg-green-600" : "bg-border",
+            )}
+          />
+        </div>
       )}
     </>
   );

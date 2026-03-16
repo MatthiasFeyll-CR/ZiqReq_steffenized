@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "apps.similarity",
     "apps.admin_ai_context",
     "apps.websocket",
+    "apps.comments",
 ]
 
 MIDDLEWARE = [

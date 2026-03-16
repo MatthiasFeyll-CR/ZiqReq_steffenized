@@ -175,10 +175,40 @@ export function useWebSocket() {
                 detail: { idea_id: data.idea_id, ...data.payload },
               }),
             );
+          } else if (data.type === "brd_generating" && data.idea_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:brd_generating", {
+                detail: { idea_id: data.idea_id, ...data.payload },
+              }),
+            );
           } else if (data.type === "brd_ready" && data.idea_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:brd_ready", {
                 detail: { idea_id: data.idea_id, ...data.payload },
+              }),
+            );
+          } else if (data.type === "comment_created" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:comment_created", {
+                detail: data.payload,
+              }),
+            );
+          } else if (data.type === "comment_updated" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:comment_updated", {
+                detail: data.payload,
+              }),
+            );
+          } else if (data.type === "comment_deleted" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:comment_deleted", {
+                detail: data.payload,
+              }),
+            );
+          } else if (data.type === "comment_reaction" && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:comment_reaction", {
+                detail: data.payload,
               }),
             );
           } else if (

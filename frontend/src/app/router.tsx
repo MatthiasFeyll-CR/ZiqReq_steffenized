@@ -5,6 +5,7 @@ import { IdeaWorkspacePage } from "@/pages/idea-workspace";
 import ReviewPage from "@/pages/review-page";
 import AdminPanel from "@/pages/admin-panel";
 import LoginPage from "@/pages/login-page";
+import NotFoundPage from "@/pages/not-found";
 
 export function AppRouter() {
   return (
@@ -16,6 +17,7 @@ export function AppRouter() {
           <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
           <Route path="/reviews" element={<ReviewPage />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

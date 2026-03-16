@@ -1,8 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, GitMerge, MoreVertical, Trash2, Users } from "lucide-react";
+import { ArrowLeft, GitMerge, MessageCircle, MoreVertical, Trash2, Users } from "lucide-react";
+import { fetchUnreadCommentCount } from "@/api/comments";
+import { CommentsPanel } from "@/components/comments/CommentsPanel";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -36,6 +39,7 @@ interface WorkspaceHeaderProps {
   canAccessReview: boolean;
   documentGateMessage?: string;
   reviewGateMessage?: string;
+  shareToken?: string | null;
 }
 
 export function WorkspaceHeader({
@@ -48,16 +52,46 @@ export function WorkspaceHeader({
   canAccessReview,
   documentGateMessage,
   reviewGateMessage,
+  shareToken,
 }: WorkspaceHeaderProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const { user } = useAuth();
   const prefersReducedMotion = useReducedMotion();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(idea.title);
   const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
+  const [unreadComments, setUnreadComments] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch unread comment count
+  useEffect(() => {
+    fetchUnreadCommentCount(idea.id, shareToken).then(setUnreadComments).catch(() => {});
+  }, [idea.id, shareToken]);
+
+  // Listen for new comments via WebSocket to update badge
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail.idea_id === idea.id && !detail.is_system_event) {
+        if (!commentsPanelOpen && detail.author?.id !== user?.id) {
+          setUnreadComments((prev) => prev + 1);
+        }
+      }
+    };
+    window.addEventListener("ws:comment_created", handler);
+    return () => window.removeEventListener("ws:comment_created", handler);
+  }, [idea.id, commentsPanelOpen, user?.id]);
+
+  // Reset unread when panel opens
+  useEffect(() => {
+    if (commentsPanelOpen) {
+      setUnreadComments(0);
+    }
+  }, [commentsPanelOpen]);
 
   const handleTitleClick = useCallback(() => {
     if (readOnly) return;
@@ -191,6 +225,23 @@ export function WorkspaceHeader({
           </Button>
         )}
 
+        {/* Comments button */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setCommentsPanelOpen(true)}
+          className="relative"
+          data-testid="comments-button"
+        >
+          <MessageCircle className="mr-1 h-4 w-4" />
+          {t("workspace.comments", "Comments")}
+          {unreadComments > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white px-1">
+              {unreadComments > 99 ? "99+" : unreadComments}
+            </span>
+          )}
+        </Button>
+
         {/* Presence indicators */}
         <PresenceIndicators ideaId={idea.id} />
 
@@ -222,7 +273,7 @@ export function WorkspaceHeader({
       </div>
 
       {/* Bottom row: process stepper */}
-      <div className="h-10 flex items-center px-6 border-t border-border/50">
+      <div className="flex items-center px-4 py-1.5 border-t border-border/50">
         <ProcessStepper
           activeStep={activeStep}
           onStepChange={onStepChange}
@@ -250,6 +301,16 @@ export function WorkspaceHeader({
             onIdeaUpdate(updated);
           }).catch(() => {});
         }}
+      />
+
+      <CommentsPanel
+        ideaId={idea.id}
+        open={commentsPanelOpen}
+        onOpenChange={setCommentsPanelOpen}
+        disabled={idea.state === "deleted"}
+        currentUserId={user?.id}
+        isOwnerOrCollaborator={!readOnly}
+        shareToken={shareToken}
       />
     </div>
   );

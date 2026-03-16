@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -17,6 +17,10 @@ import i18n from "@/i18n/config";
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
+});
+
+beforeEach(() => {
+  window.location.hash = "";
 });
 
 function makeStore() {

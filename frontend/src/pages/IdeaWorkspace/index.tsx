@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { fetchIdea, restoreIdea, type Idea } from "@/api/ideas";
 import { fetchChatMessages } from "@/api/chat";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { AlertTriangle, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -24,7 +24,6 @@ import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
 import { MergeRequestBanner } from "@/components/workspace/MergeRequestBanner";
 import { MergedIdeaBanner } from "@/components/workspace/MergedIdeaBanner";
 import { AppendedIdeaBanner } from "@/components/workspace/AppendedIdeaBanner";
-import { LockOverlay } from "@/components/workspace/LockOverlay";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useIdeaSync } from "@/hooks/useIdeaSync";
@@ -104,12 +103,30 @@ export default function IdeaWorkspacePage() {
           <div className="flex-1" />
           <Skeleton className="h-8 w-32" />
         </div>
-        <div className="h-10 border-b flex items-center px-4 gap-2">
-          <Skeleton className="h-7 w-28 rounded-full" />
-          <Skeleton className="h-px w-6" />
-          <Skeleton className="h-7 w-24 rounded-full" />
-          <Skeleton className="h-px w-6" />
-          <Skeleton className="h-7 w-20 rounded-full" />
+        <div className="border-b flex items-center px-4 py-2 gap-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="space-y-1 hidden sm:block">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+          <Skeleton className="h-0.5 w-8" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="space-y-1 hidden sm:block">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+          </div>
+          <Skeleton className="h-0.5 w-8" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div className="space-y-1 hidden sm:block">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </div>
         </div>
         <div className="flex flex-1">
           <div className="w-2/5 p-4 space-y-4">
@@ -154,7 +171,7 @@ export default function IdeaWorkspacePage() {
   if (!idea) return null;
 
   return (
-    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} readOnly={!!shareToken || !!idea.read_only} />
+    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} readOnly={!!shareToken || !!idea.read_only} shareToken={shareToken} />
   );
 }
 
@@ -162,10 +179,12 @@ function IdeaWorkspaceContent({
   idea,
   onIdeaUpdate,
   readOnly = false,
+  shareToken,
 }: {
   idea: Idea;
   onIdeaUpdate: (idea: Idea) => void;
   readOnly?: boolean;
+  shareToken?: string | null;
 }) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -389,6 +408,7 @@ function IdeaWorkspaceContent({
         canAccessReview={canAccessReview}
         documentGateMessage={documentGateMessage}
         reviewGateMessage={reviewGateMessage}
+        shareToken={shareToken}
       />
 
       {/* Banners */}
@@ -451,10 +471,7 @@ function IdeaWorkspaceContent({
 
       {/* Step Content */}
       {activeStep === "brainstorm" && (
-        <div className="relative flex-1 min-h-0 flex flex-col">
-          {(hasMergePending || isClosedIdea || isInReviewReadOnly) && (
-            <LockOverlay reason={isDeleted ? "This idea has been deleted. All sections are read-only." : isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : isInReviewReadOnly ? "This idea is currently under review. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
-          )}
+        <div className="flex-1 min-h-0 flex flex-col">
 
           {/* Agent mode selector — contextual to brainstorm step */}
           <div className="shrink-0 flex items-center gap-2 px-6 py-2 border-b border-border/50 bg-surface">
@@ -484,25 +501,53 @@ function IdeaWorkspaceContent({
             disabled={!isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly}
             readOnly={readOnly || isInReviewReadOnly}
           />
+
+          {/* Next step CTA — shown when user has chat messages and idea is still open */}
+          {hasMessages && !effectiveReadOnly && !hasMergePending && !isClosedIdea && !isInReviewReadOnly && (
+            <div className="shrink-0 border-t border-border bg-surface/80 backdrop-blur-sm px-6 py-3" data-testid="next-step-cta">
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground">
+                  {t("process.brainstormDoneHint", "Ready to formalize your idea? Continue to generate your Business Requirements Document.")}
+                </p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleStepChange("document")}
+                  className="shrink-0 gap-1.5"
+                  data-testid="continue-to-document"
+                >
+                  {t("process.continueToDocument", "Continue to Document")}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {activeStep === "document" && (
-        <div className="relative flex-1 min-h-0 flex flex-col px-6 py-4">
-          {(hasMergePending || isClosedIdea || isInReviewReadOnly) && (
-            <LockOverlay reason={isDeleted ? "This idea has been deleted. All sections are read-only." : isClosedByMerge ? "This idea was merged. Content is read-only." : isClosedByAppend ? "This idea was appended. Content is read-only." : isInReviewReadOnly ? "This idea is currently under review. Content is read-only." : "This idea has a pending merge request. Accept or decline to continue editing."} />
-          )}
-          <DocumentView
-            ideaId={idea.id}
-            ideaState={idea.state}
-            disabled={!isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly}
-            onStepChange={handleStepChange}
-            onSubmitted={() => {
-              fetchIdea(idea.id).then((updated) => {
-                onIdeaUpdate(updated);
-              }).catch(() => {});
-            }}
-          />
+        <div className="flex-1 min-h-0 flex flex-col">
+
+          {/* Step guidance */}
+          <div className="shrink-0 px-6 pt-4 pb-2">
+            <p className="text-sm text-muted-foreground">
+              {t("process.documentGuide", "Review and refine each section below, then submit for review when you're ready.")}
+            </p>
+          </div>
+
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
+            <DocumentView
+              ideaId={idea.id}
+              ideaState={idea.state}
+              disabled={!isOnline || readOnly || hasMergePending || isClosedIdea || isInReviewReadOnly}
+              onStepChange={handleStepChange}
+              onSubmitted={() => {
+                fetchIdea(idea.id).then((updated) => {
+                  onIdeaUpdate(updated);
+                }).catch(() => {});
+              }}
+            />
+          </div>
         </div>
       )}
 

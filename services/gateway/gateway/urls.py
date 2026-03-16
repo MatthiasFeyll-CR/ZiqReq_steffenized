@@ -1,9 +1,11 @@
 from django.urls import include, path
 
+from apps.comments import views as comments_views
 from apps.ideas import views as ideas_views
 
 urlpatterns = [
     path("api/auth/", include("apps.authentication.urls")),
+    path("api/ideas/search-ref", comments_views.search_ideas_for_reference),
     path("api/ideas/", include("apps.ideas.urls")),
     path("api/", include("apps.notifications.urls")),
     path("api/", include("apps.monitoring.urls")),

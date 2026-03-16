@@ -30,6 +30,25 @@ def _publish_notification(**kwargs) -> None:
     publish_notification_event(**kwargs)
 
 
+def _broadcast_ai_processing_started(idea_id: str) -> None:
+    """Broadcast ai_processing {state: started} so frontends can lock UI sections."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer is None:
+            return
+        group_name = f"idea_{idea_id}"
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "ai_processing",
+                "idea_id": idea_id,
+                "payload": {"idea_id": idea_id, "state": "started"},
+            },
+        )
+    except Exception:
+        logger.exception("Failed to broadcast ai_processing started for idea %s", idea_id)
+
+
 def _trigger_ai_processing(idea_id: str, message_id: str) -> None:
     """Trigger AI chat processing via the AI gRPC client."""
     import os
@@ -43,6 +62,9 @@ def _trigger_ai_processing(idea_id: str, message_id: str) -> None:
     client = AiClient(address=address)
     result = client.trigger_chat_processing(idea_id=idea_id, message_id=message_id)
     logger.info("[DEBUG] AiClient.trigger_chat_processing returned: %s", result)
+
+    # Notify all connected clients that AI processing has started
+    _broadcast_ai_processing_started(idea_id)
 
 
 DEFAULT_LIMIT = 50

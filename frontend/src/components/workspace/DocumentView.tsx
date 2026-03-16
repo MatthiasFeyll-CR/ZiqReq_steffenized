@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, FileText, Loader2 } from "lucide-react";
+import { CheckCircle, Download, FileText, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,7 @@ import { PDFPreview } from "@/components/brd/PDFPreview";
 import { SectionField } from "@/components/brd/SectionField";
 import { ProgressIndicator, SECTION_KEYS } from "@/components/brd/ProgressIndicator";
 import { SubmitArea } from "@/components/review/SubmitArea";
+import { AIProcessingOverlay } from "./AIProcessingOverlay";
 import {
   fetchBrdDraft,
   triggerBrdGeneration,
@@ -109,6 +110,24 @@ export function DocumentView({
     setLocalSections(sections);
   }, [brdDraft]);
 
+  // Auto-generate BRD on first visit when sections are empty
+  const autoGenerateTriggered = useRef(false);
+  useEffect(() => {
+    if (isDraftLoading || disabled || autoGenerateTriggered.current) return;
+    const hasContent = brdDraft && (
+      brdDraft.section_title ||
+      brdDraft.section_short_description ||
+      brdDraft.section_current_workflow ||
+      brdDraft.section_affected_department ||
+      brdDraft.section_core_capabilities ||
+      brdDraft.section_success_criteria
+    );
+    if (!hasContent) {
+      autoGenerateTriggered.current = true;
+      generateMutation.mutate();
+    }
+  }, [isDraftLoading, brdDraft, disabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const generateMutation = useMutation({
     mutationFn: () => triggerBrdGeneration(ideaId, "full_generation"),
     onSuccess: () => {
@@ -140,6 +159,18 @@ export function DocumentView({
       toast.error(error.message || t("brd.saveError", "Failed to save changes"));
     },
   });
+
+  // Listen for brd_generating WebSocket events (multi-user: another user triggered generation)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.idea_id === ideaId) {
+        setIsGenerating(true);
+      }
+    };
+    window.addEventListener("ws:brd_generating", handler);
+    return () => window.removeEventListener("ws:brd_generating", handler);
+  }, [ideaId]);
 
   // Listen for brd_ready WebSocket events
   useEffect(() => {
@@ -299,7 +330,7 @@ export function DocumentView({
   }
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden gap-6" data-testid="document-view">
+    <div className="flex flex-1 min-h-0 gap-6" data-testid="document-view">
       {/* Left: BRD Sections Editor */}
       <div className="flex-1 min-w-0 overflow-y-auto space-y-6">
         {/* Progress + Gaps + Action Buttons */}
@@ -360,7 +391,10 @@ export function DocumentView({
 
         {/* Section Fields */}
         {brdDraft ? (
-          <div className="space-y-5">
+          <div className="relative space-y-5">
+            {isGenerating && (
+              <AIProcessingOverlay message={t("review.generating", "Generating BRD...")} />
+            )}
             {SECTION_KEYS.map((key) => (
               <SectionField
                 key={key}
@@ -396,8 +430,26 @@ export function DocumentView({
           />
         )}
 
-        {/* Submit Area */}
-        {ideaState && (
+        {/* Submit Area — prominent placement */}
+        {ideaState && (ideaState === "open" || ideaState === "rejected") && hasBrdContent && (
+          <div className="mt-6 p-5 rounded-lg border-2 border-dashed border-secondary/40 dark:border-primary/30 bg-secondary/5 dark:bg-primary/5">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-secondary/10 dark:bg-primary/10">
+                <CheckCircle className="h-4 w-4 text-secondary dark:text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t("submit.readyTitle", "Ready to submit?")}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t("submit.readyDescription", "Once submitted, your idea will be sent to reviewers for evaluation.")}
+                </p>
+              </div>
+            </div>
+            <SubmitArea ideaId={ideaId} ideaState={ideaState} onSubmitted={handleSubmitted} />
+          </div>
+        )}
+        {ideaState && ideaState !== "open" && ideaState !== "rejected" && (
           <SubmitArea ideaId={ideaId} ideaState={ideaState} onSubmitted={handleSubmitted} />
         )}
       </div>

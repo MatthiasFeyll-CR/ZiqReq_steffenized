@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Brain, Settings, BarChart3, Users, Lightbulb } from "lucide-react";
@@ -10,9 +11,20 @@ import { MonitoringTab } from "@/features/admin/MonitoringTab";
 import { UsersTab } from "@/features/admin/UsersTab";
 import { IdeasTab } from "@/features/admin/IdeasTab";
 
+const VALID_TABS = ["ai-context", "parameters", "monitoring", "users", "ideas"];
+
 export default function AdminPanel() {
   const { t } = useTranslation();
   const { hasRole } = useAuth();
+
+  const initialTab = useMemo(() => {
+    const hash = window.location.hash.replace("#", "");
+    return VALID_TABS.includes(hash) ? hash : "ai-context";
+  }, []);
+
+  const handleTabChange = useCallback((value: string) => {
+    window.history.replaceState(null, "", `#${value}`);
+  }, []);
 
   if (!hasRole("admin")) {
     return <Navigate to="/" replace />;
@@ -20,7 +32,7 @@ export default function AdminPanel() {
 
   return (
       <div className="mx-auto w-full max-w-7xl px-4 py-6">
-        <Tabs defaultValue="ai-context">
+        <Tabs defaultValue={initialTab} onValueChange={handleTabChange}>
           <TabsList className="inline-flex h-auto w-full items-center justify-start gap-0 rounded-none border-b bg-transparent p-0">
             <TabsTrigger
               value="ai-context"

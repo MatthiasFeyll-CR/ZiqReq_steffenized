@@ -308,6 +308,13 @@ def accept_invitation(request: Request, invitation_id: str) -> Response:
     except Idea.DoesNotExist:
         idea_title = "an idea"
 
+    # System event for comment timeline
+    try:
+        from apps.comments.system_events import on_collaborator_joined
+        on_collaborator_joined(str(invitation.idea_id), user.display_name)
+    except Exception:
+        logger.exception("Failed to create collaborator_joined system event")
+
     # Notify inviter that invitation was accepted
     accepted_kwargs = dict(
         event_type="collaborator_joined",
@@ -532,6 +539,14 @@ def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> R
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    # System event for comment timeline
+    try:
+        target_user = User.objects.filter(id=target_uuid).first()
+        from apps.comments.system_events import on_collaborator_removed
+        on_collaborator_removed(str(idea_uuid), target_user.display_name if target_user else str(target_uuid))
+    except Exception:
+        logger.exception("Failed to create collaborator_removed system event")
+
     # Notify removed collaborator
     removed_kwargs = dict(
         event_type="removed_from_idea",
@@ -623,6 +638,18 @@ def transfer_ownership(request: Request, idea_id: str) -> Response:
         idea.owner_id = new_owner_uuid
         idea.save(update_fields=["owner_id"])
 
+    # System event for comment timeline
+    try:
+        new_owner_user = User.objects.filter(id=new_owner_uuid).first()
+        from apps.comments.system_events import on_owner_changed
+        on_owner_changed(
+            str(idea_uuid),
+            user.display_name,
+            new_owner_user.display_name if new_owner_user else str(new_owner_uuid),
+        )
+    except Exception:
+        logger.exception("Failed to create owner_changed system event")
+
     # Notify new owner of ownership transfer
     transfer_kwargs = dict(
         event_type="ownership_transferred",
@@ -676,6 +703,12 @@ def leave_idea(request: Request, idea_id: str) -> Response:
     if idea.co_owner_id == user.id:
         idea.co_owner_id = None
         idea.save(update_fields=["co_owner_id"])
+        # System event for comment timeline
+        try:
+            from apps.comments.system_events import on_collaborator_left
+            on_collaborator_left(str(idea_uuid), user.display_name)
+        except Exception:
+            logger.exception("Failed to create collaborator_left system event")
         # Notify owner
         left_kwargs = dict(
             event_type="collaborator_left",
@@ -702,6 +735,13 @@ def leave_idea(request: Request, idea_id: str) -> Response:
             {"error": "BAD_REQUEST", "message": "You are not a collaborator on this idea"},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    # System event for comment timeline
+    try:
+        from apps.comments.system_events import on_collaborator_left
+        on_collaborator_left(str(idea_uuid), user.display_name)
+    except Exception:
+        logger.exception("Failed to create collaborator_left system event")
 
     # Notify owner
     left_kwargs = dict(

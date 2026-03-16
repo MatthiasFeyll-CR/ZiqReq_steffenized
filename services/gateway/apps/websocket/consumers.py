@@ -369,11 +369,47 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             "payload": event["payload"],
         })
 
+    async def brd_generating(self, event: dict) -> None:
+        """Forward brd_generating group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "brd_generating",
+            "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
     async def brd_ready(self, event: dict) -> None:
         """Forward brd_ready group_send to the WebSocket client."""
         await self.send_json({
             "type": "brd_ready",
             "idea_id": event["idea_id"],
+            "payload": event["payload"],
+        })
+
+    async def comment_created(self, event: dict) -> None:
+        """Forward comment_created group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "comment_created",
+            "payload": event["payload"],
+        })
+
+    async def comment_updated(self, event: dict) -> None:
+        """Forward comment_updated group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "comment_updated",
+            "payload": event["payload"],
+        })
+
+    async def comment_deleted(self, event: dict) -> None:
+        """Forward comment_deleted group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "comment_deleted",
+            "payload": event["payload"],
+        })
+
+    async def comment_reaction(self, event: dict) -> None:
+        """Forward comment_reaction group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "comment_reaction",
             "payload": event["payload"],
         })
 

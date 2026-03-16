@@ -29,4 +29,5 @@ urlpatterns = [
     path("<str:idea_id>/share-link", views.generate_share_link),
     path("<str:idea_id>/similar", views.get_similar_ideas),
     path("<str:idea_id>/merge-request", views.create_merge_request),
+    path("<str:idea_id>/comments/", include("apps.comments.urls")),
 ]

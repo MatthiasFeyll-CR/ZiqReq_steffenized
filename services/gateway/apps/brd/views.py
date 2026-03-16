@@ -2,6 +2,8 @@ import logging
 import os
 import uuid
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.http import FileResponse, HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
@@ -234,6 +236,22 @@ def brd_generate(request: Request, idea_id: str) -> Response:
             {"error": "SERVICE_UNAVAILABLE", "message": "AI service is currently unavailable."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
+
+    # Notify all connected clients that BRD generation has started
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            group_name = f"idea_{idea.id}"
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    "type": "brd_generating",
+                    "idea_id": str(idea.id),
+                    "payload": {"idea_id": str(idea.id), "mode": mode},
+                },
+            )
+    except Exception:
+        logger.exception("Failed to broadcast brd_generating for idea %s", idea_id)
 
     return Response(
         {

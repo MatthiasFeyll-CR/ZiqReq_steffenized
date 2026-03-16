@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -25,6 +25,8 @@ import { GroupNode } from "./GroupNode";
 import { FreeTextNode } from "./FreeTextNode";
 import { ConnectionEdge } from "./ConnectionEdge";
 import { BoardToolbar } from "./BoardToolbar";
+import { AIProcessingOverlay } from "@/components/workspace/AIProcessingOverlay";
+import { consumeAiProcessing } from "@/lib/ai-processing-flag";
 import {
   updateBoardNode,
   createBoardNode,
@@ -159,6 +161,9 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
   const [nodes, setNodes, onNodesChangeRaw] = useNodesState(defaultNodes);
   const [edges, setEdges, onEdgesChangeRaw] = useEdgesState(defaultEdges);
   const dropTargetIdRef = useRef<string | null>(null);
+  const [aiProcessing, setAiProcessing] = useState(
+    () => !!ideaId && consumeAiProcessing(ideaId),
+  );
 
   // When disabled, only allow selection changes (for visual highlighting) — block
   // position, dimension, add, remove, and reset changes so the board is truly frozen.
@@ -659,6 +664,24 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
     return () => window.removeEventListener("ws:board_update", handleBoardUpdate);
   }, [ideaId, setNodes, setEdges]);
 
+  // Track AI processing state to lock the board while AI may modify it
+  useEffect(() => {
+    if (!ideaId) return;
+
+    const handleAiProcessing = (e: Event) => {
+      const { idea_id, state } = (e as CustomEvent).detail;
+      if (idea_id !== ideaId) return;
+      if (state === "started") {
+        setAiProcessing(true);
+      } else if (state === "completed" || state === "failed") {
+        setAiProcessing(false);
+      }
+    };
+
+    window.addEventListener("ws:ai_processing", handleAiProcessing);
+    return () => window.removeEventListener("ws:ai_processing", handleAiProcessing);
+  }, [ideaId]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -688,7 +711,10 @@ export function BoardCanvas({ ideaId, disabled, readOnly }: BoardCanvasProps) {
           redoTopSource={redoTop?.source}
         />
       )}
-      <div className="flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0">
+        {aiProcessing && (
+          <AIProcessingOverlay message="AI is updating the board..." />
+        )}
         <ReactFlow
           nodes={processedNodes}
           edges={edges}

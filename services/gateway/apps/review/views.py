@@ -206,6 +206,13 @@ def submit_idea(request: Request, idea_id: str) -> Response:
 
     pdf_url = f"/api/ideas/{idea.id}/brd/versions/{next_version}/pdf"
 
+    # System event for comment timeline
+    try:
+        from apps.comments.system_events import on_state_changed
+        on_state_changed(str(idea.id), old_state, "in_review")
+    except Exception:
+        logger.exception("Failed to create state_changed system event on submit")
+
     # Notify assigned reviewers about submission
     for reviewer_id in reviewer_ids:
         _publish_notification(
@@ -388,6 +395,13 @@ def _handle_review_action(request: Request, idea_id: str, action: str) -> Respon
             old_state=old_state,
             new_state=new_state,
         )
+
+    # System event for comment timeline
+    try:
+        from apps.comments.system_events import on_state_changed
+        on_state_changed(str(idea.id), old_state, new_state)
+    except Exception:
+        logger.exception("Failed to create state_changed system event")
 
     # Notify idea owner of state change
     _publish_notification(
