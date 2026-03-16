@@ -1,7 +1,6 @@
 from django.urls import include, path
 
 from apps.comments import views as comments_views
-from apps.ideas import views as ideas_views
 
 urlpatterns = [
     path("api/auth/", include("apps.authentication.urls")),
@@ -15,5 +14,4 @@ urlpatterns = [
     path("api/reviews/", include("apps.review.urls")),
     path("api/invitations/", include("apps.collaboration.urls")),
     path("api/users/", include("apps.authentication.user_urls")),
-    path("api/merge-requests/<str:merge_request_id>/consent", ideas_views.consent_merge_request),
 ]

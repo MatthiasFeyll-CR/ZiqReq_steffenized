@@ -35,7 +35,6 @@ def soft_delete_cleanup() -> dict:
         from apps.chat.models import AiReaction, ChatMessage, UserReaction
         from apps.collaboration.models import CollaborationInvitation
         from apps.review.models import ReviewAssignment, ReviewTimelineEntry
-        from apps.similarity.models import IdeaKeywords, MergeRequest
 
         # Delete reactions linked to chat messages for these ideas
         message_ids = list(
@@ -53,9 +52,6 @@ def soft_delete_cleanup() -> dict:
         CollaborationInvitation.objects.filter(idea_id__in=idea_ids).delete()
         ReviewAssignment.objects.filter(idea_id__in=idea_ids).delete()
         ReviewTimelineEntry.objects.filter(idea_id__in=idea_ids).delete()
-        IdeaKeywords.objects.filter(idea_id__in=idea_ids).delete()
-        MergeRequest.objects.filter(requesting_idea_id__in=idea_ids).delete()
-        MergeRequest.objects.filter(target_idea_id__in=idea_ids).delete()
 
         # Delete the ideas themselves (IdeaCollaborator has a real FK CASCADE)
         expired_ideas.delete()

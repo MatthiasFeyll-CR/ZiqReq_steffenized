@@ -69,11 +69,6 @@ class CoreServiceStub(object):
                 request_serializer=core__pb2.UpdateBrdDraftRequest.SerializeToString,
                 response_deserializer=core__pb2.UpdateBrdDraftResponse.FromString,
                 _registered_method=True)
-        self.UpdateIdeaKeywords = channel.unary_unary(
-                '/ziqreq.core.CoreService/UpdateIdeaKeywords',
-                request_serializer=core__pb2.UpdateKeywordsRequest.SerializeToString,
-                response_deserializer=core__pb2.UpdateKeywordsResponse.FromString,
-                _registered_method=True)
         self.GetIdeasByState = channel.unary_unary(
                 '/ziqreq.core.CoreService/GetIdeasByState',
                 request_serializer=core__pb2.IdeasByStateRequest.SerializeToString,
@@ -136,12 +131,6 @@ class CoreServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def UpdateIdeaKeywords(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def GetIdeasByState(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -197,11 +186,6 @@ def add_CoreServiceServicer_to_server(servicer, server):
                     servicer.UpdateBrdDraft,
                     request_deserializer=core__pb2.UpdateBrdDraftRequest.FromString,
                     response_serializer=core__pb2.UpdateBrdDraftResponse.SerializeToString,
-            ),
-            'UpdateIdeaKeywords': grpc.unary_unary_rpc_method_handler(
-                    servicer.UpdateIdeaKeywords,
-                    request_deserializer=core__pb2.UpdateKeywordsRequest.FromString,
-                    response_serializer=core__pb2.UpdateKeywordsResponse.SerializeToString,
             ),
             'GetIdeasByState': grpc.unary_unary_rpc_method_handler(
                     servicer.GetIdeasByState,
@@ -408,33 +392,6 @@ class CoreService(object):
             '/ziqreq.core.CoreService/UpdateBrdDraft',
             core__pb2.UpdateBrdDraftRequest.SerializeToString,
             core__pb2.UpdateBrdDraftResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def UpdateIdeaKeywords(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/ziqreq.core.CoreService/UpdateIdeaKeywords',
-            core__pb2.UpdateKeywordsRequest.SerializeToString,
-            core__pb2.UpdateKeywordsResponse.FromString,
             options,
             channel_credentials,
             insecure,

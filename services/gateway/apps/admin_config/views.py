@@ -92,7 +92,6 @@ def admin_ideas_list(request: Request) -> Response:
 
     from apps.authentication.models import User
     from apps.ideas.models import Idea
-    from apps.similarity.models import IdeaKeywords
 
     state_param = request.query_params.get("state")
     search_param = request.query_params.get("search")
@@ -121,13 +120,6 @@ def admin_ideas_list(request: Request) -> Response:
     users = User.objects.filter(id__in=owner_ids)
     user_map = {u.id: u for u in users}
 
-    # Fetch keywords for all ideas in the page
-    idea_ids = [idea.id for idea in ideas]
-    keywords_map = {
-        kw.idea_id: kw.keywords
-        for kw in IdeaKeywords.objects.filter(idea_id__in=idea_ids)
-    }
-
     results = []
     for idea in ideas:
         owner = user_map.get(idea.owner_id)
@@ -136,7 +128,6 @@ def admin_ideas_list(request: Request) -> Response:
                 "id": str(idea.id),
                 "title": idea.title,
                 "state": idea.state,
-                "keywords": keywords_map.get(idea.id, []),
                 "owner": {
                     "id": str(owner.id) if owner else str(idea.owner_id),
                     "display_name": owner.display_name if owner else "",

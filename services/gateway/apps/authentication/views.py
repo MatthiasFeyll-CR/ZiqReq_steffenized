@@ -170,16 +170,6 @@ NOTIFICATION_PREFERENCE_CATEGORIES: dict[str, dict[str, list[str]]] = {
             "chat_mention",
         ],
     },
-    "Similarity": {
-        "roles": [],
-        "types": [
-            "similarity_alert",
-            "merge_request_received",
-            "merge_accepted",
-            "merge_declined",
-            "idea_closed_append",
-        ],
-    },
     "Review Management": {
         "roles": ["reviewer"],
         "types": [

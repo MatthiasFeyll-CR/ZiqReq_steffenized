@@ -52,7 +52,7 @@ class GatewayServicer(gateway_pb2_grpc.GatewayServiceServicer):
         )
 
         # Broadcast WebSocket notification to the related idea group
-        if ref_id and request.reference_type in ("idea", "merge_request"):
+        if ref_id and request.reference_type == "idea":
             try:
                 from asgiref.sync import async_to_sync
                 from channels.layers import get_channel_layer

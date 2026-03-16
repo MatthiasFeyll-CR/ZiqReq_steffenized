@@ -17,63 +17,6 @@ class IdeaPatchSerializer(serializers.Serializer):
         return attrs
 
 
-class SimilarIdeaSerializer(serializers.Serializer):
-    id = serializers.UUIDField()
-    title = serializers.CharField()
-    keywords = serializers.ListField(child=serializers.CharField(), default=list)
-    similarity_type = serializers.ChoiceField(choices=["declined_merge", "near_threshold"])
-    similarity_score = serializers.FloatField(allow_null=True, default=None)
-
-
-class MergeRequestCreateSerializer(serializers.Serializer):
-    target_idea_id = serializers.UUIDField(required=False)
-    target_idea_url = serializers.CharField(required=False)
-
-    def validate(self, attrs):  # type: ignore[override]
-        import re
-
-        has_id = "target_idea_id" in attrs and attrs["target_idea_id"] is not None
-        has_url = "target_idea_url" in attrs and attrs["target_idea_url"]
-
-        if not has_id and not has_url:
-            raise serializers.ValidationError("Either target_idea_id or target_idea_url is required.")
-
-        if has_url and not has_id:
-            url = attrs["target_idea_url"]
-            uuid_pattern = r"/idea/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})"
-            match = re.search(uuid_pattern, url, re.IGNORECASE)
-            if not match:
-                raise serializers.ValidationError({"target_idea_url": "INVALID_UUID"})
-            import uuid as _uuid
-
-            attrs["target_idea_id"] = _uuid.UUID(match.group(1))
-            attrs["_manual_request"] = True
-        elif has_url and has_id:
-            attrs["_manual_request"] = True
-        else:
-            attrs["_manual_request"] = False
-
-        return attrs
-
-
-class MergeRequestConsentSerializer(serializers.Serializer):
-    consent = serializers.ChoiceField(choices=["accept", "decline"])
-
-
-class MergeRequestSerializer(serializers.Serializer):
-    id = serializers.UUIDField()
-    requesting_idea_id = serializers.UUIDField()
-    target_idea_id = serializers.UUIDField()
-    merge_type = serializers.CharField()
-    status = serializers.CharField()
-    requesting_owner_consent = serializers.CharField()
-    target_owner_consent = serializers.CharField()
-    reviewer_consent = serializers.CharField()
-    manual_request = serializers.BooleanField()
-    created_at = serializers.DateTimeField()
-    resolved_at = serializers.DateTimeField(allow_null=True)
-
-
 class IdeaDetailSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()

@@ -348,27 +348,6 @@ class IdeaConsumer(AsyncJsonWebsocketConsumer):
             "payload": event["payload"],
         })
 
-    async def merge_request(self, event: dict) -> None:
-        """Forward merge_request group_send to the WebSocket client."""
-        await self.send_json({
-            "type": "merge_request",
-            "payload": event["payload"],
-        })
-
-    async def merge_complete(self, event: dict) -> None:
-        """Forward merge_complete group_send to the WebSocket client."""
-        await self.send_json({
-            "type": "merge_complete",
-            "payload": event["payload"],
-        })
-
-    async def append_complete(self, event: dict) -> None:
-        """Forward append_complete group_send to the WebSocket client."""
-        await self.send_json({
-            "type": "append_complete",
-            "payload": event["payload"],
-        })
-
     async def brd_generating(self, event: dict) -> None:
         """Forward brd_generating group_send to the WebSocket client."""
         await self.send_json({

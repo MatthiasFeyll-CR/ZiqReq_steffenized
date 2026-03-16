@@ -245,14 +245,14 @@ class TestContextAgentDelegation:
             if call_count == 1:
                 return {
                     "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "test"}],
-                    "board_instructions": [],
+
                     "response": "Let me check...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             received_delegation_results = input_data.get("delegation_results")
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Here's what I found.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -282,13 +282,13 @@ class TestContextAgentDelegation:
             if input_data.get("delegation_results") is None:
                 return {
                     "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "test"}],
-                    "board_instructions": [],
+
                     "response": "Checking...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Done.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -320,7 +320,7 @@ class TestContextAgentDelegation:
             call_count += 1
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "No delegation needed.",
                 "token_usage": {"input": 100, "output": 20},
             }
@@ -352,13 +352,13 @@ class TestContextAgentDelegation:
             if input_data.get("delegation_results") is None:
                 return {
                     "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "What ERP?"}],
-                    "board_instructions": [],
+
                     "response": "Let me check...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Based on findings...",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -400,14 +400,14 @@ class TestContextAgentDelegation:
             if input_data.get("delegation_results") is None:
                 return {
                     "delegations": [{"delegation_type": "context_agent", "delegation_id": "d1", "query": "What ERP?"}],
-                    "board_instructions": [],
+
                     "response": "Checking...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             received_delegation_results = input_data["delegation_results"]
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "SAP is the ERP.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -457,14 +457,14 @@ class TestContextExtensionDelegation:
                         "delegation_id": "d1",
                         "query": "What did Lisa say?",
                     }],
-                    "board_instructions": [],
+
                     "response": "Let me check...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             received_extension_results = input_data.get("extension_results")
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Here's what I found.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -500,13 +500,13 @@ class TestContextExtensionDelegation:
                         "delegation_id": "d1",
                         "query": "What did Lisa say about signatures?",
                     }],
-                    "board_instructions": [],
+
                     "response": "Let me check the history...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Lisa mentioned digital signatures in message 3.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -552,14 +552,14 @@ class TestContextExtensionDelegation:
                         "delegation_id": "d1",
                         "query": "What did Lisa say?",
                     }],
-                    "board_instructions": [],
+
                     "response": "Checking...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             received_extension_results = input_data["extension_results"]
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Lisa said X.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -595,13 +595,13 @@ class TestContextExtensionDelegation:
             if input_data.get("extension_results") is None:
                 return {
                     "delegations": [{"delegation_type": "context_extension", "delegation_id": "d1", "query": "test"}],
-                    "board_instructions": [],
+
                     "response": "Checking...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Done.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -632,14 +632,14 @@ class TestContextExtensionDelegation:
             if input_data.get("extension_results") is None:
                 return {
                     "delegations": [{"delegation_type": "context_extension", "delegation_id": "d1", "query": "test"}],
-                    "board_instructions": [],
+
                     "response": "Checking...",
                     "token_usage": {"input": 100, "output": 20},
                 }
             received_extension_results = input_data["extension_results"]
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Sorry, couldn't retrieve that.",
                 "token_usage": {"input": 150, "output": 30},
             }
@@ -657,145 +657,6 @@ class TestContextExtensionDelegation:
         assert received_extension_results is not None
         assert "error" in received_extension_results.lower()
 
-
-# ── Board Agent invocation (M8) ──
-
-
-class TestBoardAgentInvocation:
-    @pytest.mark.asyncio
-    async def test_board_agent_invoked_with_instructions(self, _clear_pipeline_state, settings):
-        """Pipeline Step 5 invokes Board Agent when board_instructions present."""
-        settings.AI_MOCK_MODE = True
-        from pathlib import Path
-        settings.BASE_DIR = Path(__file__).resolve().parent.parent
-
-        core_client = _mock_core_client()
-        core_client.get_board_state.return_value = {"nodes": [{"id": "n1", "title": "Existing"}], "connections": []}
-        pipeline = ChatProcessingPipeline(core_client=core_client)
-
-        board_agent_called = False
-        board_agent_input = {}
-
-        async def mock_facilitator_process(input_data):
-            return {
-                "delegations": [],
-                "board_instructions": [{"intent": "add_topic", "description": "Add pain points"}],
-                "response": "I'll add that to the board.",
-                "token_usage": {"input": 100, "output": 20},
-            }
-
-        async def mock_board_process(input_data):
-            nonlocal board_agent_called, board_agent_input
-            board_agent_called = True
-            board_agent_input = input_data
-            return {"mutations": [{"type": "create_node"}], "mutation_count": 1}
-
-        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
-             patch("agents.board_agent.agent.BoardAgent") as MockBoardAgent:
-            MockFacilitator.return_value.process = mock_facilitator_process
-            MockBoardAgent.return_value.process = mock_board_process
-            result = await pipeline.execute("idea-1")
-
-        assert result["status"] == "completed"
-        assert board_agent_called is True
-        # Board Agent receives fresh board state from gRPC
-        assert board_agent_input["board_state"]["nodes"][0]["title"] == "Existing"
-        assert len(board_agent_input["instructions"]) == 1
-        assert board_agent_input["instructions"][0]["intent"] == "add_topic"
-        # get_board_state called for fresh state
-        core_client.get_board_state.assert_called_once_with("idea-1")
-
-    @pytest.mark.asyncio
-    async def test_board_agent_publishes_updated_event(self, _clear_pipeline_state, settings):
-        """Board Agent mutations trigger ai.board.updated event."""
-        settings.AI_MOCK_MODE = True
-        from pathlib import Path
-        settings.BASE_DIR = Path(__file__).resolve().parent.parent
-
-        core_client = _mock_core_client()
-        core_client.get_board_state.return_value = {"nodes": [], "connections": []}
-        pipeline = ChatProcessingPipeline(core_client=core_client)
-
-        async def mock_facilitator_process(input_data):
-            return {
-                "delegations": [],
-                "board_instructions": [{"intent": "add_topic", "description": "Test"}],
-                "response": "Done.",
-                "token_usage": {"input": 100, "output": 20},
-            }
-
-        async def mock_board_process(input_data):
-            return {"mutations": [{"type": "create_node"}], "mutation_count": 1}
-
-        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
-             patch("agents.board_agent.agent.BoardAgent") as MockBoardAgent:
-            MockFacilitator.return_value.process = mock_facilitator_process
-            MockBoardAgent.return_value.process = mock_board_process
-            await pipeline.execute("idea-1")
-
-        events = get_published_events()
-        board_events = [e for e in events if e["event_type"] == "ai.board.updated"]
-        assert len(board_events) == 1
-        assert board_events[0]["idea_id"] == "idea-1"
-        assert board_events[0]["mutation_count"] == 1
-
-    @pytest.mark.asyncio
-    async def test_no_board_event_when_no_instructions(self, _clear_pipeline_state, settings):
-        """No ai.board.updated event when no board instructions."""
-        settings.AI_MOCK_MODE = True
-        from pathlib import Path
-        settings.BASE_DIR = Path(__file__).resolve().parent.parent
-
-        core_client = _mock_core_client()
-        pipeline = ChatProcessingPipeline(core_client=core_client)
-
-        async def mock_facilitator_process(input_data):
-            return {
-                "delegations": [],
-                "board_instructions": [],
-                "response": "No board changes needed.",
-                "token_usage": {"input": 100, "output": 20},
-            }
-
-        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator:
-            MockFacilitator.return_value.process = mock_facilitator_process
-            await pipeline.execute("idea-1")
-
-        events = get_published_events()
-        board_events = [e for e in events if e["event_type"] == "ai.board.updated"]
-        assert len(board_events) == 0
-
-    @pytest.mark.asyncio
-    async def test_no_board_event_when_zero_mutations(self, _clear_pipeline_state, settings):
-        """No ai.board.updated event when Board Agent returns 0 mutations."""
-        settings.AI_MOCK_MODE = True
-        from pathlib import Path
-        settings.BASE_DIR = Path(__file__).resolve().parent.parent
-
-        core_client = _mock_core_client()
-        core_client.get_board_state.return_value = {"nodes": [], "connections": []}
-        pipeline = ChatProcessingPipeline(core_client=core_client)
-
-        async def mock_facilitator_process(input_data):
-            return {
-                "delegations": [],
-                "board_instructions": [{"intent": "add_topic", "description": "Test"}],
-                "response": "Trying to update board.",
-                "token_usage": {"input": 100, "output": 20},
-            }
-
-        async def mock_board_process(input_data):
-            return {"mutations": [], "mutation_count": 0}
-
-        with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator, \
-             patch("agents.board_agent.agent.BoardAgent") as MockBoardAgent:
-            MockFacilitator.return_value.process = mock_facilitator_process
-            MockBoardAgent.return_value.process = mock_board_process
-            await pipeline.execute("idea-1")
-
-        events = get_published_events()
-        board_events = [e for e in events if e["event_type"] == "ai.board.updated"]
-        assert len(board_events) == 0
 
 
 # ── Context Assembler ──

@@ -27,23 +27,3 @@ class ContextChunk(models.Model):
             ),
             models.Index(fields=["bucket_id"], name="idx_chunks_bucket"),
         ]
-
-
-class IdeaEmbedding(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField(unique=True)
-    embedding = VectorField(dimensions=1536)
-    source_text_hash = models.CharField(max_length=64)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "idea_embeddings"
-        indexes = [
-            HnswIndex(
-                name="idx_idea_embed_embedding",
-                fields=["embedding"],
-                opclasses=["vector_cosine_ops"],
-                m=16,
-                ef_construction=64,
-            ),
-        ]

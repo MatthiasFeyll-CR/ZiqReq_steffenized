@@ -240,20 +240,6 @@ class UpdateBrdDraftResponse(_message.Message):
     success: bool
     def __init__(self, success: bool = ...) -> None: ...
 
-class UpdateKeywordsRequest(_message.Message):
-    __slots__ = ("idea_id", "keywords")
-    IDEA_ID_FIELD_NUMBER: _ClassVar[int]
-    KEYWORDS_FIELD_NUMBER: _ClassVar[int]
-    idea_id: str
-    keywords: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, idea_id: _Optional[str] = ..., keywords: _Optional[_Iterable[str]] = ...) -> None: ...
-
-class UpdateKeywordsResponse(_message.Message):
-    __slots__ = ("success",)
-    SUCCESS_FIELD_NUMBER: _ClassVar[int]
-    success: bool
-    def __init__(self, success: bool = ...) -> None: ...
-
 class IdeasByStateRequest(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...

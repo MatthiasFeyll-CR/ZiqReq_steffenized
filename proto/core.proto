@@ -12,7 +12,7 @@ service CoreService {
   rpc UpdateIdeaTitle(UpdateTitleRequest) returns (UpdateTitleResponse);
   rpc PersistBoardMutations(BoardMutationsRequest) returns (BoardMutationsResponse);
   rpc UpdateBrdDraft(UpdateBrdDraftRequest) returns (UpdateBrdDraftResponse);
-  rpc UpdateIdeaKeywords(UpdateKeywordsRequest) returns (UpdateKeywordsResponse);
+
   rpc GetIdeasByState(IdeasByStateRequest) returns (IdeasByStateResponse);
   rpc GetUserStats(GetUserStatsRequest) returns (UserStatsResponse);
   rpc GetRateLimitStatus(RateLimitRequest) returns (RateLimitResponse);
@@ -141,15 +141,6 @@ message UpdateBrdDraftRequest {
 }
 
 message UpdateBrdDraftResponse {
-  bool success = 1;
-}
-
-message UpdateKeywordsRequest {
-  string idea_id = 1;
-  repeated string keywords = 2;
-}
-
-message UpdateKeywordsResponse {
   bool success = 1;
 }
 

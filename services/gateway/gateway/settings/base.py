@@ -25,7 +25,6 @@ INSTALLED_APPS = [
     "apps.collaboration",
     "apps.brd",
     "apps.review",
-    "apps.similarity",
     "apps.admin_ai_context",
     "apps.websocket",
     "apps.comments",

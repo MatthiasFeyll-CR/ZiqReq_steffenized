@@ -58,30 +58,6 @@ SEED_PARAMETERS = [
         "data_type": "string",
         "category": "Application",
     },
-    {
-        "key": "max_keywords_per_idea",
-        "value": "20",
-        "default_value": "20",
-        "description": "Maximum abstract keywords per idea",
-        "data_type": "integer",
-        "category": "Application",
-    },
-    {
-        "key": "min_keyword_overlap",
-        "value": "7",
-        "default_value": "7",
-        "description": "Minimum keyword matches to trigger similarity",
-        "data_type": "integer",
-        "category": "Application",
-    },
-    {
-        "key": "similarity_time_limit",
-        "value": "180",
-        "default_value": "180",
-        "description": "Days to look back for keyword matching",
-        "data_type": "integer",
-        "category": "Application",
-    },
     # Infrastructure parameters
     {
         "key": "max_retry_attempts",
@@ -172,16 +148,6 @@ SEED_PARAMETERS = [
         "default_value": "0.7",
         "description": (
             "Minimum cosine similarity for RAG chunk retrieval"
-        ),
-        "data_type": "float",
-        "category": "AI",
-    },
-    {
-        "key": "similarity_vector_threshold",
-        "value": "0.75",
-        "default_value": "0.75",
-        "description": (
-            "Cosine similarity threshold for idea similarity detection"
         ),
         "data_type": "float",
         "category": "AI",

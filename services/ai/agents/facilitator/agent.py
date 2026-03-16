@@ -1,7 +1,7 @@
 """FacilitatorAgent — the primary AI agent for brainstorming facilitation.
 
 Extends BaseAgent with SK function-calling loop, system prompt rendering,
-and the FacilitatorPlugin (6 tools).
+and the FacilitatorPlugin (5 tools).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class FacilitatorAgent(BaseAgent):
-    """Facilitator agent — guides brainstorming via 6 tools.
+    """Facilitator agent — guides brainstorming via 5 tools.
 
     Uses SK's automatic function-calling loop with max_auto_invoke_attempts=3.
     """
@@ -43,7 +43,6 @@ class FacilitatorAgent(BaseAgent):
                 - idea_id: str
                 - idea_context: dict (title, state, agent_mode, title_manually_edited, etc.)
                 - recent_messages: list[dict]
-                - board_state: dict
                 - chat_summary: str | None
                 - facilitator_bucket_content: str
                 - delegation_results: str | None
@@ -65,7 +64,6 @@ class FacilitatorAgent(BaseAgent):
             idea_id=idea_id,
             idea_context={
                 **idea_context,
-                "board_state": input_data.get("board_state", {}),
                 "recent_messages": input_data.get("recent_messages", []),
             },
         )
@@ -114,7 +112,6 @@ class FacilitatorAgent(BaseAgent):
 
         return {
             "delegations": plugin.delegations,
-            "board_instructions": plugin.board_instructions,
             "chat_message_sent": plugin.chat_message_sent,
             "response": result[-1].content if result else None,
             "token_usage": {
@@ -134,8 +131,6 @@ def _build_prompt_context(input_data: dict[str, Any]) -> dict[str, Any]:
         "title_manually_edited": ctx.get("title_manually_edited", False),
         "facilitator_bucket_content": input_data.get("facilitator_bucket_content", ""),
         "recent_messages_formatted": _format_messages(input_data.get("recent_messages", [])),
-        "board_nodes_formatted": _format_board_nodes(input_data.get("board_state", {})),
-        "board_connections_formatted": _format_board_connections(input_data.get("board_state", {})),
         "chat_summary": input_data.get("chat_summary"),
         "delegation_results": input_data.get("delegation_results"),
         "extension_results": input_data.get("extension_results"),
@@ -156,31 +151,3 @@ def _format_messages(messages: list[dict[str, Any]]) -> str:
         msg_type = msg.get("sender_type", "user")
         lines.append(f'<message id="{msg_id}" sender="{sender}" type="{msg_type}">{content}</message>')
     return "\n".join(lines) if lines else "(no messages yet)"
-
-
-def _format_board_nodes(board_state: dict[str, Any]) -> str:
-    """Format board nodes for XML prompt injection."""
-    nodes = board_state.get("nodes", [])
-    if not nodes:
-        return "(empty board)"
-    lines = []
-    for n in nodes:
-        title = n.get("title", "Untitled")
-        body = n.get("body", "")
-        node_type = n.get("node_type", "box")
-        lines.append(f'<node type="{node_type}" title="{title}">{body}</node>')
-    return "\n".join(lines)
-
-
-def _format_board_connections(board_state: dict[str, Any]) -> str:
-    """Format board connections for XML prompt injection."""
-    connections = board_state.get("connections", [])
-    if not connections:
-        return "(no connections)"
-    lines = []
-    for c in connections:
-        label = c.get("label", "")
-        source = c.get("source_title", c.get("source_node_id", ""))
-        target = c.get("target_title", c.get("target_node_id", ""))
-        lines.append(f'<connection source="{source}" target="{target}" label="{label}" />')
-    return "\n".join(lines)

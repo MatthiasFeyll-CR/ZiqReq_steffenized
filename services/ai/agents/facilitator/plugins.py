@@ -1,4 +1,4 @@
-"""Facilitator agent SK plugins (7 tools).
+"""Facilitator agent SK plugins (5 tools).
 
 Each method is decorated with @kernel_function so SK registers it as a
 callable tool for the Azure OpenAI function-calling loop.
@@ -29,15 +29,13 @@ class FacilitatorPlugin:
         self.idea_id = idea_id
         self.idea_context = idea_context or {}
         self.delegations: list[dict[str, Any]] = []
-        self.board_instructions: list[dict[str, Any]] = []
         self.chat_message_sent: bool = False
 
     @kernel_function(
         name="send_chat_message",
         description=(
-            "Send a chat message to the idea's conversation. Use this to respond to users, "
-            "ask clarifying questions, or post delegation messages. "
-            "Supports board item references using [[Item Title]] syntax."
+            "Send a chat message to the project's conversation. Use this to respond to users, "
+            "ask clarifying questions, or post delegation messages."
         ),
     )
     async def send_chat_message(
@@ -51,10 +49,6 @@ class FacilitatorPlugin:
 
         if message_type not in ("regular", "delegation"):
             message_type = "regular"
-
-        # Validate board item references — strip invalid [[...]] to plain text
-        board_state = self.idea_context.get("board_state", {})
-        content = _validate_board_refs(content, board_state)
 
         await publish_event("ai.chat_response.ready", {
             "idea_id": self.idea_id,
@@ -211,141 +205,6 @@ class FacilitatorPlugin:
         })
 
         return {"delegation_id": delegation_id, "status": "queued"}
-
-    @kernel_function(
-        name="request_board_changes",
-        description=(
-            "Submit board modification instructions for the Board Agent to execute. "
-            "Express SEMANTIC INTENT — describe what content to add, update, or "
-            "reorganize and why. Reference board items by title. The Board Agent "
-            "handles all spatial layout, grouping, and positioning. Only call this "
-            "when the brainstorming has produced content that should be captured or "
-            "restructured on the board."
-        ),
-    )
-    async def request_board_changes(
-        self,
-        instructions: str | list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        """Accept board change instructions for Board Agent execution."""
-        if not instructions:
-            return _error_response(
-                "validation_error", "At least one instruction is required."
-            )
-
-        # Normalize: LLM may pass a plain string or JSON string instead of a list
-        if isinstance(instructions, str):
-            import json
-
-            try:
-                parsed = json.loads(instructions)
-                if isinstance(parsed, list):
-                    instructions = parsed
-                elif isinstance(parsed, dict):
-                    instructions = [parsed]
-                else:
-                    instructions = [{"intent": "add_topic", "description": instructions}]
-            except (json.JSONDecodeError, TypeError):
-                instructions = [{"intent": "add_topic", "description": instructions}]
-
-        if isinstance(instructions, dict):
-            instructions = [instructions]
-
-        valid_intents = {
-            "add_topic", "update_topic", "remove_topic", "reorganize",
-            "add_relationship", "update_relationship", "remove_relationship",
-        }
-
-        for i, instr in enumerate(instructions):
-            if isinstance(instr, str):
-                instr = {"intent": "add_topic", "description": instr}
-                instructions[i] = instr
-            intent = instr.get("intent")
-            if not intent or intent not in valid_intents:
-                return _error_response(
-                    "validation_error",
-                    f"Instruction {i}: invalid or missing intent '{intent}'. "
-                    f"Must be one of: {', '.join(sorted(valid_intents))}.",
-                )
-            if not instr.get("description"):
-                return _error_response(
-                    "validation_error",
-                    f"Instruction {i}: 'description' is required.",
-                )
-
-        self.board_instructions.extend(instructions)
-        logger.info(
-            "Board changes requested for idea %s: %d instructions",
-            self.idea_id,
-            len(instructions),
-        )
-
-        return {"accepted": True, "instruction_count": len(instructions)}
-
-    @kernel_function(
-        name="research_similar_ideas",
-        description=(
-            "Research whether similar ideas exist in the system. Call this when the user "
-            "asks if anyone has a similar idea, whether something similar is being worked on, "
-            "or wants to know about overlapping efforts. Returns a list of similar ideas with "
-            "their titles, keywords, and similarity type. Also searches company context for "
-            "related existing systems or initiatives."
-        ),
-    )
-    async def research_similar_ideas(
-        self,
-        query: str = "",
-    ) -> dict[str, Any]:
-        """Fetch similar ideas via CoreClient and optionally search company context."""
-        from grpc_clients.core_client import CoreClient
-
-        similar_ideas: list[dict[str, Any]] = []
-        company_context_findings: str = ""
-
-        # 1. Fetch similar ideas from the Core service
-        try:
-            core_client = CoreClient()
-            result = core_client.get_similar_ideas(self.idea_id)
-            similar_ideas = result.get("results", [])
-        except Exception:
-            logger.warning(
-                "research_similar_ideas: failed to fetch similar ideas for %s",
-                self.idea_id,
-            )
-
-        # 2. If company context is available, also search it for related initiatives
-        if self._context_bucket_has_content() and query:
-            delegation_id = str(uuid.uuid4())
-            self.delegations.append({
-                "delegation_id": delegation_id,
-                "delegation_type": "context_agent",
-                "query": f"Are there existing systems, projects, or initiatives related to: {query}",
-            })
-
-        if not similar_ideas:
-            return {
-                "similar_ideas": [],
-                "message": "No similar ideas found in the system.",
-                "company_context_delegated": bool(self.delegations),
-            }
-
-        # Format results for the model
-        formatted = []
-        for idea in similar_ideas[:10]:
-            formatted.append({
-                "id": idea.get("id", ""),
-                "title": idea.get("title", "Untitled"),
-                "keywords": idea.get("keywords", []),
-                "similarity_type": idea.get("similarity_type", "unknown"),
-                "similarity_score": idea.get("similarity_score"),
-            })
-
-        return {
-            "similar_ideas": formatted,
-            "count": len(formatted),
-            "message": f"Found {len(formatted)} similar idea(s).",
-            "company_context_delegated": bool(self.delegations),
-        }
 
     def _has_compressed_context(self) -> bool:
         """Check if chat_context_summaries exist for this idea."""

@@ -3,7 +3,6 @@
 Assembles the context dict that the Facilitator agent needs:
   - idea metadata (title, state, agent_mode, title_manually_edited)
   - recent messages (last N from admin param)
-  - board state (nodes + connections)
   - chat summary (from chat_context_summaries if exists)
   - facilitator bucket content
 """
@@ -31,7 +30,6 @@ class ContextAssembler:
         """
         idea = idea_context_response.get("idea", {})
         recent_messages = idea_context_response.get("recent_messages", [])
-        board_state = idea_context_response.get("board_state", {})
         chat_summary = idea_context_response.get("chat_summary")
         facilitator_bucket = idea_context_response.get("facilitator_bucket_content", "")
 
@@ -44,7 +42,6 @@ class ContextAssembler:
                 "title_manually_edited": idea.get("title_manually_edited", False),
             },
             "recent_messages": recent_messages,
-            "board_state": board_state,
             "chat_summary": chat_summary,
             "facilitator_bucket_content": facilitator_bucket,
             "delegation_results": None,

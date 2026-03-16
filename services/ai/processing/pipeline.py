@@ -1,13 +1,12 @@
-"""ChatProcessingPipeline (7-step) — end-to-end AI processing orchestrator.
+"""ChatProcessingPipeline (6-step) — end-to-end AI processing orchestrator.
 
 Steps:
   1. Load idea state via GetIdeaContext gRPC
   2. Assemble context for Facilitator
   3. Invoke Facilitator agent
-  4. If delegation requested → invoke delegate (M7 stub) → re-invoke Facilitator
-  5. If board changes requested → invoke Board Agent with fresh board state
-  6. Publish ai.processing.complete
-  7. Cleanup version / abort flag
+  4. If delegation requested → invoke delegate → re-invoke Facilitator
+  5. Publish ai.processing.complete
+  6. Cleanup version / abort flag
 """
 
 from __future__ import annotations
@@ -28,7 +27,7 @@ class PipelineAborted(Exception):
 
 
 class ChatProcessingPipeline:
-    """Orchestrates the 7-step chat processing pipeline.
+    """Orchestrates the 6-step chat processing pipeline.
 
     Attributes:
         _versions: Per-idea processing version counters.
@@ -46,7 +45,7 @@ class ChatProcessingPipeline:
     # ── Public API ──
 
     async def execute(self, idea_id: str) -> dict[str, Any]:
-        """Run the full 7-step pipeline for a given idea.
+        """Run the full 6-step pipeline for a given idea.
 
         Returns:
             Dict with processing_id, status, and result details.
@@ -99,15 +98,11 @@ class ChatProcessingPipeline:
                         "ai_agent": "facilitator",
                     })
 
-            # Step 5: Board Agent
+            # Step 5: Publish completion
             self._check_abort(idea_id, version, step=5)
-            await self._step_board_agent(idea_id, facilitator_result)
-
-            # Step 6: Publish completion
-            self._check_abort(idea_id, version, step=6)
             await self._step_publish_complete(idea_id)
 
-            # Step 7: Cleanup
+            # Step 6: Cleanup
             self._step_cleanup(idea_id)
 
             logger.info("Pipeline completed for idea %s", idea_id)
@@ -340,55 +335,12 @@ class ChatProcessingPipeline:
             )
             return "(Context Extension Agent encountered an error. No findings available.)"
 
-    async def _step_board_agent(
-        self, idea_id: str, facilitator_result: dict[str, Any],
-    ) -> None:
-        """Step 5: Invoke Board Agent with instructions + fresh board state."""
-        board_instructions = facilitator_result.get("board_instructions", [])
-        if not board_instructions:
-            logger.info("Step 5: No board changes for idea %s", idea_id)
-            return
-
-        logger.info(
-            "Step 5: Board Agent invoked for idea %s (%d instructions)",
-            idea_id, len(board_instructions),
-        )
-
-        # Load fresh board state at invocation time (not cached from Step 1)
-        board_state = self.core_client.get_board_state(idea_id)
-
-        from agents.board_agent.agent import BoardAgent
-
-        agent = BoardAgent()
-        result = await agent.process({
-            "idea_id": idea_id,
-            "board_state": board_state,
-            "instructions": board_instructions,
-        })
-
-        mutation_count = result.get("mutation_count", 0)
-        logger.info(
-            "Step 5: Board Agent completed for idea %s — %d mutations",
-            idea_id, mutation_count,
-        )
-
-        # Publish board updated event with mutation details
-        if mutation_count > 0:
-            await publish_event("ai.board.updated", {
-                "idea_id": idea_id,
-                "mutation_count": mutation_count,
-                "mutations": result.get("mutations", []),
-            })
-
     async def _step_publish_complete(self, idea_id: str) -> None:
-        """Step 6: Check compression threshold, run keyword extraction, then publish ai.processing.complete."""
+        """Step 5: Check compression threshold, then publish ai.processing.complete."""
         # Compression check before publishing
         await self._check_and_compress(idea_id)
 
-        # Keyword extraction after compression, before event publish
-        await self._extract_keywords(idea_id)
-
-        logger.info("Step 6: Publishing completion for idea %s", idea_id)
+        logger.info("Step 5: Publishing completion for idea %s", idea_id)
         await publish_event("ai.processing.complete", {
             "idea_id": idea_id,
             "counter_reset": True,
@@ -404,7 +356,7 @@ class ChatProcessingPipeline:
 
         if getattr(django_settings, "AI_MOCK_MODE", False):
             logger.info(
-                "Step 6: Compression check skipped in mock mode for idea %s",
+                "Step 5: Compression check skipped in mock mode for idea %s",
                 idea_id,
             )
             return
@@ -442,7 +394,7 @@ class ChatProcessingPipeline:
         usage_pct = (estimated_tokens / context_limit) * 100
 
         logger.info(
-            "Step 6: Context usage for idea %s: %.1f%% (threshold: %d%%)",
+            "Step 5: Context usage for idea %s: %.1f%% (threshold: %d%%)",
             idea_id, usage_pct, threshold,
         )
 
@@ -451,7 +403,7 @@ class ChatProcessingPipeline:
 
         # Trigger compression
         logger.info(
-            "Step 6: Triggering compression for idea %s (usage %.1f%% > %d%%)",
+            "Step 5: Triggering compression for idea %s (usage %.1f%% > %d%%)",
             idea_id, usage_pct, threshold,
         )
 
@@ -474,72 +426,10 @@ class ChatProcessingPipeline:
             })
         except Exception:
             logger.exception(
-                "Step 6: Compression failed for idea %s", idea_id,
-            )
-
-    async def _extract_keywords(self, idea_id: str) -> None:
-        """Extract keywords from idea content via Keyword Agent.
-
-        Runs after compression check, before publishing completion.
-        Skipped in mock mode.
-        """
-        from django.conf import settings as django_settings
-
-        if getattr(django_settings, "AI_MOCK_MODE", False):
-            logger.info(
-                "Step 6: Keyword extraction skipped in mock mode for idea %s",
-                idea_id,
-            )
-            return
-
-        logger.info("Step 6: Extracting keywords for idea %s", idea_id)
-
-        # Load idea context to get title, chat summary, board content
-        idea_context = self.core_client.get_idea_context(idea_id)
-        idea = idea_context.get("idea", {})
-        title = idea.get("title", "")
-
-        chat_summary_data = idea_context.get("chat_summary")
-        chat_summary = ""
-        if chat_summary_data:
-            chat_summary = chat_summary_data.get("summary_text", "")
-
-        # Build board content from recent messages if no summary
-        if not chat_summary:
-            recent_messages = idea_context.get("recent_messages", [])
-            chat_summary = " ".join(
-                m.get("content", "") for m in recent_messages
-            )
-
-        board_state = idea_context.get("board_state", {})
-        board_nodes = board_state.get("nodes", [])
-        board_content = " ".join(
-            f"{n.get('title', '')} {n.get('body', '')}"
-            for n in board_nodes
-        ).strip()
-
-        try:
-            from agents.keyword_agent.agent import KeywordAgent
-
-            agent = KeywordAgent(core_client=self.core_client)
-            result = await agent.process({
-                "idea_id": idea_id,
-                "title": title,
-                "chat_summary": chat_summary,
-                "board_content": board_content,
-            })
-
-            keyword_count = len(result.get("keywords", []))
-            logger.info(
-                "Step 6: Keyword Agent extracted %d keywords for idea %s",
-                keyword_count, idea_id,
-            )
-        except Exception:
-            logger.exception(
-                "Step 6: Keyword extraction failed for idea %s", idea_id,
+                "Step 5: Compression failed for idea %s", idea_id,
             )
 
     def _step_cleanup(self, idea_id: str) -> None:
-        """Step 7: Cleanup — clear abort flag."""
-        logger.info("Step 7: Cleanup for idea %s", idea_id)
+        """Step 6: Cleanup — clear abort flag."""
+        logger.info("Step 6: Cleanup for idea %s", idea_id)
         self._abort_flags.pop(idea_id, None)

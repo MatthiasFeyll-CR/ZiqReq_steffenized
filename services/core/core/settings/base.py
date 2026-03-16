@@ -15,7 +15,6 @@ INSTALLED_APPS = [
     "apps.brd",
     "apps.review",
     "apps.collaboration",
-    "apps.similarity",
     "apps.admin_config",
     "apps.monitoring",
 ]
@@ -42,15 +41,7 @@ ROOT_URLCONF = "core.urls"
 CELERY_BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@localhost:5672/")
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
 CELERY_BEAT_SCHEDULE = {
-    "keyword-matching-sweep": {
-        "task": "similarity.keyword_matching_sweep",
-        "schedule": 300.0,  # every 5 minutes
-    },
-    "vector-similarity-sweep": {
-        "task": "similarity.vector_similarity_sweep",
-        "schedule": 300.0,  # every 5 minutes
-    },
-    "health-check-sweep": {
+"health-check-sweep": {
         "task": "monitoring.health_check_task",
         "schedule": 60.0,  # default: every 60 seconds (configurable via admin_parameters)
     },

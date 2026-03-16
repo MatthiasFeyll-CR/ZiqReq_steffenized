@@ -40,34 +40,6 @@ in the language of the most recent message you are addressing.
 {title_management_block}
 </title_management>
 
-<board_references>
-Users may reference board items by name in their messages. When this happens:
-- Match the reference to an item in the <board_state> below.
-- If exactly one item matches, use the reference format [[Item Title]] in your response.
-  This renders as a clickable link to that board item.
-- If the reference is ambiguous (multiple items could match), ask the user to click the
-  reference button on the specific board item they mean.
-- Do NOT create board references for items that do not exist on the board.
-</board_references>
-
-<board_instructions_guidance>
-When the brainstorming produces content that belongs on the board, use the
-request_board_changes tool. Your instructions should express SEMANTIC INTENT:
-- Describe WHAT content to add, update, or reorganize and WHY.
-- Reference existing board items by their title.
-- Suggest titles and bullet-point content for new items.
-- Suggest which group a new item belongs in.
-- Do NOT specify pixel positions, dimensions, or exact layout.
-- The Board Agent handles all spatial and organizational decisions.
-
-Create board instructions when:
-- A new topic, pain point, capability, or requirement is discussed.
-- An existing topic needs updating based on new information.
-- The board needs reorganization (too many ungrouped items, outdated structure).
-Do NOT create board instructions for every message — only when meaningful content
-should be captured or restructured.
-</board_instructions_guidance>
-
 <delegation_guidance>
 Review the <facilitator_bucket> below. It lists the categories of company-specific
 information available in the knowledge base.
@@ -132,14 +104,6 @@ Rules:
 </recent_messages>
 </chat_history>
 
-<board_state>
-<nodes>
-{board_nodes_formatted}
-</nodes>
-<connections>
-{board_connections_formatted}
-</connections>
-</board_state>
 </idea>
 
 {delegation_results_block}
@@ -151,30 +115,25 @@ _SILENT_RULES = """\
 SILENT MODE RULES:
 1. If @ai is explicitly mentioned in the latest message(s) → you MUST respond.
    Apply the Interactive Mode rules below to determine HOW to respond.
-2. Otherwise → take NO action. No response, no reaction, no title update, no board
-   instructions. Return an empty output."""
+2. Otherwise → take NO action. No response, no reaction, no title update.
+   Return an empty output."""
 
 _INTERACTIVE_RULES = """\
 INTERACTIVE MODE RULES:
 1. If @ai is explicitly mentioned → you MUST respond (full response or delegate+respond).
-2. If the user asks whether anyone has a similar idea, whether something similar is being
-   worked on, or about overlapping efforts → call research_similar_ideas to search for
-   similar ideas in the system. Present the findings clearly: list matching ideas with their
-   titles and keywords. If company context was also delegated, mention you are researching
-   further. If no similar ideas are found, tell the user clearly.
-3. If the message relates to a topic in the <facilitator_bucket> below → delegate to the
+2. If the message relates to a topic in the <facilitator_bucket> below → delegate to the
    context agent AND respond with a delegation message first.
-4. If the user references a specific detail from earlier in the conversation that you
+3. If the user references a specific detail from earlier in the conversation that you
    cannot find in the <chat_history> below (it was likely compressed) → delegate to the
    context extension agent AND respond with a delegation message first.
-5. If you have substantive value to add — you can advance the brainstorming, ask a
+4. If you have substantive value to add — you can advance the brainstorming, ask a
    clarifying question, identify a gap in the idea, suggest structure, or challenge an
    assumption → respond with a full response.
-6. If the message is an acknowledgment, agreement, or purely informational with nothing
+5. If the message is an acknowledgment, agreement, or purely informational with nothing
    for you to add → react with thumbs_up ("I've seen this, nothing to add").
-7. If multiple users are actively discussing between themselves and your input would
+6. If multiple users are actively discussing between themselves and your input would
    interrupt rather than help → take no action.
-8. If none of the above clearly applies → react with thumbs_up (safe default)."""
+7. If none of the above clearly applies → react with thumbs_up (safe default)."""
 
 
 def build_system_prompt(context: dict[str, Any]) -> str:
@@ -187,8 +146,6 @@ def build_system_prompt(context: dict[str, Any]) -> str:
             - title_manually_edited: bool
             - facilitator_bucket_content: str
             - recent_messages_formatted: str
-            - board_nodes_formatted: str
-            - board_connections_formatted: str
             - chat_summary: str | None
             - delegation_results: str | None
             - extension_results: str | None
@@ -305,8 +262,6 @@ def build_system_prompt(context: dict[str, Any]) -> str:
         idea_state=context.get("idea_state", "brainstorming"),
         chat_history_block=chat_history_block,
         recent_messages_formatted=context.get("recent_messages_formatted", ""),
-        board_nodes_formatted=context.get("board_nodes_formatted", ""),
-        board_connections_formatted=context.get("board_connections_formatted", ""),
         delegation_results_block=delegation_results_block,
         extension_results_block=extension_results_block,
         context_extension_block=context_extension_block,

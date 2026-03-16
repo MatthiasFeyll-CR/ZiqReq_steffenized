@@ -401,7 +401,7 @@ class TestPipelineCompressionTrigger:
         async def mock_facilitator_process(input_data):
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Done.",
                 "token_usage": {"input": 100, "output": 20},
             }
@@ -451,7 +451,7 @@ class TestPipelineCompressionTrigger:
         async def mock_facilitator_process(input_data):
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Done.",
                 "token_usage": {"input": 100, "output": 20},
             }
@@ -490,7 +490,7 @@ class TestPipelineCompressionTrigger:
         async def mock_facilitator_process(input_data):
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Done.",
                 "token_usage": {"input": 100, "output": 20},
             }
@@ -545,7 +545,7 @@ class TestPipelineCompressionTrigger:
         async def mock_facilitator_process(input_data):
             return {
                 "delegations": [],
-                "board_instructions": [],
+
                 "response": "Done.",
                 "token_usage": {"input": 100, "output": 20},
             }

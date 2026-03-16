@@ -102,7 +102,7 @@ def publish_event(event_type: str, payload: dict) -> None:
     Parameters
     ----------
     event_type:
-        Event type used as the routing key, e.g. ``similarity.detected``.
+        Event type used as the routing key, e.g. ``notification.chat.message``.
     payload:
         Arbitrary JSON-serializable dict.
     """

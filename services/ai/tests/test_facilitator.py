@@ -59,8 +59,7 @@ class TestSilentModePrompt:
             "idea_state": "brainstorming",
             "title_manually_edited": False,
             "recent_messages_formatted": '<message id="1" sender="Lisa" type="user">Hello</message>',
-            "board_nodes_formatted": "(empty board)",
-            "board_connections_formatted": "(no connections)",
+
         })
         assert "SILENT MODE RULES" in prompt
         assert "take NO action" in prompt
@@ -73,8 +72,7 @@ class TestSilentModePrompt:
             "idea_state": "brainstorming",
             "title_manually_edited": False,
             "recent_messages_formatted": '<message id="1" sender="Lisa" type="user">@ai what do you think?</message>',
-            "board_nodes_formatted": "(empty board)",
-            "board_connections_formatted": "(no connections)",
+
         })
         assert "SILENT MODE RULES" in prompt
         assert "you MUST respond" in prompt
@@ -648,93 +646,6 @@ class TestDelegation:
         assert events[0]["event_type"] == "ai.delegation.started"
 
 
-# ── request_board_changes ──
-
-
-class TestBoardChanges:
-    @pytest.mark.asyncio
-    async def test_request_board_changes_accepted(self):
-        """request_board_changes returns accepted with valid intent and description."""
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.request_board_changes(
-            instructions=[{"intent": "add_topic", "description": "Add pain point about manual approvals"}]
-        )
-        assert result["accepted"] is True
-        assert result["instruction_count"] == 1
-        assert len(plugin.board_instructions) == 1
-
-    @pytest.mark.asyncio
-    async def test_request_board_changes_empty_rejected(self):
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.request_board_changes(instructions=[])
-        assert "error" in result
-
-    @pytest.mark.asyncio
-    async def test_request_board_changes_invalid_intent_rejected(self):
-        """Instructions with invalid intent are rejected."""
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.request_board_changes(
-            instructions=[{"intent": "invalid_intent", "description": "Test"}]
-        )
-        assert "error" in result
-        assert "invalid or missing intent" in result["error"]["message"]
-
-    @pytest.mark.asyncio
-    async def test_request_board_changes_missing_intent_rejected(self):
-        """Instructions without intent field are rejected."""
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.request_board_changes(
-            instructions=[{"description": "Test without intent"}]
-        )
-        assert "error" in result
-
-    @pytest.mark.asyncio
-    async def test_request_board_changes_missing_description_rejected(self):
-        """Instructions without description field are rejected."""
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.request_board_changes(
-            instructions=[{"intent": "add_topic"}]
-        )
-        assert "error" in result
-        assert "'description' is required" in result["error"]["message"]
-
-    @pytest.mark.asyncio
-    async def test_request_board_changes_all_intents_accepted(self):
-        """All valid intent types are accepted."""
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        valid_intents = [
-            "add_topic", "update_topic", "remove_topic", "reorganize",
-            "add_relationship", "update_relationship", "remove_relationship",
-        ]
-        instructions = [{"intent": i, "description": f"Test {i}"} for i in valid_intents]
-        result = await plugin.request_board_changes(instructions=instructions)
-        assert result["accepted"] is True
-        assert result["instruction_count"] == len(valid_intents)
-
-    @pytest.mark.asyncio
-    async def test_request_board_changes_stores_on_plugin(self):
-        """Instructions are stored on plugin instance for pipeline to read."""
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        await plugin.request_board_changes(
-            instructions=[
-                {"intent": "add_topic", "description": "First", "suggested_title": "Pain Points"},
-                {"intent": "add_relationship", "description": "Second", "related_to": ["Pain Points"]},
-            ]
-        )
-        assert len(plugin.board_instructions) == 2
-        assert plugin.board_instructions[0]["suggested_title"] == "Pain Points"
-
-    @pytest.mark.asyncio
-    async def test_request_board_changes_nonblocking(self):
-        """Tool returns immediately without waiting for Board Agent."""
-        plugin = FacilitatorPlugin(idea_id="idea-1")
-        result = await plugin.request_board_changes(
-            instructions=[{"intent": "add_topic", "description": "Test"}]
-        )
-        # Returns accepted immediately — no mutation data (Board Agent runs later in pipeline)
-        assert result == {"accepted": True, "instruction_count": 1}
-        assert "mutations" not in result
-
 
 # ── FacilitatorAgent mock mode ──
 
@@ -766,8 +677,7 @@ class TestSystemPromptRendering:
             "title_manually_edited": False,
             "facilitator_bucket_content": "Systems: SAP, DocuSign",
             "recent_messages_formatted": "(no messages yet)",
-            "board_nodes_formatted": "(empty board)",
-            "board_connections_formatted": "(no connections)",
+
             "no_messages_yet": True,
             "creator_language": "German",
         })
@@ -785,8 +695,7 @@ class TestSystemPromptRendering:
             "title_manually_edited": False,
             "chat_summary": "Previous discussion about workflows.",
             "recent_messages_formatted": "",
-            "board_nodes_formatted": "(empty board)",
-            "board_connections_formatted": "(no connections)",
+
         })
         assert "<compressed_summary>" in prompt
         assert "Previous discussion about workflows." in prompt
@@ -800,8 +709,7 @@ class TestSystemPromptRendering:
             "title_manually_edited": False,
             "delegation_results": "Commerz Real uses SAP for ERP.",
             "recent_messages_formatted": "",
-            "board_nodes_formatted": "(empty board)",
-            "board_connections_formatted": "(no connections)",
+
         })
         assert "<delegation_results>" in prompt
         assert "Commerz Real uses SAP for ERP." in prompt
@@ -815,8 +723,7 @@ class TestSystemPromptRendering:
             "is_multi_user": True,
             "user_names_list": "Lisa, Max",
             "recent_messages_formatted": "",
-            "board_nodes_formatted": "(empty board)",
-            "board_connections_formatted": "(no connections)",
+
         })
         assert "Lisa, Max" in prompt
         assert "Multiple users" in prompt
