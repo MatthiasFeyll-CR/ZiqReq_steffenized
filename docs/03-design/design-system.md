@@ -75,20 +75,20 @@
 
 | Token | Light Mode | Dark Mode | Usage |
 |-------|-----------|-----------|-------|
-| `--success` | `#16A34A` | `#22C55E` | Accepted ideas, connection online, success toasts |
+| `--success` | `#16A34A` | `#22C55E` | Accepted projects, connection online, success toasts |
 | `--success-bg` | `#F0FDF4` | `rgba(34,197,94,0.1)` | Success toast background, success badge bg |
-| `--warning` | `#D97706` | `#F59E0B` | Rate limit lockout, offline warning, dropped ideas |
+| `--warning` | `#D97706` | `#F59E0B` | Rate limit lockout, offline warning, dropped projects |
 | `--warning-bg` | `#FFFBEB` | `rgba(245,158,11,0.1)` | Warning toast background |
 | `--error` | `#DC2626` | `#EF4444` | Error toasts, validation errors, failed actions |
 | `--error-bg` | `#FEF2F2` | `rgba(239,68,68,0.1)` | Error toast background |
 | `--info` | `#0284C7` | `#38BDF8` | Info toasts, in-review state, notifications |
 | `--info-bg` | `#F0F9FF` | `rgba(56,189,248,0.1)` | Info toast background |
 
-### 2.5 Idea State Colors
+### 2.5 Project State Colors
 
 | State | Color (Light) | Color (Dark) | Usage |
 |-------|--------------|-------------|-------|
-| Open | `#0284C7` (sky-600) | `#38BDF8` (sky-400) | Default/active brainstorming state |
+| Open | `#0284C7` (sky-600) | `#38BDF8` (sky-400) | Default/active requirements assembly state |
 | In Review | `#F59E0B` (amber-500) | `#F59E0B` (amber-500) | Submitted, awaiting review |
 | Accepted | `#16A34A` (green-600) | `#22C55E` (green-500) | Reviewer accepted |
 | Dropped | `#9CA3AF` (gray-400) | `#9CA3AF` (gray-400) | Permanently closed |
@@ -128,7 +128,7 @@ Base: `16px` (1rem)
 | `text-lg` | 18px (1.125rem) | 500 Medium | 1.5 (27px) | Section headings, card titles |
 | `text-xl` | 20px (1.25rem) | 500 Medium | 1.4 (28px) | Page sub-headings, panel headers |
 | `text-2xl` | 24px (1.5rem) | 700 Bold | 1.3 (31.2px) | Page headings |
-| `text-3xl` | 30px (1.875rem) | 700 Bold | 1.2 (36px) | Hero heading (Landing Page creation prompt) |
+| `text-3xl` | 30px (1.875rem) | 700 Bold | 1.2 (36px) | Hero heading (Landing Page) |
 
 ### 3.3 Weight Usage
 
@@ -175,7 +175,7 @@ Base: `16px` (1rem)
 | Navbar | 12px vertical, 16px horizontal | 8px between items |
 | Landing page cards | 20-24px | 16px between cards |
 | Chat messages | 12px bubble padding | 8px between messages |
-| Board panel | 8px edge padding | Nodes positioned by React Flow |
+| Requirements panel | 12px edge padding | 8px between items |
 | Review tab panels | 16-20px | 12px between sections |
 | Admin Panel tabs | 20-24px | 16px between form groups |
 | Modal content | 24px | 16px between elements |
@@ -231,11 +231,11 @@ In dark mode, shadows are less visible. Use `ring` borders to define elevation:
 | Token | Value | Usage |
 |-------|-------|-------|
 | `z-base` | 0 | Normal flow content |
-| `z-board-node` | 10 | Board nodes (React Flow manages internally) |
-| `z-panel` | 20 | Floating panels (ideas list, notifications) |
+| `z-requirements-item` | 10 | Requirements items during drag operations |
+| `z-panel` | 20 | Floating panels (projects list, notifications) |
 | `z-dropdown` | 30 | Dropdown menus, @mention suggestions |
 | `z-navbar` | 40 | Global navbar (sticky) |
-| `z-banner` | 45 | Contextual banners (invitation, merge, offline) |
+| `z-banner` | 45 | Contextual banners (invitation, offline) |
 | `z-modal` | 50 | Modals (error log, collaborator management) |
 | `z-toast` | 60 | Toast notifications (always on top) |
 
@@ -263,7 +263,7 @@ All components built on **shadcn/ui** (Radix primitives + Tailwind). Components 
 | Button | Brand colors (teal light / gold dark), Gotham Bold labels |
 | Card | Brand border-radius (8px), shadow scale, gold left-border for selected state |
 | Input | Brand border colors, gold focus ring, 6px radius |
-| Badge | Idea state colors, small radius (4px) |
+| Badge | Project state colors, small radius (4px) |
 | Dialog (Modal) | Brand shadow-xl, 12px radius, backdrop blur |
 | DropdownMenu | Brand shadow-lg, 6px radius, hover states |
 | Toast (react-toastify) | Semantic colors, brand radius, icon + action layout |
@@ -289,7 +289,7 @@ All components built on **shadcn/ui** (Radix primitives + Tailwind). Components 
 
 ```
 +-----------------------------------------------------------------------+
-| [CR Logo] ZiqReq    | Ideas | Reviews* | Admin*  |    ...right items  |
+| [CR Logo] ZiqReq    | Projects | Reviews* | Admin*  |    ...right items  |
 +-----------------------------------------------------------------------+
   ^brand block (left)    ^nav links              ^connection, bell, user
 ```
@@ -417,7 +417,7 @@ All components built on **shadcn/ui** (Radix primitives + Tailwind). Components 
 | Page | Desktop (xl+) | Tablet (md-lg) | Mobile (sm) |
 |------|--------------|----------------|-------------|
 | Landing | Multi-column card grid | 2-column grid | Single column stack |
-| Idea Workspace | Side-by-side chat + board | Stacked or tabbed panels | Stacked, board read-only |
+| Project Workspace | Side-by-side chat + requirements panel | Stacked or tabbed panels | Stacked, requirements panel read-only |
 | Review Page | Multi-column card grid | 2-column grid | Single column stack |
 | Admin Panel | Full tab layout | Full tab layout | Scrollable tab content |
 | Navbar | Full nav links visible | Hamburger menu for nav links | Hamburger menu |

@@ -93,13 +93,15 @@ transition={{ duration: 0.1 }}
 - No flash of white/black during theme switch
 - Gold (`#FFD700`) remains constant in both themes — provides visual continuity
 
-### 3.2 Idea Workspace — Panel Divider Drag
+### 3.2 Project Workspace — Panel Divider Drag
 
 | Property | Value |
 |----------|-------|
 | During drag | Panels resize in real-time (no animation — follows cursor) |
 | Double-click reset | `200ms ease-out` transition to 40/60 default |
 | Divider hover | Color: `var(--border)` > `var(--primary)` (gold), `150ms` |
+
+**Panel layout:** Chat panel (left) + Requirements panel (right), separated by draggable divider. Default split: 40% chat, 60% requirements.
 
 ### 3.3 Review Tab — Edit Area Slide-In
 
@@ -119,7 +121,7 @@ transition={{ duration: 0.25, ease: 'easeOut' }}
 - Chat panel underneath remains in DOM but is visually covered
 - Backdrop: subtle `bg-black/10` overlay on the chat area (indicates it's behind)
 
-### 3.4 Floating Windows (Ideas List, Notifications, Email Preferences)
+### 3.4 Floating Windows (Projects List, Notifications, Email Preferences)
 
 | Phase | Property | Value |
 |-------|----------|-------|
@@ -171,7 +173,7 @@ transition={{ duration: 0.25, ease: 'easeOut' }}
 
 ## 4. Content Animations
 
-### 4.1 Idea Title Animation (AI-Generated)
+### 4.1 Project Title Animation (AI-Generated)
 
 When AI updates the title (F-2.3):
 
@@ -206,14 +208,7 @@ When AI updates the title (F-2.3):
   - Loop: infinite, `ease-in-out`
 - `prefers-reduced-motion`: static text "AI is processing..." with no dot animation
 
-### 4.4 AI Modified Indicator (Board Nodes)
-
-- Gold dot appears: `scale 0 > 1`, `200ms ease-out` (spring) (F-3.4)
-- Idle pulse: `opacity 0.6 > 1.0`, `2s ease-in-out`, infinite
-- Fade on user interaction: `opacity 1 > 0`, `300ms ease-out` when user selects the node
-- `prefers-reduced-motion`: static gold dot, no pulse, instant fade
-
-### 4.5 Delegation Message De-emphasis
+### 4.4 Delegation Message De-emphasis
 
 When the full AI response arrives after a delegation message:
 
@@ -221,7 +216,7 @@ When the full AI response arrives after a delegation message:
 |-------|----------|-------|
 | Shrink | fontSize + opacity + padding | `text-base/1.0/12px > text-sm/0.6/8px`, `300ms ease-out` |
 
-### 4.6 Toast Notifications
+### 4.5 Toast Notifications
 
 | Phase | Property | Value |
 |-------|----------|-------|
@@ -229,48 +224,86 @@ When the full AI response arrives after a delegation message:
 | Exit | translateX + opacity | `0/1 > 100%/0`, `150ms ease-in` |
 | Stack shift | translateY | Existing toasts shift up, `200ms ease-out` |
 
-### 4.7 Notification Count Badge
+### 4.6 Notification Count Badge
 
 - New notification: `scale 0 > 1.2 > 1.0`, `300ms` (spring bounce)
 - Count update: number crossfade, `150ms`
 - `prefers-reduced-motion`: instant appear, no bounce
 
-### 4.8 Skeleton Loading Pulse
+### 4.7 Skeleton Loading Pulse
 
 - `opacity: 0.5 > 1.0 > 0.5`, `1.5s ease-in-out`, infinite
 - `prefers-reduced-motion`: static at `opacity: 0.5`, no pulse
 
 ---
 
-## 5. Scroll Behavior
+## 5. Requirements Panel Interactions
 
-### 5.1 Auto-Scroll on State Transition
+### 5.1 Accordion Expand/Collapse
 
-When idea state changes (FA-1):
+| Phase | Property | Value |
+|-------|----------|-------|
+| Expand | height | `0 > auto`, `250ms ease-out` |
+| Collapse | height | `auto > 0`, `200ms ease-in` |
+
+- Chevron icon rotates: `rotate(0deg)` > `rotate(180deg)`, `200ms`
+- Epic/Milestone cards as accordion headers
+
+### 5.2 Drag-to-Reorder Items
+
+| Phase | Property | Value |
+|-------|----------|-------|
+| Drag start | scale + shadow | `1.0/shadow-sm > 1.02/shadow-lg`, `150ms ease-out` |
+| During drag | Follows cursor | No animation, real-time position |
+| Drop | scale + shadow | `1.02/shadow-lg > 1.0/shadow-sm`, `150ms ease-in` |
+| Other items shift | translateY | Items below move down/up, `200ms ease-out` |
+
+- Uses `@dnd-kit` library for drag-and-drop
+- Visual feedback: dragged item scales slightly and lifts with stronger shadow
+- Drop zones highlight with gold border when drag is over
+
+### 5.3 Inline Item Editing
+
+| Phase | Property | Value |
+|-------|----------|-------|
+| Edit mode enter | border | `transparent > gold`, `150ms` |
+| Save | border + scale | Gold border fades, subtle scale pulse `1.0 > 1.01 > 1.0`, `200ms` |
+| Cancel | border | Gold > transparent, `150ms` |
+
+- Click to edit: text input replaces display text
+- Save on Enter or blur
+- Cancel on Escape
+
+### 5.4 Add Item Button
+
+| Phase | Property | Value |
+|-------|----------|-------|
+| Hover | background | `transparent > bg-gray-100`, `150ms ease-out` |
+| New item appears | opacity + translateY | `0/-8px > 1/0`, `200ms ease-out` |
+
+---
+
+## 6. Scroll Behavior
+
+### 6.1 Auto-Scroll on State Transition
+
+When project state changes (FA-1):
 
 | State | Target | Behavior |
 |-------|--------|----------|
-| Open / Rejected | Brainstorming section (top) | `scrollIntoView({ behavior: 'smooth', block: 'start' })` |
+| Open / Rejected | Requirements structuring section (top) | `scrollIntoView({ behavior: 'smooth', block: 'start' })` |
 | In Review / Accepted / Dropped | Review section (below fold) | `scrollIntoView({ behavior: 'smooth', block: 'start' })` |
 
 - Duration: browser-native smooth scroll (~300-500ms depending on distance)
 - `prefers-reduced-motion`: `behavior: 'auto'` (instant jump)
 
-### 5.2 Chat Auto-Scroll
+### 6.2 Chat Auto-Scroll
 
 - New message: scroll to bottom of chat panel
 - Behavior: `smooth`
 - Exception: if user has scrolled up (reading history), do NOT auto-scroll. Show a "New message v" pill badge at the bottom of chat that scrolls to bottom on click.
 
-### 5.3 Board Item Reference Click
-
-When user clicks a board reference in chat:
-
-1. Switch to Board tab (if on Review tab)
-2. Pan canvas to center the referenced item
-3. Flash the item: gold border pulse (2 cycles, `400ms each`)
-
-### 5.4 Navbar Sticky
+### 6.3 Navbar Sticky
 
 - `position: sticky; top: 0`
 - No scroll-hide behavior (navbar always visible)
@@ -278,9 +311,9 @@ When user clicks a board reference in chat:
 
 ---
 
-## 6. Keyboard & Focus Handling
+## 7. Keyboard & Focus Handling
 
-### 6.1 Focus Management
+### 7.1 Focus Management
 
 | Context | Behavior |
 |---------|----------|
@@ -294,7 +327,7 @@ When user clicks a board reference in chat:
 | Banner appears | Focus moves to first action button in banner (for screen readers). |
 | Toast appears | Does NOT steal focus (toasts are passive). Aria-live region announces. |
 
-### 6.2 Keyboard Shortcuts
+### 7.2 Keyboard Shortcuts
 
 | Shortcut | Context | Action |
 |----------|---------|--------|
@@ -302,64 +335,62 @@ When user clicks a board reference in chat:
 | `Shift+Enter` | Chat input | New line (no send) |
 | `@` | Chat input | Open @mention dropdown |
 | `Escape` | Any modal/dropdown/floating | Close the overlay |
-| `Ctrl+Z` | Board tab active | Undo board action |
-| `Ctrl+Shift+Z` | Board tab active | Redo board action |
-| `Delete` / `Backspace` | Board node selected | Delete selected node(s) |
-| `Ctrl+A` | Board tab active | Select all nodes |
 | `Tab` | Global | Navigate to next focusable element |
 | `Shift+Tab` | Global | Navigate to previous focusable element |
+| `Enter` | Requirements item focused | Enter edit mode |
+| `Escape` | Requirements item editing | Cancel edit |
 
-### 6.3 Focus Visible Strategy
+### 7.3 Focus Visible Strategy
 
 - Use `:focus-visible` (not `:focus`) to show focus rings only on keyboard interaction
 - Mouse clicks: no visible focus ring
 - Keyboard navigation: gold focus ring (`ring-2 ring-primary ring-offset-2`)
 - `outline: none` with custom `box-shadow` ring replacement for consistent cross-browser rendering
 
-### 6.4 Tab Order
+### 7.4 Tab Order
 
 - Follows visual order (left to right, top to bottom)
 - Skip links: `sr-only` link at page top > "Skip to main content"
 - Navbar: tab through brand > nav links > utility items
-- Workspace: tab through header > chat panel > board panel
-- Board nodes: not in tab order (React Flow manages internal focus)
+- Workspace: tab through header > chat panel > requirements panel
+- Requirements items: tab through accordion headers, then nested items when expanded
 
 ---
 
-## 7. Loading Patterns
+## 8. Loading Patterns
 
-### 7.1 Page Load
+### 8.1 Page Load
 
 | Page | Loading Pattern |
 |------|----------------|
-| Landing Page | Skeleton cards (3-4 placeholder cards) while fetching ideas |
-| Idea Workspace | Skeleton for chat messages + empty board canvas. Header loads first. |
+| Landing Page | Skeleton cards (3-4 placeholder cards) while fetching projects |
+| Project Workspace | Skeleton for chat messages + empty requirements panel. Header loads first. |
 | Review Page | Skeleton cards while fetching review queue |
 | Admin Panel | Skeleton content within the active tab |
 
-### 7.2 Async Operations
+### 8.2 Async Operations
 
 | Operation | Indicator | Duration Expectation |
 |-----------|-----------|---------------------|
 | AI processing | "AI is processing" in chat with animated dots | 3-10 seconds typical |
 | PDF generation | Toast: "Generating PDF..." (info) > "PDF generated" (success) | 2-5 seconds |
-| BRD generation | Progress indicator in Review tab, section-by-section fill | 5-15 seconds |
-| Search (users, ideas) | Spinner inside search input (replacing search icon) | < 1 second |
+| Requirements document generation | Progress indicator in Review tab, section-by-section fill | 5-15 seconds |
+| Search (users, projects) | Spinner inside search input (replacing search icon) | < 1 second |
 | Submit for review | Button loading state > redirect/scroll to review section | < 2 seconds |
 | Save (admin params, AI context) | Button loading state > success toast | < 1 second |
 
-### 7.3 Optimistic Updates
+### 8.3 Optimistic Updates
 
 | Action | Behavior |
 |--------|----------|
 | Send chat message | Message appears immediately in chat (optimistic). If API fails, message marked with error icon + retry. |
-| Board edits | Changes apply locally immediately. Broadcast to other users on commit. If sync fails, revert with error toast. |
+| Requirements panel edits | Changes apply locally immediately. Broadcast to other users on commit. If sync fails, revert with error toast. |
 | Reaction toggle | Reaction appears/disappears immediately. Reverts on API failure. |
 | Accept/Decline invitation | Card updates immediately. Reverts on failure. |
 
 ---
 
-## 8. Transition Summary Table
+## 9. Transition Summary Table
 
 Quick reference for all animation durations:
 
@@ -382,6 +413,9 @@ Quick reference for all animation durations:
 | Content | Toast exit | 150ms | ease-in |
 | Content | Banner enter | 200ms | ease-out |
 | Content | Notification badge bounce | 300ms | spring |
+| Requirements | Accordion expand | 250ms | ease-out |
+| Requirements | Drag start | 150ms | ease-out |
+| Requirements | Item shift | 200ms | ease-out |
+| Requirements | Edit mode | 150ms | ease-out |
 | Loading | Skeleton pulse | 1500ms | ease-in-out (loop) |
 | Loading | AI dots | 600ms | ease-in-out (stagger) |
-| Loading | AI modified glow | 2000ms | ease-in-out (loop) |

@@ -4,12 +4,12 @@
 
 - **NFR-P1:** Page load under 2 seconds during regular load.
 - **NFR-P2:** AI chat responses under 10 seconds for typical interactions. Hard timeout configurable by Admin (default: 60 seconds) before failure.
-- **NFR-P3:** Real-time events (chat messages, board sync) delivered to other users within 500ms.
-- **NFR-P4:** Session-level connection — one connection per session, not per idea. Reduces connection overhead.
-- **NFR-P5:** Board sync uses real-time broadcast for awareness events (selections, locks) and commit-based broadcast for content/position changes. Reduces message volume.
+- **NFR-P3:** Real-time events (chat messages, requirements sync) delivered to other users within 500ms.
+- **NFR-P4:** Session-level connection — one connection per session, not per project. Reduces connection overhead.
+- **NFR-P5:** Requirements sync uses real-time broadcast for awareness events (selections, locks) and commit-based broadcast for content/position changes. Reduces message volume.
 - **NFR-P6:** AI processing is debounced — prevents unnecessary processing cycles on rapid input (default: 3 seconds, admin-configurable).
 - **NFR-P7:** Connections closed after prolonged user inactivity (default: 120 seconds idle, admin-configurable) to reduce server load.
-- **NFR-P8:** AI must handle long brainstorming sessions without degrading in quality. Older chat context is summarized automatically to keep processing efficient.
+- **NFR-P8:** AI must handle long requirements structuring sessions without degrading in quality. Older chat context is summarized automatically to keep processing efficient.
 
 > ⚙️ DOWNSTREAM → **AI Engineer**: Define concrete thresholds and mechanics for context management that satisfy NFR-P8. The old spec used a configurable compression threshold (default 60% of context window). See `docs_old/01-requirements/nonfunctional.md` NFR-P8.
 
@@ -32,7 +32,7 @@
 - **NFR-S4:** Auth bypass double-gated (`AUTH_BYPASS=True` + `DEBUG=True`) — impossible to activate in production.
 - **NFR-S5:** No secrets in code — all configuration via environment variables.
 - **NFR-S6:** Read-only link sharing requires Azure AD authentication — no anonymous access.
-- **NFR-S7:** Conflict of interest prevention — Reviewers cannot review their own ideas.
+- **NFR-S7:** Conflict of interest prevention — Reviewers cannot review their own projects.
 - **NFR-S8:** All routes protected — unauthenticated users redirected to login.
 
 ## Accessibility
@@ -62,7 +62,7 @@
 - **Devices:**
   - Desktop: full functionality (primary target)
   - Tablet: full functionality supported
-  - Mobile: supported with limitations — board is read-only on mobile, all other features functional
+  - Mobile: supported with limitations — requirements panel is read-only on mobile, all other features functional
 - **Responsive:** Yes — layout adapts to desktop, tablet, and mobile viewports.
 
 ## Internationalization
@@ -71,7 +71,7 @@
 - **NFR-I2:** Language switcher in user menu dropdown.
 - **NFR-I3:** Language preference persisted per user.
 - **NFR-I4:** Scope: all user-facing content — UI labels, buttons, navigation, notification emails, timeline events, system-generated text.
-- **NFR-I5:** AI initial language follows the idea creator's app language setting, then adapts to user's chat language.
+- **NFR-I5:** AI initial language follows the project creator's app language setting, then adapts to user's chat language.
 
 ## Data & Privacy
 
@@ -82,6 +82,6 @@
 
 ## Availability
 
-- **Uptime target:** Best effort — no formal uptime guarantee. Acceptable for an internal brainstorming tool.
+- **Uptime target:** Best effort — no formal uptime guarantee. Acceptable for an internal requirements assembly tool.
 - **Maintenance:** Can be performed at any time. No zero-downtime deployment requirement.
 - **Monitoring:** Admin Panel provides lightweight monitoring dashboard and email alerts for system health issues.

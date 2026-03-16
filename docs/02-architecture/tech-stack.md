@@ -4,33 +4,33 @@
 
 | Layer | Technology | Version | Justification |
 |-------|-----------|---------|---------------|
-| Frontend Framework | React | 19.x | Corporate standard; React Flow dependency (FA-3) |
+| Frontend Framework | React | 19.x | Corporate standard |
 | Build Tool | Vite | 7.x | Standard modern bundler for React SPAs, fast HMR, TypeScript-native |
 | Language (Frontend) | TypeScript | 5.x | Type safety across a complex collaborative UI with real-time state |
 | CSS Framework | Tailwind CSS | 4.x | Corporate standard |
 | Component Library | shadcn/ui (Radix primitives) | latest | Tailwind-native, accessible, no dependency lock-in — corporate library philosophy |
-| State Management | Redux Toolkit | 2.x | Structured action-based model for board undo/redo (F-3.7), DevTools for debugging, middleware for WebSocket side effects |
+| State Management | Redux Toolkit | 2.x | Structured action-based model for requirements panel optimistic state, DevTools for debugging, middleware for WebSocket side effects |
 | Server State | TanStack Query | 5.x | Cache management, optimistic updates, retry logic for REST API calls |
 | Language (Backend) | Python | 3.12+ | Corporate standard |
 | Backend Framework | Django | 5.x | Corporate standard for complex services; ORM, auth middleware, mature ecosystem |
 | REST API | Django REST Framework | 3.x | Standard Django REST layer; serialization, viewsets, permission classes |
-| WebSocket | Django Channels | 4.x | Real-time collaboration (FA-6); presence, chat broadcast, board sync |
+| WebSocket | Django Channels | 4.x | Real-time collaboration (FA-6); presence, chat broadcast, requirements panel sync |
 | Service-to-Service | gRPC (grpcio + protobuf) | latest | Corporate standard for inter-service communication |
 | Database | PostgreSQL | 16.x | Corporate standard; deeply relational data model, Django ORM first-class support |
-| Vector Extension | pgvector | 0.7+ | PostgreSQL extension for vector similarity search; used by AI service for RAG and idea similarity detection. Schema defined here, usage patterns defined by AI Engineer in `docs/03-ai/` |
+| Vector Extension | pgvector | 0.7+ | PostgreSQL extension for vector similarity search; used by AI service for RAG. Schema defined here, usage patterns defined by AI Engineer in `docs/03-ai/` |
 | ORM | Django ORM | (bundled) | Native to Django; migrations, querysets, PostgreSQL-optimized features |
 | Message Broker (Dev) | RabbitMQ | 3.x | Event-driven architecture; DLQ support (NFR-R1); Docker container for local dev |
 | Message Broker (Prod) | Azure Service Bus | managed | Azure SaaS equivalent of RabbitMQ; DLQ support native |
-| Task Scheduling | Celery | 5.x | Periodic jobs: soft delete cleanup, monitoring health checks, keyword matching sweeps |
+| Task Scheduling | Celery | 5.x | Periodic jobs: soft delete cleanup, monitoring health checks |
 | Channel Layer (Dev) | Redis | 7.x | Django Channels pub/sub backend; Docker container for local dev |
 | Channel Layer (Prod) | Azure Cache for Redis | managed | Managed Redis for Django Channels in production |
 | Authentication (Frontend) | MSAL.js (@azure/msal-react) | 4.x | Azure AD OIDC/OAuth2; corporate preference (F-7.2) |
 | Authentication (Backend) | Azure AD token validation | — | Token validation at API edge and WebSocket handshake (NFR-S2) |
 | AI Provider | Azure OpenAI | managed | All AI features (Constraint #3). Model selection and agent architecture defined by AI Engineer in `docs/03-ai/` |
-| AI Orchestration | Semantic Kernel (Python SDK) | latest | Azure-native, automatic function calling for Facilitator/Board Agent, unified base layer across all 9 agents. See `docs/03-ai/` |
+| AI Orchestration | Semantic Kernel (Python SDK) | latest | Azure-native, automatic function calling for Facilitator/Requirements Agent, unified base layer across all 5 agents (Facilitator, Context Agent, Context Extension, Summarizing AI, Context Compression). See `docs/03-ai/` |
 | PDF Generation | WeasyPrint | 62.x | Python-native HTML-to-PDF; runs in container, no headless browser dependency (F-4.7). **Requires pydyf>=0.10,<0.12** (0.12.x breaks Stream.transform). System dependencies: libcairo2, libpango-1.0-0, libgdk-pixbuf-2.0-0 (Debian package names with hyphens). |
 | File Storage (Dev) | Local Docker volume | — | Mounted volume for storing generated PDF files during development |
-| File Storage (Prod) | Azure Blob Storage | managed | PDF file storage in production. `brd_versions.pdf_file_path` stores the blob path. |
+| File Storage (Prod) | Azure Blob Storage | managed | PDF file storage in production. `requirements_document_versions.pdf_file_path` stores the blob path. |
 | Reverse Proxy (Dev) | Nginx | latest | Docker container; routes frontend, API, and WebSocket under single origin |
 | Reverse Proxy (Prod) | Azure Container Apps ingress | managed | Ingress routing rules; same-origin for frontend + API + WebSocket |
 | Hosting | Azure Container Apps | managed | Corporate standard (Constraint #6) |
@@ -57,20 +57,20 @@
 
 ### State Management
 - **Redux Toolkit** for client-local state:
-  - Board undo/redo history with context-aware action labels (F-3.7)
+  - Requirements panel optimistic state and local drag operations
   - WebSocket connection lifecycle and reconnection state (F-6.1)
   - Presence tracking (online/idle/offline users) (F-6.3)
   - UI layout state (divider position, panel toggles, active tabs)
   - Offline/online banner state (F-6.5)
   - Rate limiting lockout state (F-2.11)
 - **TanStack Query** for server state:
-  - Idea data, chat messages, board state, BRD content
+  - Project data, chat messages, requirements document content
   - Notification list, review queue, user directory
   - Cache invalidation on WebSocket events
-  - Optimistic updates for chat send, board edits
+  - Optimistic updates for chat send, requirements edits
 
 ### Form Handling
-- **React Hook Form** for form state management (BRD section editing, admin parameters, review comments, submit flows)
+- **React Hook Form** for form state management (requirements document section editing, admin parameters, review comments, submit flows)
 - **Zod** for schema validation — shared validation logic between frontend forms and API contracts
 
 ### Data Fetching
@@ -81,15 +81,15 @@
 ### Key Frontend Libraries
 | Package | Purpose | Justification |
 |---------|---------|---------------|
-| react-flow | Digital board rendering | FA-3: nodes, groups, connections, minimap, drag-and-drop |
+| @dnd-kit/core + @dnd-kit/sortable | Drag-and-drop | FA-3: sortable requirements panel items (epics/stories, milestones/packages) |
 | framer-motion | Animations | Title animation (F-2.3), AI indicators (F-2.12, F-3.4); respects `prefers-reduced-motion` (NFR-A5) |
 | @azure/msal-react | Azure AD auth | OIDC/OAuth2 login, silent token refresh (F-7.2, NFR-S3) |
 | react-i18next | Internationalization | German + English UI (FA-16); language switcher, persisted preference |
 | lucide-react | Icons | Lucide icon library; best integration with shadcn/ui, consistent SVG icon set |
-| react-toastify | Toast notifications | FA-12 transient notifications, FA-14 error toasts |
-| @reduxjs/toolkit | State management | Board undo/redo, WebSocket state, UI state |
+| react-toastify | Toast notifications | Transient notifications, error toasts |
+| @reduxjs/toolkit | State management | Requirements panel state, WebSocket state, UI state |
 | @tanstack/react-query | Server state | API data caching, optimistic updates, retry logic |
-| react-hook-form | Form handling | BRD editing, admin config, review forms |
+| react-hook-form | Form handling | Requirements document editing, admin config, review forms |
 | zod | Schema validation | Shared validation schemas, form validation, API response validation |
 
 ## Backend Stack Details
@@ -101,7 +101,7 @@
 
 ### API Pattern
 - **REST** (Django REST Framework) for frontend-to-gateway communication
-- **WebSocket** (Django Channels) for real-time events (chat, board sync, presence, notifications)
+- **WebSocket** (Django Channels) for real-time events (chat, requirements panel sync, presence, notifications)
 - **gRPC** (grpcio + protobuf) for gateway-to-internal-service communication
 - **Message broker** (RabbitMQ / Azure Service Bus) for asynchronous event-driven communication between services
 
@@ -120,9 +120,8 @@
 ### Background Jobs (Celery)
 | Job | Schedule | Purpose |
 |-----|----------|---------|
-| Soft delete cleanup | Daily | Permanently delete ideas past trash countdown (F-9.3) |
+| Soft delete cleanup | Daily | Permanently delete projects past trash countdown (F-9.3) |
 | Monitoring health checks | Configurable interval (default: 60s) | Check service health, DLQ counts, send alerts (F-11.4, F-11.5) |
-| Keyword matching sweep | Periodic | Compare keywords across ideas for similarity detection (F-5.2) |
 
 ### Key Backend Libraries
 | Package | Purpose | Justification |
@@ -133,7 +132,7 @@
 | grpcio + grpcio-tools | gRPC client/server | Corporate standard: inter-service communication |
 | celery | Task scheduling | Periodic background jobs |
 | pydantic | Data validation | gRPC schemas, AI prompt/response contracts |
-| weasyprint | PDF generation | BRD to PDF (F-4.7) |
+| weasyprint | PDF generation | Requirements document to PDF (F-4.7) |
 | openai (Azure SDK) | AI integration | Azure OpenAI API calls (used by AI service — see `docs/03-ai/`) |
 | pgvector | Vector search | PostgreSQL vector column type (VectorField) and HNSW indexes for RAG and similarity |
 | msal | Token validation | Backend Azure AD token verification |
@@ -178,7 +177,7 @@ nginx (reverse proxy)
 
 ## Real-Time Transport Design (F-6.1, F-3.6)
 
-> ⚙️ This section addresses the downstream delegation from requirements for real-time transport, board sync protocol, and connection lifecycle.
+> ⚙️ This section addresses the downstream delegation from requirements for real-time transport, requirements panel sync protocol, and connection lifecycle.
 
 ### Transport: WebSocket via Django Channels
 
@@ -189,42 +188,39 @@ nginx (reverse proxy)
 
 ### Connection Lifecycle (F-6.1)
 1. **Connect:** Frontend opens WebSocket to `/ws/?token=<jwt>`. Gateway validates token on handshake.
-2. **Subscribe:** Client sends `subscribe_idea` when navigating to an idea workspace. Server adds client to the idea's channel group.
-3. **Unsubscribe:** Client sends `unsubscribe_idea` when leaving. Server removes client from the group.
+2. **Subscribe:** Client sends `subscribe_project` when navigating to a project workspace. Server adds client to the project's channel group.
+3. **Unsubscribe:** Client sends `unsubscribe_project` when leaving. Server removes client from the group.
 4. **Idle:** After configurable inactivity (default: 5 minutes), client sends `presence_update` with state `idle`. After further idle (default: 120 seconds), server closes connection.
 5. **Disconnect:** On connection drop, server cleans up presence. Client initiates reconnection with exponential backoff (max 30 seconds, admin-configurable).
-6. **Reconnect:** On successful reconnect, client re-subscribes to active idea and fetches latest state via REST to reconcile.
+6. **Reconnect:** On successful reconnect, client re-subscribes to active project and fetches latest state via REST to reconcile.
 
-### Board Sync Protocol (F-3.6) — Hybrid Model
+### Requirements Panel Sync Protocol (F-3.6)
 
-Two categories of board events with different sync strategies:
+Requirements structure changes (creating, updating, deleting, reordering epics/stories or milestones/packages) use REST mutations followed by WebSocket broadcasts:
 
 | Event Category | Transport | Persistence | Latency Target |
 |---|---|---|---|
-| **Awareness events** (selections, lock state) | WebSocket only — fire immediately | Not persisted | < 100ms |
-| **Content changes** (node create/update/delete, connections) | REST mutation → server persists → WebSocket broadcast | Persisted | < 500ms (NFR-P3) |
-| **Position/resize changes** | REST on release (drag end / resize end) → WebSocket broadcast | Persisted | < 500ms |
+| **Awareness events** (selections, active item focus) | WebSocket only — fire immediately | Not persisted | < 100ms |
+| **Structure changes** (create/update/delete/reorder items) | REST mutation → server persists → WebSocket broadcast | Persisted | < 500ms (NFR-P3) |
 
-**Why this hybrid approach:**
-- Awareness events (who selected what) are ephemeral — no persistence needed, but must be instant for collaborative feel.
-- Content and position changes must be persisted before broadcasting. REST-first ensures data integrity. Server broadcasts via WebSocket after successful write.
-- This avoids the complexity of CRDT or OT — last-write-wins is sufficient per F-3.5 ("last write wins for concurrent edits on the same Box").
+**Why this approach:**
+- Awareness events (who is editing what) are ephemeral — no persistence needed, but must be instant for collaborative feel.
+- Structure changes must be persisted before broadcasting. REST-first ensures data integrity. Server broadcasts via WebSocket after successful write.
+- This avoids the complexity of CRDT or OT — last-write-wins is sufficient for requirements item editing.
 
 ### Conflict Resolution
-- **Last-write-wins** for concurrent edits to the same node (F-3.5). Server timestamp determines ordering.
-- **Selection highlighting** prevents most conflicts by showing other users which nodes are being edited.
-- No operational transformation or CRDT — the collaborative editing pattern is node-level (entire Box content), not character-level.
+- **Last-write-wins** for concurrent edits to the same requirements item. Server timestamp determines ordering.
+- **Selection highlighting** prevents most conflicts by showing other users which items are being edited.
+- No operational transformation or CRDT — the collaborative editing pattern is item-level (entire requirement content), not character-level.
 
-## Board Undo/Redo Strategy (F-3.7)
+## Requirements Panel State Management
 
-> ⚙️ This section addresses the downstream delegation for undo/redo storage approach.
+> ⚙️ This section addresses the downstream delegation for requirements panel state handling.
 
-- **Storage:** Frontend-only. Redux Toolkit slice holds an undo/redo action history stack. Not persisted to backend.
-- **Scope:** All board actions (node CRUD, content edits, connections, group changes, position/resize).
-- **AI action tagging:** Each undo entry includes a `source` field (`user` or `ai`). Context-aware button labels: "Undo AI Action" / "Redo AI Action" for AI-sourced entries, "Undo" / "Redo" for user-sourced.
-- **Undo mechanics:** Pop the stack, restore previous state locally, send REST PATCH/POST/DELETE to persist the reverted state. WebSocket broadcasts the change to other users.
-- **Stack limit:** Bounded to prevent memory growth (e.g., last 100 actions). Oldest entries dropped silently.
-- **Cross-user:** Undo/redo is local to each user's session. User A undoing does not affect User B's undo stack.
+- **Storage:** Frontend-only. Redux Toolkit slice holds optimistic local state for drag operations and pending mutations.
+- **Scope:** Requirements panel item reordering, create/update/delete operations.
+- **Optimistic updates:** Drag operations are applied immediately to local state. On drop, REST mutation is sent. On success, WebSocket broadcasts to other users. On failure, local state is reverted and error toast shown.
+- **No undo/redo:** The requirements panel does not require undo/redo functionality. Users edit structured requirement items directly (with standard form validation and save/cancel flows).
 
 ## PDF Generation Service Design (F-4.7)
 
@@ -232,39 +228,18 @@ Two categories of board events with different sync strategies:
 
 ### Service
 - **Stateless gRPC service** using WeasyPrint (Python-native HTML-to-PDF).
-- Receives BRD section content from the gateway, renders HTML template, returns PDF bytes.
+- Receives requirements document content from the gateway, renders HTML template, returns PDF bytes.
 - No database access. No state. Horizontally scalable.
 
 ### Storage
 - **Development:** Local Docker volume mount. Path configured via `PDF_STORAGE_PATH` env var.
 - **Production:** Azure Blob Storage. Path configured via `AZURE_STORAGE_CONNECTION_STRING`.
-- Gateway receives PDF bytes from PDF service, uploads to storage, saves path in `brd_versions.pdf_file_path`.
+- Gateway receives PDF bytes from PDF service, uploads to storage, saves path in `requirements_document_versions.pdf_file_path`.
 
 ### Versioning
-- Each submit/resubmit creates an immutable `brd_versions` record with its own PDF.
-- Filename convention: `BRD_{date}_{idea_title_slug}.pdf`
+- Each submit/resubmit creates an immutable `requirements_document_versions` record with its own PDF.
+- Filename convention: `REQ_{date}_{project_title_slug}.pdf`
 - Previous versions preserved and downloadable from the review timeline.
-
-## Background Keyword Matching Service (F-5.2)
-
-> ⚙️ This section addresses the downstream delegation for the keyword matching background service.
-
-### Design
-- **Celery periodic task** running in the core service worker.
-- Executes on a configurable schedule (e.g., every 5 minutes).
-- Queries all ideas with keywords that were updated since the last sweep.
-- For each updated idea, compares its keyword set against all other ideas within the similarity time window (default: 6 months, admin-configurable).
-- Comparison: set intersection of keyword arrays. If overlap >= `min_keyword_overlap` (default: 7), and the pair hasn't been previously dismissed, it triggers a deep comparison.
-
-### Data Access
-- Reads `idea_keywords` table directly (core service owns this table).
-- Checks `merge_requests` for previously dismissed pairs (status = `declined`) to avoid re-matching.
-- On threshold match: publishes `similarity.detected` event to message broker → AI service consumes and runs Deep Comparison agent.
-
-### Performance
-- Indexes on `idea_keywords.idea_id` and `ideas.updated_at` keep queries efficient.
-- Time window filter reduces the comparison set significantly.
-- ~10,000 ideas/month at peak (from vision.md scale) is well within PostgreSQL array comparison performance.
 
 ## Authentication Flow Design (F-7.2)
 
@@ -312,7 +287,7 @@ Two categories of board events with different sync strategies:
 
 ### Metrics Tracked
 - Active WebSocket connections (from gateway via gRPC)
-- Ideas by state (aggregate query)
+- Projects by state (aggregate query)
 - AI processing stats (from AI service via gRPC)
 - DLQ message counts per queue
 
@@ -347,7 +322,7 @@ Two categories of board events with different sync strategies:
 ### Idempotency (NFR-R2)
 - All event consumers are idempotent. Events include a unique event ID. Consumers track processed event IDs to detect duplicates.
 - Database operations use upsert patterns where applicable.
-- AI processing uses a version counter per idea — stale processing results are discarded before persisting.
+- AI processing uses a version counter per project — stale processing results are discarded before persisting.
 
 ## User Preference Persistence Strategy
 
@@ -401,7 +376,7 @@ In addition to the application parameters listed in F-11.3, the following infras
 |----------|----------------|--------|
 | Frontend framework | Next.js | No SSR needed for internal app; Azure Container Apps doesn't benefit from Vercel optimizations; adds complexity to Docker deployment |
 | Frontend framework | Angular, Vue | Corporate standard is React |
-| State management | Zustand | Insufficient structure for board undo/redo state machine (F-3.7); Redux Toolkit's action-based model, middleware, and DevTools better suited for a corporate team |
+| State management | Zustand | Insufficient structure for complex collaborative state (requirements panel, WebSocket events, presence tracking); Redux Toolkit's action-based model, middleware, and DevTools better suited for a corporate team |
 | Database | MongoDB | Deeply relational data model with extensive FK references; Django ORM is relational-first |
 | Message broker | Kafka | Overkill for ~2,000 users; RabbitMQ/Service Bus fits the event volume and DLQ requirements |
 | WebSocket | Socket.IO | Django Channels is the native Django solution; avoids adding Node.js to a Python stack |
@@ -409,4 +384,3 @@ In addition to the application parameters listed in F-11.3, the following infras
 | PDF generation | Puppeteer / Playwright | Requires headless Chromium; heavy container footprint; WeasyPrint is Python-native and lighter |
 | Component library | MUI / Ant Design | Conflicts with Tailwind styling system; shadcn/ui is Tailwind-native |
 | CORS approach | django-cors-headers | Reverse proxy eliminates CORS entirely; cleaner for WebSocket; standard pattern for SPA + API deployments |
-| Board conflict resolution | CRDT / OT | Overkill for node-level editing (not character-level). Last-write-wins with selection highlighting is sufficient (F-3.5). Avoids significant implementation complexity. |

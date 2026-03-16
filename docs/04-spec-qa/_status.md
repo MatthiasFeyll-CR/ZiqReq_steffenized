@@ -37,6 +37,6 @@
 ## Files Modified During QA
 | File | Changes |
 |------|---------|
-| docs/01-requirements/features.md | Added "Rejected" to F-10.2 review page groups |
-| docs/03-ai/agent-architecture.md | Fixed 5 issues: brd_drafts column ref, idea_keywords table ref, column names, debounce param name, feature references (F-15.1→F-14.1) |
-| docs/02-architecture/api-design.md | Fixed 2 feature references (F-5.12→F-4.12, F-2.16→F-2.14) |
+| docs/01-requirements/features.md | Updated for refactoring: project terminology, requirements panel features, removed board/merge features |
+| docs/03-ai/agent-architecture.md | Updated: project references, requirements structure agent, removed board/merge agent references |
+| docs/02-architecture/api-design.md | Updated: project endpoints, requirements structure endpoints, removed board/merge endpoints |

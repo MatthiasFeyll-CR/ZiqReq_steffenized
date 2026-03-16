@@ -33,10 +33,10 @@
   - All files in `docs/01-requirements/`
   - Previous architecture decisions in `docs_old/02-architecture/` (especially `tech-stack.md`)
 - **Briefing for next specialist:**
-  - ZiqReq: AI-guided brainstorming platform for Commerz Real (~2,000 employees) producing Business Requirements Documents
-  - 3 system roles (User, Reviewer, Admin) + idea-level permissions (Owner, Co-Owner, Collaborator, Read-Only)
-  - 17 feature areas, 75 features — core loop: brainstorm with AI → generate BRD → submit to reviewers
-  - Key complexity areas: real-time collaboration, AI facilitation with company context, idea similarity detection & merge, multi-state review workflow
+  - ZiqReq: Requirements assembly platform for Commerz Real (~2,000 employees) producing structured requirements documents
+  - 3 system roles (User, Reviewer, Admin) + project-level permissions (Owner, Collaborator, Read-Only)
+  - Core loop: define requirements with AI → structure into epics/stories or milestones/packages → submit to reviewers
+  - Key complexity areas: real-time collaboration, AI-assisted requirements structuring with company context, multi-state review workflow, two project types (Software vs Non-Software)
   - Corporate standards: React + TypeScript + Tailwind (frontend), Python + Django (backend), gRPC (service-to-service), PostgreSQL (database), Azure Container Apps (hosting)
-  - 15 downstream delegation notes marked with `⚙️ DOWNSTREAM →` across requirements files — 8 for AI Engineer, 6 for Software Architect, 1 for UI/UX Designer
+  - Downstream delegation notes marked with `⚙️ DOWNSTREAM →` across requirements files for AI Engineer, Software Architect, and UI/UX Designer
 - **Open questions:** None

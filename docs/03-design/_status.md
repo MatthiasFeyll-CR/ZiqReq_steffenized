@@ -44,10 +44,10 @@
   - All files in docs/01-requirements/, docs/02-architecture/, and docs/03-design/
 - **Briefing for next specialist:**
   - **Design style:** Clean & Professional (Soft UI Evolution) — Commerzbank Gold (#FFD700) + Dark Teal (#002E3C) brand palette, light/dark mode with CSS variable theming
-  - **Pages designed:** 5 — Landing Page, Idea Workspace (3-panel), Review Page, Admin Panel, Login Page
-  - **Shared component count:** 31 shared components out of 84 total. Key reusable: 16 UI primitives (shadcn/ui), 7 layout components (Navbar, PageShell, Divider), notification components, IdeaCard, error handling components
-  - **AI-specific UI surfaces:** Chat panel with AI messages/delegation/processing indicator, board AI badge + modified indicator, BRD auto-generation progress, context window indicator. Full AI agent architecture not yet available (AI Engineer hasn't run).
-  - **Responsive breakpoints:** sm (640px), md (768px), lg (1024px), xl (1280px), 2xl (1536px). Mobile-first with board read-only on mobile, bottom sheets for modals.
+  - **Pages designed:** 5 — Landing Page, Project Workspace (chat + requirements panel), Review Page, Admin Panel, Login Page
+  - **Shared component count:** 32 shared components out of 81 total. Key reusable: 16 UI primitives (shadcn/ui), 8 layout components (Navbar, PageShell, Divider), notification components, ProjectCard, error handling components
+  - **AI-specific UI surfaces:** Chat panel with AI messages/delegation/processing indicator, requirements panel AI modification indicator, requirements document auto-generation progress, context window indicator.
+  - **Responsive breakpoints:** sm (640px), md (768px), lg (1024px), xl (1280px), 2xl (1536px). Mobile-first with bottom sheets for modals.
   - **Typography:** Gotham (self-hosted, 3 weights: Book/Medium/Bold), 7-step type scale from 12px to 30px
   - **Animation:** framer-motion, all 100-300ms, all respect prefers-reduced-motion (NFR-A5)
   - **Accessibility:** WCAG 2.1 AA verified, gold focus rings, 44px touch targets, contrast ratios verified (all primary combos pass AAA)
@@ -69,7 +69,7 @@ None. All design decisions work within the existing requirements and architectur
 | Corner radius | Subtle rounded (6-8px) |
 | Spacing | Comfortable (8px base) |
 | Shadows | Soft elevation (light), ring borders (dark) |
-| Workspace split | 40% chat / 60% board, draggable divider |
+| Workspace split | 40% chat / 60% requirements panel, draggable divider |
 | Navbar | Brand (CR logo + ZiqReq) left, nav links + utilities right, dark teal bg |
 | Animations | framer-motion, 100-300ms, all respect prefers-reduced-motion |
 

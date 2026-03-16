@@ -19,10 +19,10 @@
 |------|----------|--------|---------|
 | Frontend unit/component | Co-located with source | `*.test.tsx` / `*.test.ts` | `src/components/chat/chat-message.test.tsx` |
 | Frontend hook tests | Co-located with hooks | `*.test.ts` | `src/features/chat/use-chat.test.ts` |
-| Frontend E2E | `frontend/e2e/` | `*.spec.ts` | `frontend/e2e/idea-workspace.spec.ts` |
-| Backend unit | `tests/` per Django app | `test_*.py` | `services/core/apps/ideas/tests/test_services.py` |
+| Frontend E2E | `frontend/e2e/` | `*.spec.ts` | `frontend/e2e/project-workspace.spec.ts` |
+| Backend unit | `tests/` per Django app | `test_*.py` | `services/core/apps/projects/tests/test_services.py` |
 | Backend integration | `tests/` per Django app | `test_*.py` | `services/gateway/apps/authentication/tests/test_views.py` |
-| gRPC contract | `tests/` per service | `test_*_servicer.py` | `services/core/grpc_server/tests/test_idea_servicer.py` |
+| gRPC contract | `tests/` per service | `test_*_servicer.py` | `services/core/grpc_server/tests/test_project_servicer.py` |
 | WebSocket | `tests/` in gateway websocket app | `test_consumers.py` | `services/gateway/apps/websocket/tests/test_consumers.py` |
 | E2E | `e2e/` at repo root | `*.spec.ts` | `e2e/review-workflow.spec.ts` |
 
@@ -78,14 +78,13 @@ These flows must have E2E coverage. They represent the core user journeys and th
 
 | Flow | Description | Features Covered |
 |------|-------------|-----------------|
-| **Idea creation** | User types message on landing page → idea created → redirected to workspace → chat message visible → AI responds (mocked) | FA-1, FA-2 |
-| **Board interaction** | User creates box → edits content → creates connection → undo → redo | FA-3 |
-| **BRD generation** | User opens Review tab → BRD generates (mocked) → sections visible → user edits section → section locks | FA-4 |
-| **Submit for review** | Owner submits idea → state changes to in_review → workspace locks → reviewer sees idea on review page | FA-9, FA-10 |
-| **Review cycle** | Reviewer self-assigns → posts comment → accepts idea → state changes to accepted → owner notified | FA-10, FA-12 |
-| **Reject and resubmit** | Reviewer rejects → workspace unlocks → owner edits → resubmits → new BRD version created | FA-10, FA-4 |
+| **Project creation** | User creates project with type selection in modal → redirected to workspace → types first message → AI responds (mocked) | FA-1, FA-2 |
+| **Requirements panel interaction** | User adds epic/story, reorders via drag-and-drop, edits inline, deletes item | FA-3 |
+| **Requirements document generation** | User opens Review tab → document generates (mocked) → sections visible → user edits section → section locks | FA-4 |
+| **Submit for review** | Owner submits project → state changes to in_review → workspace locks → reviewer sees project on review page | FA-9, FA-10 |
+| **Review cycle** | Reviewer self-assigns → posts comment → accepts project → state changes to accepted → owner notified | FA-10, FA-12 |
+| **Reject and resubmit** | Reviewer rejects → workspace unlocks → owner edits → resubmits → new requirements document version created | FA-10, FA-4 |
 | **Collaboration** | Owner invites user → invitee sees invitation → accepts → appears as collaborator → can edit | FA-8 |
-| **Merge flow** | Similar idea detected (mocked) → owner sees suggestion → requests merge → target owner accepts → merged idea created (mocked) | FA-5 |
 | **Auth bypass** | Dev login screen → select user → redirected to landing page → user identity visible | FA-7 |
 | **Admin panel** | Admin navigates to admin panel → edits parameter → parameter saved → views monitoring dashboard | FA-11 |
 | **Notifications** | Action triggers notification → bell badge increments → click shows notification → mark as read | FA-12 |
@@ -101,22 +100,28 @@ These flows must have E2E coverage. They represent the core user journeys and th
 **Backend (Gateway):**
 ```python
 # tests/test_views.py
-class TestIdeaCreation:
-    def test_create_idea_authenticated(self, api_client, auth_user):
-        """Authenticated user can create an idea."""
+class TestProjectCreation:
+    def test_create_project_authenticated(self, api_client, auth_user):
+        """Authenticated user can create a project."""
         api_client.force_authenticate(user=auth_user)
-        response = api_client.post('/api/ideas', {'first_message': 'My idea'})
+        response = api_client.post('/api/projects', {
+            'project_type': 'software',
+            'first_message': 'My project description'
+        })
         assert response.status_code == 201
 
-    def test_create_idea_unauthenticated(self, api_client):
+    def test_create_project_unauthenticated(self, api_client):
         """Unauthenticated request returns 401."""
-        response = api_client.post('/api/ideas', {'first_message': 'My idea'})
+        response = api_client.post('/api/projects', {
+            'project_type': 'software',
+            'first_message': 'My project description'
+        })
         assert response.status_code == 401
 ```
 
 **Frontend:**
 ```typescript
-// use-create-idea.test.ts
+// use-create-project.test.ts
 it('sends authenticated request', async () => {
   // Mock MSAL to return a token
   // Mock fetch to capture the request
@@ -131,14 +136,14 @@ it('sends authenticated request', async () => {
 # tests/test_consumers.py
 from channels.testing import WebsocketCommunicator
 
-async def test_subscribe_idea():
-    """User subscribes to idea and receives events."""
-    communicator = WebsocketCommunicator(IdeaConsumer.as_asgi(), "/ws/?token=valid")
+async def test_subscribe_project():
+    """User subscribes to project and receives events."""
+    communicator = WebsocketCommunicator(ProjectConsumer.as_asgi(), "/ws/?token=valid")
     connected, _ = await communicator.connect()
     assert connected
 
-    await communicator.send_json_to({"type": "subscribe_idea", "idea_id": "uuid"})
-    # Trigger an event on the idea's channel group
+    await communicator.send_json_to({"type": "subscribe_project", "project_id": "uuid"})
+    # Trigger an event on the project's channel group
     # Assert communicator receives the broadcast
     await communicator.disconnect()
 ```
@@ -146,37 +151,20 @@ async def test_subscribe_idea():
 ### Pattern 3: Testing gRPC Servicers
 
 ```python
-# tests/test_idea_servicer.py
+# tests/test_project_servicer.py
 from grpc_testing import server_from_dictionary
 
-def test_get_idea_context():
-    """GetIdeaContext returns full context for an idea."""
-    servicer = IdeaServicer()
+def test_get_project_context():
+    """GetProjectContext returns full context for a project."""
+    servicer = ProjectServicer()
     server = server_from_dictionary({...}, servicer)
-    request = IdeaContextRequest(idea_id="uuid", recent_message_limit=20)
+    request = ProjectContextRequest(project_id="uuid", recent_message_limit=20)
     response, _, code, _ = server.unary_unary(request)
     assert code == grpc.StatusCode.OK
-    assert response.metadata.idea_id == "uuid"
+    assert response.metadata.project_id == "uuid"
 ```
 
-### Pattern 4: Testing Board Undo/Redo (Redux)
-
-```typescript
-// board-slice.test.ts
-it('undoes AI action with correct label', () => {
-  const store = createTestStore();
-  // Dispatch an AI board mutation
-  store.dispatch(addNode({ id: '1', source: 'ai', ... }));
-  // Assert undo entry exists with AI label
-  expect(store.getState().board.undoStack[0].source).toBe('ai');
-  // Dispatch undo
-  store.dispatch(undo());
-  // Assert node removed from state
-  expect(store.getState().board.nodes).not.toContainEqual(expect.objectContaining({ id: '1' }));
-});
-```
-
-### Pattern 5: Testing Real-Time Cache Invalidation
+### Pattern 4: Testing Real-Time Cache Invalidation
 
 ```typescript
 // use-chat.test.ts
@@ -188,20 +176,20 @@ it('invalidates chat query on WebSocket message', async () => {
 });
 ```
 
-### Pattern 6: Testing Event-Driven Flows (Message Broker)
+### Pattern 5: Testing Event-Driven Flows (Message Broker)
 
 ```python
 # tests/test_services.py
-def test_submit_idea_publishes_event(mock_broker):
-    """Submitting an idea publishes idea.submitted event."""
-    submit_idea_for_review(idea_id="uuid", user_id="uuid", message="Ready", reviewer_ids=[])
-    mock_broker.assert_published('idea.submitted', {
-        'idea_id': 'uuid',
+def test_submit_project_publishes_event(mock_broker):
+    """Submitting a project publishes project.submitted event."""
+    submit_project_for_review(project_id="uuid", user_id="uuid", message="Ready", reviewer_ids=[])
+    mock_broker.assert_published('project.submitted', {
+        'project_id': 'uuid',
         'user_id': 'uuid',
     })
 ```
 
-### Pattern 7: Testing AI Service Responses (Mocked)
+### Pattern 6: Testing AI Service Responses (Mocked)
 
 > The AI Engineer defines how AI agents are tested internally (prompt testing, output validation, etc.) in `docs/03-ai/`. The Architect's testing strategy covers the integration boundary: does the rest of the system handle AI service responses correctly?
 
@@ -210,7 +198,7 @@ def test_submit_idea_publishes_event(mock_broker):
 def test_ai_chat_response_event_creates_message(mock_ai_event):
     """ai.chat_response.ready event creates a chat message and broadcasts via WebSocket."""
     mock_ai_event.publish('ai.chat_response.ready', {
-        'idea_id': 'uuid',
+        'project_id': 'uuid',
         'content': 'AI response text',
         'message_type': 'regular',
     })
@@ -218,13 +206,13 @@ def test_ai_chat_response_event_creates_message(mock_ai_event):
     # Assert WebSocket broadcast sent
 ```
 
-### Pattern 8: Testing Idempotent Event Handlers
+### Pattern 7: Testing Idempotent Event Handlers
 
 ```python
 # tests/test_consumers.py
 def test_duplicate_event_is_idempotent():
     """Processing the same event twice produces no duplicate side effects."""
-    event = {'event_id': 'unique-123', 'idea_id': 'uuid', ...}
+    event = {'event_id': 'unique-123', 'project_id': 'uuid', ...}
     handle_event(event)  # First processing
     handle_event(event)  # Duplicate
     # Assert only one chat message created, not two
@@ -237,16 +225,16 @@ def test_duplicate_event_is_idempotent():
 ### Unit Tests
 - **Factory functions** using `factory_boy` (backend) and inline object builders (frontend).
 - Each test creates only the data it needs. No shared fixtures across unrelated tests.
-- Use `pytest.fixture` for common setups (authenticated user, idea with collaborators, etc.).
+- Use `pytest.fixture` for common setups (authenticated user, project with collaborators, etc.).
 
 ### Integration Tests
 - **Django test database** — created fresh per test run, rolled back per test case (Django's `TransactionTestCase` for tests that need committed transactions, regular `TestCase` for the rest).
-- **Fixtures via factory_boy** — `IdeaFactory`, `UserFactory`, `ChatMessageFactory`, etc. Create realistic test data with sensible defaults and easy overrides.
+- **Fixtures via factory_boy** — `ProjectFactory`, `UserFactory`, `ChatMessageFactory`, etc. Create realistic test data with sensible defaults and easy overrides.
 - **gRPC mocking** — `unittest.mock.patch` on gRPC client methods. Return predefined responses.
 - **Message broker mocking** — mock the `publish_event` function. Assert events published with correct payloads.
 
 ### E2E Tests
-- **Seed script** — `scripts/seed-e2e.py` creates baseline data: dev users, a few ideas in various states, chat history, board content, BRD drafts.
+- **Seed script** — `scripts/seed-e2e.py` creates baseline data: dev users, a few projects in various states, chat history, requirements structure content, requirements document drafts.
 - **AI mock mode** — AI service runs with `AI_MOCK_MODE=True`, returns fixture responses from `services/ai/fixtures/`. This makes E2E tests deterministic.
 - **Database reset** — test database dropped and recreated + re-seeded between test suites (not between individual tests — too slow).
 - **File cleanup** — generated PDF files in test storage directory cleaned up after each suite.
@@ -353,7 +341,7 @@ services:
 
 **What the Architect's tests cover:**
 - Gateway correctly forwards requests to AI service gRPC
-- Gateway correctly handles AI service events (ai.chat_response.ready, ai.board.updated, etc.)
+- Gateway correctly handles AI service events (ai.chat_response.ready, ai.requirements_structure.updated, etc.)
 - Gateway correctly persists AI outputs via Core gRPC
 - Gateway correctly broadcasts AI events via WebSocket
 - Core correctly resets rate limit on ai.processing.complete

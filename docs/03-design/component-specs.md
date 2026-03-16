@@ -60,20 +60,21 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 | Hover | `shadow-md`, `cursor-pointer` (if clickable) |
 | Transition | `transition-all duration-150` |
 
-### 2.2 Idea Card (Landing Page, Ideas List)
+### 2.2 Project Card (Landing Page, Projects List)
 
 ```
 +-------------------------------------------------------------------+
-|  [State dot] Idea Title                         [State Badge] [...] |
+|  [State dot] Project Title              [Type] [State Badge] [...] |
 |  Last updated 2 hours ago                                         |
 +-------------------------------------------------------------------+
 ```
 
 | Element | Spec |
 |---------|------|
-| State dot | 8px circle, idea state color, left of title |
+| State dot | 8px circle, project state color, left of title |
 | Title | Gotham Medium, `text-base`, `text-foreground`, single-line truncate with ellipsis |
 | Timestamp | Gotham Book, `text-sm`, `text-muted-foreground` |
+| Type badge | Small pill badge: "Software" or "Non-Software", `text-xs`, `bg-muted`, `text-muted-foreground` |
 | State badge | See Badge component (Section 3) |
 | Three-dot menu | Ghost icon button, dropdown: Delete / Restore |
 | Selected state | Gold left border: `border-l-4 border-primary` |
@@ -82,12 +83,12 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 
 ```
 +-------------------------------------------------------------------+
-|  [State dot] Idea Title                                           |
+|  [State dot] Project Title                                        |
 |  by Owner Name * Submitted Mar 1               [Badge]  [Action] |
 +-------------------------------------------------------------------+
 ```
 
-- Extends base Idea Card with author and submit date
+- Extends base Project Card with author and submit date
 - Action button: "Open" (outline) or "Assign" (primary) depending on context
 
 ### 2.4 User Card (Admin Panel)
@@ -97,7 +98,7 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 |  [Avatar] Full Name                                               |
 |           email@commerzreal.de                                    |
 |           [User] [Reviewer] [Admin]                               |
-|           12 ideas  |  8 reviews  |  5 contributions             |
+|           12 projects  |  8 reviews  |  5 contributions          |
 +-------------------------------------------------------------------+
 ```
 
@@ -159,8 +160,8 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 
 ### 3.4 AI Badge
 
-- Small Lucide `Bot` icon overlay on AI-created board items
-- Position: top-right corner of node
+- Small Lucide `Bot` icon overlay on AI-created items
+- Position: context-dependent (e.g., inline with item title or top-right corner)
 - Size: 16px
 - Color: `text-muted-foreground`
 - Tooltip: "Created by AI"
@@ -188,7 +189,7 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 
 - Same as input but with `min-h-20`, `py-2`
 - Auto-grow variant: grows with content up to max height, then scrolls
-- Used for: chat input, BRD section editing, review comments, admin text editors
+- Used for: chat input, requirements document editing, review comments, admin text editors
 
 ### 4.3 Select (Dropdown)
 
@@ -264,8 +265,8 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 [AI]
 +---------------------------------------------+
 |  AI response content here. Can include      |
-|  board references like [SAP FI Module]      |
-|  which are clickable links.                 |
+|  requirement references which may be        |
+|  clickable links.                           |
 |                                   10:34 AM  |
 +---------------------------------------------+
 ```
@@ -279,7 +280,6 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 | Radius | `rounded-md` with top-left corner: `rounded-tl-sm` (3px) |
 | Max width | 70% of chat panel width |
 | AI label | Lucide `Bot` icon + "AI", `text-xs`, above bubble |
-| Board references | `text-primary` (teal/gold), underline, clickable |
 | AI reactions | Small emoji chips below bubble (F-2.7) |
 
 ### 5.3 Delegation Message (De-emphasized)
@@ -323,7 +323,7 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 - Position: above input, `shadow-lg`, `rounded-md`, `border`
 - Items: initial circle (or avatar) + display name, `px-3 py-2`
 - First item: `@ai` with Lucide `Bot` icon
-- Remaining: users in current idea, alphabetical
+- Remaining: users in current project, alphabetical
 - Keyboard navigation: arrow keys + enter to select
 - Filter: typing after `@` filters the list
 
@@ -351,20 +351,20 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 | Input | `flex-1`, `h-10`, `rounded`, `border`, Gotham Book `text-base` |
 | Send button | Primary icon button, Lucide `ArrowRight` icon, disabled when input is empty |
 | Rate limit lockout | Overlay: `bg-card/80`, centered text "Chat locked — AI is processing", input disabled (F-2.11) |
-| Brainstorming lock | `LockOverlay` wraps entire chat panel (not just input) when idea state is locked (`in_review`, `accepted`, `dropped`). Overlay with `bg-card/80`, lock icon + explanation text. Provides clearer visual indication than disabling input alone. |
+| Workspace lock | `LockOverlay` wraps entire chat panel (not just input) when project state is locked (`in_review`, `accepted`, `dropped`). Overlay with `bg-card/80`, lock icon + explanation text. Provides clearer visual indication than disabling input alone. |
 
 ---
 
-## 6. Board Components
+## 6. Requirements Panel Components
 
-### 6.1 Box Node
+### 6.1 EpicCard / MilestoneCard (Top-Level Accordion Item)
 
 ```
-+--Title Here------------------+ [pin] [ai]
-|  * Bullet point one          |
-|  * Bullet point two          |
-|  * Bullet point three        |
-+------------------------------+ [lock]
++--Epic Title------------------------------ [v] [edit] [delete]
+|  Brief description preview...
+|  [3 user stories]
++-----------------------------------------------------------
+    (Expanded: shows child UserStoryCard items)
 ```
 
 | Property | Value |
@@ -373,83 +373,81 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 | Border | `1px solid var(--border)` |
 | Radius | `rounded-md` (8px) |
 | Shadow | `shadow-sm` |
-| Min width | 192px |
-| Max width | 320px (auto-wraps beyond) |
-| Title bar | `border-b`, `px-3 py-2`, Gotham Medium `text-sm` |
-| Body | `px-3 py-2`, Gotham Book `text-sm`, bullet list |
-| Reference button | Lucide `Pin` icon, top-right, ghost `icon-sm`, inserts ref into chat |
-| AI badge | Lucide `Bot` icon, top-right (next to reference), only on AI-created nodes |
-| Lock icon | Lucide `Lock`, bottom-right, `icon-sm`, toggleable (F-4.4) |
-| AI modified indicator | Gold dot (8px), absolute top-left, `animate-pulse`, fades on user selection (F-3.4) |
-| Selected by other user | `border-2` in user's color, small name label above node |
-| Editing state | `border-2 border-primary` (gold border while editing) |
+| Header | Collapsible trigger with title, description preview (truncated), child count badge |
+| Drag handle | Lucide `GripVertical` icon, left side of header, `text-muted-foreground`, cursor `grab` |
+| Expand icon | Lucide `ChevronDown` (collapsed) / `ChevronUp` (expanded), right side |
+| Edit action | Lucide `Edit` icon, ghost `icon-sm` button, opens inline editor |
+| Delete action | Lucide `Trash2` icon, ghost `icon-sm` button, confirmation dialog |
+| Child count badge | Small pill: "3 user stories" or "5 work packages", `text-xs`, `bg-muted`, `text-muted-foreground` |
+| Expanded body | `bg-muted/20`, `p-3`, contains child items (UserStoryCard / WorkPackageCard) |
+| AI badge | Optional Lucide `Bot` icon if AI-created |
 
-### 6.2 Group Node
+**Software variant (Epic):** Title + description + child UserStoryCards
+**Non-software variant (Milestone):** Title + description + child WorkPackageCards
 
-| Property | Value |
-|----------|-------|
-| Border | `2px dashed var(--border-strong)` |
-| Radius | `rounded-lg` (12px) |
-| Background | `var(--muted)` at `opacity-30` (subtle tint) |
-| Label | Top-left, Gotham Medium `text-xs`, `bg-muted px-2 py-0.5 rounded` badge |
-| Min size | 200x150px |
-| Resize | All corners and edges (React Flow handles) |
-| Children | Boxes, Free Text, nested Groups move with parent |
-
-### 6.3 Free Text Node
-
-| Property | Value |
-|----------|-------|
-| Background | None (transparent) |
-| Border | None (only visible border on hover/select: `1px dashed var(--border)`) |
-| Font | Gotham Book `text-sm`, `text-foreground` |
-| Editing | Click to edit, `textarea` overlay with auto-grow |
-
-### 6.4 Connections (Edges)
-
-| Property | Value |
-|----------|-------|
-| Type | Smooth step (React Flow `smoothstep`) |
-| Stroke | React Flow default (neutral gray), 1.5px |
-| Hover | Stroke widens to 2.5px, color shifts to `var(--foreground)` |
-| Label | On double-click: editable sticky text, `bg-card`, `border`, `rounded-sm`, `text-xs` |
-| Arrow | Small arrowhead on target end |
-| Selected | `stroke: var(--primary)` (gold), 2.5px |
-
-### 6.5 Board Toolbar
+### 6.2 UserStoryCard / WorkPackageCard (Child Item)
 
 ```
-[+ Box] [Delete] [Fit] [Undo AI Action] [Redo]
++--------------------------------------------------------+
+| [::] User Story Title                     [edit] [delete] |
+|      As a... I want... So that...                        |
+|      Acceptance Criteria: ...                            |
+|      Priority: [High]                                    |
++--------------------------------------------------------+
 ```
-
-| Button | Icon | Tooltip | Behavior |
-|--------|------|---------|----------|
-| Add Box | Lucide `Plus` | "Add Box" | Creates new Box at center of viewport |
-| Delete | Lucide `Trash2` | "Delete Selected" | Deletes selected nodes/edges, disabled when nothing selected |
-| Fit View | Lucide `Maximize2` | "Fit View" | Zooms to fit all content |
-| Undo | Lucide `Undo2` | Context-aware: "Undo AI Action" or "Undo" | Undoes last action (F-3.4) |
-| Redo | Lucide `Redo2` | Context-aware: "Redo AI Action" or "Redo" | Redoes last undone action |
-
-- Buttons: ghost style, `icon-sm` (32px), `rounded`
-- Dividers: vertical `border-l` between groups (Add | Delete | Fit | Undo/Redo)
-- Disabled state: `opacity-40` when action unavailable (e.g., Undo when no history)
-- Toolbar: `border-b`, `bg-card`, `h-10`, `px-2`, `flex items-center gap-1`
-
-### 6.6 Board Canvas
 
 | Property | Value |
 |----------|-------|
-| Background | `var(--background)` with dot grid pattern (`1px dots, 20px gap, opacity-20`) |
-| Zoom | Scroll wheel, pinch on mobile. Range: 25%-200% |
-| Pan | Middle-click drag, or scroll with shift/alt |
-| Minimap | Bottom-right, `120x80px`, `border`, `rounded-sm`, `shadow-sm`, `bg-card` |
-| Zoom controls | Bottom-left, vertical stack: `+`, `-`, fit. Ghost icon buttons. |
+| Background | `var(--card)` |
+| Border | `1px solid var(--border)` |
+| Radius | `rounded-sm` (6px) |
+| Padding | `p-3` |
+| Margin | `mb-2` (spacing between sibling items) |
+| Drag handle | Lucide `GripVertical` icon, left side, `text-muted-foreground`, cursor `grab` |
+| Title | Gotham Medium, `text-sm`, `text-foreground` |
+| Description (Software) | "As a... I want... So that..." format, `text-sm`, `text-muted-foreground` |
+| Acceptance Criteria | Bullet list, `text-xs`, `text-muted-foreground` |
+| Priority badge | Small colored pill: High (red), Medium (amber), Low (blue) |
+| Description (Non-software) | Free-form text, `text-sm`, `text-muted-foreground` |
+| Deliverables list | Bullet list, `text-xs` |
+| Dependencies list | Comma-separated or bullet list, `text-xs`, `text-muted-foreground` |
+| Edit action | Lucide `Edit` icon, ghost `icon-sm` button, inline edit mode |
+| Delete action | Lucide `Trash2` icon, ghost `icon-sm` button, confirmation |
+| AI badge | Optional Lucide `Bot` icon if AI-created |
+
+**Software variant (User Story):** Title + "As a... I want... So that..." + Acceptance Criteria + Priority
+**Non-software variant (Work Package):** Title + Description + Deliverables + Dependencies
+
+### 6.3 AddItemButton
+
+```
++ Add Epic / + Add User Story
+```
+
+| Property | Value |
+|----------|-------|
+| Variant | Ghost button with Lucide `Plus` icon + label |
+| Size | `sm` (32px height) |
+| Text | Context-dependent: "Add Epic", "Add User Story", "Add Milestone", "Add Work Package" |
+| Behavior | Opens inline form or modal to create new item at current level |
+| Position | Bottom of parent container (top-level) or bottom of expanded accordion (child level) |
+
+### 6.4 DragHandle
+
+| Property | Value |
+|----------|-------|
+| Icon | Lucide `GripVertical` |
+| Size | 16px |
+| Color | `text-muted-foreground` |
+| Cursor | `grab` (default), `grabbing` (while dragging) |
+| Hover | `text-foreground` |
+| Usage | Left side of EpicCard/MilestoneCard headers and UserStoryCard/WorkPackageCard items for @dnd-kit drag-and-drop reordering |
 
 ---
 
 ## 7. Tabs
 
-### 7.1 Horizontal Tabs (Board/Review, Admin Panel)
+### 7.1 Horizontal Tabs (Requirements/Review, Admin Panel)
 
 | Property | Value |
 |----------|-------|
@@ -495,7 +493,7 @@ All components use shadcn/ui (Radix primitives) customized with the design token
 - Contains: nav links as full-width items, `py-3`, `border-b`
 - Close: Lucide `X` button + click outside + swipe left
 
-### 8.3 Breadcrumb (Idea Workspace)
+### 8.3 Breadcrumb (Project Workspace)
 
 - Simple: `< Back` link that navigates to Landing Page
 - Not a full breadcrumb trail — just a back action
@@ -603,9 +601,9 @@ Used for initial page loads and async content.
 
 | Element | Skeleton Shape |
 |---------|---------------|
-| Idea card | Full card shape with 2 text lines |
+| Project card | Full card shape with 2 text lines |
 | Chat message | Bubble shape with 3 text lines |
-| Board | Full canvas area with 3 rectangle placeholders |
+| Requirements panel | Accordion items with text lines (Epic/Milestone headers + child item placeholders) |
 | KPI card | Square with large number + small text |
 | User card | Circle (avatar) + 2 text lines |
 | PDF preview | Rectangle matching PDF aspect ratio |
@@ -619,16 +617,16 @@ Used for initial page loads and async content.
 
 | Context | Message | Visual |
 |---------|---------|--------|
-| Landing: no ideas (My Ideas) | "Start your first brainstorm" | Lucide `Lightbulb` icon |
+| Landing: no projects (My Projects) | "Create your first project" | Lucide `FileText` icon |
 | Landing: no collaborations | Contextual empty message | Lucide `Users` icon |
 | Landing: no invitations | Contextual empty message | Lucide `Mail` icon |
 | Landing: empty trash | "Trash is empty" | Lucide `Trash2` icon |
-| Landing: no filter results | "No ideas match your filters" | Lucide `SearchX` icon + clear filters link |
-| Review Page: no assigned ideas | "No ideas assigned to you" | Muted text |
-| Review Page: no unassigned ideas | "All ideas are assigned" | Muted text |
+| Landing: no filter results | "No projects match your filters" | Lucide `SearchX` icon + clear filters link |
+| Review Page: no assigned projects | "No projects assigned to you" | Muted text |
+| Review Page: no unassigned projects | "All projects are assigned" | Muted text |
 | Review Section: no timeline entries | "No review activity yet" | Muted text |
 | Admin: no search results | "No users found" | Muted text |
-| Ideas List (floating): empty tab | "No [state] ideas" | Muted text |
+| Projects List (floating): empty tab | "No [state] projects" | Muted text |
 | Notifications: empty | "All caught up" | Muted text, Lucide `Check` icon |
 
 - Empty state text: Gotham Book, `text-base`, `text-muted-foreground`, centered
@@ -652,7 +650,7 @@ Following the universal error pattern (FA-14, F-14.1):
 - "Retry": primary button, triggers failed operation again
 - After max retries (default 3): Retry button disabled, text changes to "Max retries reached"
 
-**Note (BRD generation):** For async AI operations (BRD generation), the error toast shows a text message ("BRD generation failed. Please try again.") without an inline Retry button. The Generate AI button re-enables immediately after error, serving as the retry mechanism. This avoids coupling the toast to async operation state.
+**Note (Requirements document generation):** For async AI operations (requirements document generation), the error toast shows a text message ("Requirements document generation failed. Please try again.") without an inline Retry button. The Generate AI button re-enables immediately after error, serving as the retry mechanism. This avoids coupling the toast to async operation state.
 
 ### 11.5 Banners
 
@@ -679,7 +677,7 @@ See `page-layouts.md` Section 11. Component-level spec:
 
 ### 12.1 Embedded PDF View (Review Tab)
 
-**Tab Visibility:** Review tab is visible when idea state is 'open' (M9: always visible during brainstorming). Previous spec required first submission; M9 simplified to show tab immediately for better UX — users can view/prepare BRD content before first submit.
+**Tab Visibility:** Review tab is visible when project state is 'open' (always visible during requirements assembly). Users can view/prepare requirements document content at any time.
 
 | Property | Value |
 |----------|-------|
@@ -689,25 +687,25 @@ See `page-layouts.md` Section 11. Component-level spec:
 | Zoom | Not zoomable in preview — full document rendered at readable scale |
 | Action bar | Below preview. Ghost buttons: "Download PDF", "Generate". More discoverable than three-dot menu. |
 
-### 12.2 BRD Section Editor (Expandable Edit Area)
+### 12.2 Requirements Document Editor (Expandable Edit Area)
 
 | Property | Value |
 |----------|-------|
 | Container | Slides in from right, full height of right panel |
 | Width | Fills the right panel (overlaps/replaces chat view temporarily) |
 | Close button | Lucide `X` icon, top-right, returns to PDF preview |
-| Section label | Gotham Medium, `text-sm`, with section number |
+| Item label | Gotham Medium, `text-sm`, hierarchical path (e.g., "Epic 1 > User Story 2") |
 | Lock icon | Lucide `Lock` (locked) / Lucide `LockOpen` (unlocked), `icon-sm`, toggleable (F-4.4) |
-| Regenerate icon | Lucide `RefreshCw`, `icon-sm`, only on unlocked sections |
-| Section textarea | Auto-grow, `text-base`, `border`, `rounded`, `bg-card` |
+| Regenerate icon | Lucide `RefreshCw`, `icon-sm`, only on unlocked items |
+| Item textarea | Auto-grow, `text-base`, `border`, `rounded`, `bg-card` |
 | `/TODO` markers | Displayed as plain text in textarea. Inline highlight (`bg-warning/20 text-warning font-medium`) requires a rich text editor — deferred to future enhancement. |
-| `/TODO` auto-lock | Optional enhancement. Detecting /TODO removal in textarea onChange is unreliable. Users should manually lock sections after editing /TODO content. |
-| Progress bar | Horizontal, segmented per section, below header (F-4.8) |
+| `/TODO` auto-lock | Optional enhancement. Detecting /TODO removal in textarea onChange is unreliable. Users should manually lock items after editing /TODO content. |
+| Progress bar | Horizontal, segmented per item, below header (F-4.8) |
 
 ### 12.3 Progress Indicator
 
 ```
-####-- 4/6 sections ready
+####-- 8/12 items ready
 ```
 
 | Segment State | Color |
@@ -718,6 +716,7 @@ See `page-layouts.md` Section 11. Component-level spec:
 
 - Size: `h-2`, `rounded-full`, segmented with 2px gaps
 - Label: `text-xs`, `text-muted-foreground`, below bar in `space-y-1.5` container (avoids space competition with Edit Document button in responsive layouts)
+- Count reflects total requirements items (Epics/Milestones + User Stories/Work Packages)
 
 ---
 
@@ -733,7 +732,7 @@ See `page-layouts.md` Section 11. Component-level spec:
 | Cursor | `col-resize` |
 | Double-click | Resets to 40/60 default, `200ms transition` |
 | Min chat width | 280px |
-| Min board width | 320px |
+| Min requirements panel width | 320px |
 | Persistence | Saved in `localStorage` |
 
 ---
@@ -779,7 +778,7 @@ See `page-layouts.md` Section 11. Component-level spec:
 
 - Trigger: Lucide `MoreVertical` or `MoreHorizontal` icon, ghost icon button
 - Content: standard dropdown items
-- Usage: Idea cards (Delete/Restore), workspace header. PDF preview uses action bar instead (§ 12.1).
+- Usage: Project cards (Delete/Restore), workspace header. PDF preview uses action bar instead (§ 12.1).
 
 ---
 

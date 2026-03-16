@@ -11,9 +11,9 @@ These are base-level components used across the entire application. Must be impl
 | Component | Type | Pages Used In | Shared? | Notes |
 |-----------|------|--------------|---------|-------|
 | Button | UI primitive | All pages | Yes | 6 variants (Primary, Secondary, Ghost, Outline, Destructive, Link), 5 sizes |
-| Card | UI primitive | Landing, Review, Admin, Workspace | Yes | Base card + Idea Card, Review Card, User Card, KPI Card variants |
+| Card | UI primitive | Landing, Review, Admin, Workspace | Yes | Base card + Project Card, Review Card, User Card, KPI Card variants |
 | Input | UI primitive | All pages | Yes | Text input, Search input variants |
-| Textarea | UI primitive | Workspace, Admin | Yes | Auto-grow variant for chat, BRD editor, review comments |
+| Textarea | UI primitive | Workspace, Admin | Yes | Auto-grow variant for chat, requirements document editor, review comments |
 | Select | UI primitive | Landing, Workspace, Admin | Yes | shadcn Select with brand styling |
 | Switch | UI primitive | Workspace, Admin | Yes | Used for toggles (email prefs, Allow Info Gaps, alerts) |
 | Checkbox | UI primitive | Admin (email prefs) | Yes | With indeterminate state for group toggles |
@@ -42,7 +42,7 @@ These are base-level components used across the entire application. Must be impl
 | PanelDivider | Layout | Workspace | No | Draggable, localStorage persistence, 40/60 default |
 | ConnectionIndicator | Layout | Navbar | Yes | Online/offline dot + label |
 | NotificationBell | Layout | Navbar | Yes | Bell icon + count badge (in layout/ since it's a navbar element) |
-| IdeasListFloating | Layout | Navbar (floating) | No | Tabbed floating panel with compact idea items (in layout/ since it's a navbar-anchored panel) |
+| ProjectsListFloating | Layout | Navbar (floating) | No | Tabbed floating panel with compact project items (in layout/ since it's a navbar-anchored panel) |
 
 ---
 
@@ -64,37 +64,34 @@ These are base-level components used across the entire application. Must be impl
 
 ---
 
-## Feature Components — Board
+## Feature Components — Requirements Panel
 
 | Component | Type | Pages Used In | Shared? | Notes |
 |-----------|------|--------------|---------|-------|
-| BoardCanvas | Feature | Workspace | No | React Flow canvas with dot grid background |
-| BoxNode | Feature | Workspace | No | Title + body + pin + AI badge + lock icons |
-| GroupNode | Feature | Workspace | No | Dashed border, label badge, resizable |
-| FreeTextNode | Feature | Workspace | No | Transparent, click-to-edit |
-| ConnectionEdge | Feature | Workspace | No | Smooth step, label on double-click, arrow |
-| BoardToolbar | Feature | Workspace | No | Add/Delete/Fit/Undo/Redo buttons |
-| BoardMinimap | Feature | Workspace | No | Bottom-right overview |
-| BoardZoomControls | Feature | Workspace | No | Bottom-left +/-/fit buttons |
-| AIModifiedIndicator | Feature | Workspace | No | Gold dot with pulse animation (F-3.4) |
-| UserSelectionHighlight | Feature | Workspace | No | Colored border + name label for other users |
+| RequirementsPanel | Feature | Workspace | No | Main container with scrollable content area |
+| EpicCard | Feature | Workspace | No | Top-level accordion item for Software projects (title, description, expand/collapse) |
+| MilestoneCard | Feature | Workspace | No | Top-level accordion item for Non-Software projects (title, description, expand/collapse) |
+| UserStoryCard | Feature | Workspace | No | Child item under Epic (title, acceptance criteria, drag handle) |
+| WorkPackageCard | Feature | Workspace | No | Child item under Milestone (title, deliverables, drag handle) |
+| RequirementsItemEditor | Feature | Workspace | No | Edit modal/inline form for creating or editing items |
+| AddItemButton | Feature | Workspace | No | Button to add new Epic/Milestone or User Story/Work Package |
+| DragHandle | Feature | Workspace | No | Visual grip icon for drag-and-drop reordering (uses @dnd-kit) |
 
 ---
 
-## Feature Components — BRD / Review
+## Feature Components — Requirements Document / Review
 
 | Component | Type | Pages Used In | Shared? | Notes |
 |-----------|------|--------------|---------|-------|
 | PDFPreview | Feature | Workspace (Review tab) | No | White background document preview, scrollable |
-| BRDSectionEditor | Feature | Workspace (Review tab) | No | Expandable edit area, slide-in from right |
-| SectionField | Feature | Workspace (Review tab) | No | Label + lock + regenerate + textarea per section |
-| ProgressIndicator | Feature | Workspace (Review tab) | No | Segmented bar showing BRD readiness (F-4.8) |
+| RequirementsDocumentEditor | Feature | Workspace (Review tab) | No | Expandable edit area, slide-in from right, hierarchical structure |
+| RequirementsItemField | Feature | Workspace (Review tab) | No | Label + lock + regenerate + textarea per item/section |
+| ProgressIndicator | Feature | Workspace (Review tab) | No | Segmented bar showing requirements document readiness (F-4.8) |
 | SubmitArea | Feature | Workspace (Review tab) | No | Message + reviewer selector + submit button |
 | ReviewTimeline | Feature | Workspace (below fold) | No | Vertical timeline with entries |
 | TimelineEntry | Feature | Workspace (below fold) | No | State change, comment, reply, resubmission variants |
 | CommentInput | Feature | Workspace (below fold) | No | Standalone textarea + send for timeline comments |
-| SimilarIdeaCard | Feature | Workspace (below fold) | No | Title + keyword match count, navigable (FA-5) |
-| ReviewCard | Feature | Review Page | No | Extends IdeaCard with author, date, action button |
+| ReviewCard | Feature | Review Page | No | Extends ProjectCard with author, date, action button |
 
 ---
 
@@ -122,7 +119,7 @@ These are base-level components used across the entire application. Must be impl
 
 | Component | Type | Pages Used In | Shared? | Notes |
 |-----------|------|--------------|---------|-------|
-| AIContextEditor | Feature | Admin Panel | No | Facilitator + Context Agent bucket editors |
+| AIContextEditor | Feature | Admin Panel | No | Facilitator + Context Agent bucket editors, now includes project-type-specific buckets (software, non_software) |
 | ParametersTable | Feature | Admin Panel | No | Inline-editable table with gold modified indicator |
 | MonitoringDashboard | Feature | Admin Panel | No | KPI cards + state bars + health table |
 | UserSearch | Feature | Admin Panel | No | Search input + user cards |
@@ -137,10 +134,11 @@ These are base-level components used across the entire application. Must be impl
 
 | Component | Type | Pages Used In | Shared? | Notes |
 |-----------|------|--------------|---------|-------|
-| HeroSection | Feature | Landing | No | Heading + subtext + creation input |
-| IdeaCard | Feature | Landing, Ideas List | Yes | State dot + title + timestamp + badge + menu |
+| HeroSection | Feature | Landing | No | Heading + subtext + "New Project" button (opens modal) |
+| ProjectCard | Feature | Landing, Projects List | Yes | State dot + title + timestamp + type badge + menu |
 | InvitationCard | Feature | Landing | No | Gold left border + accept/decline buttons |
-| FilterBar | Feature | Landing | No | Search + state dropdown + ownership dropdown |
+| FilterBar | Feature | Landing | No | Search + state dropdown + ownership dropdown + type filter |
+| ProjectTypeSelector | Feature | Landing (New Project Modal) | No | Radio buttons or cards to select Software vs Non-Software |
 
 ---
 
@@ -160,7 +158,6 @@ These are base-level components used across the entire application. Must be impl
 | ErrorBoundary | Common | All pages | Yes | React error boundary with fallback UI |
 | EmptyState | Common | Landing, Review, Admin, Notifications | Yes | Icon + message + optional action |
 | OfflineBanner | Common | Workspace | No | Amber/yellow warning banner with countdown + reconnect (FA-6) |
-| MergeRequestBanner | Common | Workspace | No | Warning banner with accept/decline (FA-5) |
 | ErrorToast | Common | All pages | Yes | Persistent toast with Show Logs + Retry (FA-14) |
 | ErrorLogModal | Common | All pages | Yes | Monospace error details + copy button |
 | LoadingSpinner | Common | All pages | Yes | Small inline spinner for async operations |
@@ -175,14 +172,14 @@ These are base-level components used across the entire application. Must be impl
 | UI Primitives | 16 | All shared |
 | Layout | 10 | 8 shared |
 | Chat | 11 | 0 shared |
-| Board | 10 | 0 shared |
-| BRD / Review | 10 | 0 shared |
+| Requirements Panel | 8 | 0 shared |
+| Requirements Document / Review | 8 | 0 shared |
 | Collaboration | 3 | 0 shared |
 | Notifications | 3 | 2 shared |
 | Admin | 8 | 0 shared |
-| Landing | 4 | 1 shared (IdeaCard) |
+| Landing | 5 | 1 shared (ProjectCard) |
 | Auth | 2 | 0 shared |
-| Common / Cross-Cutting | 8 | 5 shared |
-| **Total** | **85** | **32 shared** |
+| Common / Cross-Cutting | 7 | 5 shared |
+| **Total** | **81** | **32 shared** |
 
 **Milestone planning note:** UI Primitives and Layout components form the shared foundation and should be implemented in Wave 1 before any page-specific features. Common components (ErrorBoundary, EmptyState, Toast patterns) should also be in Wave 1.

@@ -1,10 +1,10 @@
 # Test Fixtures & Mocks
 
-> **Status:** Definitive (revised)
-> **Date:** 2026-03-05 (originally 2026-03-04)
-> **Author:** Test Architect (Phase 4b)
-> **Input:** `test-plan.md`, `test-matrix.md`, `docs/02-architecture/data-model.md`, `docs/03-ai/agent-architecture.md`
-> **Revision:** Added MonitoringAlertConfigFactory, CollaborationFlow composite scenario, review timeline version links
+> **Status:** Definitive (revised for refactoring)
+> **Date:** 2026-03-16 (originally 2026-03-04)
+> **Author:** Test Architect (Phase 4b + Refactoring)
+> **Input:** `test-plan.md`, `test-matrix.md`, `docs/02-architecture/data-model.md`, `docs/03-ai/agent-architecture.md`, `REFACTORING_PLAN.md`
+> **Revision:** Updated for project-based terminology, removed board/merge fixtures, added requirements structure fixtures
 
 This document defines all shared test data, factory functions, mock services, seed scripts, and determinism strategies. It complements the test plan's Shared Test Utilities section with concrete field-level specifications.
 
@@ -41,7 +41,7 @@ Location: services/core/tests/factories.py
 
 ---
 
-### 1.2 IdeaFactory
+### 1.2 ProjectFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -50,13 +50,14 @@ Location: services/core/tests/factories.py
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
 | `id` | `factory.LazyFunction(uuid4)` | |
-| `title` | `factory.Sequence(lambda n: f"Test Idea {n}")` | |
+| `project_type` | `"software"` | Either "software" or "non_software" |
+| `title` | `factory.Sequence(lambda n: f"Test Project {n}")` | |
 | `title_manually_edited` | `False` | |
 | `state` | `"open"` | |
 | `visibility` | `"private"` | |
 | `agent_mode` | `"interactive"` | |
 | `owner_id` | `factory.SubFactory(UserFactory)` | Auto-creates owner |
-| `co_owner_id` | `None` | Set for merged idea tests |
+| `co_owner_id` | `None` | Reserved for future use |
 | `share_link_token` | `None` | |
 | `deleted_at` | `None` | Set for trash/soft-delete tests |
 
@@ -64,6 +65,8 @@ Location: services/core/tests/factories.py
 
 | Trait | Overrides |
 |-------|-----------|
+| `software` | `project_type="software"` (default) |
+| `non_software` | `project_type="non_software"` |
 | `in_review` | `state="in_review"` |
 | `accepted` | `state="accepted"` |
 | `dropped` | `state="dropped"` |
@@ -71,12 +74,11 @@ Location: services/core/tests/factories.py
 | `collaborative` | `visibility="collaborating"` |
 | `silent_mode` | `agent_mode="silent"` |
 | `soft_deleted` | `deleted_at=timezone.now() - timedelta(days=5)` |
-| `merged` | `co_owner_id=SubFactory(UserFactory), merged_from_idea_1_id=LazyFunction(uuid4), merged_from_idea_2_id=LazyFunction(uuid4)` |
 | `shared` | `share_link_token=factory.LazyFunction(lambda: secrets.token_urlsafe(48))` |
 
 ---
 
-### 1.3 IdeaCollaboratorFactory
+### 1.3 ProjectCollaboratorFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -84,7 +86,7 @@ Location: services/core/tests/factories.py
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory)` | |
+| `project` | `factory.SubFactory(ProjectFactory)` | |
 | `user` | `factory.SubFactory(UserFactory)` | |
 | `joined_at` | `factory.LazyFunction(timezone.now)` | |
 
@@ -99,7 +101,7 @@ Location: services/core/tests/factories.py
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
 | `id` | `factory.LazyFunction(uuid4)` | |
-| `idea` | `factory.SubFactory(IdeaFactory)` | |
+| `project` | `factory.SubFactory(ProjectFactory)` | |
 | `sender_type` | `"user"` | |
 | `sender_id` | `factory.SubFactory(UserFactory)` | NULL for AI messages |
 | `ai_agent` | `None` | Set for AI messages |
@@ -144,7 +146,7 @@ Location: services/core/tests/factories.py
 
 ---
 
-### 1.7 BoardNodeFactory
+### 1.7 RequirementsItemFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -153,31 +155,28 @@ Location: services/core/tests/factories.py
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
 | `id` | `factory.LazyFunction(uuid4)` | |
-| `idea` | `factory.SubFactory(IdeaFactory)` | |
-| `node_type` | `"box"` | |
-| `title` | `factory.Sequence(lambda n: f"Node {n}")` | |
-| `body` | `"- Bullet point 1\n- Bullet point 2"` | |
-| `position_x` | `factory.Sequence(lambda n: float(n * 200))` | Spaced out |
-| `position_y` | `factory.Sequence(lambda n: float(n * 150))` | |
-| `width` | `None` | Set for groups |
-| `height` | `None` | Set for groups |
-| `parent_id` | `None` | Set for nested nodes |
-| `is_locked` | `False` | |
-| `created_by` | `"user"` | |
+| `project` | `factory.SubFactory(ProjectFactory)` | |
+| `item_type` | `"user_story"` | Type depends on project type |
+| `title` | `factory.Sequence(lambda n: f"Requirement Item {n}")` | |
+| `description` | `"Detailed description of the requirement."` | |
+| `parent_id` | `None` | Set for nested items (stories under epics, packages under milestones) |
+| `order_index` | `factory.Sequence(lambda n: n)` | For sorting |
+| `created_by` | `"user"` | Either "user" or "ai" |
 | `ai_modified_indicator` | `False` | |
 
 **Named variants (traits):**
 
 | Trait | Overrides |
 |-------|-----------|
-| `group` | `node_type="group", title="Group", body=None, width=400.0, height=300.0` |
-| `free_text` | `node_type="free_text", title=None, body="Free text content"` |
+| `epic` | `item_type="epic", description="Epic description"` |
+| `user_story` | `item_type="user_story"` (default) |
+| `milestone` | `item_type="milestone", description="Milestone description"` |
+| `work_package` | `item_type="work_package"` |
 | `ai_created` | `created_by="ai", ai_modified_indicator=True` |
-| `locked` | `is_locked=True` |
 
 ---
 
-### 1.8 BoardConnectionFactory
+### 1.8 RequirementsDocumentDraftFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -185,28 +184,14 @@ Location: services/core/tests/factories.py
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory)` | |
-| `source_node` | `factory.SubFactory(BoardNodeFactory)` | |
-| `target_node` | `factory.SubFactory(BoardNodeFactory)` | |
-| `label` | `None` | |
-
----
-
-### 1.9 BrdDraftFactory
-
-```
-Location: services/core/tests/factories.py
-```
-
-| Field | Default Strategy | Notes |
-|-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory)` | One per idea (UNIQUE) |
-| `section_title` | `"Test Idea Title"` | |
-| `section_short_description` | `"A brief description of the idea."` | |
+| `project` | `factory.SubFactory(ProjectFactory)` | One per project (UNIQUE) |
+| `section_title` | `"Test Project Title"` | |
+| `section_short_description` | `"A brief description of the project."` | |
 | `section_current_workflow` | `"Current process involves manual steps."` | |
 | `section_affected_department` | `"IT Department"` | |
 | `section_core_capabilities` | `"- Capability 1\n- Capability 2"` | |
 | `section_success_criteria` | `"Reduced processing time by 50%."` | |
+| `requirements_structure` | `{}` | Hierarchical JSON structure |
 | `section_locks` | `{}` | |
 | `allow_information_gaps` | `False` | |
 | `readiness_evaluation` | `{}` | |
@@ -217,13 +202,15 @@ Location: services/core/tests/factories.py
 |-------|-----------|
 | `with_locks` | `section_locks={"short_description": True, "core_capabilities": True}` |
 | `with_gaps` | `allow_information_gaps=True` |
-| `fully_ready` | `readiness_evaluation={"title": "ready", "short_description": "ready", "current_workflow": "ready", "affected_department": "ready", "core_capabilities": "ready", "success_criteria": "ready"}` |
+| `fully_ready` | `readiness_evaluation={"title": "ready", "short_description": "ready", "current_workflow": "ready", "affected_department": "ready", "core_capabilities": "ready", "success_criteria": "ready", "requirements_structure": "ready"}` |
 | `partially_ready` | `readiness_evaluation={"title": "ready", "short_description": "ready", "current_workflow": "insufficient", "success_criteria": "insufficient"}` |
 | `empty` | All section fields `None` |
+| `with_software_structure` | `requirements_structure={"epics": [{"id": "...", "title": "Epic 1", "description": "...", "user_stories": [...]}]}` |
+| `with_non_software_structure` | `requirements_structure={"milestones": [{"id": "...", "title": "Milestone 1", "description": "...", "work_packages": [...]}]}` |
 
 ---
 
-### 1.10 BrdVersionFactory
+### 1.9 RequirementsDocumentVersionFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -231,7 +218,7 @@ Location: services/core/tests/factories.py
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory)` | |
+| `project` | `factory.SubFactory(ProjectFactory)` | |
 | `version_number` | `factory.Sequence(lambda n: n + 1)` | |
 | `section_title` | `"Frozen Title"` | |
 | `section_short_description` | `"Frozen description."` | |
@@ -239,11 +226,12 @@ Location: services/core/tests/factories.py
 | `section_affected_department` | `"IT Department"` | |
 | `section_core_capabilities` | `"- Frozen capability"` | |
 | `section_success_criteria` | `"Frozen criteria."` | |
+| `requirements_structure` | `{}` | Frozen hierarchical structure |
 | `pdf_file_path` | `None` | |
 
 ---
 
-### 1.11 ReviewAssignmentFactory
+### 1.10 ReviewAssignmentFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -251,7 +239,7 @@ Location: services/core/tests/factories.py
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory, state="in_review")` | |
+| `project` | `factory.SubFactory(ProjectFactory, state="in_review")` | |
 | `reviewer` | `factory.SubFactory(UserFactory, roles=["user", "reviewer"])` | |
 | `assigned_by` | `"submitter"` | |
 | `unassigned_at` | `None` | Active assignment |
@@ -265,7 +253,7 @@ Location: services/core/tests/factories.py
 
 ---
 
-### 1.12 ReviewTimelineEntryFactory
+### 1.11 ReviewTimelineEntryFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -273,7 +261,7 @@ Location: services/core/tests/factories.py
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory)` | |
+| `project` | `factory.SubFactory(ProjectFactory)` | |
 | `entry_type` | `"comment"` | |
 | `author` | `factory.SubFactory(UserFactory)` | |
 | `content` | `"Review comment text."` | |
@@ -286,12 +274,12 @@ Location: services/core/tests/factories.py
 | Trait | Overrides |
 |-------|-----------|
 | `state_change` | `entry_type="state_change", content=None, old_state="open", new_state="in_review"` |
-| `resubmission` | `entry_type="resubmission", content="Updated based on feedback", old_version_id=SubFactory(BrdVersionFactory), new_version_id=SubFactory(BrdVersionFactory)` |
+| `resubmission` | `entry_type="resubmission", content="Updated based on feedback", old_version_id=SubFactory(RequirementsDocumentVersionFactory), new_version_id=SubFactory(RequirementsDocumentVersionFactory)` |
 | `reply` | `parent_entry_id=factory.SubFactory(ReviewTimelineEntryFactory)` |
 
 ---
 
-### 1.13 CollaborationInvitationFactory
+### 1.12 CollaborationInvitationFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -299,8 +287,8 @@ Location: services/core/tests/factories.py
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory)` | |
-| `inviter` | `factory.SubFactory(UserFactory)` | Must be idea owner |
+| `project` | `factory.SubFactory(ProjectFactory)` | |
+| `inviter` | `factory.SubFactory(UserFactory)` | Must be project owner |
 | `invitee` | `factory.SubFactory(UserFactory)` | |
 | `status` | `"pending"` | |
 | `responded_at` | `None` | |
@@ -315,7 +303,7 @@ Location: services/core/tests/factories.py
 
 ---
 
-### 1.14 NotificationFactory
+### 1.13 NotificationFactory
 
 ```
 Location: services/gateway/tests/factories.py
@@ -324,11 +312,11 @@ Location: services/gateway/tests/factories.py
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
 | `user` | `factory.SubFactory(UserFactory)` | Recipient |
-| `event_type` | `"idea.submitted"` | |
-| `title` | `"New idea submitted"` | |
-| `body` | `"Your idea has been submitted for review."` | |
+| `event_type` | `"project.submitted"` | |
+| `title` | `"New project submitted"` | |
+| `body` | `"Your project has been submitted for review."` | |
 | `reference_id` | `factory.LazyFunction(uuid4)` | Related entity ID |
-| `reference_type` | `"idea"` | |
+| `reference_type` | `"project"` | |
 | `is_read` | `False` | |
 | `action_taken` | `False` | |
 
@@ -339,41 +327,11 @@ Location: services/gateway/tests/factories.py
 | `read` | `is_read=True` |
 | `actioned` | `is_read=True, action_taken=True` |
 | `collaboration_invite` | `event_type="collaboration.invited", title="Collaboration invitation", reference_type="invitation"` |
-| `merge_request` | `event_type="merge.requested", title="Merge request", reference_type="merge_request"` |
 | `review_comment` | `event_type="review.comment_added", title="New review comment"` |
 
 ---
 
-### 1.15 MergeRequestFactory
-
-```
-Location: services/core/tests/factories.py
-```
-
-| Field | Default Strategy | Notes |
-|-------|-----------------|-------|
-| `requesting_idea` | `factory.SubFactory(IdeaFactory)` | |
-| `target_idea` | `factory.SubFactory(IdeaFactory)` | |
-| `merge_type` | `"merge"` | |
-| `requested_by` | `factory.SubFactory(UserFactory)` | |
-| `status` | `"pending"` | |
-| `requesting_owner_consent` | `"accepted"` | Requester implicitly consents |
-| `target_owner_consent` | `"pending"` | |
-| `reviewer_consent` | `"not_required"` | Set for append type |
-| `resulting_idea_id` | `None` | Set on merge completion |
-
-**Named variants (traits):**
-
-| Trait | Overrides |
-|-------|-----------|
-| `append` | `merge_type="append", reviewer_consent="pending", target_idea=SubFactory(IdeaFactory, state="in_review")` |
-| `fully_consented` | `target_owner_consent="accepted"` |
-| `declined` | `status="declined"` |
-| `completed` | `status="accepted", resulting_idea_id=LazyFunction(uuid4)` |
-
----
-
-### 1.16 AdminParameterFactory
+### 1.14 AdminParameterFactory
 
 ```
 Location: services/core/tests/factories.py
@@ -390,7 +348,7 @@ Location: services/core/tests/factories.py
 
 ---
 
-### 1.17 MonitoringAlertConfigFactory
+### 1.15 MonitoringAlertConfigFactory
 
 ```
 Location: services/gateway/tests/factories.py
@@ -403,19 +361,6 @@ Location: services/gateway/tests/factories.py
 
 ---
 
-### 1.18 IdeaKeywordsFactory
-
-```
-Location: services/core/tests/factories.py
-```
-
-| Field | Default Strategy | Notes |
-|-------|-----------------|-------|
-| `idea` | `factory.SubFactory(IdeaFactory)` | One per idea |
-| `keywords` | `["innovation", "automation", "efficiency"]` | |
-
----
-
 ## 2. AI Service Factory Functions
 
 Located in `services/ai/tests/factories.py`.
@@ -424,7 +369,7 @@ Located in `services/ai/tests/factories.py`.
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea_id` | `factory.LazyFunction(uuid4)` | UUID ref (no FK in AI service) |
+| `project_id` | `factory.LazyFunction(uuid4)` | UUID ref (no FK in AI service) |
 | `summary_text` | `"The user discussed process optimization for the IT department."` | |
 | `messages_covered_up_to_id` | `factory.LazyFunction(uuid4)` | |
 | `compression_iteration` | `1` | |
@@ -435,17 +380,18 @@ Located in `services/ai/tests/factories.py`.
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
 | `bucket_id` | `factory.LazyFunction(uuid4)` | |
+| `bucket_type` | `"global"` | Either "global", "software", or "non_software" |
 | `chunk_index` | `factory.Sequence(lambda n: n)` | |
 | `chunk_text` | `"Company context chunk about existing applications."` | |
 | `token_count` | `150` | |
 | `embedding` | `factory.LazyFunction(lambda: [0.01] * 1536)` | Zero-ish vector |
 | `source_section` | `"existing_applications"` | |
 
-### 2.3 IdeaEmbeddingFactory
+### 2.3 ProjectEmbeddingFactory
 
 | Field | Default Strategy | Notes |
 |-------|-----------------|-------|
-| `idea_id` | `factory.LazyFunction(uuid4)` | |
+| `project_id` | `factory.LazyFunction(uuid4)` | |
 | `embedding` | `factory.LazyFunction(lambda: [0.01] * 1536)` | |
 | `source_text_hash` | `factory.LazyFunction(lambda: hashlib.sha256(b"test").hexdigest())` | |
 
@@ -455,16 +401,17 @@ Located in `services/ai/tests/factories.py`.
 
 All frontend fixtures are TypeScript factory functions returning typed objects. Each builder accepts `Partial<T>` overrides.
 
-### 3.1 buildIdeaFixture
+### 3.1 buildProjectFixture
 
 ```
-Location: frontend/src/test/fixtures/idea.ts
+Location: frontend/src/test/fixtures/project.ts
 ```
 
 | Field | Default | Notes |
 |-------|---------|-------|
 | `id` | `crypto.randomUUID()` | |
-| `title` | `"Test Idea"` | |
+| `projectType` | `"software"` | |
+| `title` | `"Test Project"` | |
 | `titleManuallyEdited` | `false` | |
 | `state` | `"open"` | |
 | `visibility` | `"private"` | |
@@ -480,11 +427,12 @@ Location: frontend/src/test/fixtures/idea.ts
 
 | Function | Description |
 |----------|-------------|
-| `buildOpenIdea(overrides?)` | Default open idea |
-| `buildInReviewIdea(overrides?)` | `state: "in_review"` |
-| `buildAcceptedIdea(overrides?)` | `state: "accepted"` |
-| `buildMergedIdea(overrides?)` | With `coOwnerId`, `mergedFromIdea1Id`, `mergedFromIdea2Id` |
-| `buildDeletedIdea(overrides?)` | With `deletedAt` set |
+| `buildOpenProject(overrides?)` | Default open project |
+| `buildSoftwareProject(overrides?)` | `projectType: "software"` |
+| `buildNonSoftwareProject(overrides?)` | `projectType: "non_software"` |
+| `buildInReviewProject(overrides?)` | `state: "in_review"` |
+| `buildAcceptedProject(overrides?)` | `state: "accepted"` |
+| `buildDeletedProject(overrides?)` | With `deletedAt` set |
 
 ---
 
@@ -497,7 +445,7 @@ Location: frontend/src/test/fixtures/chat.ts
 | Field | Default | Notes |
 |-------|---------|-------|
 | `id` | `crypto.randomUUID()` | |
-| `ideaId` | `crypto.randomUUID()` | |
+| `projectId` | `crypto.randomUUID()` | |
 | `senderType` | `"user"` | |
 | `senderId` | `crypto.randomUUID()` | |
 | `aiAgent` | `null` | |
@@ -515,25 +463,21 @@ Location: frontend/src/test/fixtures/chat.ts
 
 ---
 
-### 3.3 buildBoardNodeFixture
+### 3.3 buildRequirementsItemFixture
 
 ```
-Location: frontend/src/test/fixtures/board.ts
+Location: frontend/src/test/fixtures/requirements.ts
 ```
 
 | Field | Default | Notes |
 |-------|---------|-------|
 | `id` | `crypto.randomUUID()` | |
-| `ideaId` | `crypto.randomUUID()` | |
-| `nodeType` | `"box"` | |
-| `title` | `"Test Node"` | |
-| `body` | `"- Point 1\n- Point 2"` | |
-| `positionX` | `0` | |
-| `positionY` | `0` | |
-| `width` | `null` | |
-| `height` | `null` | |
+| `projectId` | `crypto.randomUUID()` | |
+| `itemType` | `"user_story"` | |
+| `title` | `"Test Requirement"` | |
+| `description` | `"Requirement description"` | |
 | `parentId` | `null` | |
-| `isLocked` | `false` | |
+| `orderIndex` | `0` | |
 | `createdBy` | `"user"` | |
 | `aiModifiedIndicator` | `false` | |
 
@@ -541,29 +485,31 @@ Location: frontend/src/test/fixtures/board.ts
 
 | Function | Description |
 |----------|-------------|
-| `buildBoxNode(overrides?)` | Default box |
-| `buildGroupNode(overrides?)` | `nodeType: "group", width: 400, height: 300, body: null` |
-| `buildFreeTextNode(overrides?)` | `nodeType: "free_text", title: null` |
-| `buildAiNode(overrides?)` | `createdBy: "ai", aiModifiedIndicator: true` |
+| `buildEpic(overrides?)` | `itemType: "epic"` |
+| `buildUserStory(overrides?)` | `itemType: "user_story"` (default) |
+| `buildMilestone(overrides?)` | `itemType: "milestone"` |
+| `buildWorkPackage(overrides?)` | `itemType: "work_package"` |
+| `buildAiRequirement(overrides?)` | `createdBy: "ai", aiModifiedIndicator: true` |
 
 ---
 
-### 3.4 buildBrdDraftFixture
+### 3.4 buildRequirementsDocumentDraftFixture
 
 ```
-Location: frontend/src/test/fixtures/brd.ts
+Location: frontend/src/test/fixtures/requirements-document.ts
 ```
 
 | Field | Default | Notes |
 |-------|---------|-------|
 | `id` | `crypto.randomUUID()` | |
-| `ideaId` | `crypto.randomUUID()` | |
+| `projectId` | `crypto.randomUUID()` | |
 | `sectionTitle` | `"Draft Title"` | |
 | `sectionShortDescription` | `"A short description."` | |
 | `sectionCurrentWorkflow` | `"Current workflow description."` | |
 | `sectionAffectedDepartment` | `"IT"` | |
 | `sectionCoreCapabilities` | `"- Cap 1\n- Cap 2"` | |
 | `sectionSuccessCriteria` | `"Success criteria here."` | |
+| `requirementsStructure` | `{}` | |
 | `sectionLocks` | `{}` | |
 | `allowInformationGaps` | `false` | |
 | `readinessEvaluation` | `{}` | |
@@ -576,6 +522,8 @@ Location: frontend/src/test/fixtures/brd.ts
 | `buildFullDraft(overrides?)` | All sections filled |
 | `buildLockedDraft(overrides?)` | `sectionLocks` with 2 locked sections |
 | `buildReadyDraft(overrides?)` | All readiness statuses `"ready"` |
+| `buildSoftwareStructure(overrides?)` | With epics and user stories |
+| `buildNonSoftwareStructure(overrides?)` | With milestones and work packages |
 
 ---
 
@@ -589,39 +537,18 @@ Location: frontend/src/test/fixtures/notification.ts
 |-------|---------|-------|
 | `id` | `crypto.randomUUID()` | |
 | `userId` | `crypto.randomUUID()` | |
-| `eventType` | `"idea.submitted"` | |
+| `eventType` | `"project.submitted"` | |
 | `title` | `"Notification title"` | |
 | `body` | `"Notification body"` | |
 | `referenceId` | `crypto.randomUUID()` | |
-| `referenceType` | `"idea"` | |
+| `referenceType` | `"project"` | |
 | `isRead` | `false` | |
 | `actionTaken` | `false` | |
 | `createdAt` | `new Date().toISOString()` | |
 
 ---
 
-### 3.6 buildMergeRequestFixture
-
-```
-Location: frontend/src/test/fixtures/merge.ts
-```
-
-| Field | Default | Notes |
-|-------|---------|-------|
-| `id` | `crypto.randomUUID()` | |
-| `requestingIdeaId` | `crypto.randomUUID()` | |
-| `targetIdeaId` | `crypto.randomUUID()` | |
-| `mergeType` | `"merge"` | |
-| `requestedBy` | `crypto.randomUUID()` | |
-| `status` | `"pending"` | |
-| `requestingOwnerConsent` | `"accepted"` | |
-| `targetOwnerConsent` | `"pending"` | |
-| `reviewerConsent` | `"not_required"` | |
-| `resultingIdeaId` | `null` | |
-
----
-
-### 3.7 buildReviewAssignmentFixture
+### 3.6 buildReviewAssignmentFixture
 
 ```
 Location: frontend/src/test/fixtures/review.ts
@@ -630,7 +557,7 @@ Location: frontend/src/test/fixtures/review.ts
 | Field | Default | Notes |
 |-------|---------|-------|
 | `id` | `crypto.randomUUID()` | |
-| `ideaId` | `crypto.randomUUID()` | |
+| `projectId` | `crypto.randomUUID()` | |
 | `reviewerId` | `crypto.randomUUID()` | |
 | `assignedBy` | `"submitter"` | |
 | `assignedAt` | `new Date().toISOString()` | |
@@ -651,7 +578,7 @@ Location: services/ai/tests/helpers/mock_openai.py
 | **What it replaces** | Azure OpenAI API (`AsyncAzureOpenAI` client) |
 | **Mock strategy** | Patched at `semantic_kernel.connectors.ai.open_ai` level. Returns pre-built `ChatCompletion` objects keyed by `(agent_name, scenario)`. |
 | **Response registry** | Dictionary mapping `(agent_name, scenario_key)` → `ChatCompletion` fixture. Tests register expected responses before agent invocation. |
-| **Function calling support** | For Facilitator/Board Agent: fixture responses include `tool_calls` with function name + JSON arguments. Mock tracks multi-round function calling loops (up to 3 for Facilitator, 10 for Board Agent). |
+| **Function calling support** | For Facilitator: fixture responses include `tool_calls` with function name + JSON arguments. Mock tracks multi-round function calling loops (up to 3 for Facilitator). |
 | **Token tracking** | Each fixture response includes `usage.prompt_tokens` and `usage.completion_tokens` for budget tests. |
 | **Failure simulation** | `raise_on_call(n)` — raises `openai.APIError` on the Nth call to test retry logic. |
 | **Timeout simulation** | `delay_response(seconds)` — adds async sleep before returning, for timeout tests. |
@@ -670,7 +597,7 @@ Location: services/gateway/tests/helpers/grpc_mock.py
 | **Mock strategy** | `unittest.mock.AsyncMock` wrapping each gRPC stub method. Returns pre-built protobuf response objects. |
 | **Configuration** | `configure_response(method_name, response)` — sets the return value for a specific RPC. `configure_error(method_name, grpc.StatusCode, message)` — raises gRPC error on call. |
 | **Call tracking** | `assert_called(method_name, request_matcher)` — verifies the RPC was called with expected request fields. `call_count(method_name)` — returns number of calls. |
-| **Services mocked** | `IdeaService`, `ChatService`, `BoardService`, `BrdService`, `ReviewService`, `UserService`, `AiService` |
+| **Services mocked** | `ProjectService`, `ChatService`, `RequirementsService`, `ReviewService`, `UserService`, `AiService` |
 
 ---
 
@@ -685,7 +612,7 @@ Location: services/core/tests/helpers/broker_mock.py
 | **What it replaces** | RabbitMQ publisher (pika-based or Celery-based event publishing) |
 | **Mock strategy** | In-memory list that captures all published events. Replaces the real publisher via dependency injection or `unittest.mock.patch`. |
 | **API** | `published_events` — list of `(routing_key, payload)` tuples. `assert_event_published(routing_key, payload_matcher)` — verifies event was published. `clear()` — resets captured events between tests. |
-| **Event types captured** | `chat.message.created`, `ai.processing.started`, `ai.processing.completed`, `ai.board.updated`, `board.node.updated`, `notification.created`, `idea.state.changed`, `merge.requested`, `merge.completed` |
+| **Event types captured** | `chat.message.created`, `ai.processing.started`, `ai.processing.completed`, `requirements.updated`, `notification.created`, `project.state.changed` |
 
 ---
 
@@ -714,7 +641,7 @@ Location: services/gateway/tests/helpers/ws_mock.py
 |--------|--------|
 | **What it replaces** | Django Channels WebSocket consumer test setup |
 | **Mock strategy** | Uses `channels.testing.WebsocketCommunicator` with patched authentication. |
-| **API** | `create_ws_communicator(user, idea_id)` — returns a connected `WebsocketCommunicator` subscribed to the idea's channel group. `send_event(communicator, event_type, payload)` — simulates server-side event. `receive_json(communicator)` — reads next message from client. |
+| **API** | `create_ws_communicator(user, project_id)` — returns a connected `WebsocketCommunicator` subscribed to the project's channel group. `send_event(communicator, event_type, payload)` — simulates server-side event. `receive_json(communicator)` — reads next message from client. |
 
 ---
 
@@ -742,14 +669,10 @@ When `AI_MOCK_MODE=True` (E2E tests), the AI service returns deterministic respo
 
 | File | Agent | Scenarios |
 |------|-------|-----------|
-| `facilitator.py` | Facilitator | `new_idea` (greeting + initial question), `ongoing_chat` (follow-up with reaction + board instruction), `silent_mode` (no action), `delegation` (delegates to Context Agent), `title_update` (suggests title) |
-| `board_agent.py` | Board Agent | `create_nodes` (3 boxes + 1 group), `update_nodes` (modify titles), `connect_nodes` (2 connections), `reorganize` (move + reparent) |
-| `summarizing_ai.py` | Summarizing AI | `full_brd` (all 6 sections), `selective_brd` (respects locks), `gaps_mode` (includes /TODO markers), `insufficient` (some sections "insufficient") |
-| `keyword_agent.py` | Keyword Agent | `standard` (10 keywords), `few_messages` (3 keywords), `max_keywords` (20 keywords) |
-| `deep_comparison.py` | Deep Comparison | `similar` (confirms similarity), `not_similar` (denies similarity) |
-| `context_agent.py` | Context Agent | `found_context` (returns RAG results), `no_context` (no relevant context found) |
+| `facilitator.py` | Facilitator | `new_project` (greeting + initial question), `ongoing_chat` (follow-up with reaction + requirements instruction), `silent_mode` (no action), `delegation` (delegates to Context Agent), `title_update` (suggests title), `structure_update` (suggests requirements structure) |
+| `summarizing_ai.py` | Summarizing AI | `full_document` (all sections + requirements structure), `selective_document` (respects locks), `gaps_mode` (includes /TODO markers), `insufficient` (some sections "insufficient"), `software_structure` (epics/stories), `non_software_structure` (milestones/packages) |
+| `context_agent.py` | Context Agent | `found_context` (returns RAG results from appropriate bucket), `no_context` (no relevant context found), `software_context` (software-specific), `non_software_context` (non-software-specific) |
 | `context_compression.py` | Context Compression | `standard` (compressed summary) |
-| `merge_synthesizer.py` | Merge Synthesizer | `standard` (synthesized context from two ideas) |
 
 ---
 
@@ -757,49 +680,60 @@ When `AI_MOCK_MODE=True` (E2E tests), the AI service returns deterministic respo
 
 Pre-built scenarios that combine multiple factories to create realistic test states. Located in `services/core/tests/scenarios.py`.
 
-### 5.1 IdeaWithFullState
+### 5.1 ProjectWithFullState
 
-Creates a complete idea with chat history, board, BRD draft, and collaborators.
+Creates a complete project with chat history, requirements items, requirements document draft, and collaborators.
 
 | Entity | Count | Configuration |
 |--------|-------|---------------|
 | User (owner) | 1 | `UserFactory()` |
-| Idea | 1 | `IdeaFactory(owner=owner)` |
-| Collaborators | 2 | `IdeaCollaboratorFactory(idea=idea)` |
-| Chat messages (user) | 5 | `ChatMessageFactory(idea=idea, sender_id=owner)` |
-| Chat messages (AI) | 3 | `ChatMessageFactory.ai_facilitator(idea=idea)` |
+| Project | 1 | `ProjectFactory(owner=owner, project_type="software")` |
+| Collaborators | 2 | `ProjectCollaboratorFactory(project=project)` |
+| Chat messages (user) | 5 | `ChatMessageFactory(project=project, sender_id=owner)` |
+| Chat messages (AI) | 3 | `ChatMessageFactory.ai_facilitator(project=project)` |
 | AI reactions | 2 | `AiReactionFactory(message=user_msgs[0])` |
-| Board nodes (boxes) | 4 | `BoardNodeFactory(idea=idea)` |
-| Board nodes (group) | 1 | `BoardNodeFactory.group(idea=idea)` |
-| Board connections | 3 | `BoardConnectionFactory(idea=idea)` |
-| BRD draft | 1 | `BrdDraftFactory(idea=idea)` |
-| Keywords | 1 | `IdeaKeywordsFactory(idea=idea)` |
+| Requirements items (epics) | 2 | `RequirementsItemFactory.epic(project=project)` |
+| Requirements items (stories) | 4 | `RequirementsItemFactory.user_story(project=project, parent_id=epic.id)` |
+| Requirements document draft | 1 | `RequirementsDocumentDraftFactory(project=project)` |
 
-### 5.2 IdeaInReview
+### 5.2 ProjectInReview
 
-Creates an idea that has been submitted for review with reviewers assigned.
+Creates a project that has been submitted for review with reviewers assigned.
 
 | Entity | Count | Configuration |
 |--------|-------|---------------|
 | User (owner) | 1 | `UserFactory()` |
 | Users (reviewers) | 2 | `UserFactory.reviewer()` |
-| Idea | 1 | `IdeaFactory(owner=owner, state="in_review")` |
-| BRD version | 1 | `BrdVersionFactory(idea=idea, version_number=1)` |
-| Review assignments | 2 | `ReviewAssignmentFactory(idea=idea, reviewer=reviewer)` |
-| Timeline entry | 1 | `ReviewTimelineEntryFactory.state_change(idea=idea, old_state="open", new_state="in_review")` |
+| Project | 1 | `ProjectFactory(owner=owner, state="in_review")` |
+| Requirements document version | 1 | `RequirementsDocumentVersionFactory(project=project, version_number=1)` |
+| Review assignments | 2 | `ReviewAssignmentFactory(project=project, reviewer=reviewer)` |
+| Timeline entry | 1 | `ReviewTimelineEntryFactory.state_change(project=project, old_state="open", new_state="in_review")` |
 
-### 5.3 MergeCandidatePair
+### 5.3 SoftwareProjectWithStructure
 
-Creates two ideas with overlapping keywords for merge testing.
+Creates a software project with complete hierarchical requirements structure.
 
 | Entity | Count | Configuration |
 |--------|-------|---------------|
-| Users | 2 | `UserFactory()` each |
-| Ideas | 2 | `IdeaFactory()` each with different owners |
-| Keywords | 2 | Overlapping keywords (8+ shared) |
-| Merge request | 1 | `MergeRequestFactory(requesting_idea=idea1, target_idea=idea2)` |
+| User (owner) | 1 | `UserFactory()` |
+| Project | 1 | `ProjectFactory(owner=owner, project_type="software")` |
+| Epics | 3 | `RequirementsItemFactory.epic(project=project)` |
+| User stories | 8 | Distributed across epics |
+| Requirements document draft | 1 | With populated requirements_structure field |
 
-### 5.4 CollaborationFlow
+### 5.4 NonSoftwareProjectWithStructure
+
+Creates a non-software project with complete hierarchical requirements structure.
+
+| Entity | Count | Configuration |
+|--------|-------|---------------|
+| User (owner) | 1 | `UserFactory()` |
+| Project | 1 | `ProjectFactory(owner=owner, project_type="non_software")` |
+| Milestones | 3 | `RequirementsItemFactory.milestone(project=project)` |
+| Work packages | 8 | Distributed across milestones |
+| Requirements document draft | 1 | With populated requirements_structure field |
+
+### 5.5 CollaborationFlow
 
 Creates a complete collaboration setup with invitation accepted, both users active.
 
@@ -807,14 +741,14 @@ Creates a complete collaboration setup with invitation accepted, both users acti
 |--------|-------|---------------|
 | User (owner) | 1 | `UserFactory()` |
 | User (collaborator) | 1 | `UserFactory()` |
-| Idea | 1 | `IdeaFactory(owner=owner, visibility="collaborating")` |
-| Invitation | 1 | `CollaborationInvitationFactory.accepted(idea=idea, inviter=owner, invitee=collaborator)` |
-| Collaborator record | 1 | `IdeaCollaboratorFactory(idea=idea, user=collaborator)` |
+| Project | 1 | `ProjectFactory(owner=owner, visibility="collaborating")` |
+| Invitation | 1 | `CollaborationInvitationFactory.accepted(project=project, inviter=owner, invitee=collaborator)` |
+| Collaborator record | 1 | `ProjectCollaboratorFactory(project=project, user=collaborator)` |
 | Notifications | 2 | `NotificationFactory.collaboration_invite(user=collaborator)`, `NotificationFactory(event_type="collaboration.joined", user=owner)` |
 
 ---
 
-### 5.5 AdminWithParameters
+### 5.6 AdminWithParameters
 
 Creates an admin user with all default admin parameters seeded.
 
@@ -869,7 +803,7 @@ REST_FRAMEWORK = {
 
 ### 6.3 pgvector in Tests
 
-The test database requires the pgvector extension for AI service tables (`context_chunks`, `idea_embeddings`). The Docker Compose test profile uses `pgvector/pgvector:pg16` image. For CI, the PostgreSQL service container includes pgvector pre-installed.
+The test database requires the pgvector extension for AI service tables (`context_chunks`, `project_embeddings`). The Docker Compose test profile uses `pgvector/pgvector:pg16` image. For CI, the PostgreSQL service container includes pgvector pre-installed.
 
 ---
 
@@ -881,13 +815,11 @@ Seed script: `e2e/scripts/seed-db.ts` (called by Playwright `globalSetup`).
 |--------|------|---------|
 | Users | 4 dev users matching auth bypass mode (F-7.1): Dev User 1 (user), Dev User 2 (user), Dev User 3 (user+reviewer), Dev User 4 (user+admin) | Consistent auth for E2E |
 | Admin parameters | All 13+ seed parameters with defaults | App configuration |
-| Facilitator context bucket | Single empty row | Singleton initialization |
-| Context agent bucket | Single empty row | Singleton initialization |
-| Ideas (user 1) | 3 ideas: 1 open with chat+board, 1 in_review with BRD, 1 accepted | Landing page tests |
-| Ideas (user 2) | 1 idea with collaboration invitation to user 1 | Collaboration tests |
-| Review assignments | User 3 assigned to review user 1's in_review idea | Review flow tests |
+| Context buckets | 3 buckets: global, software, non_software | Context system initialization |
+| Projects (user 1) | 3 projects: 1 open software with chat+requirements, 1 in_review non-software with document, 1 accepted | Landing page tests |
+| Projects (user 2) | 1 project with collaboration invitation to user 1 | Collaboration tests |
+| Review assignments | User 3 assigned to review user 1's in_review project | Review flow tests |
 | Notifications | 5 mixed notifications for user 1 (2 unread, 3 read) | Notification bell tests |
-| Merge request | Pending merge between user 1's open idea and user 2's open idea | Merge flow tests |
 
 ---
 
@@ -949,7 +881,7 @@ Seed script: `e2e/scripts/seed-db.ts` (called by Playwright `globalSetup`).
 | `assert_event_published(mock_broker, routing_key, **matchers)` | `services/core/tests/helpers/assertions.py` | Asserts a specific event was published to the broker with matching payload fields. |
 | `assert_grpc_called(mock_client, method, **request_matchers)` | `services/gateway/tests/helpers/assertions.py` | Asserts a gRPC method was called with expected request fields. |
 | `assert_ws_message_sent(communicator, event_type, **payload_matchers)` | `services/gateway/tests/helpers/assertions.py` | Reads next WebSocket message and asserts type + payload. |
-| `create_idea_with_state(state, **overrides)` | `services/core/tests/helpers/shortcuts.py` | Shortcut to create an idea in a specific lifecycle state with all required related objects (BRD version for in_review, review assignments, etc.). |
+| `create_project_with_state(state, **overrides)` | `services/core/tests/helpers/shortcuts.py` | Shortcut to create a project in a specific lifecycle state with all required related objects (requirements document version for in_review, review assignments, etc.). |
 
 ### 9.3 AI Service Helpers
 
@@ -966,14 +898,14 @@ Seed script: `e2e/scripts/seed-db.ts` (called by Playwright `globalSetup`).
 
 | Location | Files | Purpose |
 |----------|-------|---------|
-| `services/core/tests/factories.py` | 1 | All core entity factories (User through MergeRequest, 17 factories) |
-| `services/core/tests/scenarios.py` | 1 | Composite fixture scenarios (5 scenarios) |
+| `services/core/tests/factories.py` | 1 | All core entity factories (User through AdminParameter, 15 factories) |
+| `services/core/tests/scenarios.py` | 1 | Composite fixture scenarios (6 scenarios) |
 | `services/core/tests/helpers/` | `broker_mock.py`, `assertions.py`, `shortcuts.py` | Backend test helpers |
 | `services/gateway/tests/factories.py` | 1 | Notification factory + MonitoringAlertConfig factory |
 | `services/gateway/tests/helpers/` | `grpc_mock.py`, `api_client.py`, `ws_mock.py`, `assertions.py` | Gateway test helpers |
 | `services/ai/tests/factories.py` | 1 | AI entity factories |
 | `services/ai/tests/helpers/` | `mock_openai.py`, `agent_harness.py`, `assertions.py` | AI test helpers |
-| `services/ai/tests/fixtures/` | 8 files | Per-agent fixture responses |
-| `frontend/src/test/fixtures/` | `idea.ts`, `chat.ts`, `board.ts`, `brd.ts`, `notification.ts`, `merge.ts`, `review.ts` | Frontend fixture builders |
+| `services/ai/tests/fixtures/` | 4 files | Per-agent fixture responses |
+| `frontend/src/test/fixtures/` | `project.ts`, `chat.ts`, `requirements.ts`, `requirements-document.ts`, `notification.ts`, `review.ts` | Frontend fixture builders |
 | `frontend/src/test/helpers/` | `render.tsx`, `store.ts`, `auth.ts`, `websocket.ts`, `query.ts` | Frontend test helpers |
 | `e2e/scripts/seed-db.ts` | 1 | E2E database seeding |

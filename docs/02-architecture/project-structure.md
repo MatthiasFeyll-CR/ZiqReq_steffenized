@@ -19,7 +19,7 @@ ZiqReq uses a **monorepo** — all services, shared definitions, infrastructure 
 |---------|-----------|----------|-----------|---------|
 | **frontend** | React 19 + Vite + TypeScript | — | `frontend` | SPA served as static assets |
 | **gateway** | Django 5 + DRF + Channels | Own tables in shared PG | `gateway` | REST API, WebSocket, auth, routing |
-| **core** | Django 5 | Own tables in shared PG | `core`, `celery-worker`, `celery-beat` | Domain logic: ideas, chat, board, collaboration, review, similarity, admin config |
+| **core** | Django 5 | Own tables in shared PG | `core`, `celery-worker`, `celery-beat` | Domain logic: projects, chat, collaboration, review, admin config |
 | **ai** | Django 5 (lightweight) + AI framework (TBD by AI Engineer) | Own tables in shared PG | `ai` | All AI agents, context management, embedding pipeline |
 | **notification** | Python | — (stateless consumer) | `notification` | Event consumer → email dispatch + notification creation via gateway gRPC |
 | **pdf** | Python + WeasyPrint | — (stateless) | `pdf` | HTML-to-PDF generation |
@@ -35,8 +35,8 @@ Each Django service has its own set of tables (own Django apps with own migratio
 | Service | Owned Tables |
 |---------|-------------|
 | gateway | `users`, `notifications`, `monitoring_alert_configs` |
-| core | `ideas`, `idea_collaborators`, `chat_messages`, `ai_reactions`, `user_reactions`, `board_nodes`, `board_connections`, `brd_drafts`, `brd_versions`, `review_assignments`, `review_timeline_entries`, `collaboration_invitations`, `idea_keywords`, `merge_requests`, `admin_parameters` |
-| ai | `chat_context_summaries`, `facilitator_context_bucket`, `context_agent_bucket`, `context_chunks`, `idea_embeddings` |
+| core | `projects`, `project_collaborators`, `chat_messages`, `ai_reactions`, `user_reactions`, `requirements_document_drafts`, `requirements_document_versions`, `review_assignments`, `review_timeline_entries`, `collaboration_invitations`, `admin_parameters` |
+| ai | `chat_context_summaries`, `facilitator_context_bucket`, `context_agent_bucket`, `context_chunks` |
 
 In production (Azure Database for PostgreSQL), all tables live in the same instance. If scaling requires it, services can be split to separate databases later — the gRPC boundary already enforces the separation.
 
@@ -49,30 +49,30 @@ In production (Azure Database for PostgreSQL), all tables live in the same insta
 **Example (M2 implementation):**
 
 ```python
-# services/core/apps/ideas/models.py (Core owns the table)
-class Idea(models.Model):
+# services/core/apps/projects/models.py (Core owns the table)
+class Project(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     title = models.CharField(max_length=500, default="")
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default="open")
     # ... full schema ...
 
     class Meta:
-        db_table = "ideas"  # Core creates migrations for this table
+        db_table = "projects"  # Core creates migrations for this table
 
-# services/gateway/apps/ideas/models.py (Gateway mirrors the table)
-class Idea(models.Model):
+# services/gateway/apps/projects/models.py (Gateway mirrors the table)
+class Project(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     title = models.CharField(max_length=500, default="")
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default="open")
     # ... identical schema ...
 
     class Meta:
-        db_table = "ideas"  # Points to Core's table. Gateway creates migrations for test DB compatibility.
+        db_table = "projects"  # Points to Core's table. Gateway creates migrations for test DB compatibility.
 ```
 
 **Rules:**
 1. **Core owns migration authority** — only Core creates/modifies migrations for the table schema
-2. **Gateway creates migrations for its mirror model** — required for Django test database to create tables. Gateway's migrations define the same schema as Core but with a different app label (e.g., `gateway_board` vs `core_board`). Both point to the same physical table via `db_table`.
+2. **Gateway creates migrations for its mirror model** — required for Django test database to create tables. Gateway's migrations define the same schema as Core but with a different app label (e.g., `gateway_projects` vs `core_projects`). Both point to the same physical table via `db_table`.
 3. **Schemas must stay synchronized** — if Core changes the schema, Gateway's mirror model AND migrations must be updated manually
 4. **Both models access the same physical table** — no data duplication
 5. **Gateway uses its mirror for REST API only** — DRF serializers, list queries, CRUD operations
@@ -89,12 +89,10 @@ class Idea(models.Model):
 - Gateway-owned tables (no mirroring needed — Gateway owns both model and migration)
 
 **Tables with mirror models (as of M4):**
-- `ideas` (Core-owned, Gateway mirrors for `/api/ideas` endpoints)
-- `idea_collaborators` (Core-owned, Gateway mirrors for join queries in idea lists)
-- `chat_messages` (Core-owned, Gateway mirrors for `/api/ideas/:id/chat` endpoints)
+- `projects` (Core-owned, Gateway mirrors for `/api/projects` endpoints)
+- `project_collaborators` (Core-owned, Gateway mirrors for join queries in project lists)
+- `chat_messages` (Core-owned, Gateway mirrors for `/api/projects/:id/chat` endpoints)
 - `collaboration_invitations` (Core-owned, Gateway mirrors for `/api/invitations` endpoints)
-- `board_nodes` (Core-owned, Gateway mirrors for `/api/ideas/:id/board/nodes` endpoints)
-- `board_connections` (Core-owned, Gateway mirrors for `/api/ideas/:id/board/connections` endpoints)
 
 **Future milestones:** Expect Gateway mirror models for `review_assignments`, `review_timeline_entries` (M10), and potentially others as more REST endpoints are exposed.
 
@@ -144,7 +142,7 @@ class Idea(models.Model):
 from events.publisher import publish_notification_event
 
 @api_view(["POST"])
-def invite_collaborator(request, idea_id):
+def invite_collaborator(request, project_id):
     # ... logic ...
     publish_notification_event(user_id=invitee_id, ...)
 ```
@@ -156,7 +154,7 @@ def _publish_notification(**kwargs):
     publish_notification_event(**kwargs)
 
 @api_view(["POST"])
-def invite_collaborator(request, idea_id):
+def invite_collaborator(request, project_id):
     # ... logic ...
     _publish_notification(user_id=invitee_id, ...)
 ```
@@ -167,7 +165,7 @@ def invite_collaborator(request, idea_id):
 
 The Celery worker and beat scheduler run the **core service codebase** as separate containers:
 - `celery-worker`: processes background tasks from the broker
-- `celery-beat`: schedules periodic tasks (soft delete cleanup, health checks, similarity sweep). Beat schedule is configured in `services/core/core/settings/base.py` via `CELERY_BEAT_SCHEDULE` dict.
+- `celery-beat`: schedules periodic tasks (soft delete cleanup, health checks). Beat schedule is configured in `services/core/core/settings/base.py` via `CELERY_BEAT_SCHEDULE` dict.
 
 Both import and use the core service's Django models and database directly. This is the standard Celery deployment pattern.
 
@@ -192,43 +190,41 @@ ziqreq/
 │   │   │   ├── LandingPage/             # Landing page (co-located sub-components)
 │   │   │   │   ├── index.tsx            # Main LandingPage component
 │   │   │   │   ├── HeroSection.tsx
-│   │   │   │   ├── IdeaList.tsx         # MyIdeasSection, CollaboratingSection, InvitationsSection, TrashSection
+│   │   │   │   ├── ProjectList.tsx      # MyProjectsSection, CollaboratingSection, InvitationsSection, TrashSection
 │   │   │   │   └── FilterBar.tsx        # Search + state/ownership filter dropdowns
-│   │   │   ├── idea-workspace.tsx        # Re-export from IdeaWorkspace/
-│   │   │   ├── IdeaWorkspace/           # Workspace (co-located sub-components)
-│   │   │   │   ├── index.tsx            # Main IdeaWorkspace component
+│   │   │   ├── project-workspace.tsx     # Re-export from ProjectWorkspace/
+│   │   │   ├── ProjectWorkspace/        # Workspace (co-located sub-components)
+│   │   │   │   ├── index.tsx            # Main ProjectWorkspace component
 │   │   │   │   ├── WorkspaceHeader.tsx  # Sticky header with inline title editing, agent mode
 │   │   │   │   ├── PanelDivider.tsx     # Draggable divider with localStorage persistence
-│   │   │   │   └── BrainstormingSection.tsx  # Two-panel layout (chat + board/review tabs)
+│   │   │   │   └── RequirementsSection.tsx  # Two-panel layout (chat + requirements panel/review tabs)
 │   │   │   ├── review-page.tsx
 │   │   │   ├── admin-panel.tsx
 │   │   │   └── login-page.tsx
 │   │   │
 │   │   ├── components/                    # UI components
 │   │   │   ├── ui/                        # shadcn/ui primitives (button, dialog, dropdown, etc.)
-│   │   │   ├── layout/                    # Navbar, PageShell, UserDropdown, AuthenticatedLayout, ConnectionIndicator, NotificationBell, IdeasListFloating, HamburgerMenu
+│   │   │   ├── layout/                    # Navbar, PageShell, UserDropdown, AuthenticatedLayout, ConnectionIndicator, NotificationBell, ProjectsListFloating, HamburgerMenu
 │   │   │   ├── shared/                    # Shared cross-page components
-│   │   │   │   └── IdeaCard/             # IdeaCard component (used by LandingPage and others)
+│   │   │   │   └── ProjectCard/          # ProjectCard component (used by LandingPage and others)
 │   │   │   ├── chat/                      # ChatPanel, ChatMessage, ChatInput, MentionDropdown, TypingIndicator
-│   │   │   ├── board/                     # BoardCanvas, BoardNode, BoardToolbar, MiniMap, ConnectionLabel
-│   │   │   ├── brd/                       # BrdEditor, BrdSection, ReadinessIndicator, PdfPreview
-│   │   │   ├── review/                    # ReviewTimeline, TimelineEntry, ReviewActions, SimilarIdeas
+│   │   │   ├── requirements/              # RequirementsPanel, RequirementCard, HierarchyTree, SortableList
+│   │   │   ├── requirements_document/     # DocumentEditor, SectionEditor, ReadinessIndicator, PdfPreview
+│   │   │   ├── review/                    # ReviewTimeline, TimelineEntry, ReviewActions
 │   │   │   ├── collaboration/             # InviteDialog, CollaboratorList, PresenceIndicators
 │   │   │   ├── notification/              # NotificationList, NotificationItem
 │   │   │   ├── admin/                     # AiContextEditor, ContextAgentBucketEditor, ParametersTable, MonitoringDashboard, KpiCard, ServiceHealthTable, UserSearch, UserCard, AlertRecipientChips
-│   │   │   ├── merge/                     # MergeRequestBanner, SimilarIdeaCard
 │   │   │   └── common/                    # ErrorBoundary, LoadingSpinner, OfflineBanner, EmptyState
 │   │   │
 │   │   ├── features/                      # Feature-level business logic (hooks, API calls, state)
 │   │   │   ├── auth/                      # useAuth, MsalProvider config, DevUserSwitcher, route guards
-│   │   │   ├── ideas/                     # useIdeas, useIdea, useCreateIdea, idea API hooks
+│   │   │   ├── projects/                  # useProjects, useProject, useCreateProject, project API hooks
 │   │   │   ├── chat/                      # useChat, useSendMessage, useChatScroll, chat API hooks
-│   │   │   ├── board/                     # useBoard, useBoardSync, useBoardUndoRedo, board API hooks
-│   │   │   ├── brd/                       # useBrd, useBrdGenerate, useBrdSections, brd API hooks
+│   │   │   ├── requirements/              # useRequirements, useRequirementsStructure, requirements API hooks
+│   │   │   ├── requirements_document/     # useDocument, useDocumentGenerate, useDocumentSections, document API hooks
 │   │   │   ├── review/                    # useReview, useTimeline, useReviewActions, review API hooks
 │   │   │   ├── collaboration/             # useCollaboration, useInvitations, collaboration API hooks
 │   │   │   ├── notifications/             # useNotifications, useUnreadCount, notification API hooks
-│   │   │   ├── similarity/                # useSimilarIdeas, useMergeRequest, similarity API hooks
 │   │   │   ├── admin/                     # useAdminParams, useAiContext, useMonitoring, admin API hooks
 │   │   │   ├── presence/                  # usePresence, useIdleDetection, presence state
 │   │   │   └── websocket/                 # useWebSocket, WebSocket client singleton, reconnection logic
@@ -238,7 +234,7 @@ ziqreq/
 │   │   │
 │   │   ├── store/                         # Redux Toolkit store
 │   │   │   ├── index.ts                   # Store configuration
-│   │   │   ├── board-slice.ts             # Board undo/redo, selection state
+│   │   │   ├── requirements-slice.ts      # Requirements panel state, selection
 │   │   │   ├── websocket-slice.ts         # Connection state, reconnection
 │   │   │   ├── presence-slice.ts          # Online/idle/offline users
 │   │   │   ├── ui-slice.ts               # Layout state (divider, panels, tabs)
@@ -253,7 +249,7 @@ ziqreq/
 │   │   ├── types/                         # Shared TypeScript types
 │   │   │   ├── api.ts                     # API request/response types
 │   │   │   ├── websocket.ts               # WebSocket event types
-│   │   │   ├── models.ts                  # Domain model types (Idea, ChatMessage, BoardNode, etc.)
+│   │   │   ├── models.ts                  # Domain model types (Project, ChatMessage, Requirement, etc.)
 │   │   │   └── index.ts                   # Re-exports
 │   │   │
 │   │   ├── i18n/                          # Internationalization
@@ -313,52 +309,40 @@ ziqreq/
 │   │   │   │   ├── urls.py               # Parameter URL routing
 │   │   │   │   ├── user_urls.py          # User search URL routing
 │   │   │   │   └── __init__.py
-│   │   │   ├── similarity/               # Similarity & merge REST endpoints
-│   │   │   │   ├── views.py              # similar ideas, merge request, manual merge, accept/decline
-│   │   │   │   ├── serializers.py
-│   │   │   │   ├── urls.py               # Merge request URLs (/api/merge-requests/:id/...)
-│   │   │   │   ├── idea_urls.py          # Idea-scoped URLs (/api/ideas/:id/similar, merge-request, manual-merge)
-│   │   │   │   └── __init__.py
-│   │   │   ├── ideas/                     # Ideas REST endpoints (CRUD, list, restore)
+│   │   │   ├── projects/                  # Projects REST endpoints (CRUD, list, restore)
 │   │   │   │   ├── views.py              # REST endpoint handlers
-│   │   │   │   ├── serializers.py        # CreateIdeaSerializer, UpdateIdeaSerializer
+│   │   │   │   ├── serializers.py        # CreateProjectSerializer, UpdateProjectSerializer
 │   │   │   │   ├── authentication.py     # MiddlewareAuthentication (bridges Django middleware auth → DRF)
-│   │   │   │   ├── urls.py               # URL routing (api/ideas/)
-│   │   │   │   ├── apps.py              # IdeasConfig (label: gateway_ideas)
-│   │   │   │   ├── _brd_check.py        # Stub for has_been_submitted (real impl in M7)
+│   │   │   │   ├── urls.py               # URL routing (api/projects/)
+│   │   │   │   ├── apps.py              # ProjectsConfig (label: gateway_projects)
+│   │   │   │   ├── _document_check.py   # Stub for has_been_submitted (real impl in M7)
 │   │   │   │   └── __init__.py
 │   │   │   ├── chat/                      # Chat REST endpoints (messages, reactions)
 │   │   │   │   ├── views.py              # chat_list_create, reaction_view
 │   │   │   │   ├── serializers.py        # SendChatSerializer, AddReactionSerializer
-│   │   │   │   ├── urls.py               # URL routing (api/ideas/:id/chat/)
+│   │   │   │   ├── urls.py               # URL routing (api/projects/:id/chat/)
 │   │   │   │   ├── apps.py              # ChatConfig
-│   │   │   │   └── __init__.py
-│   │   │   ├── board/                     # Board REST endpoints (nodes, connections, batch)
-│   │   │   │   ├── views.py              # board_state, create_node, node_detail, batch_nodes, connection views
-│   │   │   │   ├── serializers.py        # CreateNodeSerializer, UpdateNodeSerializer, BatchNodesSerializer, connection serializers
-│   │   │   │   ├── urls.py               # URL routing (api/ideas/:id/board/)
-│   │   │   │   ├── apps.py              # BoardConfig
 │   │   │   │   └── __init__.py
 │   │   │   ├── collaboration/              # Collaboration REST endpoints (invite, manage, share)
 │   │   │   │   ├── views.py              # Invite, list collaborators, transfer, leave, share link
 │   │   │   │   ├── serializers.py        # InviteSerializer, TransferOwnershipSerializer
-│   │   │   │   ├── urls.py               # URL routing (api/ideas/:id/collaborators/, api/invitations/)
+│   │   │   │   ├── urls.py               # URL routing (api/projects/:id/collaborators/, api/invitations/)
 │   │   │   │   ├── apps.py              # CollaborationConfig
 │   │   │   │   └── __init__.py
-│   │   │   ├── brd/                       # BRD REST endpoints (draft, versions, PDF, AI generation)
+│   │   │   ├── requirements_document/     # Requirements Document REST endpoints (draft, versions, PDF, AI generation)
 │   │   │   │   ├── views.py              # Draft CRUD, generate skeleton, regenerate, regenerate-section, generate-pdf, versions
-│   │   │   │   ├── serializers.py        # UpdateBrdSerializer
-│   │   │   │   ├── urls.py               # URL routing (api/ideas/:id/brd/)
-│   │   │   │   ├── apps.py              # BrdConfig
+│   │   │   │   ├── serializers.py        # UpdateDocumentSerializer
+│   │   │   │   ├── urls.py               # URL routing (api/projects/:id/requirements-document/)
+│   │   │   │   ├── apps.py              # RequirementsDocumentConfig
 │   │   │   │   └── __init__.py
 │   │   │   ├── admin_ai_context/          # Admin AI context bucket management
 │   │   │   │   ├── views.py              # Facilitator + Context Agent bucket GET/PUT endpoints
 │   │   │   │   ├── urls.py               # URL routing (api/admin/ai-context/)
 │   │   │   │   └── __init__.py
-│   │   │   ├── review/                    # Review REST endpoints (list, assign, actions, timeline, similar)
+│   │   │   ├── review/                    # Review REST endpoints (list, assign, actions, timeline)
 │   │   │   │   ├── views.py              # REST endpoint handlers
 │   │   │   │   ├── serializers.py        # Review serializers
-│   │   │   │   ├── urls.py               # URL routing (api/reviews/, api/ideas/:id/review/)
+│   │   │   │   ├── urls.py               # URL routing (api/reviews/, api/projects/:id/review/)
 │   │   │   │   ├── action_urls.py        # Review action URL routing (accept, reject, drop, undo)
 │   │   │   │   ├── apps.py              # ReviewConfig
 │   │   │   │   └── __init__.py
@@ -380,10 +364,8 @@ ziqreq/
 │   │   ├── events/                         # RabbitMQ event integration (publish + consume)
 │   │   │   ├── publisher.py               # Shared RabbitMQ publisher utility (publish_notification_event) — MUST use lazy imports in views
 │   │   │   ├── consumers.py               # BaseEventConsumer, ChatEventConsumer, AiEventConsumer
-│   │   │   ├── board_consumer.py          # BoardEventConsumer
-│   │   │   ├── brd_consumer.py            # BrdEventConsumer (brd.*, ai.brd.generation_complete, ai.processing.failed → WS)
-│   │   │   ├── review_consumer.py         # ReviewEventConsumer (review state changes → WS)
-│   │   │   └── merge_consumer.py          # MergeEventConsumer (merge request + merge completed → WS to both idea groups)
+│   │   │   ├── requirements_document_consumer.py  # RequirementsDocumentEventConsumer (document.*, ai.document.generation_complete, ai.processing.failed → WS)
+│   │   │   └── review_consumer.py         # ReviewEventConsumer (review state changes → WS)
 │   │   ├── middleware/                     # Shared middleware
 │   │   │   ├── error_handling.py          # Consistent error response formatting
 │   │   │   ├── share_link.py             # Share link token validation (?share=<token> → read-only access)
@@ -403,8 +385,8 @@ ziqreq/
 │   │   │   ├── celery.py                  # Celery app configuration
 │   │   │   └── urls.py                    # (minimal — gRPC is primary interface)
 │   │   ├── apps/
-│   │   │   ├── ideas/                     # Idea CRUD, state machine
-│   │   │   │   ├── models.py             # Idea, IdeaCollaborator
+│   │   │   ├── projects/                  # Project CRUD, state machine
+│   │   │   │   ├── models.py             # Project, ProjectCollaborator
 │   │   │   │   ├── services.py           # Business logic (state transitions, validation)
 │   │   │   │   ├── tasks.py              # Celery tasks (soft delete cleanup)
 │   │   │   │   └── tests/
@@ -412,13 +394,9 @@ ziqreq/
 │   │   │   │   ├── models.py             # ChatMessage, AiReaction, UserReaction
 │   │   │   │   ├── services.py
 │   │   │   │   └── tests/
-│   │   │   ├── board/                     # Board nodes, connections
-│   │   │   │   ├── models.py             # BoardNode, BoardConnection
-│   │   │   │   ├── services.py           # Board operations, batch processing
-│   │   │   │   └── tests/
-│   │   │   ├── brd/                       # BRD drafts, versions, submit flow
-│   │   │   │   ├── models.py             # BrdDraft, BrdVersion
-│   │   │   │   ├── services.py           # BRD CRUD, versioning, submit_for_review (state transition + version creation)
+│   │   │   ├── requirements_document/     # Requirements document drafts, versions, submit flow
+│   │   │   │   ├── models.py             # RequirementsDocumentDraft, RequirementsDocumentVersion
+│   │   │   │   ├── services.py           # Document CRUD, versioning, submit_for_review (state transition + version creation)
 │   │   │   │   └── tests/
 │   │   │   ├── review/                    # Review workflow
 │   │   │   │   ├── models.py             # ReviewAssignment, ReviewTimelineEntry
@@ -428,11 +406,6 @@ ziqreq/
 │   │   │   │   ├── models.py             # CollaborationInvitation
 │   │   │   │   ├── services.py
 │   │   │   │   └── tests/
-│   │   │   ├── similarity/                # Keywords, merge requests, vector similarity
-│   │   │   │   ├── models.py             # IdeaKeywords, MergeRequest
-│   │   │   │   ├── services.py           # Keyword matching, merge execution
-│   │   │   │   ├── tasks.py              # Celery tasks (keyword matching sweep)
-│   │   │   │   └── tests/
 │   │   │   └── admin_config/              # Runtime parameters + monitoring
 │   │   │       ├── models.py             # AdminParameter (with data_type, category)
 │   │   │       ├── services.py           # Parameter access, caching
@@ -440,7 +413,7 @@ ziqreq/
 │   │   │       └── tests/
 │   │   ├── grpc_server/                   # gRPC service implementation
 │   │   │   ├── servicers/                 # gRPC servicer classes
-│   │   │   │   └── core_servicer.py      # Single servicer with all RPC methods (ideas, chat, board, brd, review, collaboration, similarity, admin)
+│   │   │   │   └── core_servicer.py      # Single servicer with all RPC methods (projects, chat, requirements_document, review, collaboration, admin)
 │   │   │   ├── tests/
 │   │   │   │   └── test_core_grpc.py     # gRPC integration tests
 │   │   │   └── server.py                  # gRPC server setup
@@ -475,15 +448,11 @@ ziqreq/
 │   │   │   │   ├── models.py             # ChatContextSummary, FacilitatorContextBucket, ContextAgentBucket
 │   │   │   │   └── migrations/
 │   │   │   └── embedding/                 # Embedding tables
-│   │   │       ├── models.py             # ContextChunk, IdeaEmbedding
+│   │   │       ├── models.py             # ContextChunk
 │   │   │       └── migrations/
 │   │   ├── agents/                        # AI agent implementations
 │   │   │   ├── base.py                   # BaseAgent with invoke(), mock mode, retry logic
-│   │   │   ├── facilitator/              # Facilitator agent (6 SK tools)
-│   │   │   │   ├── agent.py
-│   │   │   │   ├── plugins.py
-│   │   │   │   └── prompt.py
-│   │   │   ├── board_agent/              # Board Agent (8 SK tools)
+│   │   │   ├── facilitator/              # Facilitator agent (requirements structuring tools)
 │   │   │   │   ├── agent.py
 │   │   │   │   ├── plugins.py
 │   │   │   │   └── prompt.py
@@ -496,43 +465,29 @@ ziqreq/
 │   │   │   ├── context_extension/        # Context Extension agent (escalated tier, full history search)
 │   │   │   │   ├── agent.py
 │   │   │   │   └── prompt.py
-│   │   │   ├── summarizing_ai/           # Summarizing AI agent (BRD generation, 3 modes)
-│   │   │   │   ├── agent.py
-│   │   │   │   └── prompt.py
-│   │   │   ├── keyword_agent/            # Keyword Agent (cheap tier, extracts abstract keywords)
-│   │   │   │   ├── agent.py
-│   │   │   │   └── prompt.py
-│   │   │   ├── deep_comparison/          # Deep Comparison agent (confirms/denies idea similarity)
-│   │   │   │   ├── agent.py
-│   │   │   │   └── prompt.py
-│   │   │   └── merge_synthesizer/        # Merge Synthesizer agent (produces synthesis for merged ideas)
+│   │   │   └── summarizing_ai/           # Summarizing AI agent (requirements document generation, 3 modes)
 │   │   │       ├── agent.py
 │   │   │       └── prompt.py
 │   │   ├── kernel/                        # Semantic Kernel setup
 │   │   │   ├── sk_factory.py             # SK kernel construction
 │   │   │   ├── model_router.py           # Model tier routing (default/cheap/escalated)
 │   │   │   └── token_tracker.py          # Token usage tracking
-│   │   ├── processing/                    # Chat + BRD processing pipelines
-│   │   │   ├── pipeline.py               # ChatProcessingPipeline (7-step) + BrdGenerationPipeline (4-step)
-│   │   │   ├── context_assembler.py      # Context window assembly from gRPC data (chat + BRD contexts)
+│   │   ├── processing/                    # Chat + Requirements Document processing pipelines
+│   │   │   ├── pipeline.py               # ChatProcessingPipeline (7-step) + DocumentGenerationPipeline (4-step)
+│   │   │   ├── context_assembler.py      # Context window assembly from gRPC data (chat + document contexts)
 │   │   │   ├── fabrication_validator.py  # Fabrication detection (keyword traceability, proper nouns, length)
-│   │   │   └── debouncer.py              # Per-idea debounce with version counters
-│   │   ├── embedding/                      # RAG pipeline utilities + idea embedding
+│   │   │   └── debouncer.py              # Per-project debounce with version counters
+│   │   ├── embedding/                      # RAG pipeline utilities
 │   │   │   ├── chunker.py                # Section-aware + free text chunking (~500 tokens, 50-token overlap)
 │   │   │   ├── embedder.py               # Azure OpenAI text-embedding-3-small wrapper
 │   │   │   ├── reindexer.py              # Full re-index (delete + bulk create) on bucket update
-│   │   │   ├── retriever.py              # pgvector cosine similarity search (sync + async)
-│   │   │   └── idea_embedder.py          # Embed idea content (summary + board + keywords) for similarity detection
+│   │   │   └── retriever.py              # pgvector cosine similarity search (sync + async)
 │   │   ├── fixtures/                      # AI mock mode fixtures (AI_MOCK_MODE=true)
 │   │   │   ├── facilitator_response.json
-│   │   │   ├── board_agent_response.json
 │   │   │   ├── context_compression_response.json
 │   │   │   ├── context_agent_response.json
 │   │   │   ├── context_extension_response.json
-│   │   │   ├── summarizing_ai_response.json
-│   │   │   ├── keyword_agent_response.json
-│   │   │   ├── deep_comparison_response.json
-│   │   │   └── merge_synthesizer_response.json
+│   │   │   └── summarizing_ai_response.json
 │   │   ├── grpc_server/                   # gRPC service implementation
 │   │   │   ├── servicers/
 │   │   │   │   ├── processing_servicer.py # Trigger AI processing
@@ -554,7 +509,6 @@ ziqreq/
 │   │   │   ├── review_events.py           # Review state changes → notifications (review.accepted/rejected/dropped)
 │   │   │   ├── collaboration_events.py    # Invitations, joins, leaves → notifications
 │   │   │   ├── ai_events.py              # AI processing failed → notifications
-│   │   │   ├── similarity_events.py      # Similar idea detected, merge requests → notifications
 │   │   │   └── monitoring_events.py      # Health alerts → email
 │   │   ├── email/                         # Email dispatch (Jinja2 templates, bilingual de/en)
 │   │   │   ├── sender.py                 # Email sending logic with rate limiting (3/user/5min)
@@ -564,7 +518,7 @@ ziqreq/
 │   │   │   └── renderer.py              # Jinja2 template rendering (autoescape=True)
 │   │   ├── grpc_clients/                 # gRPC stubs
 │   │   │   ├── gateway_client.py         # Create notifications + read user preferences (users table owned by gateway)
-│   │   │   └── core_client.py            # Read idea details, reviewer assignments
+│   │   │   └── core_client.py            # Read project details, reviewer assignments
 │   │   ├── main.py                       # Service entry point
 │   │   ├── requirements.txt
 │   │   └── Dockerfile
@@ -572,9 +526,9 @@ ziqreq/
 │   └── pdf/                              # PDF Service (Python + WeasyPrint)
 │       ├── generator/                    # PDF generation logic
 │       │   ├── renderer.py               # HTML-to-PDF rendering
-│       │   └── builder.py                # BRD HTML assembly from sections
+│       │   └── builder.py                # Requirements document HTML assembly from sections
 │       ├── templates/                    # HTML templates for PDF layout
-│       │   └── brd.html                  # BRD PDF template
+│       │   └── requirements_document.html  # Requirements document PDF template
 │       ├── grpc_server/                  # gRPC service
 │       │   ├── servicers/
 │       │   │   └── pdf_servicer.py
@@ -627,28 +581,28 @@ ziqreq/
 
 | Item | Convention | Example |
 |------|-----------|---------|
-| **Files (frontend components)** | kebab-case | `chat-message.tsx`, `board-canvas.tsx` |
-| **Files (frontend features/hooks)** | kebab-case | `use-chat.ts`, `use-board-sync.ts` |
-| **Files (Python modules)** | snake_case | `idea_servicer.py`, `board_agent.py` |
-| **React components** | PascalCase | `ChatMessage`, `BoardCanvas` |
-| **React hooks** | camelCase with `use` prefix | `useChat`, `useBoardSync` |
+| **Files (frontend components)** | kebab-case | `chat-message.tsx`, `requirements-panel.tsx` |
+| **Files (frontend features/hooks)** | kebab-case | `use-chat.ts`, `use-requirements.ts` |
+| **Files (Python modules)** | snake_case | `project_servicer.py`, `facilitator_agent.py` |
+| **React components** | PascalCase | `ChatMessage`, `RequirementsPanel` |
+| **React hooks** | camelCase with `use` prefix | `useChat`, `useRequirements` |
 | **TypeScript functions** | camelCase | `formatDate`, `parseReaction` |
 | **TypeScript types/interfaces** | PascalCase | `ChatMessage`, `BoardNode`, `ApiError` |
 | **TypeScript constants** | UPPER_SNAKE_CASE | `MAX_RETRIES`, `WS_RECONNECT_INTERVAL` |
-| **Python classes** | PascalCase | `IdeaService`, `FacilitatorAgent` |
-| **Python functions/methods** | snake_case | `get_idea_state`, `process_chat_message` |
+| **Python classes** | PascalCase | `ProjectService`, `FacilitatorAgent` |
+| **Python functions/methods** | snake_case | `get_project_state`, `process_chat_message` |
 | **Python constants** | UPPER_SNAKE_CASE | `MAX_KEYWORDS`, `DEFAULT_DEBOUNCE` |
-| **Django models** | PascalCase (singular) | `Idea`, `ChatMessage`, `BoardNode` |
-| **Database tables** | snake_case (plural by Django convention) | `ideas`, `chat_messages`, `board_nodes` |
-| **API routes** | kebab-case | `/api/ideas/:id/merge-request` |
+| **Django models** | PascalCase (singular) | `Project`, `ChatMessage`, `Requirement` |
+| **Database tables** | snake_case (plural by Django convention) | `projects`, `chat_messages`, `requirements` |
+| **API routes** | kebab-case | `/api/projects/:id/requirements-document` |
 | **gRPC services** | PascalCase | `CoreService`, `AiService` |
 | **gRPC methods** | PascalCase | `GetIdeaState`, `ProcessChatMessage` |
 | **Proto files** | snake_case | `core.proto`, `common.proto` |
-| **Proto messages** | PascalCase | `IdeaState`, `ChatMessageRequest` |
+| **Proto messages** | PascalCase | `ProjectState`, `ChatMessageRequest` |
 | **Environment variables** | UPPER_SNAKE_CASE | `DATABASE_URL`, `AZURE_OPENAI_ENDPOINT` |
 | **Docker service names** | kebab-case | `api-gateway`, `celery-worker` |
 | **CSS classes** | Tailwind utilities | `flex items-center gap-2` |
-| **Redux slices** | kebab-case file, camelCase slice name | `board-slice.ts`, `boardSlice` |
+| **Redux slices** | kebab-case file, camelCase slice name | `requirements-slice.ts`, `requirementsSlice` |
 | **Redux actions** | camelCase | `setSelection`, `pushUndoAction` |
 | **i18n keys** | dot-separated namespace, camelCase segments | `chat.sendButton`, `review.acceptAction` |
 | **Test files** | `test_` prefix (Python), `.test.` infix (TypeScript) | `test_idea_service.py`, `chat-message.test.tsx` |
@@ -675,23 +629,22 @@ Page
 └── FeatureComponent (components/<domain>/) ← renders data
 ```
 
-- **Server state** (ideas, chat, BRD, reviews): TanStack Query. Cache invalidated by WebSocket events.
+- **Server state** (projects, chat, requirements documents, reviews): TanStack Query. Cache invalidated by WebSocket events.
 - **Client state** (undo/redo, selections, connection, UI layout): Redux Toolkit slices.
 - **Ephemeral state** (form input, hover): Component-local `useState`.
 
 #### WebSocket Pattern
 - Single `WebSocketClient` class (`lib/ws-client.ts`) manages the session-level connection.
 - On connect: authenticate via token in query parameter.
-- On navigate to idea: send `subscribe_idea`. On leave: send `unsubscribe_idea`.
+- On navigate to project: send `subscribe_project`. On leave: send `unsubscribe_project`.
 - Incoming events dispatch to: Redux actions (client state updates) and/or TanStack Query invalidation (server state refresh).
 - Reconnection with exponential backoff managed by the client.
 
-#### Board Undo/Redo Pattern
-- Redux slice holds action history stack with context-aware labels, bounded to 100 entries.
-- Each board mutation (user or AI) calls `snapshotForUndo` to capture the current state before the mutation fires.
-- Undo pops the stack, restores previous state to the TanStack Query cache via `queryClient.setQueryData` (frontend-only, no REST persistence).
-- Redo reverses an undo. Both undo and redo operate entirely on cached state.
-- AI actions tagged separately for "Undo AI Action" / "Redo AI Action" labels.
+#### Requirements Panel State Pattern
+- Redux slice holds requirements panel state (expanded sections, selected items, drag state).
+- State updates propagate to TanStack Query cache for optimistic UI updates.
+- Server synchronization occurs via REST API (POST/PATCH/DELETE endpoints).
+- WebSocket events from other collaborators trigger cache invalidation and UI refresh.
 
 ### Backend
 
@@ -720,20 +673,20 @@ apps/<domain>/
 Services publish events to the message broker after successful operations:
 ```python
 # In services.py
-def submit_idea_for_review(idea_id, user_id, message, reviewer_ids):
-    # 1. Business logic (state transition, BRD versioning)
-    idea = transition_idea_state(idea_id, 'in_review')
-    version = create_brd_version(idea_id)
+def submit_project_for_review(project_id, user_id, message, reviewer_ids):
+    # 1. Business logic (state transition, document versioning)
+    project = transition_project_state(project_id, 'in_review')
+    version = create_document_version(project_id)
 
     # 2. Publish events (async notification, WebSocket broadcast)
-    publish_event('idea.submitted', {
-        'idea_id': idea_id,
+    publish_event('project.submitted', {
+        'project_id': project_id,
         'user_id': user_id,
         'version_id': version.id,
         'reviewer_ids': reviewer_ids,
     })
 
-    return idea, version
+    return project, version
 ```
 
 Consumers in the notification service, AI service, and gateway pick up events and act.
@@ -830,12 +783,12 @@ Parameters cached in-memory with short TTL. Cache invalidated on admin update vi
 | DATABASE_URL | Yes | PostgreSQL connection string |
 | AZURE_OPENAI_ENDPOINT | Yes | Azure OpenAI endpoint |
 | AZURE_OPENAI_API_KEY | Yes | Azure OpenAI API key |
-| AZURE_OPENAI_API_VERSION | Yes | Azure OpenAI API version |
+| AZURE_OPENAI_API_VERSION | Yes | Azure OpenAI API version (e.g., `2024-02-15-preview`) |
 | BROKER_URL | Yes | Message broker connection |
 | CORE_GRPC_ADDRESS | Yes | Core service gRPC address |
-| AZURE_OPENAI_DEFAULT_DEPLOYMENT | Yes | Default tier deployment name — fallback if `default_ai_model` admin parameter is empty |
+| AZURE_OPENAI_DEFAULT_DEPLOYMENT | Yes | Default tier deployment name — fallback if `default_ai_model` admin parameter is empty (e.g., GPT-4o) |
 | AZURE_OPENAI_CHEAP_DEPLOYMENT | Yes | Cheap tier deployment name (GPT-4o-mini, not admin-configurable) |
-| AZURE_OPENAI_ESCALATED_DEPLOYMENT | Yes | Escalated tier deployment name — fallback if `escalated_ai_model` admin parameter is empty |
+| AZURE_OPENAI_ESCALATED_DEPLOYMENT | Yes | Escalated tier deployment name — fallback if `escalated_ai_model` admin parameter is empty (e.g., GPT-4o) |
 | AZURE_OPENAI_EMBEDDING_DEPLOYMENT | Yes | Embedding model deployment name (text-embedding-3-small) |
 | AI_MOCK_MODE | No | When `true`, agents return fixture data instead of calling Azure OpenAI (E2E testing) |
 
@@ -885,15 +838,14 @@ services:
 
 | Feature Area | Primary Directory | Key Files | Features |
 |-------------|------------------|-----------|----------|
-| Landing Page / Ideas | `frontend/src/pages/landing-page.tsx`, `components/landing/`, `features/ideas/` | Page, HeroSection, IdeaCard, InvitationCard, FilterBar, hooks, API calls | FA-1, FA-9 |
+| Landing Page / Projects | `frontend/src/pages/landing-page.tsx`, `components/landing/`, `features/projects/` | Page, HeroSection, ProjectCard, InvitationCard, FilterBar, hooks, API calls | FA-1, FA-9 |
 | Chat | `frontend/src/components/chat/`, `features/chat/` | ChatPanel, hooks, WS events | FA-2 |
-| Digital Board | `frontend/src/components/board/`, `features/board/`, `store/board-slice.ts` | BoardCanvas, undo/redo, hooks | FA-3 |
-| BRD | `frontend/src/components/brd/`, `features/brd/` | BrdEditor, sections, PDF preview | FA-4 |
-| Similarity & Merge | `frontend/src/components/merge/`, `features/similarity/` | MergeRequestBanner, hooks | FA-5 |
+| Requirements Panel | `frontend/src/components/requirements/`, `features/requirements/`, `store/requirements-slice.ts` | RequirementsPanel, hierarchy tree, sortable list, hooks | FA-3 |
+| Requirements Document | `frontend/src/components/requirements_document/`, `features/requirements_document/` | DocumentEditor, sections, PDF preview | FA-4 |
 | Real-Time | `frontend/src/features/websocket/`, `features/presence/`, `store/websocket-slice.ts` | WS client, presence, reconnection | FA-6 |
 | Authentication | `frontend/src/features/auth/` | MSAL config, route guards, dev bypass | FA-7 |
 | Collaboration | `frontend/src/components/collaboration/`, `features/collaboration/` | InviteDialog, presence | FA-8 |
-| Idea Lifecycle | `services/core/apps/ideas/` | State machine, soft delete | FA-9 |
+| Project Lifecycle | `services/core/apps/projects/` | State machine, soft delete | FA-9 |
 | Review Workflow | `frontend/src/pages/review-page.tsx`, `services/core/apps/review/` | Timeline, actions, assignments | FA-10 |
 | Admin Panel | `frontend/src/pages/admin-panel.tsx`, `frontend/src/components/admin/` | AI context, params, monitoring, users | FA-11 |
 | Notifications | `frontend/src/components/notification/`, `services/notification/` | Bell, list, email dispatch | FA-12 |
@@ -913,7 +865,7 @@ services:
 ## Key Decisions
 
 1. **Monorepo over multi-repo** — single product, shared proto definitions, one team, simpler CI/CD.
-2. **Core as one service** — ideas, chat, board, collaboration, review, and similarity are too tightly coupled to split without excessive cross-service calls.
+2. **Core as one service** — projects, chat, collaboration, and review are tightly coupled to the project lifecycle. Splitting would create excessive cross-service calls.
 3. **Shared PostgreSQL instance** — pragmatic for ~2,000 users. Logical separation by service (own tables, own migrations). Can split later if needed.
 4. **Celery workers share core codebase** — standard pattern. Separate containers, same code and database.
 5. **Feature-based frontend organization** — `features/` for business logic (hooks, API calls), `components/` for UI. Clear separation of concerns.

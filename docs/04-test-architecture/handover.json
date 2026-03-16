@@ -2,7 +2,7 @@
   "from": "test_architect",
   "to": "strategy_planner",
   "timestamp": "2026-03-05T12:00:00Z",
-  "summary": "345 test specifications defined across 8 layers (revised from 309). 256 feature/API/entity/UI tests (219 P1, 34 P2, 3 P3), 43 integration scenarios (37 P1, 6 P2), 46 runtime safety specs (44 P1, 2 P2). 10 AI-specific safety tests. Revision added 36 specifications covering language detection, board references, input validation, monitoring service, manual merge, recursive merge integrity, context re-indexing safety, and Celery worker stability.",
+  "summary": "345 test specifications defined across 8 layers (revised from 309). 256 feature/API/entity/UI tests (219 P1, 34 P2, 3 P3), 43 integration scenarios (37 P1, 6 P2), 46 runtime safety specs (44 P1, 2 P2). Updated for refactoring: 'Project' terminology, requirements panel (replacing board), hierarchical requirements document, two project types (software/non-software), removed merge/similarity functionality.",
   "files_produced": [
     "docs/04-test-architecture/test-plan.md",
     "docs/04-test-architecture/test-matrix.md",
@@ -54,17 +54,17 @@
       "P3": 3
     },
     "critical_risks": [
-      "AI function calling infinite loops (Facilitator max 3 rounds, Board Agent max 10 rounds)",
-      "AI fabrication in BRD generation (Summarizing AI highest risk agent)",
-      "Cross-idea context isolation (AI must never leak data between ideas)",
-      "Idea state machine integrity (5 states, 8 valid transitions, many invalid paths)",
-      "Merge operation atomicity (creates new idea, closes originals, transfers ownership)",
-      "Recursive merge 2-owner enforcement (co-owner demotion on re-merge)",
-      "WebSocket connection lifecycle (leaks, reconnection, idle timeout)",
+      "AI function calling infinite loops (Facilitator max 3 rounds, Requirements Structure Agent max 10 rounds)",
+      "AI fabrication in requirements document generation (highest risk agent)",
+      "Cross-project context isolation (AI must never leak data between projects)",
+      "Project state machine integrity (5 states, 8 valid transitions, many invalid paths)",
       "Rate limit counter accuracy under concurrent access",
       "AI processing abort-and-restart on new message (no partial state)",
       "Context re-indexing atomicity (old chunks preserved until new chunks succeed)",
-      "Soft delete cleanup partial failure resilience (per-idea error isolation)"
+      "WebSocket connection lifecycle (leaks, reconnection, idle timeout)",
+      "Requirements document version immutability",
+      "Two project types (software/non-software) with different requirement structures",
+      "Hierarchical requirements document JSON structure validation"
     ]
   },
   "test_infrastructure": {
@@ -72,18 +72,19 @@
     "frontend_fixtures": 7,
     "mock_services": 7,
     "composite_scenarios": 5,
-    "ai_fixture_files": 8,
+    "ai_fixture_files": 6,
     "seed_data_entities": 8
   },
   "revision_notes": {
     "date": "2026-03-05",
-    "reason": "Improvement assessment identified 36 missing test specifications across all documents",
+    "reason": "Major refactoring: Idea → Project, Brainstorming → Requirements Assembly, Board → Requirements Panel",
     "changes": {
-      "test_matrix": "+26 tests (F-2.2 language detection, F-3.8 board reference action, F-4.12 similar ideas in review, F-5.8 manual merge, F-6.6 connection indicator, F-11.5 monitoring service, F-13.3 role-based notification groups, input validation edge cases)",
-      "integration_scenarios": "+5 scenarios (read-only link access, admin context re-indexing, collaborator removal chain, manual merge recovery, recursive merge)",
-      "runtime_safety": "+5 specs (LOOP-008 soft delete cleanup, TIMEOUT-007 context re-indexing, LEAK-007 Celery memory, INTEGRITY-009 recursive merge, INTEGRITY-010 monitoring alert singleton)",
-      "test_fixtures": "+1 factory (MonitoringAlertConfigFactory), +1 composite scenario (CollaborationFlow), fixed resubmission version links",
-      "test_plan": "Added visual regression strategy, WebSocket coverage depth note"
+      "terminology": "All references updated from 'idea' to 'project', 'brainstorming' to 'requirements structuring', 'BRD' to 'Requirements Document'",
+      "removed_features": "Board/canvas (XYFlow), merge/similarity system, keyword matching, board agent, merge synthesizer",
+      "added_features": "Requirements panel (structured accordion), project types (software/non-software), hierarchical requirements document, update_requirements_structure AI tool",
+      "test_matrix": "Updated fixture builders, removed board/merge tests, added requirements panel tests",
+      "integration_scenarios": "Removed board/merge scenarios, added requirements panel interaction scenarios",
+      "runtime_safety": "Removed board agent tests, updated requirements structure mutation testing"
     }
   },
   "next_commands": [

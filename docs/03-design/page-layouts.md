@@ -34,7 +34,7 @@ Every authenticated page shares this structure:
 
 ```
 +=========================================================================+
-| [CR] ZiqReq   |  Ideas  Reviews*  Admin*  | *Online  [bell]3  [JD v]   |
+| [CR] ZiqReq   |  Projects  Reviews*  Admin*  | *Online  [bell]3  [JD v]   |
 +=========================================================================+
   ^brand block     ^nav links (role-gated)    ^utility items
 
@@ -46,7 +46,7 @@ Detailed layout:
 ```
 +=========================================================================+
 |                                                                         |
-|  [logo][16px] ZiqReq    [24px]   Ideas   Reviews   Admin               |
+|  [logo][16px] ZiqReq    [24px]   Projects   Reviews   Admin               |
 |                                                                         |
 |                          *Online   [bell] 3   [avatar v]               |
 |                                                                         |
@@ -56,7 +56,7 @@ Detailed layout:
 | Zone | Content | Alignment |
 |------|---------|-----------|
 | Left | CR ribbon logo (24px h) + "ZiqReq" (Gotham Bold 18px, white) | `flex items-center gap-4` |
-| Center-Left | Nav links: Ideas, Reviews*, Admin* (Gotham Medium 14px) | `flex items-center gap-2` |
+| Center-Left | Nav links: Projects, Reviews*, Admin* (Gotham Medium 14px) | `flex items-center gap-2` |
 | Right | Connection dot + label, Bell + badge, User avatar + dropdown caret | `flex items-center gap-3` |
 
 - Nav links use `padding: 8px 12px`, `rounded: 6px`
@@ -76,7 +76,7 @@ Detailed layout:
 ```
 
 - Hamburger menu (left) toggles a slide-in sheet (from left)
-- Sheet contains: Ideas, Reviews*, Admin* as full-width links
+- Sheet contains: Projects, Reviews*, Admin* as full-width links
 - Brand block stays visible in center
 - Right utility items remain inline (condensed)
 
@@ -118,11 +118,9 @@ Detailed layout:
 |  |                                                                   | |
 |  |                    HERO SECTION                                   | |
 |  |                                                                   | |
-|  |         "What workflow could be improved?"                        | |
+|  |         "Ready to define your next project?"                      | |
 |  |                                                                   | |
-|  |    +-------------------------------------------------------+     | |
-|  |    |  Start typing your idea...                        [>] |     | |
-|  |    +-------------------------------------------------------+     | |
+|  |                    [+ New Project]                                | |
 |  |                                                                   | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
@@ -130,20 +128,20 @@ Detailed layout:
 |  |  [Search by title...        ]  [State v]  [Ownership v]          | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
-|  MY IDEAS                                                    (N items)  |
+|  MY PROJECTS                                                 (N items)  |
 |  +-------------------------------------------------------------------+ |
-|  |  * Idea Title                               Open    2h ago    ... | |
-|  +-------------------------------------------------------------------+ |
-|  +-------------------------------------------------------------------+ |
-|  |  * Another Idea                          In Review   1d ago    ... | |
+|  |  * Project Title                  [SW]     Open    2h ago    ... | |
 |  +-------------------------------------------------------------------+ |
 |  +-------------------------------------------------------------------+ |
-|  |  * Third Idea                            Accepted    3d ago    ... | |
+|  |  * Another Project             [NON-SW] In Review   1d ago    ... | |
+|  +-------------------------------------------------------------------+ |
+|  +-------------------------------------------------------------------+ |
+|  |  * Third Project                  [SW]  Accepted    3d ago    ... | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
-|  COLLABORATING                                               (N items)  |
+|  COLLABORATING PROJECTS                                      (N items)  |
 |  +-------------------------------------------------------------------+ |
-|  |  * Shared Idea (by Anna M.)                 Open    5h ago    ... | |
+|  |  * Shared Project (by Anna M.)    [SW]     Open    5h ago    ... | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
 |  INVITATIONS                                                 (N items)  |
@@ -153,7 +151,7 @@ Detailed layout:
 |                                                                         |
 |  TRASH                                                       (N items)  |
 |  +-------------------------------------------------------------------+ |
-|  |  Deleted Idea                    Deletes in 28d    [Restore]      | |
+|  |  Deleted Project                 Deletes in 28d    [Restore]      | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
 +=========================================================================+
@@ -166,16 +164,50 @@ Detailed layout:
 - Padding: `48px` vertical, `32px` horizontal
 - Heading: Gotham Bold, `text-2xl` (24px), centered
 - Subtext: Gotham Book, `text-base`, `text-secondary`, centered
-- Input: full-width, `h-12`, `rounded-md` (8px), `text-base`
-- Input has a send/arrow icon button on the right
-- On type + enter/click: creates new idea, navigates to `/idea/<uuid>`
+- Button: Primary button, "+ New Project", centered
+- On click: opens New Project Modal (see § 3.3)
 
-### 3.3 Idea Card
+### 3.3 New Project Modal
+
+Triggered by clicking "+ New Project" button in Hero Section.
+
+```
++------------- Modal (max-w-2xl, centered) ----------------+
+|  Create New Project                               [x]    |
++----------------------------------------------------------+
+|                                                          |
+|  Select Project Type:                                    |
+|                                                          |
+|  +----------------------+    +----------------------+    |
+|  |                      |    |                      |    |
+|  |   [Software Icon]    |    | [Non-Software Icon]  |    |
+|  |                      |    |                      |    |
+|  |  Software Project    |    | Non-Software Project |    |
+|  |                      |    |                      |    |
+|  | Epics & User Stories |    | Milestones & Work    |    |
+|  |                      |    | Packages             |    |
+|  |                      |    |                      |    |
+|  +----------------------+    +----------------------+    |
+|                                                          |
+|                                          [Create]        |
++----------------------------------------------------------+
+```
+
+| Property | Value |
+|----------|-------|
+| Width | `max-w-2xl` (672px) |
+| Backdrop | `bg-black/50`, click-outside closes |
+| Cards | Large selectable cards, `bg-surface`, `border-2`, `rounded-lg`, `p-6` |
+| Selected state | `border-primary`, gold border glow |
+| Icons | Lucide `Code` for Software, Lucide `Briefcase` for Non-Software |
+| Create button | Primary button, disabled until selection made, navigates to `/project/<uuid>` |
+
+### 3.4 Project Card
 
 ```
 +-------------------------------------------------------------------+
 |                                                                   |
-|  * Idea Title Text Here                                           |
+|  * Project Title Text Here                        [SW]            |
 |     Last updated 2 hours ago                                      |
 |                                                                   |
 |                                          [State Badge]    [...]   |
@@ -186,52 +218,54 @@ Detailed layout:
 - Card: `bg-surface`, `rounded-md` (8px), `shadow-sm`, `border`
 - Padding: `16-20px`
 - Title: Gotham Medium, `text-base`, `text-primary`
+- Type badge: Small pill badge, `text-xs`, "SW" (software) or "NON-SW" (non-software), positioned near title
 - Timestamp: Gotham Book, `text-sm`, `text-secondary`
-- State badge: pill shape (`rounded-full`), `text-xs`, uses idea state colors
+- State badge: pill shape (`rounded-full`), `text-xs`, uses project state colors
 - Three-dot menu (`...`): opens dropdown with Delete (soft delete)
 - Hover: `shadow-md`, `cursor-pointer`
-- Click: navigates to `/idea/<uuid>`
+- Click: navigates to `/project/<uuid>`
 
-### 3.4 Section Headers
+### 3.5 Section Headers
 
 - Gotham Bold, `text-lg` (18px), `text-primary`
 - Item count on the right: `text-sm`, `text-muted`
 - Bottom border: `border-b` for visual separation
-- Sections with no items: show contextual empty state with relevant icon and message (see § 3.7)
+- Sections with no items: show contextual empty state with relevant icon and message (see § 3.8)
 
-### 3.5 Invitation Card
+### 3.6 Invitation Card
 
 - Same card styling but with accent left border (`border-l-4 border-primary`)
-- Shows inviter name, idea title
+- Shows inviter name, project title
 - Two action buttons: Accept (primary), Decline (ghost/outline)
 
-### 3.6 Filters
+### 3.7 Filters
 
 - Search input: `w-64`, `h-10`, magnifying glass icon
 - State dropdown: shadcn Select, options: All / Open / In Review / Accepted / Dropped / Rejected
-- Ownership dropdown: shadcn Select, options: All / My Ideas / Collaborating
+- Ownership dropdown: shadcn Select, options: All / My Projects / Collaborating
+- Type dropdown: shadcn Select, options: All / Software / Non-Software
 - Filters row: `flex items-center gap-3`, below hero, above first list
 
-### 3.7 Empty States
+### 3.8 Empty States
 
 Each section shows a contextual empty state with a relevant Lucide icon and message:
 
-- My Ideas (empty): Lucide `Lightbulb` icon + "Start your first brainstorm" text
-- Collaborating (empty): Lucide `Users` icon + contextual message
+- My Projects (empty): Lucide `FolderOpen` icon + "Create your first project" text
+- Collaborating Projects (empty): Lucide `Users` icon + contextual message
 - Invitations (empty): Lucide `Mail` icon + contextual message
 - Trash (empty): Lucide `Trash2` icon + "Trash is empty" muted text
-- No results (filtered): Lucide `SearchX` icon + "No ideas match your filters" + clear filters link
+- No results (filtered): Lucide `SearchX` icon + "No projects match your filters" + clear filters link
 
-### 3.8 Responsive
+### 3.9 Responsive
 
 | Breakpoint | Change |
 |-----------|--------|
-| Tablet (md) | Cards stack single-column, hero padding reduces |
+| Tablet (md) | Cards stack single-column, hero padding reduces, modal project type cards stack vertically |
 | Mobile (sm) | Filters stack vertically, search full-width, filter dropdowns full-width |
 
 ---
 
-## 4. Idea Workspace (`/idea/<uuid>`)
+## 4. Project Workspace (`/project/<uuid>`)
 
 This is the most complex page. It has two vertical zones:
 
@@ -239,10 +273,10 @@ This is the most complex page. It has two vertical zones:
 +=========================================================================+
 | NAVBAR                                                                  |
 +=========================================================================+
-| WORKSPACE HEADER (idea title, controls, presence)                       |
+| WORKSPACE HEADER (project title, type badge, controls, presence)        |
 +---------+---------------------------------------------------------------+
 |         |                                                               |
-|  CHAT   |  BOARD TAB / REVIEW TAB                                      |
+|  CHAT   |  STRUCTURED REQUIREMENTS PANEL                               |
 |  PANEL  |                                                               |
 |  (40%)  |  (60%)                                                        |
 |         |                                                               |
@@ -255,7 +289,7 @@ This is the most complex page. It has two vertical zones:
 +=========================================================================+
 | REVIEW SECTION (below fold, full viewport height)                       |
 |                                                                         |
-|  BRD Preview + State + Reviewer(s)                                      |
+|  Requirements Document Preview + State + Reviewer(s)                    |
 |                                                                         |
 |  TIMELINE (comments, state changes, resubmissions)                      |
 |                                                                         |
@@ -266,7 +300,7 @@ This is the most complex page. It has two vertical zones:
 
 ```
 +=========================================================================+
-|  [< Back]   Idea Title (editable)              [Interactive v]          |
+|  [< Back]   Project Title (editable) [SW]      [Interactive v]          |
 |                                          [avatars] [+ Invite] [...]     |
 +=========================================================================+
 ```
@@ -274,36 +308,37 @@ This is the most complex page. It has two vertical zones:
 | Element | Detail |
 |---------|--------|
 | Back button | `<` icon + "Back" text, navigates to Landing Page |
-| Idea title | Gotham Bold, `text-xl` (20px), inline-editable (click to edit) |
+| Project title | Gotham Bold, `text-xl` (20px), inline-editable (click to edit) |
+| Type badge | Small pill badge, "SW" or "NON-SW", non-editable, positioned next to title |
 | Agent mode dropdown | "Interactive" / "Silent", shadcn Select, `w-40` |
 | Presence indicators | Avatar circles (28px), stacked with overlap (-8px margin), idle = dimmed, max 4 visible + "+N" overflow |
 | Invite button | Ghost button, `+ Invite`, opens collaborator management |
-| Three-dot menu | Dropdown: Share link, Delete idea, (owner-only actions) |
+| Three-dot menu | Dropdown: Share link, Delete project, (owner-only actions) |
 
 - Header: `bg-surface`, `border-b`, `h-14`, `px-4`
 - Sticky below navbar: `position: sticky; top: 56px; z-index: 30`
 
-### 4.2 Brainstorming Section — Chat Panel (Left, 40%)
+### 4.2 Define Section — Chat Panel (Left, 40%)
 
 ```
 +----------------------------------------+
 |                                        |
-|  [AI] Welcome! What workflow would     |
-|  you like to improve?                  |
+|  [AI] Welcome! Let's define the        |
+|  requirements for your project.        |
 |                         10:32 AM       |
 |                                        |
 |            Our invoice processing is   |
 |            really slow. [You]          |
 |            10:33 AM                    |
 |                                        |
-|  [AI] I understand. Let me look       |
-|  into that...                          |   <-- delegation msg (de-emphasized)
+|  [AI] I understand. Let me structure   |
+|  that...                               |   <-- delegation msg (de-emphasized)
 |                         10:33 AM       |
 |                                        |
 |  [AI] Based on your company's         |
 |  current systems, here's what I found: |
-|  The invoice workflow uses [SAP FI]    |   <-- board ref (clickable)
-|  module and involves...                |
+|  I've created [Epic: Invoice Process]  |   <-- requirements ref (clickable)
+|  with initial user stories...          |
 |                            10:34 AM    |   <-- AI reaction
 |                                        |
 |  --- AI is processing ---              |   <-- processing indicator
@@ -324,189 +359,204 @@ This is the most complex page. It has two vertical zones:
 | Timestamps | `text-xs`, `text-muted`, below message |
 | AI reactions | Small emoji below AI message, `text-xs` |
 | User reactions | Clickable reaction row below other users' messages |
-| Board references | Inline link, `text-primary` with underline, gold hover |
+| Requirements references | Inline link, `text-primary` with underline, gold hover, scrolls to requirement in panel |
 | @mention suggestions | Dropdown above input, `shadow-lg`, shows user list + @ai |
 | Input area | `border-t`, `bg-surface`, `p-3` |
 | Input field | `h-10`, full-width, `rounded-md` |
 | Context indicator | Small filling circle icon (left of input), shows context window usage, tooltip on hover |
 | Rate limit lockout | Input disabled, overlay message "AI is processing, please wait..." (F-2.11) |
 
-### 4.3 Brainstorming Section — Right Panel Tabs
+### 4.3 Define Section — Structured Requirements Panel (Right Panel, 60%)
+
+The right panel shows the hierarchical requirements structure based on project type.
+
+**Process Steps:**
+- **Define:** Chat + Requirements Panel side by side (current view)
+- **Structure:** Full-width requirements editor with inline editing + PDF preview
+- **Review:** Review section (below fold)
+
+### 4.4 Requirements Panel — Software Project
+
+For Software projects, shows Epics and User Stories in an accordion structure:
 
 ```
 +---------------------------------------------------------------+
-|  [Board]  [Review]                                             |
+|  Requirements                                   [+ Add Epic]  |
 +---------------------------------------------------------------+
-|                                                                |
-|            TAB CONTENT                                         |
-|                                                                |
-+---------------------------------------------------------------+
-```
-
-**M9 Tab Visibility Update:**
-- **Board tab:** Always visible
-- **Review tab:** Visible when idea state is 'open' (always visible during brainstorming). Previous spec required first submission; M9 simplified UX — users can view/prepare BRD before submitting.
-
-- Tab bar: `border-b`, Gotham Medium `text-sm`
-- Active tab: gold underline (`border-b-2 border-primary`), `text-primary`
-- Inactive tab: `text-muted`, hover: `text-secondary`
-- Tab content fills remaining height below tab bar
-
-### 4.4 Board Tab (Right Panel)
-
-```
-+---------------------------------------------------------------+
-|  [Board]  [Review]                                             |
-+---------------------------------------------------------------+
-|  [+ Box] [Delete] [Fit] [Undo] [Redo]                         |
-+-------+-------------------------------------------------+-----+
-|       |                                                 |     |
-|       |     +--Group: User Pain Points--------+         |     |
-|       |     |                                  |         |     |
-|       |     |  +--Box: Slow Invoices--+ [ai]   |         |     |
-|       |     |  | * 3 day processing   |        |         |     |
-|       |     |  | * Manual entry       |  [pin] |         |     |
-|       |     |  +----------+-----------+        |         |     |
-|       |     |             |                    |         |     |
-|       |     |             | "causes"           |         |     |
-|       |     |             v                    |         |  M  |
-|       |     |  +--Box: Bottleneck-----+ [ai]   |         |  i  |
-|       |     |  | * Approval delays    |        |         |  n  |
-|       |     |  | * Missing signatures |  [pin] |         |  i  |
-|       |     |  +----------------------+        |         |  m  |
-|       |     |                                  |         |  a  |
-|       |     +----------------------------------+         |  p  |
-|       |                                                 |     |
-|       |              Free Text: "Important note"        |     |
-|       |                                                 |     |
-+-------+-------------------------------------------------+-----+
-  grid    ^^^^^^^^^canvas (React Flow)^^^^^^^^^^^^^^^^^    minimap
-```
-
-| Element | Styling |
-|---------|---------|
-| Toolbar | `border-b`, `bg-surface`, `h-10`, `px-2`, `flex items-center gap-1` |
-| Toolbar buttons | Icon buttons, `h-8 w-8`, `rounded`, hover `bg-muted` |
-| Undo/Redo labels | Context-aware: "Undo AI Action" when last action was AI (F-3.4) |
-| Canvas | React Flow canvas, `bg-background` with dot grid pattern |
-| Box nodes | `bg-surface`, `border`, `rounded-md` (8px), `shadow-sm`, `min-w-48` |
-| Box title | Gotham Medium `text-sm`, `border-b`, `px-3 py-2` |
-| Box body | Gotham Book `text-sm`, `px-3 py-2`, bullet list |
-| Group nodes | `border-2 border-dashed`, `rounded-lg`, label at top-left |
-| Free Text | No background/border, Gotham Book `text-sm`, directly on canvas |
-| AI badge | Small robot icon (Lucide `Bot`), top-right of AI-created nodes |
-| AI modified indicator | Gold dot/glow, fades on user selection |
-| Lock icon | Lucide `Lock` small, bottom-right of locked nodes |
-| Reference button | Lucide `Pin` icon, top-right corner of each node, inserts ref into chat |
-| Connections | Smooth step edges, `stroke: var(--border-strong)`, label on double-click |
-| Minimap | Bottom-right, `120x80px`, `border`, `rounded-sm`, `shadow-sm` |
-| Zoom controls | Bottom-left, vertical button group: +, -, fit |
-| User selection highlight | Colored border matching user avatar color, name tooltip |
-
-### 4.5 Review Tab (Right Panel)
-
-```
-+---------------------------------------------------------------+
-|  [Board]  [Review]                                             |
-+---------------------------------------------------------------+
-|                                                                |
-|  +--PDF Preview-----------------------------------------+      |
-|  |                                                      | [...] |
-|  |   BUSINESS REQUIREMENTS DOCUMENT                     |      |
-|  |   ===================================               |      |
-|  |                                                      |      |
-|  |   Title: Invoice Processing Optimization             |      |
-|  |                                                      |      |
-|  |   1. Short Description                               |      |
-|  |   The invoice processing workflow at Commerz Real...  |      |
-|  |                                                      |      |
-|  |   2. Current Workflow & Pain Points                   |      |
-|  |   ...                                                |      |
-|  |                                                      |      |
-|  +------------------------------------------------------+      |
-|                                                                |
-|  [Edit Document]           Progress: ####-- 4/6 ready          |
-|                                                                |
-|  +--Submit----------------------------------------------+      |
-|  |  Message (optional):                                 |      |
-|  |  +------------------------------------------------+  |      |
-|  |  |  Add a note for the reviewer...                |  |      |
-|  |  +------------------------------------------------+  |      |
-|  |  Assign reviewer: [Search reviewers...        v]     |      |
-|  |                                        [Submit >]    |      |
-|  +------------------------------------------------------+      |
-|                                                                |
+|                                                               |
+|  > Epic 1: User Authentication                         [ai]   |
+|    --------------------------------------------------------   |
+|    |  [::] US-1: Login with SSO                      [edit]|   |
+|    |  [::] US-2: Password reset flow                 [edit]|   |
+|    |  [+ Add User Story]                                  |   |
+|    --------------------------------------------------------   |
+|                                                               |
+|  v Epic 2: Invoice Processing                          [ai]   |
+|    --------------------------------------------------------   |
+|    |  [::] US-3: Upload invoice document             [edit]|   |
+|    |  [::] US-4: Extract data with OCR               [edit]|   |
+|    |  [::] US-5: Validate against rules              [edit]|   |
+|    |  [+ Add User Story]                                  |   |
+|    --------------------------------------------------------   |
+|                                                               |
+|  > Epic 3: Reporting                                   [ai]   |
+|    (collapsed)                                                |
+|                                                               |
 +---------------------------------------------------------------+
 ```
 
 | Element | Styling |
 |---------|---------|
+| Header | `border-b`, `bg-surface`, `px-4 py-3`, Gotham Bold `text-base` |
+| Add Epic button | Primary outline button, top-right of header |
+| Epic row | `bg-surface`, `border`, `rounded-md`, `p-3`, collapsible |
+| Epic title | Gotham Medium `text-sm`, inline-editable on click |
+| Epic collapse icon | Lucide `ChevronRight` (collapsed) / `ChevronDown` (expanded) |
+| AI badge | Small robot icon (Lucide `Bot`), top-right, for AI-created items |
+| User Story row | `bg-muted/30`, `border-l-2 border-primary`, `p-2`, `mb-1` |
+| Drag handle | `[::]` icon, left side, drag to reorder |
+| Story title | Gotham Book `text-sm`, inline-editable |
+| Edit button | Lucide `Pencil` icon, opens inline editor for full description |
+| Add User Story | Text button, `text-primary`, bottom of expanded epic |
+| Empty state | "No epics yet. Add your first epic to start." with icon |
+
+### 4.5 Requirements Panel — Non-Software Project
+
+For Non-Software projects, shows Milestones and Work Packages:
+
+```
++---------------------------------------------------------------+
+|  Requirements                              [+ Add Milestone]  |
++---------------------------------------------------------------+
+|                                                               |
+|  > Milestone 1: Planning Phase                         [ai]   |
+|    --------------------------------------------------------   |
+|    |  [::] WP-1: Stakeholder interviews              [edit]|   |
+|    |  [::] WP-2: Requirements gathering              [edit]|   |
+|    |  [+ Add Work Package]                                |   |
+|    --------------------------------------------------------   |
+|                                                               |
+|  v Milestone 2: Implementation                         [ai]   |
+|    --------------------------------------------------------   |
+|    |  [::] WP-3: Vendor selection                    [edit]|   |
+|    |  [::] WP-4: System configuration                [edit]|   |
+|    |  [+ Add Work Package]                                |   |
+|    --------------------------------------------------------   |
+|                                                               |
++---------------------------------------------------------------+
+```
+
+- Same styling as Software panel, but with Milestones instead of Epics
+- Work Packages (WP-N) instead of User Stories (US-N)
+
+### 4.6 Requirements Panel — Shared Features
+
+- Drag and drop: reorder epics/milestones, reorder stories/work packages within parent
+- Inline editing: click title to edit in place
+- AI indicators: gold glow on newly AI-modified items, fades after 3s
+- Keyboard navigation: Arrow keys, Enter to expand/collapse, Tab to navigate
+- Search/filter: search bar at top filters visible items (future enhancement)
+
+### 4.7 Structure Step — Full-Width Requirements Editor
+
+When user transitions from Define to Structure step, the layout changes:
+
+```
++=========================================================================+
+| NAVBAR                                                                  |
++=========================================================================+
+| WORKSPACE HEADER (project title, type badge, controls)                  |
++=========================================================================+
+|                                                                         |
+|  STRUCTURED REQUIREMENTS EDITOR                                         |
+|                                                                         |
+|  +--Epics/Milestones------------------------+  +--PDF Preview-------+  |
+|  |                                          |  |                    |  |
+|  | > Epic 1: User Authentication            |  | Requirements Doc   |  |
+|  |   [::] US-1: Login with SSO              |  |                    |  |
+|  |   [::] US-2: Password reset              |  | [Document preview] |  |
+|  |                                          |  |                    |  |
+|  | v Epic 2: Invoice Processing             |  |                    |  |
+|  |   [::] US-3: Upload invoice              |  |                    |  |
+|  |   [::] US-4: Extract data                |  |                    |  |
+|  |                                          |  |                    |  |
+|  | [Inline detailed editors per item]      |  |                    |  |
+|  |                                          |  |                    |  |
+|  +------------------------------------------+  +--------------------+  |
+|                                                                         |
+|  [Regenerate Document]                         Progress: ####-- 4/6    |
+|                                                                         |
+|  +--Submit for Review---------------------------------------------------+|
+|  |  Message (optional): [Add a note for the reviewer...            ]   ||
+|  |  Assign reviewer: [Search reviewers...                      v]      ||
+|  |                                                      [Submit >]      ||
+|  +---------------------------------------------------------------------+|
+|                                                                         |
++=========================================================================+
+```
+
+| Element | Styling |
+|---------|---------|
+| Layout | Side-by-side: Requirements editor (50%) + PDF preview (50%), draggable divider |
+| Requirements editor | Same accordion structure as Define step, but with expanded inline editing |
 | PDF preview | `bg-white` (always white for document), `border`, `rounded-md`, `shadow-sm`, scrollable |
-| Three-dot menu | Download PDF action |
-| Edit button | Opens expandable edit area (slides left, overlaps chat panel) |
-| Progress indicator | Horizontal bar, segmented per BRD section, filled = ready, empty = insufficient (F-4.8) |
+| Regenerate button | Secondary button, triggers AI to rebuild document from requirements structure |
+| Progress indicator | Horizontal bar, shows completeness of requirements |
 | Submit area | `border-t`, `pt-4`, message textarea + reviewer selector + submit button |
 | Submit button | Primary button, Gotham Bold |
 
-### 4.6 Expandable Edit Area (Review Tab)
+### 4.8 Inline Requirement Editing
 
-When "Edit Document" is clicked, the edit area slides in from the right, overlapping the chat panel:
+When editing a specific Epic/Milestone or User Story/Work Package, an inline editor expands:
 
 ```
 +---------------------------------------------------------------+
-|  [Board]  [Review]                                             |
+|  Requirements                                   [+ Add Epic]  |
 +---------------------------------------------------------------+
-| Edit BRD                                            [x Close]  |
-+---------------------------------------------------------------+
-|                                                                |
-|  [ ] Allow Information Gaps                                    |
-|                                                                |
-|  1. Short Description                            [lock] [regen]|
-|  +----------------------------------------------------------+ |
-|  |  The invoice processing workflow at Commerz Real          | |
-|  |  currently requires manual data entry...                  | |
-|  +----------------------------------------------------------+ |
-|                                                                |
-|  2. Current Workflow & Pain Points               [open] [regen]|
-|  +----------------------------------------------------------+ |
-|  |  Not enough information.                                  | |
-|  +----------------------------------------------------------+ |
-|                                                                |
-|  3. Affected Department / Business Area          [open] [regen]|
-|  +----------------------------------------------------------+ |
-|  |  Finance department, specifically the accounts            | |
-|  |  payable team.                                            | |
-|  +----------------------------------------------------------+ |
-|                                                                |
-|  [Regenerate unlocked sections]  [Instruction: __________ ]   |
-|  [Regenerate PDF]                                              |
-|  [Undo AI] [Redo AI]                                           |
-|                                                                |
+|                                                               |
+|  v Epic 2: Invoice Processing                          [ai]   |
+|    --------------------------------------------------------   |
+|    |  [::] US-3: Upload invoice document             [edit]|   |
+|    |                                                        |   |
+|    |  +--Editing US-3--------------------------------+    |   |
+|    |  | Title: Upload invoice document              |    |   |
+|    |  | Description:                                 |    |   |
+|    |  | [Rich text area with full details...]       |    |   |
+|    |  |                                              |    |   |
+|    |  | Acceptance Criteria:                         |    |   |
+|    |  | [ ] User can select PDF/image files          |    |   |
+|    |  | [ ] File size limit 10MB                     |    |   |
+|    |  | [+ Add criterion]                            |    |   |
+|    |  |                                              |    |   |
+|    |  | [Regenerate] [lock]               [Save]    |    |   |
+|    |  +----------------------------------------------+    |   |
+|    |                                                        |   |
+|    |  [::] US-4: Extract data with OCR               [edit]|   |
+|    |  [::] US-5: Validate against rules              [edit]|   |
+|    --------------------------------------------------------   |
+|                                                               |
 +---------------------------------------------------------------+
 ```
 
 | Element | Detail |
 |---------|--------|
-| Slide animation | `framer-motion` slide from right, `width: 100%` of right panel (overlaps chat) |
-| Close button | `x` icon, top-right, returns to PDF preview |
-| Allow Info Gaps toggle | shadcn Switch component, top of edit area (F-4.9) |
-| Section fields | Label + lock icon + regenerate icon per section |
-| Lock icon | Lucide `Lock` (locked, user-edited, excluded from AI regen) / Lucide `LockOpen` (unlocked) (F-4.4) |
-| Regenerate per section | Lucide `RefreshCw` icon button, only on unlocked sections |
-| Section textarea | Auto-growing textarea, `text-base`, `border`, `rounded-md` |
-| `/TODO` markers | Highlighted with `bg-warning/20 text-warning` inline |
-| Regenerate all | Button, regenerates all unlocked sections |
-| Instruction field | Optional text input for regeneration guidance |
-| Undo/Redo AI | Local undo/redo for AI text changes only |
+| Expanded editor | Slides down within the epic/milestone accordion, full width |
+| Title field | Single-line input, Gotham Medium `text-sm` |
+| Description | Rich text area (markdown support), auto-growing |
+| Acceptance criteria | Checkbox list, editable, add/remove items |
+| Regenerate button | Lucide `RefreshCw`, AI rewrites based on chat context |
+| Lock icon | Lucide `Lock` (locked, user-edited) / `LockOpen` (unlocked, AI can modify) |
+| Save button | Primary button, saves and collapses editor |
+| Cancel (X) | Discards changes, collapses editor |
 
-### 4.7 Review Section (Below Fold)
+### 4.9 Review Section (Below Fold)
 
-Visible only after idea has been submitted for review at least once.
+Visible only after project has been submitted for review at least once.
 
 ```
 +=========================================================================+
 |                                                                         |
-|  +---BRD Preview (small)--+  Invoice Processing     In Review          |
+|  +---Doc Preview (small)-+  Invoice Processing     In Review   [SW]    |
 |  |  [thumbnail]           |  Optimization                              |
 |  |                         |  Reviewer: Anna Schmidt                    |
 |  +-------------------------+                                            |
@@ -514,7 +564,7 @@ Visible only after idea has been submitted for review at least once.
 +----- TIMELINE -----------------------------------------------------------+
 |                                                                         |
 |  * Submitted for review                            Mar 1, 2026 10:45   |
-|  |  "Please review this improvement idea for the finance dept."         |
+|  |  "Please review these requirements for the finance dept."            |
 |  |                                                                      |
 |  * Anna Schmidt assigned herself                   Mar 1, 2026 11:02   |
 |  |                                                                      |
@@ -529,31 +579,26 @@ Visible only after idea has been submitted for review at least once.
 |  * Resubmitted (v1 > v2)                          Mar 2, 2026 15:00   |
 |  |  [Download v1]  [Download v2]                                        |
 |  |                                                                      |
-|  SIMILAR IDEAS                                                          |
-|  +---------------------------------------------------------------+     |
-|  |  "Payment Automation" -- 8 keyword matches                [>] |     |
-|  |  "AP Workflow Digitization" -- 6 keyword matches          [>] |     |
-|  +---------------------------------------------------------------+     |
-|                                                                         |
 +=========================================================================+
 ```
 
 | Element | Styling |
 |---------|---------|
 | Top area | `bg-surface`, `border-b`, `p-6`, always visible |
-| BRD thumbnail | Small preview image/card, `w-20 h-28`, `border`, `rounded-sm` |
-| State badge | Pill badge with idea state color |
+| Document thumbnail | Small preview image/card, `w-20 h-28`, `border`, `rounded-sm` |
+| Project title | Gotham Bold `text-lg` |
+| Type badge | Small pill badge, "SW" or "NON-SW" |
+| State badge | Pill badge with project state color |
 | Reviewer name(s) | Gotham Medium `text-sm` |
 | Timeline | Vertical line (left border), entries as nodes |
 | State change entries | `text-muted`, italic, system-generated |
 | Comments | User avatar + name + timestamp + text, `bg-surface`, `border`, `rounded-md`, `p-4` |
 | Nested replies | Indented 24px, connected to parent |
 | Resubmission entries | Version links as download buttons, both old and new version |
-| Similar ideas | Section at bottom, cards with title + keyword match count, click to navigate (FA-5) |
 
-### 4.8 Section Locking by Idea State
+### 4.10 Section Locking by Project State
 
-| State | Brainstorming (top) | Review Section (bottom) |
+| State | Define/Structure (top) | Review Section (bottom) |
 |-------|--------------------|-----------------------|
 | Open | Editable | Hidden |
 | In Review | Locked (read-only, dimmed) | Active, scrolled to |
@@ -561,16 +606,16 @@ Visible only after idea has been submitted for review at least once.
 | Accepted | Read-only | Read-only, scrolled to |
 | Dropped | Read-only | Read-only, scrolled to |
 
-- Locked sections: `opacity-70`, no cursor changes, input fields `disabled`, overlay message "Idea is in review"
+- Locked sections: `opacity-70`, no cursor changes, input fields `disabled`, overlay message "Project is in review"
 - Auto-scroll: `scrollIntoView({ behavior: 'smooth' })` to the active section on state change (FA-1)
 
-### 4.9 Responsive — Idea Workspace
+### 4.11 Responsive — Project Workspace
 
 | Breakpoint | Layout Change |
 |-----------|--------------|
-| Desktop (xl+) | Side-by-side: 40% chat / 60% board, draggable divider |
-| Tablet (lg) | Stacked panels OR tab-based toggle (chat <> board), no divider |
-| Mobile (sm-md) | Tab-based toggle: Chat / Board (read-only) / Review. Board is view-only on mobile. Full-width panels. |
+| Desktop (xl+) | Side-by-side: 40% chat / 60% requirements panel, draggable divider |
+| Tablet (lg) | Stacked panels OR tab-based toggle (chat <> requirements), no divider |
+| Mobile (sm-md) | Tab-based toggle: Chat / Requirements / Review. Requirements panel scrollable with accordion collapsed by default. Full-width panels. |
 
 ---
 
@@ -590,17 +635,17 @@ Visible only after idea has been submitted for review at least once.
 |                                                                         |
 |  ASSIGNED TO ME                                                (N items)|
 |  +-------------------------------------------------------------------+ |
-|  |  Invoice Processing Optimization                                  | |
+|  |  Invoice Processing Optimization                          [SW]    | |
 |  |     by John Doe * Submitted Mar 1         In Review    [Open >]   | |
 |  +-------------------------------------------------------------------+ |
 |  +-------------------------------------------------------------------+ |
-|  |  HR Onboarding Digitization                                       | |
+|  |  HR Onboarding Digitization                            [NON-SW]   | |
 |  |     by Maria K. * Submitted Feb 28        In Review    [Open >]   | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
 |  UNASSIGNED                                                    (N items)|
 |  +-------------------------------------------------------------------+ |
-|  |  Facility Booking System                                          | |
+|  |  Facility Booking System                               [NON-SW]   | |
 |  |     by Tom R. * Submitted Mar 2           In Review  [Assign v]   | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
@@ -616,7 +661,7 @@ Visible only after idea has been submitted for review at least once.
 ```
 +-------------------------------------------------------------------+
 |                                                                   |
-|  Idea Title                                                       |
+|  Project Title                                        [SW]        |
 |     by Owner Name * Submitted [date]                              |
 |                                                                   |
 |                                          [State Badge]  [Action]  |
@@ -627,10 +672,11 @@ Visible only after idea has been submitted for review at least once.
 | Element | Detail |
 |---------|--------|
 | Card | Same styling as landing page cards |
+| Type badge | Small pill badge, "SW" or "NON-SW" |
 | Author | Gotham Book `text-sm`, `text-secondary` |
 | Date | Relative time |
-| Action button | "Open >" for assigned ideas, "Assign v" (self-assign) for unassigned |
-| Click | Navigates to `/idea/<uuid>` (scrolls to review section) |
+| Action button | "Open >" for assigned projects, "Assign v" (self-assign) for unassigned |
+| Click | Navigates to `/project/<uuid>` (scrolls to review section) |
 
 ### 5.3 Collapsed History Sections
 
@@ -641,7 +687,7 @@ Visible only after idea has been submitted for review at least once.
 
 ### 5.4 Conflict of Interest
 
-- If a reviewer's own idea appears in the queue, it shows a muted card with "Your idea — cannot self-review" text, no action button
+- If a reviewer's own project appears in the queue, it shows a muted card with "Your project — cannot self-review" text, no action button
 
 ### 5.5 Responsive
 
@@ -683,22 +729,25 @@ Visible only after idea has been submitted for review at least once.
 ```
 +-------------------------------------------------------------------+
 |                                                                   |
-|  FACILITATOR BUCKET                                               |
-|  Table of contents describing available company context           |
+|  [Global]  [Software]  [Non-Software]                             |
+|  ---------------------------------------------------------------  |
+|                                                                   |
+|  FACILITATOR CONTEXT                                              |
+|  Instructions for the AI facilitator (applies to selected type)   |
 |                                                                   |
 |  +-------------------------------------------------------------+ |
 |  |                                                             | |
 |  |  [Rich text editor / textarea]                              | |
 |  |                                                             | |
-|  |  Contents of the facilitator bucket...                      | |
+|  |  Facilitator instructions for this project type...          | |
 |  |                                                             | |
 |  +-------------------------------------------------------------+ |
 |  [Save Changes]                                                   |
 |                                                                   |
 |  ---------------------------------------------------------------  |
 |                                                                   |
-|  CONTEXT AGENT BUCKET                                             |
-|  Detailed company information for the context agent               |
+|  COMPANY CONTEXT                                                  |
+|  Detailed company information for context (applies to selected)   |
 |                                                                   |
 |  Section: Existing Applications                                   |
 |  +-------------------------------------------------------------+ |
@@ -724,6 +773,8 @@ Visible only after idea has been submitted for review at least once.
 +-------------------------------------------------------------------+
 ```
 
+- Three sub-tabs: Global (applies to all), Software, Non-Software
+- Each sub-tab shows both Facilitator and Company context for that scope
 - Two clearly separated buckets with distinct headings
 - Each bucket: heading + description + editor + save button
 - Visual divider (`border-t` or `hr`) between buckets
@@ -734,7 +785,7 @@ Visible only after idea has been submitted for review at least once.
 +-------------------------------------------------------------------+
 |                                                                   |
 |  Runtime Parameters                                               |
-|  Changes apply immediately to all active ideas.                   |
+|  Changes apply immediately to all active projects.                |
 |                                                                   |
 |  +------------------------------+----------+----------+---------+ |
 |  | Parameter                    | Current  | Default  |  Action | |
@@ -753,9 +804,6 @@ Visible only after idea has been submitted for review at least once.
 |  | Max retry attempts           |    3     |    3     | [Edit]  | |
 |  | DLQ alert threshold          |   10     |   10     | [Edit]  | |
 |  | Health check interval        |  60 sec  |  60 sec  | [Edit]  | |
-|  | Max keywords per idea        |   20     |   20     | [Edit]  | |
-|  | Min keyword overlap          |    7     |    7     | [Edit]  | |
-|  | Similarity time limit        | 6 months | 6 months | [Edit]  | |
 |  +------------------------------+----------+----------+---------+ |
 |                                                                   |
 +-------------------------------------------------------------------+
@@ -774,12 +822,12 @@ Visible only after idea has been submitted for review at least once.
 |  System Health                                      Last: 30s ago |
 |                                                                   |
 |  +----------+  +----------+  +----------+  +----------+          |
-|  | Active   |  | Ideas    |  | Online   |  | AI Succ  |          |
+|  | Active   |  | Projects |  | Online   |  | AI Succ  |          |
 |  | Conns    |  |          |  | Users    |  | Rate     |          |
 |  |   147    |  |  1,234   |  |    89    |  | 98.2%    |          |
 |  +----------+  +----------+  +----------+  +----------+          |
 |                                                                   |
-|  Ideas by State                                                   |
+|  Projects by State                                                |
 |  Open: ################---- 823                                   |
 |  In Review: ####------------ 201                                  |
 |  Accepted: ##-------------- 134                                   |
@@ -811,7 +859,7 @@ Visible only after idea has been submitted for review at least once.
 | KPI cards | `bg-surface`, `border`, `rounded-md`, `p-4`, 4-column grid |
 | KPI value | Gotham Bold `text-2xl` |
 | KPI label | Gotham Book `text-sm`, `text-secondary` |
-| State bars | Horizontal bars, colored by idea state colors |
+| State bars | Horizontal bars, colored by project state colors |
 | Health table | shadcn Table, status dots use semantic colors |
 | DLQ count | Highlighted `text-error` if above threshold |
 | Alert recipients | Chip/badge list, toggle on/off, add button |
@@ -832,7 +880,7 @@ Visible only after idea has been submitted for review at least once.
 |  |  John Doe                                                    | |
 |  |     john.doe@commerzreal.de                                  | |
 |  |     Roles: User, Reviewer                                    | |
-|  |     Ideas: 12  |  Reviews: 8  |  Contributions: 5            | |
+|  |     Projects: 12  |  Reviews: 8  |  Contributions: 5        | |
 |  +-------------------------------------------------------------+ |
 |                                                                   |
 +-------------------------------------------------------------------+
@@ -862,7 +910,7 @@ Visible only after idea has been submitted for review at least once.
 |                         [CR Logo - large]                               |
 |                                                                         |
 |                            ZiqReq                                       |
-|                   AI-Guided Brainstorming                               |
+|                   Requirements Assembly Platform                        |
 |                                                                         |
 |                   [ Sign in with Microsoft ]                            |
 |                                                                         |
@@ -884,10 +932,10 @@ Visible only after idea has been submitted for review at least once.
 
 ## 8. Draggable Divider
 
-The divider between Chat and Board/Review panels in the Idea Workspace:
+The divider between Chat and Requirements panels in the Project Workspace:
 
 ```
-        Chat (40%)      Board (60%)
+        Chat (40%)      Requirements (60%)
             |               |
             |   |           |
             |   | <-- divider (draggable)
@@ -900,7 +948,7 @@ The divider between Chat and Board/Review panels in the Idea Workspace:
 | Width | 4px visible, 12px hit area (for easier grabbing) |
 | Color | `var(--border)` default, `var(--primary)` on hover/drag |
 | Cursor | `col-resize` |
-| Min panel width | Chat: 280px, Board: 320px |
+| Min panel width | Chat: 280px, Requirements Panel: 320px |
 | Snap points | None — continuous drag |
 | Persistence | Divider position saved in `localStorage` per user |
 | Animation | None on drag (real-time), smooth `200ms` on double-click reset to 40/60 |
@@ -909,20 +957,20 @@ The divider between Chat and Board/Review panels in the Idea Workspace:
 
 ## 9. Floating Windows
 
-### 9.1 Ideas List (Navbar Button)
+### 9.1 Projects List (Navbar Button)
 
-Triggered by clicking "Ideas" in navbar. Floating panel, anchored below navbar.
+Triggered by clicking "Projects" in navbar. Floating panel, anchored below navbar.
 
 ```
 +------- Floating Window (w-80, right-aligned) --------+
-|  Ideas                                        [x]    |
+|  Projects                                     [x]    |
 +------------------------------------------------------+
 |  [Active]  [In Review]  [Accepted]  [Closed]         |
 +------------------------------------------------------+
 |                                                       |
-|  Invoice Processing                    Open           |
-|  HR Onboarding                         Open           |
-|  Shared Idea (collab)                  Open           |
+|  Invoice Processing [SW]           Open              |
+|  HR Onboarding [NON-SW]            Open              |
+|  Shared Project (collab) [SW]      Open              |
 |                                                       |
 |  (empty tabs hidden)                                  |
 |                                                       |
@@ -933,12 +981,12 @@ Triggered by clicking "Ideas" in navbar. Floating panel, anchored below navbar.
 |----------|-------|
 | Width | `w-80` (320px) |
 | Max height | `max-h-[70vh]`, scrollable |
-| Position | Below navbar, anchored to "Ideas" button |
+| Position | Below navbar, anchored to "Projects" button |
 | Shadow | `shadow-lg` |
 | Radius | `rounded-lg` (12px) |
 | Close | `x` button or click outside |
 | Tabs | Active (open + rejected, own + collab), In Review, Accepted, Closed (dropped + trashed). Hidden when empty. |
-| Items | Compact: title + state badge, click navigates to idea |
+| Items | Compact: title + type badge + state badge, click navigates to project |
 
 ### 9.2 Notification Bell Panel
 
@@ -952,7 +1000,7 @@ Triggered by clicking "Ideas" in navbar. Floating panel, anchored below navbar.
 |     [Accept]  [Decline]                               |
 |                                                       |
 |  Review accepted: Invoice Processing         1d ago   |
-|     Anna Schmidt accepted your idea.                  |
+|     Anna Schmidt accepted your project.               |
 |                                                       |
 |  @mention from Tom R.                        1d ago   |
 |     "...can you check the budget section?"            |
@@ -983,7 +1031,7 @@ Triggered from user dropdown > "Email Preferences".
 |     [x] Invitation received                           |
 |     [x] Collaborator joined                           |
 |     [x] Collaborator left                             |
-|     [x] Removed from idea                             |
+|     [x] Removed from project                          |
 |     [x] Ownership transferred                         |
 |                                                       |
 |  [ ] Review                                           |
@@ -993,15 +1041,10 @@ Triggered from user dropdown > "Email Preferences".
 |  [ ] Chat                                             |
 |     [x] @mentions                                     |
 |                                                       |
-|  [ ] Similarity                                       |
-|     [x] Similar idea detected                         |
-|     [x] Merge request                                 |
-|     [x] Merge accepted/declined                       |
-|                                                       |
 |  (Reviewer-only, if applicable)                       |
 |  [ ] Review Management                                |
-|     [x] New idea submitted                            |
-|     [x] Idea assigned to me                           |
+|     [x] New project submitted                         |
+|     [x] Project assigned to me                        |
 |     ...                                               |
 |                                                       |
 |  (Admin-only, if applicable)                          |
@@ -1046,7 +1089,7 @@ Triggered by "Show Logs" button on error toast (FA-14).
 |                                                          |
 |  Console Output:                                         |
 |  +------------------------------------------------------+|
-|  | [14:23:44] POST /api/ideas/abc123/process             ||
+|  | [14:23:44] POST /api/projects/abc123/process           ||
 |  | [14:23:45] Error: 500 -- model_overloaded             ||
 |  +------------------------------------------------------+|
 |                                                          |
@@ -1066,7 +1109,7 @@ Triggered by "Show Logs" button on error toast (FA-14).
 
 ### 10.2 Collaborator Management
 
-Triggered by "Invite" button or collaborator dropdown in workspace (FA-8).
+Triggered by "Invite" button in project workspace (FA-8).
 
 ```
 +------------- Modal (max-w-md, centered) -----------------+
@@ -1101,7 +1144,7 @@ Triggered by "Invite" button or collaborator dropdown in workspace (FA-8).
 
 ---
 
-## 11. Banners (Contextual, Idea Workspace)
+## 11. Banners (Contextual, Project Workspace)
 
 Banners appear between the workspace header and the panel content. They push content down.
 
@@ -1109,7 +1152,7 @@ Banners appear between the workspace header and the panel content. They push con
 
 ```
 +=========================================================================+
-| Anna Schmidt invited you to collaborate on this idea.                   |
+| Anna Schmidt invited you to collaborate on this project.                |
 |                                               [Accept]  [Decline]      |
 +=========================================================================+
 ```
@@ -1117,24 +1160,10 @@ Banners appear between the workspace header and the panel content. They push con
 - `bg-info-bg`, `border border-info`, `rounded-md`, `p-4`
 - Full-width within workspace
 - Accept: primary button. Decline: ghost button.
-- Accept > become collaborator, banner disappears, idea unlocks
+- Accept > become collaborator, banner disappears, project unlocks
 - Decline > redirect to landing page
 
-### 11.2 Merge Request Banner
-
-```
-+=========================================================================+
-| Merge request from "Payment Automation" (by Tom R.)                     |
-|    Your idea is locked until you respond.                               |
-|                                               [Accept]  [Decline]      |
-+=========================================================================+
-```
-
-- `bg-warning-bg`, `border border-warning`, `rounded-md`, `p-4`
-- Idea is locked while banner is shown
-- Accept > merge proceeds. Decline > permanently dismissed, idea unlocks.
-
-### 11.3 Offline Banner
+### 11.2 Offline Banner
 
 ```
 +=========================================================================+
@@ -1181,14 +1210,14 @@ Position: top-right corner, stacked vertically, `z-60`.
 | Breakpoint | Navbar | Landing | Workspace | Review Page | Admin |
 |-----------|--------|---------|-----------|-------------|-------|
 | Desktop (xl+) | Full links | Card grid | Split panels 40/60 | Card grid | Tab layout |
-| Tablet (lg) | Full links | 2-col grid | Tab toggle (chat/board) | 2-col grid | Tab layout |
+| Tablet (lg) | Full links | 2-col grid | Tab toggle (chat/requirements) | 2-col grid | Tab layout |
 | Tablet (md) | Hamburger | Single col | Tab toggle | Single col | Tabs > dropdown |
-| Mobile (sm) | Hamburger | Single col | Tab toggle, board read-only | Single col | Scrollable |
+| Mobile (sm) | Hamburger | Single col | Tab toggle, requirements scrollable | Single col | Scrollable |
 
 ### 13.1 Mobile-Specific Patterns
 
 - Hamburger menu: slide-in sheet from left, contains nav links
 - Touch targets: minimum 44px on all interactive elements
 - Swipe: supported on floating panels (swipe down to dismiss)
-- Board: read-only on mobile — zoom and pan only, no editing
+- Requirements panel: scrollable accordion on mobile, collapsed by default for better overview
 - Bottom sheet: modals on mobile become bottom sheets (slide up from bottom)

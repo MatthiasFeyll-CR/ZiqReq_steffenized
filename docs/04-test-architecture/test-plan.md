@@ -8,7 +8,7 @@
 
 This document defines the overall test architecture for ZiqReq. It builds on the Software Architect's `testing-strategy.md` (which defines framework choices, file organization, test patterns, and CI pipeline) and goes deeper into concrete coverage standards, test utility design, and non-functional testing requirements.
 
-**Relationship to `docs/02-architecture/testing-strategy.md`:** The architect's document remains the authoritative source for framework selection, test file organization, test boundaries, testing patterns (8 patterns), test data strategy, CI pipeline structure, and test environment configuration. This document extends it with coverage enforcement details, shared utility specifications, and non-functional testing requirements. There is no duplication — this plan references the architect's decisions and adds the layer needed for test case specification.
+**Relationship to `docs/02-architecture/testing-strategy.md`:** The architect's document remains the authoritative source for framework selection, test file organization, test boundaries, testing patterns (7 patterns), test data strategy, CI pipeline structure, and test environment configuration. This document extends it with coverage enforcement details, shared utility specifications, and non-functional testing requirements. There is no duplication — this plan references the architect's decisions and adds the layer needed for test case specification.
 
 ---
 
@@ -37,7 +37,7 @@ Defined in `docs/02-architecture/testing-strategy.md` § Test File Organization.
 | Frontend E2E | `frontend/e2e/` | `*.spec.ts` | `npx playwright test` |
 | Backend unit | `services/{service}/apps/{app}/tests/test_*.py` | `test_services.py`, `test_models.py` | `pytest services/{service}/` |
 | Backend integration | Same as unit (Django convention) | `test_views.py` | `pytest services/{service}/` |
-| gRPC contract | `services/{service}/grpc_server/tests/test_*_servicer.py` | `test_idea_servicer.py` | `pytest services/{service}/` |
+| gRPC contract | `services/{service}/grpc_server/tests/test_*_servicer.py` | `test_project_servicer.py` | `pytest services/{service}/` |
 | WebSocket | `services/gateway/apps/websocket/tests/` | `test_consumers.py` | `pytest services/gateway/` |
 | E2E cross-service | `e2e/` at repo root | `*.spec.ts` | `npx playwright test --config=e2e/playwright.config.ts` |
 | AI agent | `services/ai/agents/*/tests/test_*.py` | `test_agent.py` | `pytest services/ai/` |
@@ -56,10 +56,10 @@ These are utilities that tests will use across the project. They prevent duplica
 | `createTestStore` | Creates a pre-configured Redux store with optional initial state overrides | `frontend/src/test/helpers/store.ts` |
 | `createMockWebSocket` | Mock WebSocket connection that can emit server events | `frontend/src/test/helpers/websocket.ts` |
 | `mockAuthUser` | Returns a mock MSAL user context with configurable roles | `frontend/src/test/helpers/auth.ts` |
-| `buildIdeaFixture` | Factory for idea objects with sensible defaults | `frontend/src/test/fixtures/idea.ts` |
+| `buildProjectFixture` | Factory for project objects with sensible defaults | `frontend/src/test/fixtures/project.ts` |
 | `buildChatMessageFixture` | Factory for chat message objects | `frontend/src/test/fixtures/chat.ts` |
-| `buildBoardNodeFixture` | Factory for board node objects | `frontend/src/test/fixtures/board.ts` |
-| `buildBrdDraftFixture` | Factory for BRD draft objects | `frontend/src/test/fixtures/brd.ts` |
+| `buildRequirementItemFixture` | Factory for requirement item objects (epic/story/milestone/work package) | `frontend/src/test/fixtures/requirements.ts` |
+| `buildRequirementsDocumentFixture` | Factory for requirements document draft objects | `frontend/src/test/fixtures/requirements-document.ts` |
 | `buildNotificationFixture` | Factory for notification objects | `frontend/src/test/fixtures/notification.ts` |
 | `waitForQuerySettled` | Wait for TanStack Query to settle (no pending queries) | `frontend/src/test/helpers/query.ts` |
 
@@ -68,12 +68,11 @@ These are utilities that tests will use across the project. They prevent duplica
 | Utility | Purpose | Location |
 |---------|---------|----------|
 | `UserFactory` | factory_boy factory for users with configurable roles | `services/core/tests/factories.py` (shared) |
-| `IdeaFactory` | Factory for ideas in various states | `services/core/tests/factories.py` |
+| `ProjectFactory` | Factory for projects in various states (software/non-software types) | `services/core/tests/factories.py` |
 | `ChatMessageFactory` | Factory for chat messages (user + AI) | `services/core/tests/factories.py` |
-| `BoardNodeFactory` | Factory for board nodes (box, group, free_text) | `services/core/tests/factories.py` |
-| `BrdDraftFactory` | Factory for BRD drafts with section content | `services/core/tests/factories.py` |
+| `RequirementItemFactory` | Factory for requirement items (epics, stories, milestones, work packages) | `services/core/tests/factories.py` |
+| `RequirementsDocumentDraftFactory` | Factory for requirements document drafts with hierarchical structure | `services/core/tests/factories.py` |
 | `ReviewAssignmentFactory` | Factory for reviewer assignments | `services/core/tests/factories.py` |
-| `MergeRequestFactory` | Factory for merge requests in various states | `services/core/tests/factories.py` |
 | `MockGrpcClient` | Reusable mock for gRPC client calls with configurable responses | `services/gateway/tests/helpers/grpc_mock.py` |
 | `MockBrokerPublisher` | Captures published events for assertion | `services/core/tests/helpers/broker_mock.py` |
 | `AuthenticatedAPIClient` | DRF APIClient with pre-authenticated user | `services/gateway/tests/helpers/api_client.py` |
@@ -84,8 +83,8 @@ These are utilities that tests will use across the project. They prevent duplica
 |---------|---------|----------|
 | `MockAzureOpenAI` | Returns fixture responses keyed by agent type and scenario | `services/ai/tests/helpers/mock_openai.py` |
 | `AgentTestHarness` | Base class for testing any agent: sets up kernel, mocks, validates output | `services/ai/tests/helpers/agent_harness.py` |
-| `FacilitatorFixtures` | Pre-built facilitator input scenarios (new idea, long conversation, delegation) | `services/ai/tests/fixtures/facilitator.py` |
-| `BrdFixtures` | Pre-built BRD generation scenarios (full, selective, gaps mode) | `services/ai/tests/fixtures/brd.py` |
+| `FacilitatorFixtures` | Pre-built facilitator input scenarios (new project, long conversation, delegation) | `services/ai/tests/fixtures/facilitator.py` |
+| `RequirementsDocumentFixtures` | Pre-built requirements document generation scenarios (full, selective, gaps mode) | `services/ai/tests/fixtures/requirements_document.py` |
 
 ---
 
@@ -100,9 +99,9 @@ These are utilities that tests will use across the project. They prevent duplica
 | Frontend components | 60% | 75% | Advisory | Component rendering and interaction |
 | Frontend hooks/features | 70% | 85% | CI gate | State management and data fetching logic |
 | Frontend utilities | 90% | 95% | CI gate | Pure functions with clear inputs/outputs |
-| Redux slices | 90% | 95% | CI gate | Undo/redo, WebSocket state, UI state — critical for correctness |
+| Redux slices | 90% | 95% | CI gate | WebSocket state, UI state — critical for correctness |
 | AI agent boundary tests | 70% | 85% | CI gate | Agent output validation, guardrail enforcement |
-| E2E critical paths | 100% of 13 flows | — | CI gate | All flows listed in architect's testing-strategy.md |
+| E2E critical paths | 100% of 12 flows | — | CI gate | All flows listed in architect's testing-strategy.md |
 
 ### Coverage Exclusions
 - Auto-generated code (proto stubs, migration files, Django management commands)
@@ -182,7 +181,7 @@ Stage 4: Coverage Report
 |----------|----------|-----------|
 | Component snapshots (Vitest) | **Not used** | Snapshot tests are brittle and produce noisy diffs on any styling change. React Testing Library behavior tests are sufficient for component correctness. |
 | Visual regression (Percy/Chromatic) | **Deferred** | Too heavy for initial development. Can be added post-MVP if theme/design drift becomes a problem. Playwright screenshots capture regressions in E2E for now. |
-| Playwright visual comparison | **Selective** | Enabled for the 13 critical E2E flows only. `toHaveScreenshot()` assertions on key page states (landing, workspace, review, admin) in both light and dark mode. Baseline screenshots stored in repo. Threshold: 0.1% pixel difference. |
+| Playwright visual comparison | **Selective** | Enabled for the 12 critical E2E flows only. `toHaveScreenshot()` assertions on key page states (landing, workspace, review, admin) in both light and dark mode. Baseline screenshots stored in repo. Threshold: 0.1% pixel difference. |
 
 ### WebSocket Testing Strategy — Depth Note
 

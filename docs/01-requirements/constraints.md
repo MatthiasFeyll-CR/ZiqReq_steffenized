@@ -48,7 +48,7 @@ Technology decisions (languages, frameworks, libraries, infrastructure) were def
 4. Role assignment (Reviewer, Admin) is managed by IT administrators in Azure AD, not within the application.
 5. Azure OpenAI models are provisioned and accessible from the application's Azure environment.
 6. Email service is available for notification delivery and monitoring alerts.
-7. Mobile users accept read-only board functionality; primary usage is desktop.
+7. Mobile users accept read-only requirements panel functionality; primary usage is desktop.
 
 ## Dependencies
 

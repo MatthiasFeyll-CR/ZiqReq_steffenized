@@ -1,10 +1,10 @@
 # Test Matrix
 
-> **Status:** Definitive (revised)
-> **Date:** 2026-03-05 (originally 2026-03-04)
-> **Author:** Test Architect (Phase 4b)
-> **Input:** All validated specs from phases [1]–[4]
-> **Revision:** Added 26 missing test cases identified during improvement assessment
+> **Status:** Definitive (revised for refactoring)
+> **Date:** 2026-03-16 (originally 2026-03-04)
+> **Author:** Test Architect (Phase 4b + Refactoring)
+> **Input:** All validated specs from phases [1]–[4], `REFACTORING_PLAN.md`
+> **Revision:** Updated for project-based terminology, removed board/merge features, added requirements panel features
 
 This document maps every feature, API endpoint, data entity, and page to specific test cases at each testing layer. Every test case traces back to a requirement ID, endpoint, or entity.
 
@@ -17,21 +17,21 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 
 ## 1. Feature Tests
 
-### FA-1: Idea Workspace
+### FA-1: Project Workspace
 
-#### F-1.1: Idea Page Layout
+#### F-1.1: Project Page Layout
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-1.1.01 | Unit | Two-panel layout renders with draggable divider | Default idea state | Chat left, Board/Review tabs right | P1 |
+| T-1.1.01 | Unit | Two-panel layout renders with draggable divider | Default project state | Chat left, Requirements/Review tabs right | P1 |
 | T-1.1.02 | Unit | Divider drag resizes panels proportionally | Drag event to 30%/70% | Panels resize, min width respected | P2 |
-| T-1.1.03 | Unit | Board tab is default active in context panel | Idea state = open | Board tab selected | P1 |
+| T-1.1.03 | Unit | Requirements tab is default active in context panel | Project state = open | Requirements tab selected | P1 |
 
 #### F-1.2: Section Visibility
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-1.2.01 | Unit | Review section hidden for never-submitted idea | `has_been_submitted=false` | Review section not in DOM | P1 |
+| T-1.2.01 | Unit | Review section hidden for never-submitted project | `has_been_submitted=false` | Review section not in DOM | P1 |
 | T-1.2.02 | Unit | Review section visible after first submission | `has_been_submitted=true` | Review section rendered | P1 |
 | T-1.2.03 | Unit | Review section persists across all states after submission | States: open, in_review, rejected, accepted, dropped | Review section always visible | P1 |
 
@@ -39,32 +39,32 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-1.3.01 | Unit | Scroll to brainstorming on `open` state entry | Navigate to idea in `open` state | scrollIntoView called on brainstorming section | P2 |
+| T-1.3.01 | Unit | Scroll to definition on `open` state entry | Navigate to project in `open` state | scrollIntoView called on definition section | P2 |
 | T-1.3.02 | Unit | Scroll to review on `in_review` state entry | State changes to `in_review` | scrollIntoView called on review section | P2 |
-| T-1.3.03 | Unit | Scroll to brainstorming on `rejected` state | State changes to `rejected` | scrollIntoView to brainstorming | P2 |
+| T-1.3.03 | Unit | Scroll to definition on `rejected` state | State changes to `rejected` | scrollIntoView to definition | P2 |
 
 #### F-1.4: Section Locking
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-1.4.01 | Unit | Open state: brainstorming editable, review hidden | `state=open, has_been_submitted=false` | Chat input enabled, board editable | P1 |
-| T-1.4.02 | Unit | In Review: brainstorming locked (read-only) | `state=in_review` | Chat input disabled, board read-only | P1 |
-| T-1.4.03 | Unit | Rejected: brainstorming editable, review visible read-only | `state=rejected` | Chat enabled, review section read-only | P1 |
+| T-1.4.01 | Unit | Open state: definition editable, review hidden | `state=open, has_been_submitted=false` | Chat input enabled, requirements editable | P1 |
+| T-1.4.02 | Unit | In Review: definition locked (read-only) | `state=in_review` | Chat input disabled, requirements read-only | P1 |
+| T-1.4.03 | Unit | Rejected: definition editable, review visible read-only | `state=rejected` | Chat enabled, review section read-only | P1 |
 | T-1.4.04 | Unit | Accepted: everything read-only | `state=accepted` | All inputs disabled | P1 |
 | T-1.4.05 | Unit | Dropped: everything read-only | `state=dropped` | All inputs disabled | P1 |
 
-#### F-1.5: Idea Lifecycle State Transitions
+#### F-1.5: Project Lifecycle State Transitions
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-1.5.01 | Integration | Open → In Review via submit | POST /api/ideas/:id/submit | State = in_review, BRD version created | P1 |
-| T-1.5.02 | Integration | In Review → Accepted via reviewer accept | POST /api/ideas/:id/review/accept | State = accepted | P1 |
-| T-1.5.03 | Integration | In Review → Dropped via reviewer drop | POST /api/ideas/:id/review/drop with comment | State = dropped | P1 |
-| T-1.5.04 | Integration | In Review → Rejected via reviewer reject | POST /api/ideas/:id/review/reject with comment | State = rejected | P1 |
-| T-1.5.05 | Integration | Rejected → In Review via resubmit | POST /api/ideas/:id/submit | State = in_review, new BRD version | P1 |
-| T-1.5.06 | Integration | Accepted → In Review via undo | POST /api/ideas/:id/review/undo with comment | State = in_review | P1 |
-| T-1.5.07 | Integration | Dropped → In Review via undo | POST /api/ideas/:id/review/undo with comment | State = in_review | P1 |
-| T-1.5.08 | Integration | Invalid transition: open → accepted rejected | POST /api/ideas/:id/review/accept on open idea | 400 error | P1 |
+| T-1.5.01 | Integration | Open → In Review via submit | POST /api/projects/:id/submit | State = in_review, document version created | P1 |
+| T-1.5.02 | Integration | In Review → Accepted via reviewer accept | POST /api/projects/:id/review/accept | State = accepted | P1 |
+| T-1.5.03 | Integration | In Review → Dropped via reviewer drop | POST /api/projects/:id/review/drop with comment | State = dropped | P1 |
+| T-1.5.04 | Integration | In Review → Rejected via reviewer reject | POST /api/projects/:id/review/reject with comment | State = rejected | P1 |
+| T-1.5.05 | Integration | Rejected → In Review via resubmit | POST /api/projects/:id/submit | State = in_review, new document version | P1 |
+| T-1.5.06 | Integration | Accepted → In Review via undo | POST /api/projects/:id/review/undo with comment | State = in_review | P1 |
+| T-1.5.07 | Integration | Dropped → In Review via undo | POST /api/projects/:id/review/undo with comment | State = in_review | P1 |
+| T-1.5.08 | Integration | Invalid transition: open → accepted rejected | POST /api/projects/:id/review/accept on open project | 400 error | P1 |
 | T-1.5.09 | Integration | Multiple reviewers: latest action wins | Two reviewers act in sequence | Last action determines state | P2 |
 | T-1.5.10 | E2E | Full lifecycle: create → submit → reject → resubmit → accept | Full user flow | All transitions complete correctly | P1 |
 
@@ -73,15 +73,15 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
 | T-1.6.01 | Unit | Title is editable by clicking | Click on title element | Title becomes input field | P1 |
-| T-1.6.02 | Integration | Manual edit sets title_manually_edited permanently | PATCH /api/ideas/:id with title | `title_manually_edited=true` | P1 |
+| T-1.6.02 | Integration | Manual edit sets title_manually_edited permanently | PATCH /api/projects/:id with title | `title_manually_edited=true` | P1 |
 | T-1.6.03 | Unit | Browser tab title updates on title change | Title WebSocket event received | document.title updates | P2 |
 
 #### F-1.7–F-1.8: UUID Routing, Browser Tab
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-1.7.01 | Unit | Route /idea/:uuid renders workspace | Navigate to /idea/valid-uuid | IdeaWorkspace component renders | P1 |
-| T-1.7.02 | Unit | Invalid UUID shows 404 | Navigate to /idea/not-a-uuid | 404 page rendered | P2 |
+| T-1.7.01 | Unit | Route /project/:uuid renders workspace | Navigate to /project/valid-uuid | ProjectWorkspace component renders | P1 |
+| T-1.7.02 | Unit | Invalid UUID shows 404 | Navigate to /project/not-a-uuid | 404 page rendered | P2 |
 
 ---
 
@@ -92,789 +92,731 @@ This document maps every feature, API endpoint, data entity, and page to specifi
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
 | T-2.1.01 | Unit | Agent mode dropdown renders with Interactive/Silent | Default state | Dropdown with two options | P1 |
-| T-2.1.02 | Integration | Agent mode change persists | PATCH /api/ideas/:id {agent_mode: "silent"} | Mode saved, WebSocket broadcast | P1 |
+| T-2.1.02 | Integration | Agent mode change persists | PATCH /api/projects/:id {agent_mode: "silent"} | Mode saved, WebSocket broadcast | P1 |
 | T-2.1.03 | AI Agent | Silent mode: no AI response without @ai | `agent_mode=silent`, message without @ai | Facilitator returns no action | P1 |
 | T-2.1.04 | AI Agent | Silent mode: @ai forces response | `agent_mode=silent`, message with @ai mention | Facilitator generates response | P1 |
+
+#### F-2.2: AI Tool Calls - update_requirements_structure
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-2.2.01 | AI Agent | Facilitator calls update_requirements_structure for software project | User describes features | Tool call with epics/stories structure | P1 |
+| T-2.2.02 | AI Agent | Facilitator calls update_requirements_structure for non-software project | User describes phases | Tool call with milestones/packages structure | P1 |
+| T-2.2.03 | Integration | update_requirements_structure creates/updates requirements items | AI tool call with hierarchical structure | RequirementsItem records created with correct parent relationships | P1 |
+| T-2.2.04 | Integration | update_requirements_structure respects project type | Software project receives epic structure | Rejects milestone structure with validation error | P1 |
+| T-2.2.05 | AI Agent | Facilitator respects existing structure | Project has existing epics | Updates/augments without deleting unless instructed | P2 |
 
 #### F-2.3: Title Generation
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-2.3.01 | AI Agent | Title generated from first message | First message in new idea | `update_title` tool called | P1 |
-| T-2.3.02 | AI Agent | Title not updated when manually edited | `title_manually_edited=true` | `update_title` tool NOT called | P1 |
-| T-2.3.03 | Unit | Title update animates | WebSocket title_update event | Animation triggers on title element | P2 |
+| T-2.3.01 | AI Agent | Facilitator suggests title after sufficient context | 3+ messages, no manual title edit | AI generates title suggestion | P1 |
+| T-2.3.02 | Integration | Title suggestion only if not manually edited | `title_manually_edited=true` | Facilitator skips title suggestion | P1 |
+| T-2.3.03 | Unit | Title suggestion appears in chat | AI suggests title | Suggestion rendered with accept/dismiss buttons | P1 |
+| T-2.3.04 | Integration | Accept title suggestion updates project | User clicks accept | PATCH /api/projects/:id with title, `title_manually_edited=false` | P1 |
 
-#### F-2.2: Language Detection
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-2.2.01 | AI Agent | AI detects German and responds in German | German chat messages | Response in German | P1 |
-| T-2.2.02 | AI Agent | AI detects English and responds in English | English chat messages | Response in English | P1 |
-| T-2.2.03 | AI Agent | Initial language follows creator's app language | New idea, creator language = de | First AI response in German | P2 |
-
-#### F-2.4–F-2.5: Decision Layer, Multi-User Awareness
+#### F-2.4: Context Agent Delegation
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-2.4.01 | AI Agent | AI can decide "no action" — reacts instead | Message that needs no response | `react_to_message` called, no `send_chat_message` | P2 |
-| T-2.5.01 | AI Agent | Single user: AI does not address by name | One collaborator on idea | Response does not contain username | P2 |
-| T-2.5.02 | AI Agent | Multi-user: AI addresses by name | Multiple collaborators | Response contains @user reference | P2 |
+| T-2.4.01 | AI Agent | Facilitator delegates to Context Agent when relevant | User asks about existing systems | Delegation message sent | P1 |
+| T-2.4.02 | AI Agent | Context Agent retrieves from correct bucket based on project type | Software project context query | RAG search in global + software bucket | P1 |
+| T-2.4.03 | AI Agent | Context Agent retrieves from correct bucket for non-software | Non-software project context query | RAG search in global + non_software bucket | P1 |
+| T-2.4.04 | Integration | Context Agent response includes sources | RAG query returns chunks | AI response cites source sections | P2 |
+| T-2.4.05 | AI Agent | Context Agent returns "no context found" gracefully | Query with no matching chunks | Polite "no information available" response | P2 |
 
-#### F-2.6: Board Item References in Chat
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-2.6.01 | Unit | @board[uuid] rendered as clickable link | Chat message with `@board[node-uuid]` | Link renders with node title | P1 |
-| T-2.6.02 | Unit | Click board reference navigates to Board tab and highlights | Click @board link | Board tab activated, node highlighted | P1 |
-| T-2.6.03 | Unit | Deleted node reference shows placeholder | @board[deleted-uuid] | "deleted item" placeholder shown | P2 |
-
-#### F-2.7–F-2.8: AI Reactions, User Reactions
+#### F-2.5: Requirements Structuring Prompts
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-2.7.01 | AI Agent | AI reacts with valid reaction type | AI decides to react | `react_to_message` with thumbs_up/thumbs_down/heart | P1 |
-| T-2.7.02 | Integration | AI reaction persisted correctly | AI reaction event processed | ai_reactions row with UNIQUE per message | P1 |
-| T-2.8.01 | Integration | User can react to other user's message | POST /api/.../reactions {reaction_type: "thumbs_up"} | 201, reaction created | P1 |
-| T-2.8.02 | Integration | User cannot react to AI message | POST reaction on AI message | 400 CANNOT_REACT_TO_AI | P1 |
-| T-2.8.03 | Integration | User cannot react to own message | POST reaction on own message | 400 CANNOT_REACT_TO_SELF | P1 |
-| T-2.8.04 | Integration | User cannot react twice to same message | POST duplicate reaction | 409 ALREADY_REACTED | P1 |
-| T-2.8.05 | Integration | User can remove own reaction | DELETE reaction | 204, reaction removed | P1 |
+| T-2.5.01 | AI Agent | Facilitator guides software project toward epic/story structure | Initial software project conversation | AI asks about features/capabilities | P1 |
+| T-2.5.02 | AI Agent | Facilitator guides non-software project toward milestone/package structure | Initial non-software project conversation | AI asks about phases/deliverables | P1 |
+| T-2.5.03 | AI Agent | Facilitator adapts prompts based on project type | Software vs non-software projects | Different terminology and structure suggestions | P1 |
 
-#### F-2.9: @Mentions System
+#### F-2.6: Message Reactions (AI)
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-2.9.01 | Unit | Typing @ opens suggestion dropdown | Type "@" in chat input | Dropdown shows collaborators + @ai | P1 |
-| T-2.9.02 | Unit | Selecting user inserts @user[uuid] in message | Select user from dropdown | Reference format inserted | P1 |
-| T-2.9.03 | Unit | @user[uuid] renders as display name | Message with @user reference | Display name shown | P1 |
+| T-2.6.01 | AI Agent | Facilitator adds thumbs_up reaction to supportive messages | User confirms/agrees | Reaction added via tool call | P2 |
+| T-2.6.02 | Integration | AI reaction persisted in database | Facilitator reaction tool call | AiReaction record created | P2 |
+| T-2.6.03 | Unit | AI reactions rendered in chat UI | Message with AI reaction | Thumbs up icon shown | P2 |
 
-#### F-2.10: AI Response Timing (Debounce)
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-2.10.01 | AI Agent | Debounce waits configurable period before processing | Message sent | Processing starts after debounce_timer seconds | P1 |
-| T-2.10.02 | AI Agent | New message during debounce resets timer | Two messages in quick succession | Only one processing cycle for both | P1 |
-| T-2.10.03 | AI Agent | New message during processing aborts and restarts | Message during active cycle | Abort flag set, new cycle starts | P1 |
-
-#### F-2.11: Rate Limiting
+#### F-2.7: AI Processing Pipeline
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-2.11.01 | Integration | Chat locked after cap reached | Send chat_message_cap messages | 429 RATE_LIMITED on next message | P1 |
-| T-2.11.02 | Integration | Rate limit resets after AI processing complete | AI publishes ai.processing.complete | Chat unlocked | P1 |
-| T-2.11.03 | Unit | Rate limit warning toast shown | rate_limit WebSocket event | Warning toast displayed | P2 |
-
-#### F-2.12: AI Processing Indicator
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-2.12.01 | Unit | Indicator shows during ai_processing started | ai_processing {state: "started"} event | Indicator visible with animation | P1 |
-| T-2.12.02 | Unit | Indicator hides on completed/failed | ai_processing {state: "completed"} | Indicator hidden | P1 |
-
-#### F-2.14: Long Conversation Support (Context Window)
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-2.14.01 | Unit | Context window indicator renders with usage percentage | GET /api/ideas/:id/context-window response | Circular progress at correct percentage | P1 |
-| T-2.14.02 | Unit | Hover shows context window details | Mouse hover on indicator | Tooltip with message counts | P2 |
-| T-2.14.03 | AI Agent | Compression triggers at threshold | Context utilization > 60% | Context Compression agent invoked | P1 |
-
-#### F-2.15: Company Context Awareness
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-2.15.01 | AI Agent | Facilitator delegates to Context Agent | Question about company systems | `delegate_to_context_agent` tool called | P1 |
-| T-2.15.02 | Unit | Delegation message shows "researching" placeholder | delegation message_type received | De-emphasized message visible | P1 |
-| T-2.15.03 | AI Agent | Context Agent grounded in retrieved chunks | RAG query with matching chunks | Response cites chunk content only | P1 |
-
-#### F-2.17: AI Board Content Rules
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-2.17.01 | AI Agent | Board Agent creates one topic per box | Board instructions with multiple topics | Separate boxes per topic | P1 |
-| T-2.17.02 | AI Agent | Board Agent uses bullet-point format for body | Box creation instruction | Body contains bullet points | P2 |
-| T-2.17.03 | AI Agent | Board Agent organizes boxes into groups | Multiple boxes exist | Group node created containing boxes | P2 |
+| T-2.7.01 | Integration | Chat message triggers AI pipeline | POST /api/projects/:id/messages | AI processing event published | P1 |
+| T-2.7.02 | Integration | Pipeline debounces rapid messages | 3 messages in 1 second | Single AI invocation after 3s | P1 |
+| T-2.7.03 | Integration | Pipeline loads project type context | Software project message | Context includes project_type="software" | P1 |
+| T-2.7.04 | AI Agent | Pipeline invokes Facilitator with full context | Message + history + requirements state | Agent receives all relevant data | P1 |
+| T-2.7.05 | Integration | Pipeline handles AI errors gracefully | AI service returns error | User sees error message, no crash | P2 |
 
 ---
 
-### FA-3: Digital Board
+### FA-4: Requirements Panel
 
-#### F-3.1: Node Types
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-3.1.01 | Unit | Box node renders with title + body | BoardNode {node_type: "box"} | Title and body visible | P1 |
-| T-3.1.02 | Unit | Group node renders as container | BoardNode {node_type: "group"} | Container with children inside | P1 |
-| T-3.1.03 | Unit | Free text renders without card border | BoardNode {node_type: "free_text"} | Text only, no background | P1 |
-| T-3.1.04 | Unit | Nested groups render correctly | Group inside group | Correct visual nesting | P2 |
-
-#### F-3.2: Board Interactions
+#### F-4.1: Project Type-Specific Display
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-3.2.01 | Unit | Drag moves node | Drag event on box | Position updates | P1 |
-| T-3.2.02 | Unit | Drag box into group attaches it | Drag box over group | parent_id set to group | P1 |
-| T-3.2.03 | Unit | Drag box out of group detaches it | Drag box outside group | parent_id set to null | P1 |
-| T-3.2.04 | Unit | Double-click opens content editor | Double-click on box | Edit mode activated | P1 |
-| T-3.2.05 | Unit | Connection between nodes renders as edge | Two connected nodes | Edge line visible | P1 |
-| T-3.2.06 | Unit | Double-click connection opens label editor | Double-click on edge | Label input shown | P2 |
-| T-3.2.07 | Unit | Lock toggle prevents editing | Click lock on node | Edit mode disabled for that node | P1 |
-| T-3.2.08 | Unit | AI-created items show robot badge | Node with created_by="ai" | Bot icon visible | P1 |
+| T-4.1.01 | Unit | Software project shows Epics/User Stories UI | `project_type="software"` | Panel displays "Epics" accordion sections | P1 |
+| T-4.1.02 | Unit | Non-software project shows Milestones/Work Packages UI | `project_type="non_software"` | Panel displays "Milestones" accordion sections | P1 |
+| T-4.1.03 | Unit | Software project "Add Epic" button renders | Software project | "Add Epic" button visible | P1 |
+| T-4.1.04 | Unit | Non-software project "Add Milestone" button renders | Non-software project | "Add Milestone" button visible | P1 |
 
-#### F-3.3: Board UI
+#### F-4.2: Add/Edit/Delete Requirements Items
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-3.3.01 | Unit | MiniMap renders and reflects board state | Board with multiple nodes | MiniMap shows all nodes | P2 |
-| T-3.3.02 | Unit | Zoom controls work | Click zoom in/out/fit | Canvas zoom level changes | P2 |
-| T-3.3.03 | Unit | Toolbar buttons trigger correct actions | Click Add Box, Delete, Fit View, Undo, Redo | Corresponding action dispatched | P1 |
+| T-4.2.01 | Unit | Add Epic button opens modal | Click "Add Epic" | Modal with title/description fields | P1 |
+| T-4.2.02 | Integration | Create epic via modal | POST /api/projects/:id/requirements with item_type=epic | Epic created, WebSocket broadcast | P1 |
+| T-4.2.03 | Integration | Create user story under epic | POST /api/projects/:id/requirements with parent_id=epic.id | Story created, nested under epic | P1 |
+| T-4.2.04 | Integration | Edit requirement item | PATCH /api/projects/:id/requirements/:item_id | Item updated, broadcast | P1 |
+| T-4.2.05 | Integration | Delete requirement item | DELETE /api/projects/:id/requirements/:item_id | Item soft-deleted, broadcast | P1 |
+| T-4.2.06 | Integration | Delete epic cascades to child stories | DELETE epic with 3 stories | All 4 items soft-deleted | P2 |
+| T-4.2.07 | Unit | Deleted items removed from UI immediately | WebSocket delete event received | Item disappears from panel | P1 |
 
-#### F-3.4: AI Modification Indicators
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-3.4.01 | Unit | AI-modified indicator visible | Node with ai_modified_indicator=true | Gold dot/glow visible | P1 |
-| T-3.4.02 | Unit | Indicator clears on user selection | User clicks/selects AI-modified node | ai_modified_indicator cleared via REST | P1 |
-
-#### F-3.5–F-3.6: Multi-User Editing, Board Sync
+#### F-4.3: Reorder Requirements Items
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-3.5.01 | Unit | Selection highlight shows for other users | board_selection WebSocket event | Highlight with username visible | P1 |
-| T-3.6.01 | WebSocket | board_selection event broadcasts to subscribers | User selects node | Other subscribed users receive event | P1 |
-| T-3.6.02 | Integration | Content change broadcasts via WebSocket after REST persist | POST board node | WebSocket board_update event sent | P1 |
+| T-4.3.01 | Unit | Drag-and-drop reorders epics | Drag epic to new position | Visual reorder, onChange fired | P1 |
+| T-4.3.02 | Integration | Reorder persisted to backend | PATCH /api/projects/:id/requirements/reorder | order_index values updated | P1 |
+| T-4.3.03 | Unit | Drag story between epics changes parent | Drag story from Epic A to Epic B | Story's parent_id updated | P2 |
+| T-4.3.04 | Integration | Reorder within epic updates order_index | Drag story within same epic | Stories re-indexed | P2 |
+| T-4.3.05 | Unit | Reorder disabled in review state | `state=in_review` | Drag handles disabled | P1 |
 
-#### F-3.7: Undo/Redo
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-3.7.01 | Unit | Undo reverses last board action | Dispatch undo() | Previous state restored in Redux | P1 |
-| T-3.7.02 | Unit | Redo re-applies undone action | Dispatch redo() | Action re-applied | P1 |
-| T-3.7.03 | Unit | AI action undo shows "Undo AI Action" label | Undo stack entry with source="ai" | Label is "Undo AI Action" | P1 |
-| T-3.7.04 | Unit | Undo stack bounded at 100 entries | Push 101 actions | Oldest entry dropped | P2 |
-| T-3.7.05 | Integration | Undo sends REST PATCH to persist reverted state | Undo dispatched | REST call made with reverted data | P1 |
-
-#### F-3.8: Board Item Reference Action
+#### F-4.4: Accordion Expand/Collapse
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-3.8.01 | Unit | Reference button visible on node hover | Hover over board node | Reference button in top-right | P1 |
-| T-3.8.02 | Unit | Click reference inserts @board[uuid] into chat input | Click reference button | Chat input contains @board[node-uuid] format | P1 |
+| T-4.4.01 | Unit | Click epic expands to show stories | Click collapsed epic | Stories list visible | P1 |
+| T-4.4.02 | Unit | Click again collapses epic | Click expanded epic | Stories hidden | P1 |
+| T-4.4.03 | Unit | Expand state persists across renders | Expand epic, re-render component | Epic still expanded | P2 |
+| T-4.4.04 | Unit | All epics collapsed by default | Load project with epics | All accordions collapsed | P2 |
+
+#### F-4.5: AI-Created Indicator
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-4.5.01 | Unit | AI-created items show indicator badge | `created_by="ai"` | Badge with "AI" label visible | P1 |
+| T-4.5.02 | Unit | User-created items have no badge | `created_by="user"` | No badge rendered | P1 |
+| T-4.5.03 | Unit | AI-modified items show modified indicator | `ai_modified_indicator=true` | Faint highlight or border | P2 |
+
+#### F-4.6: Empty State
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-4.6.01 | Unit | Empty software project shows prompt | No epics | "Add your first epic" message + button | P1 |
+| T-4.6.02 | Unit | Empty non-software project shows prompt | No milestones | "Add your first milestone" message + button | P1 |
+
+#### F-4.7: Real-time Collaboration
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-4.7.01 | Integration | Collaborator adds epic | User B creates epic | User A sees epic appear in panel | P1 |
+| T-4.7.02 | Integration | Collaborator reorders items | User B reorders | User A sees reordered list | P2 |
+| T-4.7.03 | Integration | AI updates structure | Facilitator calls update_requirements_structure | All users see updates | P1 |
 
 ---
 
-### FA-4: Review & BRD
+### FA-6: Requirements Document (formerly BRD)
 
-#### F-4.1–F-4.2: BRD Generation, No Fabrication
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-4.1.01 | AI Agent | Summarizing AI generates all 6 sections | Full idea context | Output contains title, short_desc, workflow, department, capabilities, criteria | P1 |
-| T-4.1.02 | AI Agent | Insufficient info yields "Not enough information" | Minimal chat (2 messages) | At least one section = "Not enough information" | P1 |
-| T-4.2.01 | AI Agent | Fabrication validator flags unsourced claims | BRD with proper nouns not in chat/board | Fabrication flag raised | P1 |
-| T-4.2.02 | AI Agent | Fabrication validator passes valid BRD | BRD with all claims traceable | No flags | P1 |
-
-#### F-4.3: BRD Generation Trigger
+#### F-6.1: Draft Auto-Generation
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-4.3.01 | Integration | First Review tab open triggers BRD generation | POST /api/ideas/:id/brd/generate | 200, skeleton generated | P1 |
-| T-4.3.02 | Integration | Regenerate button triggers selective regeneration | POST /api/ideas/:id/brd/regenerate | 202, job started | P1 |
+| T-6.1.01 | Integration | Draft generates on first submit | POST /api/projects/:id/submit | Summarizing AI invoked, draft created | P1 |
+| T-6.1.02 | AI Agent | Summarizing AI includes requirements_structure field | Software project with epics/stories | Draft contains hierarchical JSON structure | P1 |
+| T-6.1.03 | AI Agent | Summarizing AI adapts to project type | Non-software project | Draft uses milestone/package structure | P1 |
+| T-6.1.04 | AI Agent | Summarizing AI respects section locks | 2 sections locked | Locked sections unchanged, others regenerated | P1 |
+| T-6.1.05 | AI Agent | Gaps mode: incomplete sections get /TODO | `allow_information_gaps=true` | Insufficient sections have "/TODO" markers | P2 |
 
-#### F-4.4: Per-Section Editing & Lock
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-4.4.01 | Integration | Editing section auto-locks it | PATCH /api/ideas/:id/brd {sections: {short_description: "edited"}} | section_locks includes short_description | P1 |
-| T-4.4.02 | Integration | Locked section excluded from regeneration | Regenerate with section locked | Locked section content unchanged | P1 |
-| T-4.4.03 | Unit | Lock/unlock icon toggle works | Click lock icon | Lock state toggles | P1 |
-
-#### F-4.5: Review Tab
+#### F-6.2: Requirements Structure Rendering
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-4.5.01 | Unit | PDF preview renders | BRD with generated PDF | PDF visible in review tab | P1 |
-| T-4.5.02 | Unit | Download button triggers PDF download | Click download in three-dot menu | File download initiated | P2 |
-| T-4.5.03 | Unit | Edit area expands/collapses | Click expand | Edit panel slides left | P1 |
+| T-6.2.01 | Unit | Software document renders epics/stories hierarchically | Draft with requirements_structure | Nested list with epics > stories | P1 |
+| T-6.2.02 | Unit | Non-software document renders milestones/packages | Non-software draft | Nested list with milestones > packages | P1 |
+| T-6.2.03 | Unit | Empty requirements_structure shows placeholder | `requirements_structure={}` | "No requirements defined yet" message | P2 |
 
-#### F-4.7: Document Versioning
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-4.7.01 | Integration | Submit creates immutable BRD version | POST /api/ideas/:id/submit | New brd_versions row | P1 |
-| T-4.7.02 | Integration | Previous versions remain downloadable | GET /api/ideas/:id/brd/versions/:versionId/pdf | 200 with PDF | P1 |
-| T-4.7.03 | Integration | Version number increments on resubmit | Submit twice | version_number 1 then 2 | P1 |
-
-#### F-4.8: Document Readiness Evaluation
+#### F-6.3: Section Lock/Unlock
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-4.8.01 | AI Agent | Readiness evaluation per section | Idea with mixed completeness | Per-section status (ready/insufficient) | P1 |
-| T-4.8.02 | Unit | Progress indicator reflects readiness | readiness_evaluation in BRD response | Visual indicator shows completion | P2 |
+| T-6.3.01 | Unit | Lock button appears on each section | Draft section | Lock icon button visible | P1 |
+| T-6.3.02 | Integration | Lock section persists | PATCH /api/projects/:id/draft {section_locks: {title: true}} | Lock saved | P1 |
+| T-6.3.03 | Integration | Locked section excluded from regeneration | Regenerate draft with title locked | Title unchanged, others updated | P1 |
+| T-6.3.04 | Unit | Locked sections show lock indicator | `section_locks.title=true` | Locked icon rendered next to title | P1 |
 
-#### F-4.9: Allow Information Gaps
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-4.9.01 | AI Agent | Gaps mode produces /TODO markers | allow_information_gaps=true, insufficient info | Output contains /TODO markers | P1 |
-| T-4.9.02 | Integration | PDF generation rejected with /TODO markers | POST /api/ideas/:id/brd/generate-pdf with /TODO | 400 TODO_MARKERS_REMAINING | P1 |
-| T-4.9.03 | Integration | Filling /TODO gap auto-locks section | PATCH section replacing /TODO | Section auto-locked | P1 |
-
-#### F-4.10–F-4.11: Reviewer Assignment, Multiple Reviewers
+#### F-6.4: Manual Draft Editing
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-4.10.01 | Integration | Submit with reviewer IDs creates assignments | POST submit with reviewer_ids | review_assignments created | P1 |
-| T-4.10.02 | Integration | Submit without reviewers goes to shared queue | POST submit without reviewer_ids | Appears in "unassigned" list | P1 |
-| T-4.11.01 | Integration | Any reviewer can independently act | Two reviewers assigned, one accepts | State = accepted | P1 |
+| T-6.4.01 | Unit | Draft sections editable in open state | `state=open` | All sections have text editors | P1 |
+| T-6.4.02 | Integration | Manual edits persist | PATCH /api/projects/:id/draft {section_title: "New Title"} | Draft updated | P1 |
+| T-6.4.03 | Unit | Draft read-only in review state | `state=in_review` | Editors disabled | P1 |
 
-#### F-4.12: Similar Ideas in Review Section
+#### F-6.5: Readiness Evaluation
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-4.12.01 | Integration | Similar ideas shown to reviewer | GET /api/ideas/:id/review/similar | 200 + similar ideas list (declined merges + near-threshold) | P2 |
-| T-4.12.02 | Unit | Similar ideas panel renders in review section | Similar ideas data | Cards with title, keywords, similarity info | P2 |
+| T-6.5.01 | AI Agent | Summarizing AI evaluates each section | Draft generation | `readiness_evaluation` field populated | P1 |
+| T-6.5.02 | Unit | Ready sections show green checkmark | `readiness_evaluation.title="ready"` | Green icon next to title | P1 |
+| T-6.5.03 | Unit | Insufficient sections show warning icon | `readiness_evaluation.title="insufficient"` | Yellow/orange icon | P1 |
+| T-6.5.04 | Unit | Submit blocked if critical sections insufficient | 2+ sections insufficient | Submit button disabled with tooltip | P1 |
+| T-6.5.05 | Integration | Allow gaps mode bypasses blocking | `allow_information_gaps=true` | Submit button enabled despite insufficient sections | P2 |
+
+#### F-6.6: Version History
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-6.6.01 | Integration | Submit creates frozen version | POST /api/projects/:id/submit | RequirementsDocumentVersion record created | P1 |
+| T-6.6.02 | Integration | Version includes requirements_structure | Submit with requirements items | Version.requirements_structure = frozen JSON | P1 |
+| T-6.6.03 | Unit | Version list shows all versions | 3 submissions | 3 versions displayed | P1 |
+| T-6.6.04 | Unit | Click version loads frozen content | Select version 2 | Draft replaced with version 2 snapshot | P1 |
+| T-6.6.05 | E2E | PDF download retrieves correct version | Click "Download PDF" on version 2 | PDF for version 2 downloaded | P1 |
 
 ---
 
-### FA-5: Similarity & Merge
+### FA-7: Collaboration
 
-#### F-5.1: Keyword Generation
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-5.1.01 | AI Agent | Keyword Agent extracts keywords | Chat with clear direction | JSON array of keyword strings | P1 |
-| T-5.1.02 | AI Agent | Keywords capped at max_keywords_per_idea | Input with many topics | Array length ≤ 20 | P1 |
-| T-5.1.03 | AI Agent | Keywords are single abstract words | Any input | Each keyword is single word | P1 |
-
-#### F-5.2: Background Keyword Matching
+#### F-7.1: Invitation Flow
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-5.2.01 | Integration | Keyword overlap ≥ threshold triggers similarity.detected | Two ideas with 7+ shared keywords | Event published | P1 |
-| T-5.2.02 | Integration | Dismissed pairs not re-matched | Declined merge request exists for pair | No event published | P1 |
-| T-5.2.03 | Integration | Time window filter applies | Idea older than similarity_time_limit | Not matched | P2 |
+| T-7.1.01 | Unit | Owner sees "Invite Collaborator" button | `visibility=private` | Button rendered in project menu | P1 |
+| T-7.1.02 | Integration | Send invitation | POST /api/projects/:id/invite {invitee_id} | Invitation created, notification sent | P1 |
+| T-7.1.03 | Integration | Invitee accepts | PATCH /api/invitations/:id {status: "accepted"} | Collaborator added, visibility → collaborating | P1 |
+| T-7.1.04 | Integration | Invitee declines | PATCH /api/invitations/:id {status: "declined"} | Invitation closed, no collaborator added | P1 |
+| T-7.1.05 | Integration | Owner revokes invitation | DELETE /api/invitations/:id | Invitation status → revoked | P2 |
 
-#### F-5.3: AI Deep Comparison
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-5.3.01 | AI Agent | Deep Comparison returns structured output | Two similar ideas | {is_similar: bool, confidence: float, explanation, overlap_areas} | P1 |
-| T-5.3.02 | AI Agent | Pydantic validation enforces output schema | Malformed output | Retry with format instruction | P1 |
-
-#### F-5.5: Merge Flow
+#### F-7.2: Real-time Presence
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-5.5.01 | Integration | Merge request creates pending record | POST /api/ideas/:id/merge-request | 201, merge_request with status=pending | P1 |
-| T-5.5.02 | Integration | Target idea locked with merge request | Active merge request | merge_request_pending populated in idea response | P1 |
-| T-5.5.03 | Integration | Accept merge triggers synthesis | POST /api/merge-requests/:id/accept | Event published, resulting_idea created | P1 |
-| T-5.5.04 | Integration | Decline permanently dismisses pair | POST /api/merge-requests/:id/decline | Status=declined, pair never suggested again | P1 |
-| T-5.5.05 | AI Agent | Merge Synthesizer produces synthesis + board instructions | Two idea contexts | {synthesis_message: string, board_instructions: array} | P1 |
-| T-5.5.06 | E2E | Full merge flow end-to-end | Two similar ideas → detect → request → accept → merged idea | Merged idea created with combined content | P1 |
+| T-7.2.01 | Integration | WebSocket join broadcasts presence | User connects to project channel | Other users see presence indicator | P1 |
+| T-7.2.02 | Integration | WebSocket leave removes presence | User disconnects | Presence indicator removed | P1 |
+| T-7.2.03 | Unit | Presence indicators show avatars | 2 collaborators online | 2 avatars displayed | P1 |
 
-#### F-5.7: Permanent Dismissal
+#### F-7.3: Synchronized Updates
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-5.7.01 | Integration | Declined pair permanently excluded | Check merge_requests for declined status=pair | Query filters out declined pairs | P1 |
-
-#### F-5.8: Manual Merge Request
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-5.8.01 | Integration | Manual merge via UUID | POST /api/ideas/:id/manual-merge {target_idea_id: uuid} | 201 merge request created | P1 |
-| T-5.8.02 | Integration | Manual merge with invalid UUID | POST with non-existent target | 404 TARGET_NOT_FOUND | P1 |
-| T-5.8.03 | Integration | Manual merge with own idea | POST targeting same idea | 400 CANNOT_MERGE_SELF | P1 |
+| T-7.3.01 | Integration | Chat message broadcast to all | User A sends message | User B receives via WebSocket | P1 |
+| T-7.3.02 | Integration | Requirements update broadcast | User A adds epic | User B sees epic appear | P1 |
+| T-7.3.03 | Integration | Draft edit broadcast | User A edits section | User B sees section update | P1 |
 
 ---
 
-### FA-6: Real-Time Collaboration
+### FA-8: Review
 
-#### F-6.1: Session-Level Connection
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-6.1.01 | WebSocket | Connection with valid token succeeds | /ws/?token=valid_jwt | connected=True | P1 |
-| T-6.1.02 | WebSocket | Connection with invalid token rejected | /ws/?token=expired | connected=False | P1 |
-| T-6.1.03 | Unit | Exponential backoff on disconnect | Connection lost | Retry intervals: 1s, 2s, 4s... max 30s | P1 |
-
-#### F-6.6: Connection State Indicator
+#### F-8.1: Reviewer Assignment
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-6.6.01 | Unit | Green "Online" indicator when connected | WebSocket connected | Green dot + "Online" in navbar | P1 |
-| T-6.6.02 | Unit | Red "Offline" indicator when disconnected | WebSocket disconnected | Red dot + "Offline" in navbar | P1 |
+| T-8.1.01 | Unit | Submit modal allows reviewer selection | Click submit | Modal with reviewer dropdown | P1 |
+| T-8.1.02 | Integration | Submit with reviewers assigns them | POST /api/projects/:id/submit {reviewer_ids} | ReviewAssignment records created | P1 |
+| T-8.1.03 | Integration | Reviewers receive notification | Submit with reviewers | Notifications sent | P1 |
+| T-8.1.04 | Integration | Reviewer self-assigns | Reviewer clicks "Assign to me" | ReviewAssignment created with assigned_by="self" | P2 |
+| T-8.1.05 | Integration | Unassign reviewer | DELETE /api/projects/:id/reviewers/:id | Assignment.unassigned_at set | P2 |
 
-#### F-6.2: Offline Banner
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-6.2.01 | Unit | Offline banner shows on disconnect | WebSocket disconnected state | Banner with "Currently offline" + countdown | P1 |
-| T-6.2.02 | Unit | Banner disappears on reconnection | WebSocket reconnected | Banner hidden, state synced | P1 |
-
-#### F-6.3: Presence Tracking
+#### F-8.2: Review Actions
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-6.3.01 | WebSocket | Presence update broadcasts to idea subscribers | User connects to idea | presence_update event sent | P1 |
-| T-6.3.02 | Unit | Online/Idle/Offline indicators render correctly | Presence states | Correct visual indicator per state | P1 |
+| T-8.2.01 | Unit | Reviewer sees accept/reject/drop buttons | `state=in_review`, user is reviewer | 3 action buttons visible | P1 |
+| T-8.2.02 | Integration | Accept action | POST /api/projects/:id/review/accept | State → accepted, timeline entry created | P1 |
+| T-8.2.03 | Integration | Reject action requires comment | POST /api/projects/:id/review/reject without comment | 400 validation error | P1 |
+| T-8.2.04 | Integration | Drop action with reason | POST /api/projects/:id/review/drop {comment} | State → dropped, comment in timeline | P1 |
+| T-8.2.05 | Integration | Undo action | POST /api/projects/:id/review/undo | State reverts to in_review | P2 |
+
+#### F-8.3: Review Timeline
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-8.3.01 | Unit | Timeline shows all events | Project with 5 timeline entries | All 5 rendered chronologically | P1 |
+| T-8.3.02 | Integration | Comment adds timeline entry | POST /api/projects/:id/review/comments {content} | Entry created, broadcast | P1 |
+| T-8.3.03 | Integration | State change auto-creates timeline entry | State changes to in_review | Entry with entry_type="state_change" | P1 |
+| T-8.3.04 | Integration | Resubmission links versions | Resubmit after rejection | Timeline entry references old_version_id and new_version_id | P2 |
+| T-8.3.05 | Unit | Reply to comment | Click reply, submit | Nested reply with parent_entry_id | P2 |
+
+#### F-8.4: Review Page (Reviewer View)
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-8.4.01 | Unit | Review page renders for reviewers | Navigate to /review as reviewer | ReviewPage component with assigned projects | P1 |
+| T-8.4.02 | Integration | Fetch assigned reviews | GET /api/reviews/assigned | List of projects assigned to reviewer | P1 |
+| T-8.4.03 | Unit | Filter by state | Select "In Review" filter | Only in_review projects shown | P2 |
+| T-8.4.04 | E2E | Reviewer flow: view → comment → accept | Full reviewer journey | Project moves to accepted | P1 |
 
 ---
 
-### FA-7: Authentication
+### FA-9: Landing Page & Project Management
 
-#### F-7.1: Dev Auth Bypass
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-7.1.01 | Integration | Dev users endpoint available in bypass mode | GET /api/auth/dev-users with DEBUG+AUTH_BYPASS | 200 with 4 users | P1 |
-| T-7.1.02 | Integration | Dev users endpoint 404 in production mode | GET /api/auth/dev-users without bypass flags | 404 | P1 |
-| T-7.1.03 | Integration | Dev login creates session | POST /api/auth/dev-login {user_id} | 200 with user data | P1 |
-| T-7.1.04 | E2E | Dev login flow end-to-end | Select dev user → navigate to landing | User identity visible | P1 |
-
-#### F-7.2: Production Authentication
+#### F-9.1: Project Creation
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-7.2.01 | Integration | Valid Azure AD token validates and syncs user | POST /api/auth/validate with valid JWT | 200 with user data, user synced | P1 |
-| T-7.2.02 | Integration | Expired token returns 401 | POST /api/auth/validate with expired token | 401 TOKEN_INVALID | P1 |
-| T-7.2.03 | Integration | Roles synced from AD groups on login | Token with group claims | User roles updated in DB | P1 |
+| T-9.1.01 | Unit | Create button opens modal | Click "Create Project" | Modal with type selection | P1 |
+| T-9.1.02 | Unit | Modal shows two project type options | Modal opened | Software and Non-Software options visible | P1 |
+| T-9.1.03 | Integration | Create software project | POST /api/projects {project_type: "software"} | Project created with type=software | P1 |
+| T-9.1.04 | Integration | Create non-software project | POST /api/projects {project_type: "non_software"} | Project created with type=non_software | P1 |
+| T-9.1.05 | E2E | Create project and navigate to workspace | Complete creation flow | Redirected to /project/:id | P1 |
+
+#### F-9.2: Project List
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-9.2.01 | Integration | Fetch user's projects | GET /api/projects | List of owned + collaborated projects | P1 |
+| T-9.2.02 | Unit | Project cards show type badge | Software and non-software projects | Different badges displayed | P1 |
+| T-9.2.03 | Unit | Filter by project type | Select "Software" filter | Only software projects shown | P2 |
+| T-9.2.04 | Unit | Filter by state | Select "In Review" filter | Only in_review projects shown | P2 |
+| T-9.2.05 | Unit | Search by title | Type "automation" | Projects with matching titles shown | P2 |
+
+#### F-9.3: Soft Delete & Trash
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-9.3.01 | Integration | Move to trash | DELETE /api/projects/:id | `deleted_at` set, project hidden from main list | P1 |
+| T-9.3.02 | Integration | Trash page lists deleted projects | GET /api/projects?deleted=true | Deleted projects returned | P1 |
+| T-9.3.03 | Integration | Restore from trash | POST /api/projects/:id/restore | `deleted_at` cleared | P1 |
+| T-9.3.04 | Integration | Permanent delete | DELETE /api/projects/:id/permanent | Record hard-deleted | P2 |
+| T-9.3.05 | Integration | Auto-purge after 30 days | Cron job runs | Projects with `deleted_at` > 30 days removed | P3 |
+
+#### F-9.4: Share Link
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-9.4.01 | Integration | Generate share link | POST /api/projects/:id/share | `share_link_token` created | P1 |
+| T-9.4.02 | Integration | Access via share link | GET /share/:token | Project loaded in read-only mode | P1 |
+| T-9.4.03 | Integration | Revoke share link | DELETE /api/projects/:id/share | `share_link_token` cleared | P1 |
+| T-9.4.04 | Unit | Share link UI shows token | Share link generated | URL displayed with copy button | P1 |
 
 ---
 
-### FA-8: Visibility & Sharing
+### FA-10: Admin
+
+#### F-10.1: AI Context Management
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-8.1.01 | Integration | Private idea accessible only to owner | GET /api/ideas/:id as non-owner | 403 ACCESS_DENIED | P1 |
-| T-8.2.01 | Integration | Invite creates pending invitation | POST /api/ideas/:id/collaborators/invite | 201 invitation created | P1 |
-| T-8.2.02 | Integration | Accept invitation adds collaborator | POST /api/invitations/:id/accept | User added to idea_collaborators | P1 |
-| T-8.2.03 | Integration | Decline invitation updates status | POST /api/invitations/:id/decline | Status = declined | P1 |
-| T-8.3.01 | Integration | Share link grants read-only access | GET /api/ideas/:id?share=token | 200, user_role=viewer | P1 |
-| T-8.4.01 | Integration | Owner can remove collaborator | DELETE /api/ideas/:id/collaborators/:userId | 204, collaborator removed | P1 |
-| T-8.4.02 | Integration | Single owner cannot leave without transferring | POST /api/ideas/:id/collaborators/leave as sole owner | 400 MUST_TRANSFER_OWNERSHIP | P1 |
-| T-8.4.03 | Integration | Ownership transfer works | POST /api/ideas/:id/collaborators/transfer | 200, ownership transferred | P1 |
+| T-10.1.01 | Unit | Context tab shows three buckets | Admin user | Global, Software, Non-Software sections | P1 |
+| T-10.1.02 | Integration | Upload to global bucket | POST /api/admin/context/global with file | Chunks created with bucket_type="global" | P1 |
+| T-10.1.03 | Integration | Upload to software bucket | POST /api/admin/context/software with file | Chunks created with bucket_type="software" | P1 |
+| T-10.1.04 | Integration | Upload to non-software bucket | POST /api/admin/context/non_software with file | Chunks created with bucket_type="non_software" | P1 |
+| T-10.1.05 | Integration | Delete context chunk | DELETE /api/admin/context/chunks/:id | Chunk removed, embeddings cleared | P2 |
+| T-10.1.06 | AI Agent | RAG search respects bucket isolation | Software project queries context | Only global + software chunks searched | P1 |
 
----
-
-### FA-9: Landing Page
+#### F-10.2: Parameter Management
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-9.1.01 | Unit | Landing page renders all 4 lists | User with ideas in various states | My Ideas, Collaborating, Invitations, Trash lists | P1 |
-| T-9.2.01 | E2E | Create idea from landing page | Type message in hero section, submit | New idea created, redirected to workspace | P1 |
-| T-9.3.01 | Integration | Soft delete moves idea to trash | DELETE /api/ideas/:id | deleted_at set, appears in trash | P1 |
-| T-9.3.02 | Integration | Restore from trash clears deleted_at | POST /api/ideas/:id/restore | deleted_at = null | P1 |
-| T-9.4.01 | Integration | Search by title works | GET /api/ideas?search=keyword | Filtered results returned | P1 |
-| T-9.4.02 | Integration | Filter by state works | GET /api/ideas?state=open | Only open ideas returned | P1 |
+| T-10.2.01 | Unit | Parameters tab lists all config | Admin user | All AdminParameter records displayed | P1 |
+| T-10.2.02 | Integration | Update parameter | PATCH /api/admin/parameters/:key {value} | Parameter updated | P1 |
+| T-10.2.03 | Integration | Reset to default | POST /api/admin/parameters/:key/reset | `value` = `default_value` | P2 |
 
----
-
-### FA-10: Review Page
+#### F-10.3: User Management
 
 | Test ID | Layer | Description | Input | Expected Output | Priority |
 |---------|-------|-------------|-------|-----------------|----------|
-| T-10.1.01 | Integration | Review page requires reviewer role | GET /api/reviews as regular user | 403 | P1 |
-| T-10.2.01 | Integration | Ideas grouped correctly | GET /api/reviews | 5 groups: assigned, unassigned, accepted, rejected, dropped | P1 |
-| T-10.3.01 | Integration | Self-assignment works | POST /api/reviews/:ideaId/assign | 200, assignment created | P1 |
-| T-10.3.02 | Integration | Unassign works | POST /api/reviews/:ideaId/unassign | 200, unassigned_at set | P1 |
-| T-10.4.01 | Integration | Conflict of interest blocked | POST /api/reviews/:ideaId/assign on own idea | 400 CONFLICT_OF_INTEREST | P1 |
-
----
-
-### FA-11: Admin Panel
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-11.1.01 | Integration | Admin endpoints require admin role | GET /api/admin/parameters as regular user | 403 | P1 |
-| T-11.2.01 | Integration | Facilitator context CRUD | PUT /api/admin/ai-context/facilitator | Content updated | P1 |
-| T-11.2.02 | Integration | Context agent bucket CRUD | PUT /api/admin/ai-context/context-agent | Sections + free_text updated | P1 |
-| T-11.3.01 | Integration | Parameter update applies immediately | PATCH /api/admin/parameters/debounce_timer {value: "5"} | Value updated, runtime reads new value | P1 |
-| T-11.4.01 | Integration | Monitoring dashboard returns data | GET /api/admin/monitoring | All fields populated | P1 |
-| T-11.5.01 | Integration | Monitoring service detects unhealthy service | Health check fails for one service | Alert email sent to opted-in admins | P1 |
-| T-11.5.02 | Integration | Monitoring alert config opt-in/opt-out | POST /api/admin/monitoring/alerts {is_active: true} | Alert config created/updated | P1 |
-| T-11.5.03 | Integration | DLQ threshold triggers alert | DLQ count exceeds dlq_alert_threshold | Alert event generated | P2 |
-| T-11.6.01 | Integration | User search returns stats | GET /api/admin/users/search?q=dev | Users with idea_count, review_count, contribution_count | P1 |
-
----
-
-### FA-12: Notifications
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-12.1.01 | Unit | Bell icon shows unread count | unread_count > 0 | Badge visible with count | P1 |
-| T-12.1.02 | Unit | Clicking bell opens notification panel | Click bell | Panel renders with notifications | P1 |
-| T-12.2.01 | Unit | Toast notification renders with correct type | Toast event | Correct styling (success/info/warning/error) | P1 |
-| T-12.2.02 | Unit | Toast auto-dismisses | Toast displayed | Disappears after timeout | P2 |
-| T-12.5.01 | Integration | Notification created for collaboration invitation | POST invite | Notification row created for invitee | P1 |
-| T-12.5.02 | WebSocket | Real-time notification via WebSocket | Notification created | notification event sent to user | P1 |
-
----
-
-### FA-13: Notification Preferences
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-13.1.01 | Integration | Get notification preferences | GET /api/users/me/notification-preferences | Categories with toggle states | P1 |
-| T-13.1.02 | Integration | Update preferences persists | PATCH preferences {collaboration_invitation: false} | Preference saved | P1 |
-| T-13.2.01 | Unit | Group toggle switches all items | Toggle group switch | All child toggles change | P2 |
-| T-13.3.01 | Unit | Reviewer-only section visible for reviewers | User with reviewer role | "Review Management" group visible | P1 |
-| T-13.3.02 | Unit | Reviewer-only section hidden for regular users | User without reviewer role | "Review Management" group not rendered | P1 |
-| T-13.3.03 | Unit | Admin-only section visible for admins | User with admin role | "System" group visible | P1 |
-
----
-
-### FA-14: Error Handling
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-14.1.01 | Unit | Error toast with Show Logs + Retry buttons | API error received | Toast with both buttons | P1 |
-| T-14.1.02 | Unit | Show Logs opens modal with details | Click Show Logs | Modal with error details | P1 |
-| T-14.1.03 | Unit | Retry re-triggers failed operation | Click Retry | Operation re-invoked | P1 |
-| T-14.1.04 | Unit | Max retries reached disables retry button | 3 retries exhausted | Retry button disabled or removed | P2 |
-
----
-
-### FA-15: Idle State
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-15.1.01 | Unit | Idle detected after timeout | No mouse movement for idle_timeout | Presence state changes to idle | P1 |
-| T-15.1.02 | Unit | Tab blur triggers immediate idle | User switches tab | Idle state set | P1 |
-| T-15.2.01 | Unit | Disconnection after prolonged idle | Idle for idle_disconnect seconds | WebSocket closed, offline banner | P1 |
-| T-15.3.01 | Unit | Mouse movement clears idle | Move mouse during idle | Idle ends, reconnection starts | P1 |
-
----
-
-### FA-16: i18n
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-16.1.01 | Unit | All UI text available in German and English | Both language files | No missing keys | P1 |
-| T-16.2.01 | Unit | Language switcher changes all visible text | Switch from de to en | All strings update | P1 |
-| T-16.2.02 | Unit | Language preference persists in localStorage | Switch language, reload | Same language restored | P1 |
-
----
-
-### FA-17: Theme Support
-
-| Test ID | Layer | Description | Input | Expected Output | Priority |
-|---------|-------|-------------|-------|-----------------|----------|
-| T-17.1.01 | Unit | Dark mode applies dark class to HTML | Toggle to dark | html.classList contains "dark" | P1 |
-| T-17.2.01 | Unit | Theme persists in localStorage | Switch theme, reload | Same theme restored | P1 |
-| T-17.3.01 | Unit | System preference detected on first visit | prefers-color-scheme: dark | Dark mode applied | P2 |
+| T-10.3.01 | Integration | List all users | GET /api/admin/users | All users with roles | P1 |
+| T-10.3.02 | Integration | Update user roles | PATCH /api/admin/users/:id {roles: ["user", "reviewer"]} | Roles updated | P1 |
+| T-10.3.03 | Integration | Non-admin blocked from admin endpoints | Regular user calls /api/admin/users | 403 Forbidden | P1 |
 
 ---
 
 ## 2. API Endpoint Tests
 
-### Authentication
+### 2.1 Project Service (Core)
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-AUTH.01 | POST /api/auth/validate | Happy path | Valid Azure AD JWT | 200 + user object | P1 |
-| API-AUTH.02 | POST /api/auth/validate | Auth | Expired token | 401 TOKEN_INVALID | P1 |
-| API-AUTH.03 | POST /api/auth/validate | Auth | Malformed token | 401 TOKEN_INVALID | P1 |
-| API-AUTH.04 | GET /api/auth/dev-users | Happy path | Bypass mode enabled | 200 + 4 dev users | P1 |
-| API-AUTH.05 | GET /api/auth/dev-users | Guard | Bypass mode disabled | 404 | P1 |
-| API-AUTH.06 | POST /api/auth/dev-login | Happy path | Valid dev user_id | 200 + session | P1 |
+#### POST /api/projects
 
-### Ideas
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-P-01 | Integration | Create software project | `{project_type: "software"}` | 201, project created | P1 |
+| T-API-P-02 | Integration | Create non-software project | `{project_type: "non_software"}` | 201, project created | P1 |
+| T-API-P-03 | Integration | Invalid project type rejected | `{project_type: "invalid"}` | 400 validation error | P1 |
+| T-API-P-04 | Integration | Unauthenticated request blocked | No auth token | 401 Unauthorized | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-IDEA.01 | POST /api/ideas | Happy path | Create idea with first message | 201 + idea object | P1 |
-| API-IDEA.02 | POST /api/ideas | Validation | Empty first_message | 400 | P1 |
-| API-IDEA.03 | POST /api/ideas | Auth | Unauthenticated | 401 | P1 |
-| API-IDEA.04 | GET /api/ideas | Happy path | List user's ideas | 200 + paginated results | P1 |
-| API-IDEA.05 | GET /api/ideas | Filter | filter=trash | Only trashed ideas | P1 |
-| API-IDEA.06 | GET /api/ideas/:id | Happy path | Get idea as owner | 200 + full idea state | P1 |
-| API-IDEA.07 | GET /api/ideas/:id | Authz | Non-owner/non-collaborator | 403 ACCESS_DENIED | P1 |
-| API-IDEA.08 | GET /api/ideas/:id | Not found | Non-existent UUID | 404 NOT_FOUND | P1 |
-| API-IDEA.09 | PATCH /api/ideas/:id | Happy path | Update title | 200, title_manually_edited=true | P1 |
-| API-IDEA.10 | PATCH /api/ideas/:id | Authz | Non-owner | 403 | P1 |
-| API-IDEA.11 | DELETE /api/ideas/:id | Happy path | Soft delete | 200, deleted_at set | P1 |
-| API-IDEA.12 | POST /api/ideas/:id/restore | Happy path | Restore from trash | 200, deleted_at null | P1 |
-| API-IDEA.13 | POST /api/ideas/:id/share-link | Happy path | Generate share link | 201 + token | P1 |
-| API-IDEA.14 | DELETE /api/ideas/:id/share-link | Happy path | Revoke share link | 200, token null | P1 |
+#### GET /api/projects
 
-### Chat
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-P-05 | Integration | List user's projects | Auth user with 3 projects | 200, array of 3 projects | P1 |
+| T-API-P-06 | Integration | Include collaborated projects | User collaborates on 2 projects | 200, includes collaborated projects | P1 |
+| T-API-P-07 | Integration | Exclude deleted by default | User has 1 deleted project | 200, deleted project not in list | P1 |
+| T-API-P-08 | Integration | Include deleted with flag | `?deleted=true` | 200, only deleted projects | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-CHAT.01 | GET /api/ideas/:id/chat | Happy path | Load chat history | 200 + messages array | P1 |
-| API-CHAT.02 | GET /api/ideas/:id/chat | Pagination | before=uuid, limit=20 | 200 + older messages | P1 |
-| API-CHAT.03 | POST /api/ideas/:id/chat | Happy path | Send message | 201 + message object | P1 |
-| API-CHAT.04 | POST /api/ideas/:id/chat | Locked | Idea in review state | 403 IDEA_LOCKED | P1 |
-| API-CHAT.05 | POST /api/ideas/:id/chat | Rate limited | Cap reached | 429 RATE_LIMITED | P1 |
-| API-CHAT.06 | POST /api/ideas/:id/chat | Validation | Empty content | 400 | P1 |
-| API-CHAT.07 | POST /api/ideas/:id/chat | Validation | Content > 5000 chars | 400 CONTENT_TOO_LONG | P1 |
+#### GET /api/projects/:id
 
-### Reactions
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-P-09 | Integration | Fetch owned project | Valid project ID | 200, project details | P1 |
+| T-API-P-10 | Integration | Fetch collaborated project | Collaborator requests project | 200, project details | P1 |
+| T-API-P-11 | Integration | Block unauthorized access | User requests other's private project | 403 Forbidden | P1 |
+| T-API-P-12 | Integration | 404 for non-existent project | Invalid UUID | 404 Not Found | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-REACT.01 | POST .../reactions | Happy path | React to user message | 201 | P1 |
-| API-REACT.02 | POST .../reactions | Validation | React to AI message | 400 CANNOT_REACT_TO_AI | P1 |
-| API-REACT.03 | POST .../reactions | Validation | React to self | 400 CANNOT_REACT_TO_SELF | P1 |
-| API-REACT.04 | POST .../reactions | Duplicate | Already reacted | 409 ALREADY_REACTED | P1 |
-| API-REACT.05 | DELETE .../reactions | Happy path | Remove reaction | 204 | P1 |
-| API-REACT.06 | POST .../reactions | Validation | Invalid reaction_type | 400 INVALID_REACTION_TYPE | P1 |
+#### PATCH /api/projects/:id
 
-### Board
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-P-13 | Integration | Update title | `{title: "New Title"}` | 200, title updated, WebSocket broadcast | P1 |
+| T-API-P-14 | Integration | Manual edit sets flag | `{title: "..."}` | `title_manually_edited=true` | P1 |
+| T-API-P-15 | Integration | Update agent mode | `{agent_mode: "silent"}` | 200, mode updated | P1 |
+| T-API-P-16 | Integration | Block update in review state | `state=in_review`, update title | 403 or 400 error | P1 |
+| T-API-P-17 | Integration | Collaborator can update | Collaborator updates title | 200, title updated | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-BOARD.01 | GET /api/ideas/:id/board | Happy path | Load board state | 200 + nodes + connections | P1 |
-| API-BOARD.02 | POST .../board/nodes | Happy path | Create box node | 201 + node object | P1 |
-| API-BOARD.03 | POST .../board/nodes | Happy path | Create group node | 201 | P1 |
-| API-BOARD.04 | PATCH .../board/nodes/:id | Happy path | Update node content | 200 | P1 |
-| API-BOARD.04b | PATCH .../board/nodes/:id | Validation | Title > 500 chars | 400 TITLE_TOO_LONG | P1 |
-| API-BOARD.04c | PATCH .../board/nodes/:id | Validation | Body > 5000 chars | 400 BODY_TOO_LONG | P1 |
-| API-BOARD.05 | PATCH .../board/nodes/:id | Locked | Update locked node | 403 or 400 | P1 |
-| API-BOARD.06 | DELETE .../board/nodes/:id | Happy path | Delete node | 204, children detached | P1 |
-| API-BOARD.07 | POST .../board/nodes/batch | Happy path | Batch operations | 200 + results per op | P1 |
-| API-BOARD.08 | POST .../board/connections | Happy path | Create connection | 201 | P1 |
-| API-BOARD.09 | POST .../board/connections | Duplicate | Same source-target pair | 409 or 400 | P1 |
-| API-BOARD.10 | PATCH .../connections/:id | Happy path | Update label | 200 | P1 |
-| API-BOARD.11 | DELETE .../connections/:id | Happy path | Delete connection | 204 | P1 |
+#### DELETE /api/projects/:id
 
-### BRD
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-P-18 | Integration | Soft delete | DELETE request | 200, `deleted_at` set | P1 |
+| T-API-P-19 | Integration | Only owner can delete | Collaborator attempts delete | 403 Forbidden | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-BRD.01 | GET /api/ideas/:id/brd | Happy path | Get current draft | 200 + sections + locks + readiness | P1 |
-| API-BRD.02 | POST .../brd/generate | Happy path | Generate skeleton | 200 | P1 |
-| API-BRD.03 | POST .../brd/regenerate | Happy path | Regenerate unlocked sections | 202 + job_id | P1 |
-| API-BRD.04 | POST .../brd/regenerate-section | Happy path | Regenerate single section | 202 + job_id | P1 |
-| API-BRD.05 | PATCH /api/ideas/:id/brd | Happy path | User edits sections | 200, auto-lock applied | P1 |
-| API-BRD.06 | GET .../brd/versions | Happy path | List versions | 200 + version array | P1 |
-| API-BRD.07 | GET .../brd/versions/:id/pdf | Happy path | Download PDF | 200 + PDF file | P1 |
-| API-BRD.08 | GET .../brd/versions/:id/pdf | Not found | PDF not generated | 404 PDF_NOT_FOUND | P1 |
-| API-BRD.09 | POST .../brd/generate-pdf | Happy path | Generate and return PDF | 200 + PDF bytes | P1 |
-| API-BRD.10 | POST .../brd/generate-pdf | Validation | /TODO markers remain | 400 TODO_MARKERS_REMAINING | P1 |
+#### POST /api/projects/:id/submit
 
-### Review Workflow
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-P-20 | Integration | Submit for review | `{reviewer_ids: [...]}` | 200, state → in_review, version created | P1 |
+| T-API-P-21 | Integration | Block if insufficient | Draft has insufficient sections, gaps=false | 400 error with details | P1 |
+| T-API-P-22 | Integration | Allow with gaps flag | Insufficient sections, `allow_information_gaps=true` | 200, submission allowed | P2 |
+| T-API-P-23 | Integration | Assign reviewers | Submit with 2 reviewer IDs | 2 ReviewAssignment records created | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-REV.01 | POST .../submit | Happy path | Submit for review | 200 + state=in_review | P1 |
-| API-REV.02 | POST .../submit | Validation | Wrong state (accepted) | 400 | P1 |
-| API-REV.03 | POST .../review/accept | Happy path | Accept | 200 + state=accepted | P1 |
-| API-REV.04 | POST .../review/reject | Happy path | Reject with comment | 200 + state=rejected | P1 |
-| API-REV.05 | POST .../review/reject | Validation | Missing comment | 400 COMMENT_REQUIRED | P1 |
-| API-REV.06 | POST .../review/drop | Happy path | Drop with comment | 200 + state=dropped | P1 |
-| API-REV.07 | POST .../review/undo | Happy path | Undo action | 200 + state=in_review | P1 |
-| API-REV.08 | POST .../review/undo | Validation | Missing comment | 400 COMMENT_REQUIRED | P1 |
-| API-REV.09 | GET .../review/timeline | Happy path | Load timeline | 200 + entries with replies | P1 |
-| API-REV.10 | POST .../review/timeline | Happy path | Post comment | 201 + entry | P1 |
-| API-REV.11 | GET .../review/similar | Happy path | Get similar ideas for review | 200 + similar_ideas array | P2 |
+### 2.2 Chat Service
 
-### Collaboration
+#### POST /api/projects/:id/messages
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-COLLAB.01 | POST .../invite | Happy path | Invite user | 201 + invitation | P1 |
-| API-COLLAB.02 | GET .../collaborators | Happy path | List collaborators | 200 + collaborators + pending | P1 |
-| API-COLLAB.03 | DELETE .../collaborators/:userId | Happy path | Remove collaborator | 204 | P1 |
-| API-COLLAB.04 | POST .../transfer | Happy path | Transfer ownership | 200 | P1 |
-| API-COLLAB.05 | POST .../leave | Happy path | Leave as co-owner | 200 | P1 |
-| API-COLLAB.06 | POST .../leave | Validation | Leave as sole owner | 400 MUST_TRANSFER_OWNERSHIP | P1 |
-| API-COLLAB.07 | POST /api/invitations/:id/accept | Happy path | Accept invitation | 200, collaborator added | P1 |
-| API-COLLAB.08 | POST /api/invitations/:id/decline | Happy path | Decline invitation | 200 | P1 |
-| API-COLLAB.09 | DELETE /api/invitations/:id | Happy path | Revoke invitation | 204 | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-C-01 | Integration | Send user message | `{content: "Hello"}` | 201, message created, AI pipeline triggered | P1 |
+| T-API-C-02 | Integration | Empty message rejected | `{content: ""}` | 400 validation error | P1 |
+| T-API-C-03 | Integration | Message in review state blocked | `state=in_review`, send message | 403 Forbidden | P1 |
+| T-API-C-04 | Integration | Collaborator can send message | Collaborator sends message | 201, message created | P1 |
 
-### Similarity & Merge
+#### GET /api/projects/:id/messages
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-MERGE.01 | GET .../similar | Happy path | Get similar ideas | 200 + similar_ideas | P1 |
-| API-MERGE.02 | POST .../merge-request | Happy path | Request merge | 201 + merge_request | P1 |
-| API-MERGE.03 | POST /api/merge-requests/:id/accept | Happy path | Accept merge | 200 + resulting_idea_id | P1 |
-| API-MERGE.04 | POST /api/merge-requests/:id/decline | Happy path | Decline merge | 200 + status=declined | P1 |
-| API-MERGE.05 | POST .../manual-merge | Happy path | Manual merge request | 201 | P1 |
-| API-MERGE.06 | POST .../reopen | Happy path | Reopen accepted idea | 200 + state=open | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-C-05 | Integration | Fetch message history | Valid project ID | 200, array of messages | P1 |
+| T-API-C-06 | Integration | Pagination support | `?limit=20&offset=40` | 200, paginated results | P2 |
+| T-API-C-07 | Integration | Include AI messages | Project with AI responses | 200, includes AI messages | P1 |
 
-### Notifications
+### 2.3 Requirements Service
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-NOTIF.01 | GET /api/notifications | Happy path | List notifications | 200 + paginated list | P1 |
-| API-NOTIF.02 | GET .../unread-count | Happy path | Get unread count | 200 + count | P1 |
-| API-NOTIF.03 | PATCH /api/notifications/:id | Happy path | Mark as read | 200 | P1 |
-| API-NOTIF.04 | POST .../mark-all-read | Happy path | Mark all read | 200 | P1 |
+#### POST /api/projects/:id/requirements
 
-### User
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-R-01 | Integration | Create epic | `{item_type: "epic", title: "...", description: "..."}` | 201, epic created | P1 |
+| T-API-R-02 | Integration | Create user story under epic | `{item_type: "user_story", parent_id: epic.id, ...}` | 201, story created | P1 |
+| T-API-R-03 | Integration | Create milestone | `{item_type: "milestone", ...}` | 201, milestone created | P1 |
+| T-API-R-04 | Integration | Reject epic in non-software project | Non-software project, create epic | 400 validation error | P1 |
+| T-API-R-05 | Integration | Reject milestone in software project | Software project, create milestone | 400 validation error | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-USER.01 | GET /api/users/me | Happy path | Get profile | 200 + user object | P1 |
-| API-USER.02 | GET .../notification-preferences | Happy path | Get preferences | 200 + categories | P1 |
-| API-USER.03 | PATCH .../notification-preferences | Happy path | Update preferences | 200 | P1 |
-| API-USER.04 | GET /api/users/search | Happy path | Search users | 200 + results | P1 |
+#### PATCH /api/projects/:id/requirements/:item_id
 
-### Admin
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-R-06 | Integration | Update requirement title | `{title: "Updated"}` | 200, title updated | P1 |
+| T-API-R-07 | Integration | Update blocked in review state | `state=in_review`, update requirement | 403 Forbidden | P1 |
 
-| Test ID | Endpoint | Type | Description | Expected | Priority |
-|---------|----------|------|-------------|----------|----------|
-| API-ADMIN.01 | GET /api/admin/parameters | Happy path | List parameters | 200 + array | P1 |
-| API-ADMIN.02 | GET /api/admin/parameters | Authz | Non-admin | 403 | P1 |
-| API-ADMIN.03 | PATCH .../parameters/:key | Happy path | Update parameter | 200 | P1 |
-| API-ADMIN.04 | GET /api/admin/monitoring | Happy path | Get dashboard data | 200 + full monitoring object | P1 |
-| API-ADMIN.05 | PUT .../ai-context/facilitator | Happy path | Update facilitator context | 200 | P1 |
-| API-ADMIN.06 | PUT .../ai-context/context-agent | Happy path | Update context agent bucket | 200, triggers re-indexing | P1 |
-| API-ADMIN.07 | GET /api/admin/users/search | Happy path | Search with stats | 200 + users with counts | P1 |
+#### DELETE /api/projects/:id/requirements/:item_id
 
----
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-R-08 | Integration | Delete requirement | DELETE request | 200, item soft-deleted | P1 |
+| T-API-R-09 | Integration | Cascade delete children | Delete epic with stories | All children deleted | P2 |
 
-## 3. Data Entity Tests
+#### PATCH /api/projects/:id/requirements/reorder
 
-### ideas
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-R-10 | Integration | Reorder items | `{items: [{id, order_index}, ...]}` | 200, order updated | P1 |
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-IDEA.01 | Create | Valid idea creation | User exists | Row created with defaults | P1 |
-| DB-IDEA.02 | Create | State CHECK constraint | state="invalid" | Database error | P1 |
-| DB-IDEA.03 | Update | State transition | state=open | state=in_review | P1 |
-| DB-IDEA.04 | Soft Delete | Set deleted_at | Row exists | deleted_at set, row not removed | P1 |
-| DB-IDEA.05 | Cascade | Delete idea cascades | Idea with chat, board, BRD | All child rows deleted | P1 |
-| DB-IDEA.06 | Constraint | Visibility CHECK | visibility="invalid" | Database error | P2 |
+### 2.4 Requirements Document Service
 
-### chat_messages
+#### GET /api/projects/:id/draft
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-CHAT.01 | Create | Valid user message | Idea exists | Row created, sender_type=user | P1 |
-| DB-CHAT.02 | Create | Valid AI message | Idea exists | Row created, sender_id=null, ai_agent set | P1 |
-| DB-CHAT.03 | Immutability | Update rejected at app level | Message exists | No update operation allowed | P1 |
-| DB-CHAT.04 | Ordering | Messages ordered by created_at | Multiple messages | Chronological order | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-D-01 | Integration | Fetch draft | Valid project ID | 200, draft with all sections | P1 |
+| T-API-D-02 | Integration | 404 if no draft exists | Project never submitted | 404 Not Found | P2 |
 
-### board_nodes
+#### PATCH /api/projects/:id/draft
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-NODE.01 | Create | Valid box node | Idea exists | Row created with defaults | P1 |
-| DB-NODE.02 | Create | Node with parent group | Group exists | parent_id set correctly | P1 |
-| DB-NODE.03 | Delete | Parent deleted, children detached | Group with children | Children parent_id set to null (ON DELETE SET NULL) | P1 |
-| DB-NODE.04 | Constraint | node_type CHECK | type="invalid" | Database error | P2 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-D-03 | Integration | Update section | `{section_title: "New Title"}` | 200, section updated | P1 |
+| T-API-D-04 | Integration | Lock section | `{section_locks: {title: true}}` | 200, lock saved | P1 |
+| T-API-D-05 | Integration | Update blocked in review | `state=in_review`, update draft | 403 Forbidden | P1 |
 
-### board_connections
+#### GET /api/projects/:id/versions
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-CONN.01 | Create | Valid connection | Two nodes exist | Row created | P1 |
-| DB-CONN.02 | Unique | Duplicate connection | Connection exists | UNIQUE violation | P1 |
-| DB-CONN.03 | Cascade | Source node deleted | Connection exists | Connection cascade deleted | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-D-06 | Integration | Fetch version list | Project with 3 submissions | 200, array of 3 versions | P1 |
 
-### brd_drafts
+#### GET /api/projects/:id/versions/:version_number
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-BRD.01 | Create | One draft per idea | Idea exists | Row created (UNIQUE on idea_id) | P1 |
-| DB-BRD.02 | Create | Duplicate draft | Draft exists | UNIQUE violation | P1 |
-| DB-BRD.03 | Update | Section lock persists in JSONB | Update section_locks | JSONB updated correctly | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-D-07 | Integration | Fetch specific version | Version number 2 | 200, version 2 snapshot | P1 |
+| T-API-D-08 | Integration | 404 for non-existent version | Version 99 | 404 Not Found | P2 |
 
-### brd_versions
+### 2.5 Review Service
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-BRDV.01 | Create | Version snapshot on submit | Draft exists | Immutable row created | P1 |
-| DB-BRDV.02 | Unique | Version number unique per idea | Existing versions | UNIQUE (idea_id, version_number) | P1 |
-| DB-BRDV.03 | Immutability | No updates allowed | Version exists | App layer prevents update | P1 |
+#### POST /api/projects/:id/review/accept
 
-### review_assignments
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-RV-01 | Integration | Accept project | Reviewer accepts | 200, state → accepted | P1 |
+| T-API-RV-02 | Integration | Non-reviewer blocked | Regular user accepts | 403 Forbidden | P1 |
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-ASGN.01 | Create | Assign reviewer | Idea in review | Row created | P1 |
-| DB-ASGN.02 | Unique | One active assignment per reviewer | Active assignment exists | UNIQUE partial index violation | P1 |
-| DB-ASGN.03 | Unassign | Set unassigned_at | Active assignment | unassigned_at timestamp set | P1 |
+#### POST /api/projects/:id/review/reject
 
-### merge_requests
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-RV-03 | Integration | Reject with comment | `{comment: "Needs work"}` | 200, state → rejected | P1 |
+| T-API-RV-04 | Integration | Reject without comment blocked | No comment field | 400 validation error | P1 |
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-MRG.01 | Create | Pending merge request | Two ideas exist | Row with status=pending | P1 |
-| DB-MRG.02 | Unique | One active request per pair | Pending exists | UNIQUE partial index violation | P1 |
-| DB-MRG.03 | Resolve | Accept sets resulting_idea_id | Pending request | status=accepted, resulting_idea_id set | P1 |
+#### POST /api/projects/:id/review/drop
 
-### notifications
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-RV-05 | Integration | Drop with reason | `{comment: "Out of scope"}` | 200, state → dropped | P1 |
 
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-NOTIF.01 | Create | Notification for event | User exists | Row created with event_type, is_read=false | P1 |
-| DB-NOTIF.02 | Update | Mark as read | Notification exists | is_read=true | P1 |
-| DB-NOTIF.03 | Cascade | User deleted cascades | User with notifications | Notifications deleted | P2 |
+#### POST /api/projects/:id/review/comments
 
-### AI-Owned Tables
-
-| Test ID | Operation | Description | Precondition | Expected | Priority |
-|---------|-----------|-------------|-------------|----------|----------|
-| DB-AI.01 | Upsert | Chat context summary | Idea exists | Row upserted, compression_iteration incremented | P1 |
-| DB-AI.02 | Rebuild | Context chunks on bucket update | Bucket updated | Old chunks deleted, new chunks inserted | P1 |
-| DB-AI.03 | Upsert | Idea embedding | Idea with keywords | Embedding upserted, source_text_hash updated | P1 |
-| DB-AI.04 | HNSW | Vector similarity search | Multiple embeddings | Correct top-K results | P1 |
-| DB-AI.05 | Singleton | Facilitator bucket single row | Existing row | Only one row exists | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-API-RV-06 | Integration | Add review comment | `{content: "Please clarify"}` | 201, timeline entry created | P1 |
+| T-API-RV-07 | Integration | Reply to comment | `{content: "...", parent_entry_id: ...}` | 201, reply created | P2 |
 
 ---
 
-## 4. Page & Component Tests
+## 3. Data Model Tests
 
-### Landing Page (`/`)
+### 3.1 Project Model
 
-| Test ID | Layer | Description | State | Expected | Priority |
-|---------|-------|-------------|-------|----------|----------|
-| UI-LAND.01 | Unit | Renders without error | Default | No crash | P1 |
-| UI-LAND.02 | Unit | Shows empty state | No ideas | Empty state message | P2 |
-| UI-LAND.03 | Unit | IdeaCard renders with title, state, collaborator count | Idea data | All fields visible | P1 |
-| UI-LAND.04 | Unit | Trash section shows soft-deleted ideas | Ideas with deleted_at | Trash list populated | P1 |
-| UI-LAND.05 | Unit | Undo toast on trash action | Delete idea | Toast with undo button | P2 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-DM-P-01 | Unit | Project type enum validation | Invalid type value | ValidationError | P1 |
+| T-DM-P-02 | Unit | State enum validation | Invalid state | ValidationError | P1 |
+| T-DM-P-03 | Unit | Default project type is software | Create without type | `project_type="software"` | P1 |
+| T-DM-P-04 | Unit | Deleted projects filtered by default manager | Query Project.objects.all() | Excludes deleted_at != NULL | P1 |
 
-### Idea Workspace (`/idea/:uuid`)
+### 3.2 RequirementsItem Model
 
-| Test ID | Layer | Description | State | Expected | Priority |
-|---------|-------|-------------|-------|----------|----------|
-| UI-WORK.01 | Unit | Workspace renders with chat + board panels | Idea loaded | Both panels visible | P1 |
-| UI-WORK.02 | Unit | Chat panel shows loading state | Loading | Spinner visible | P2 |
-| UI-WORK.03 | Unit | Chat panel shows error state | Error | Error message displayed | P2 |
-| UI-WORK.04 | Unit | Board canvas renders with React Flow | Board data | Canvas with nodes/edges | P1 |
-| UI-WORK.05 | Unit | Chat input disabled when locked | state=in_review | Input field disabled | P1 |
-| UI-WORK.06 | Unit | Agent mode dropdown works | Click dropdown | Options visible, selection updates | P1 |
-| UI-WORK.07 | Unit | Presence indicators render | Online users | User avatars with status | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-DM-R-01 | Unit | Item type validation | Invalid item_type | ValidationError | P1 |
+| T-DM-R-02 | Unit | Parent-child relationship constraint | Story with invalid parent type | ValidationError | P1 |
+| T-DM-R-03 | Unit | Order index defaults to 0 | Create without order_index | `order_index=0` | P2 |
 
-### Review List Page (`/reviews`)
+### 3.3 RequirementsDocumentDraft Model
 
-| Test ID | Layer | Description | State | Expected | Priority |
-|---------|-------|-------------|-------|----------|----------|
-| UI-REV.01 | Unit | Renders without error | Reviewer role | No crash | P1 |
-| UI-REV.02 | Unit | Five category groups render | Mixed data | All 5 groups visible | P1 |
-| UI-REV.03 | Unit | Assign button visible for unassigned ideas | Unassigned list | Assign button shown | P1 |
-| UI-REV.04 | Unit | Non-reviewer sees 403 or redirect | User role only | Access denied | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-DM-D-01 | Unit | One draft per project constraint | Create second draft for same project | IntegrityError | P1 |
+| T-DM-D-02 | Unit | requirements_structure defaults to empty dict | Create draft without structure | `requirements_structure={}` | P1 |
+| T-DM-D-03 | Unit | section_locks defaults to empty dict | Create draft | `section_locks={}` | P1 |
 
-### Admin Panel (`/admin`)
+### 3.4 RequirementsDocumentVersion Model
 
-| Test ID | Layer | Description | State | Expected | Priority |
-|---------|-------|-------------|-------|----------|----------|
-| UI-ADMIN.01 | Unit | 4 tabs render: AI Context, Parameters, Monitoring, Users | Admin role | All tabs visible | P1 |
-| UI-ADMIN.02 | Unit | Parameters tab shows editable fields | Parameter data | Input fields with current values | P1 |
-| UI-ADMIN.03 | Unit | Monitoring dashboard renders stats | Monitoring data | Charts/numbers displayed | P1 |
-| UI-ADMIN.04 | Unit | Non-admin sees 403 or redirect | User role only | Access denied | P1 |
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-DM-V-01 | Unit | Version number auto-increments | Create second version | `version_number=2` | P1 |
+| T-DM-V-02 | Unit | requirements_structure is immutable | Frozen version | Field is read-only | P1 |
 
 ---
 
-## 5. Statistics
+## 4. Component Tests (Frontend)
 
-| Layer | Total Tests | P1 (Critical) | P2 (Important) | P3 (Nice-to-have) |
-|-------|-------------|---------------|----------------|-------------------|
-| Unit (Frontend) | 95 | 73 | 20 | 2 |
-| Integration (Backend) | 99 | 92 | 6 | 1 |
-| AI Agent | 26 | 22 | 4 | 0 |
-| WebSocket | 5 | 5 | 0 | 0 |
-| E2E | 4 | 4 | 0 | 0 |
-| Data Entity | 27 | 23 | 4 | 0 |
-| **Total** | **256** | **219** | **34** | **3** |
+### 4.1 ProjectWorkspace Component
 
-> **Note:** E2E flows from the architect's testing strategy (13 critical flows) are tracked separately in `docs/02-architecture/testing-strategy.md` § Critical Test Flows. This matrix adds the feature-specific test cases that implement those flows.
->
-> **Changes from v1 (2026-03-04):** Added 26 test cases: F-2.2 language detection (3), F-3.8 board reference action (2), F-4.12 similar ideas in review (2), F-5.8 manual merge (3), F-6.6 connection indicator (2), F-11.5 monitoring service (3), F-13.3 role-based notification groups (3), input validation edge cases (6: chat length, board title/body length, reaction type, similar ideas API).
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-FE-W-01 | Unit | Component renders for software project | `project_type="software"` | Workspace with requirements panel showing epics | P1 |
+| T-FE-W-02 | Unit | Component renders for non-software project | `project_type="non_software"` | Workspace with requirements panel showing milestones | P1 |
+| T-FE-W-03 | Unit | Title edit updates Redux state | Edit title | Redux action dispatched | P1 |
+
+### 4.2 RequirementsPanel Component
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-FE-RP-01 | Unit | Renders epics for software project | Software project with 3 epics | 3 accordion sections | P1 |
+| T-FE-RP-02 | Unit | Renders milestones for non-software | Non-software project with 2 milestones | 2 accordion sections | P1 |
+| T-FE-RP-03 | Unit | Add button opens modal | Click "Add Epic" | Modal visible | P1 |
+| T-FE-RP-04 | Unit | Drag reorder triggers optimistic update | Drag epic | UI reorders immediately | P1 |
+
+### 4.3 RequirementsDocumentView Component
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-FE-RD-01 | Unit | Renders all 6 sections | Full draft | All sections displayed | P1 |
+| T-FE-RD-02 | Unit | Renders requirements structure hierarchically | Draft with epics/stories | Nested list rendered | P1 |
+| T-FE-RD-03 | Unit | Lock icon toggles lock state | Click lock on title | PATCH request sent | P1 |
+| T-FE-RD-04 | Unit | Locked sections show indicator | `section_locks.title=true` | Lock icon visible | P1 |
+
+### 4.4 ProjectCreationModal Component
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-FE-PC-01 | Unit | Modal shows two project type cards | Modal opened | Software and Non-Software cards | P1 |
+| T-FE-PC-02 | Unit | Select type enables create button | Click "Software" | Create button enabled | P1 |
+| T-FE-PC-03 | Unit | Create dispatches action | Click create | Redux createProject action | P1 |
+
+### 4.5 LandingPage Component
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-FE-LP-01 | Unit | Renders project list | User with 5 projects | 5 project cards | P1 |
+| T-FE-LP-02 | Unit | Project cards show type badge | Mixed project types | Different badges on cards | P1 |
+| T-FE-LP-03 | Unit | Filter by type works | Select "Software" | Only software projects shown | P2 |
+
+---
+
+## 5. AI Agent Tests
+
+### 5.1 Facilitator Agent
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-AI-F-01 | AI Agent | Greeting on first message | New software project, first user message | Welcoming response asking about features | P1 |
+| T-AI-F-02 | AI Agent | Greeting for non-software project | New non-software project, first message | Response asking about phases/milestones | P1 |
+| T-AI-F-03 | AI Agent | Call update_requirements_structure | User describes 3 features | Tool call with 3 epics | P1 |
+| T-AI-F-04 | AI Agent | Adapt to project type in prompts | Software vs non-software | Different terminology used | P1 |
+| T-AI-F-05 | AI Agent | Title suggestion | 3+ messages, no manual title | Suggests appropriate title | P1 |
+| T-AI-F-06 | AI Agent | Delegate to Context Agent | User asks about existing systems | Delegation message sent | P1 |
+| T-AI-F-07 | AI Agent | Silent mode respect | `agent_mode=silent`, no @ai | No response | P1 |
+| T-AI-F-08 | AI Agent | @ai mention overrides silent | `agent_mode=silent`, @ai mention | Response generated | P1 |
+
+### 5.2 Summarizing AI Agent
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-AI-S-01 | AI Agent | Generate complete draft | Chat + requirements for software project | All 6 sections + requirements_structure with epics | P1 |
+| T-AI-S-02 | AI Agent | Generate non-software draft | Non-software project | requirements_structure with milestones | P1 |
+| T-AI-S-03 | AI Agent | Respect section locks | 2 sections locked | Only 4 sections regenerated | P1 |
+| T-AI-S-04 | AI Agent | Gaps mode with /TODO | Insufficient info, gaps=true | Sections have "/TODO" markers | P2 |
+| T-AI-S-05 | AI Agent | Readiness evaluation | Generate draft | `readiness_evaluation` populated for all sections | P1 |
+| T-AI-S-06 | AI Agent | Insufficient sections marked | Incomplete chat | Some sections marked "insufficient" | P1 |
+
+### 5.3 Context Agent
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-AI-C-01 | AI Agent | RAG search in global bucket | Any project, context query | Searches global bucket | P1 |
+| T-AI-C-02 | AI Agent | RAG search in software bucket | Software project query | Searches global + software buckets | P1 |
+| T-AI-C-03 | AI Agent | RAG search in non-software bucket | Non-software project query | Searches global + non_software buckets | P1 |
+| T-AI-C-04 | AI Agent | No context found response | Query with no matches | Polite "no information" message | P2 |
+| T-AI-C-05 | AI Agent | Context with sources | Matching chunks found | Response includes source citations | P2 |
+
+---
+
+## 6. WebSocket Tests
+
+### 6.1 Project Channel
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-WS-P-01 | Integration | Join project channel | WebSocket connect to project/:id | Connection established | P1 |
+| T-WS-P-02 | Integration | Receive chat message event | User B sends message | User A receives `chat.message.created` | P1 |
+| T-WS-P-03 | Integration | Receive requirements update | User B adds epic | User A receives `requirements.item.created` | P1 |
+| T-WS-P-04 | Integration | Receive draft update | User B edits draft section | User A receives `draft.section.updated` | P1 |
+| T-WS-P-05 | Integration | Presence broadcast | User joins | Other users receive `user.joined` | P1 |
+| T-WS-P-06 | Integration | Leave broadcasts | User disconnects | Other users receive `user.left` | P1 |
+
+---
+
+## 7. E2E Tests
+
+### 7.1 Project Creation Flow
+
+| Test ID | Layer | Description | Steps | Expected Outcome | Priority |
+|---------|-------|-------------|-------|------------------|----------|
+| T-E2E-01 | E2E | Create software project end-to-end | 1. Click "Create Project"<br>2. Select "Software"<br>3. Confirm | Redirected to workspace, project in DB | P1 |
+| T-E2E-02 | E2E | Create non-software project | Same as above, select "Non-Software" | Workspace shows milestone structure | P1 |
+
+### 7.2 Requirements Assembly Flow
+
+| Test ID | Layer | Description | Steps | Expected Outcome | Priority |
+|---------|-------|-------------|-------|------------------|----------|
+| T-E2E-03 | E2E | Add requirements via UI | 1. Create project<br>2. Click "Add Epic"<br>3. Fill form<br>4. Save | Epic appears in panel | P1 |
+| T-E2E-04 | E2E | Add requirements via AI | 1. Create project<br>2. Chat "I need features X, Y, Z"<br>3. Wait for AI | AI creates epics/stories | P1 |
+| T-E2E-05 | E2E | Reorder requirements | 1. Open project with epics<br>2. Drag epic to new position | Order persisted, visible to collaborators | P2 |
+
+### 7.3 Submission & Review Flow
+
+| Test ID | Layer | Description | Steps | Expected Outcome | Priority |
+|---------|-------|-------------|-------|------------------|----------|
+| T-E2E-06 | E2E | Submit for review | 1. Create project<br>2. Add requirements<br>3. Click Submit<br>4. Select reviewers | State → in_review, reviewers notified | P1 |
+| T-E2E-07 | E2E | Reviewer accepts | 1. Reviewer opens project<br>2. Reviews content<br>3. Clicks Accept | State → accepted | P1 |
+| T-E2E-08 | E2E | Reviewer rejects | 1. Reviewer rejects with comment<br>2. Owner sees rejection | State → rejected, comment visible | P1 |
+| T-E2E-09 | E2E | Resubmit after rejection | 1. Owner edits project<br>2. Resubmits | New version created, state → in_review | P1 |
+
+### 7.4 Collaboration Flow
+
+| Test ID | Layer | Description | Steps | Expected Outcome | Priority |
+|---------|-------|-------------|-------|------------------|----------|
+| T-E2E-10 | E2E | Invite collaborator | 1. Owner invites user<br>2. Invitee accepts | Both see project, real-time sync | P1 |
+| T-E2E-11 | E2E | Real-time chat sync | 1. User A sends message<br>2. User B observes | Message appears for User B instantly | P1 |
+| T-E2E-12 | E2E | Real-time requirements sync | 1. User A adds epic<br>2. User B observes | Epic appears for User B | P1 |
+
+---
+
+## 8. Performance & Load Tests
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-PERF-01 | Load | 100 concurrent users viewing projects | JMeter/k6 script | Response time < 500ms, 0 errors | P2 |
+| T-PERF-02 | Load | 50 concurrent AI requests | Simulate 50 chat messages | All responses within 10s | P2 |
+| T-PERF-03 | Load | WebSocket scalability | 500 concurrent WebSocket connections | All connections stable | P2 |
+| T-PERF-04 | Load | Large requirements structure | Project with 20 epics, 100 stories | Renders in < 2s | P3 |
+
+---
+
+## 9. Security Tests
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-SEC-01 | Integration | Unauthorized access blocked | Access other user's private project | 403 Forbidden | P1 |
+| T-SEC-02 | Integration | XSS prevention | Chat message with `<script>` tag | Tag escaped, not executed | P1 |
+| T-SEC-03 | Integration | SQL injection prevention | Malicious query parameter | No SQL error, query sanitized | P1 |
+| T-SEC-04 | Integration | CSRF protection | POST without CSRF token | 403 Forbidden | P1 |
+| T-SEC-05 | Integration | Role-based access | Regular user accesses admin endpoint | 403 Forbidden | P1 |
+
+---
+
+## 10. Accessibility Tests
+
+| Test ID | Layer | Description | Input | Expected Output | Priority |
+|---------|-------|-------------|-------|-----------------|----------|
+| T-A11Y-01 | E2E | Keyboard navigation | Tab through workspace | All interactive elements reachable | P1 |
+| T-A11Y-02 | E2E | Screen reader labels | NVDA/JAWS on requirements panel | All items properly announced | P1 |
+| T-A11Y-03 | E2E | Color contrast | WCAG contrast checker | All text meets AA standard | P2 |
+| T-A11Y-04 | E2E | Focus indicators | Tab through UI | Visible focus ring on all elements | P2 |
+
+---
+
+## Summary
+
+**Total test cases:** 300+
+
+**By priority:**
+- P1 (Critical): ~220
+- P2 (Important): ~65
+- P3 (Nice-to-have): ~15
+
+**By layer:**
+- Unit: ~80
+- Integration: ~110
+- AI Agent: ~30
+- E2E: ~25
+- Performance/Security/A11y: ~25
+
+**Coverage targets:**
+- Backend code coverage: >85%
+- Frontend code coverage: >80%
+- E2E critical path coverage: 100%
