@@ -1,0 +1,38 @@
+# Ralph Progress Log — M17 (e2e-foundation)
+Started: 2026-03-11T23:51:55+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: [Backend] Remove merge/similarity/keyword system
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/ideas/models.py, services/core/apps/ideas/migrations/0002_remove_merge_similarity.py, services/gateway/apps/ideas/models.py, services/gateway/apps/ideas/serializers.py, services/gateway/apps/ideas/views.py, services/gateway/apps/comments/views.py, services/gateway/apps/chat/views.py, services/gateway/apps/brd/views.py, services/gateway/apps/board/views.py, services/gateway/apps/authentication/views.py, services/gateway/apps/collaboration/views.py, services/gateway/apps/review/views.py, services/gateway/apps/websocket/consumers.py, services/gateway/grpc_clients/core_client.py, services/ai/grpc_clients/core_client.py, services/gateway/apps/websocket/tests/test_access.py, services/gateway/apps/brd/tests/test_views.py, services/gateway/apps/authentication/tests/test_admin_users.py, services/gateway/apps/authentication/tests/test_notification_prefs.py, services/gateway/apps/collaboration/tests/test_collaborator_mgmt.py, services/gateway/apps/review/tests/test_review_assignments.py
+- Tests: Frontend typecheck passes, ruff passes (no new issues), docker compose build succeeds for all 8 images
+- Learnings for future iterations:
+  - Most merge/similarity directories (core/apps/similarity, gateway/apps/similarity, ai/agents/keyword_agent, deep_comparison, merge_synthesizer) were already deleted in a prior commit (5b3cc75). This iteration focused on remaining references.
+  - co_owner_id was deeply integrated across 12+ files in gateway (comments, chat, brd, board, authentication, collaboration, review, websocket, ideas views/serializers) — all access checks needed updating from "owner or co_owner or collaborator" to "owner or collaborator"
+  - The RAG retriever uses "similarity" (cosine similarity scores) which is unrelated to the removed "idea similarity detection" feature — these references should NOT be removed
+  - append_request_received notification type was in Review Management category and needed removal
+  - prd.json is a symlink to tasks/prd-m17.json — commit via git add tasks/prd-m17.json
+  - The _validate_board_refs function remains in facilitator/plugins.py — that's US-003 (board removal) scope
+---

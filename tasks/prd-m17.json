@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § idea_keywords, merge_requests, idea_embeddings, ideas — DROP tables and columns\nArchitecture: docs/02-architecture/api-design.md § /api/ideas/:id/similar, /api/ideas/:id/merge-request, /api/merge-request/:id/consent — REMOVE endpoints\nArchitecture: docs/02-architecture/project-structure.md § Microservice Decomposition — verify all services after deletion\nAI: docs/03-ai/tools-and-functions.md § research_similar_ideas tool — REMOVE from Facilitator plugin\nTesting: No test-matrix entries for removal stories (scaffolding-type work) — implement-first workflow\nFiles: services/core/apps/similarity/, services/gateway/apps/similarity/, services/ai/agents/keyword_agent/, services/ai/agents/deep_comparison/, services/ai/agents/merge_synthesizer/, services/ai/embedding/idea_embedder.py, services/gateway/events/merge_consumer.py, services/notification/consumers/similarity_events.py, services/ai/agents/facilitator/plugins.py, services/ai/agents/facilitator/prompt.py, proto/core.proto\nGotchas: This story has the widest blast radius — touches core, gateway, AI, notification services and proto files. Be systematic: delete directories first, then remove references from remaining files. Run services individually after each major deletion to verify no broken imports.\nDeviations: None expected",
       "context": {
