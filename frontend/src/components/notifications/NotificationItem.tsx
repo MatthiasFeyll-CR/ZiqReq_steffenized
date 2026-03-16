@@ -4,7 +4,6 @@ import {
   XCircle,
   AlertCircle,
   AtSign,
-  GitMerge,
   Bell,
 } from "lucide-react";
 import type { Notification } from "@/api/notifications";
@@ -24,9 +23,6 @@ function getIcon(eventType: string) {
   }
   if (eventType === "chat_mention") {
     return <AtSign className="h-4 w-4 shrink-0 text-purple-500" />;
-  }
-  if (eventType.startsWith("similarity") || eventType.startsWith("merge") || eventType === "idea_closed_append") {
-    return <GitMerge className="h-4 w-4 shrink-0 text-orange-500" />;
   }
   return <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />;
 }

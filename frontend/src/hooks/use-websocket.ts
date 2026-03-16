@@ -139,24 +139,6 @@ export function useWebSocket() {
                 detail: data.payload,
               }),
             );
-          } else if (data.type === "merge_request" && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:merge_request", {
-                detail: data.payload,
-              }),
-            );
-          } else if (data.type === "merge_complete" && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:merge_complete", {
-                detail: data.payload,
-              }),
-            );
-          } else if (data.type === "append_complete" && data.payload) {
-            window.dispatchEvent(
-              new CustomEvent("ws:append_complete", {
-                detail: data.payload,
-              }),
-            );
           } else if (data.type === "chat_message" && data.idea_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:chat_message", {

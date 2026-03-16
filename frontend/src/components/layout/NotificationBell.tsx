@@ -16,13 +16,11 @@ function getToastType(eventType: string): "info" | "success" | "warning" {
   if (eventType === "review_comment") return "info";
   if (
     eventType === "collaborator_joined" ||
-    eventType === "merge_accepted" ||
     eventType.startsWith("ai_delegation")
   )
     return "success";
   if (
     eventType === "removed_from_idea" ||
-    eventType === "merge_declined" ||
     eventType === "monitoring_alert" ||
     eventType === "rate_limit"
   )

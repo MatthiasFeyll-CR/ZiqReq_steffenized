@@ -40,7 +40,6 @@ import { formatRelativeTime } from "@/lib/utils";
 interface CollaboratorModalProps {
   ideaId: string;
   ownerId: string;
-  coOwnerId?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -48,7 +47,6 @@ interface CollaboratorModalProps {
 export function CollaboratorModal({
   ideaId,
   ownerId,
-  coOwnerId,
   open,
   onOpenChange,
 }: CollaboratorModalProps) {
@@ -90,7 +88,6 @@ export function CollaboratorModal({
             <CollaboratorsTab
               ideaId={ideaId}
               ownerId={ownerId}
-              coOwnerId={coOwnerId}
               isOwner={isOwner}
               queryClient={queryClient}
               onCloseModal={() => onOpenChange(false)}
@@ -389,7 +386,6 @@ function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void })
 interface CollaboratorsTabProps {
   ideaId: string;
   ownerId: string;
-  coOwnerId?: string | null;
   isOwner: boolean;
   queryClient: ReturnType<typeof useQueryClient>;
   onCloseModal: () => void;
@@ -397,7 +393,6 @@ interface CollaboratorsTabProps {
 
 function CollaboratorsTab({
   ideaId,
-  coOwnerId,
   isOwner,
   queryClient,
   onCloseModal,
@@ -408,7 +403,7 @@ function CollaboratorsTab({
   const [transferTarget, setTransferTarget] = useState<CollaboratorUser | null>(null);
   const [removeTarget, setRemoveTarget] = useState<CollaboratorUser | null>(null);
 
-  const isSingleOwner = isOwner && !coOwnerId;
+  const isSingleOwner = isOwner;
 
   const { data, isLoading } = useQuery({
     queryKey: ["collaborators", ideaId],
@@ -457,7 +452,6 @@ function CollaboratorsTab({
   if (isLoading) return <p className="py-4 text-sm text-text-secondary">{t("common.loading")}</p>;
 
   const owner = data?.owner;
-  const coOwner = data?.co_owner;
   const collaborators = data?.collaborators ?? [];
 
   return (
@@ -465,10 +459,6 @@ function CollaboratorsTab({
       {/* Owner */}
       {owner && (
         <CollaboratorRow user={owner} badge={t("collaboration.owner")} />
-      )}
-      {/* Co-owner */}
-      {coOwner && (
-        <CollaboratorRow user={coOwner} badge={t("collaboration.coOwner")} />
       )}
       {/* Collaborators */}
       {collaborators.map((c) => (
@@ -514,7 +504,7 @@ function CollaboratorsTab({
           )}
         </div>
       ))}
-      {collaborators.length === 0 && !coOwner && (
+      {collaborators.length === 0 && (
         <p className="py-4 text-center text-sm text-text-secondary" data-testid="no-collaborators">
           {t("collaboration.noCollaborators")}
         </p>

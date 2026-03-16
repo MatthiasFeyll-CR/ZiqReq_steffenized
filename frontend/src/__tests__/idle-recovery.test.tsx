@@ -60,13 +60,9 @@ const fakeIdea: Idea = {
   agent_mode: "interactive",
   visibility: "private",
   owner_id: "user-1",
-  co_owner_id: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
   collaborators: [],
-  merge_request_pending: null,
-  merged_idea_ref: null,
-  appended_idea_ref: null,
 };
 
 describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () => {

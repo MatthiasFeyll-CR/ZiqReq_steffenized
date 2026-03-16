@@ -162,7 +162,6 @@ describe("T-9.2.01: Create idea from landing page", () => {
           visibility: "private",
           agent_mode: "interactive",
           owner: null,
-          co_owner: null,
           created_at: "2024-01-01T00:00:00Z",
         }),
     });

@@ -5,9 +5,7 @@ interface QuickReplyChipsProps {
   disabled?: boolean;
 }
 
-const QUICK_REPLIES = [
-  { key: "similarIdea", i18nKey: "chat.quickReplies.similarIdea" },
-] as const;
+const QUICK_REPLIES: readonly { key: string; i18nKey: string }[] = [];
 
 export function QuickReplyChips({ onSelect, disabled }: QuickReplyChipsProps) {
   const { t } = useTranslation();

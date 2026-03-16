@@ -38,7 +38,7 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
 
   const isConflictOfInterest =
     !!user &&
-    (user.id === idea.owner_id || user.id === idea.co_owner_id);
+    (user.id === idea.owner_id);
 
   const assignMutation = useMutation({
     mutationFn: () => assignReview(idea.id),

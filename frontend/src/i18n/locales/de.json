@@ -235,30 +235,6 @@
     "failedToPost": "Kommentar konnte nicht gesendet werden",
     "by": "von {{name}}"
   },
-  "merge": {
-    "requestTitle": "Zusammenführung anfordern",
-    "requestDescription": "Geben Sie eine UUID oder Ideen-URL ein, oder durchsuchen Sie ähnliche Ideen für eine Zusammenführung.",
-    "tabUuid": "UUID/URL eingeben",
-    "tabBrowse": "Ähnliche durchsuchen",
-    "uuidPlaceholder": "UUID oder Ideen-URL einfügen...",
-    "pasteClipboard": "Aus Zwischenablage einfügen",
-    "invalidUuid": "Geben Sie eine gültige UUID oder Ideen-URL ein",
-    "invalidUuidUrl": "Geben Sie eine gültige UUID oder Ideen-URL mit /idea/uuid ein",
-    "requestMerge": "Zusammenführung anfordern",
-    "mergeRequestSent": "Zusammenführungsanfrage gesendet",
-    "failedToCreate": "Zusammenführungsanfrage konnte nicht erstellt werden",
-    "noSimilar": "Keine ähnlichen Ideen gefunden",
-    "previouslyDeclined": "Zuvor abgelehnt",
-    "bannerText": "Zusammenführungsanfrage von <bold>{{name}}</bold>: Ihre Idee mit \"{{title}}\" zusammenführen",
-    "accept": "Annehmen",
-    "decline": "Ablehnen",
-    "declineTitle": "Zusammenführungsanfrage ablehnen?",
-    "declineDescription": "Dies wird den Zusammenführungsvorschlag zwischen Ihrer Idee und \"{{title}}\" dauerhaft verwerfen. Dieses Paar wird nicht erneut vorgeschlagen.",
-    "mergeAccepted": "Zusammenführungsanfrage angenommen. Zusammengeführte Idee wird erstellt...",
-    "failedToAccept": "Zusammenführungsanfrage konnte nicht angenommen werden",
-    "mergeDeclined": "Zusammenführungsanfrage abgelehnt",
-    "failedToDecline": "Zusammenführungsanfrage konnte nicht abgelehnt werden"
-  },
   "notifications": {
     "title": "Benachrichtigungen",
     "allCaughtUp": "Alles erledigt"
@@ -273,7 +249,6 @@
       "collaboration": "Zusammenarbeit",
       "review": "Bewertung",
       "chat": "Chat",
-      "similarity": "Ähnlichkeit",
       "reviewManagement": "Bewertungsverwaltung",
       "system": "System"
     },
@@ -286,15 +261,9 @@
       "review_state_changed": "Bewertungsstatus geändert",
       "review_comment": "Bewertungskommentar",
       "chat_mention": "@Erwähnung im Chat",
-      "similarity_alert": "Ähnlichkeitshinweis",
-      "merge_request_received": "Zusammenführungsanfrage erhalten",
-      "merge_accepted": "Zusammenführung akzeptiert",
-      "merge_declined": "Zusammenführung abgelehnt",
-      "idea_closed_append": "Idee geschlossen (Anhang)",
       "idea_submitted": "Idee eingereicht",
       "idea_assigned": "Idee zugewiesen",
       "idea_resubmitted": "Idee erneut eingereicht",
-      "append_request_received": "Anhangsanfrage erhalten",
       "monitoring_alert": "Überwachungshinweis"
     }
   },
@@ -386,7 +355,6 @@
     "messageList": "Chat-Nachrichten",
     "emptyState": "Starten Sie ein Brainstorming...",
     "quickReplies": {
-      "similarIdea": "Hat jemand eine ähnliche Idee?"
     }
   },
   "submit": {

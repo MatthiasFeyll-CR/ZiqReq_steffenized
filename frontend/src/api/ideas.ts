@@ -1,19 +1,6 @@
 import { env } from "@/config/env";
 import { authFetch } from "@/lib/auth-token";
 
-export interface MergeRequestPending {
-  id: string;
-  requesting_idea_id: string;
-  requesting_owner_name: string;
-  requesting_idea_title: string;
-}
-
-export interface IdeaRef {
-  id: string;
-  title: string;
-  url: string;
-}
-
 export interface Idea {
   id: string;
   title: string;
@@ -21,13 +8,9 @@ export interface Idea {
   agent_mode: "interactive" | "silent";
   visibility: "private" | "collaborating";
   owner_id: string;
-  co_owner_id: string | null;
   created_at: string;
   updated_at: string;
   collaborators: Array<{ user_id: string; display_name: string }>;
-  merge_request_pending: MergeRequestPending | null;
-  merged_idea_ref: IdeaRef | null;
-  appended_idea_ref: IdeaRef | null;
   read_only?: boolean;
 }
 
@@ -71,7 +54,6 @@ export interface CreateIdeaResponse {
   visibility: string;
   agent_mode: string;
   owner: { id: string; display_name: string } | null;
-  co_owner: { id: string; display_name: string } | null;
   created_at: string;
 }
 
@@ -222,19 +204,3 @@ export async function fetchContextWindow(ideaId: string): Promise<ContextWindowD
   return res.json();
 }
 
-export async function consentMergeRequest(
-  mergeRequestId: string,
-  consent: "accept" | "decline",
-): Promise<Record<string, unknown>> {
-  const res = await authFetch(`${env.apiBaseUrl}/merge-requests/${mergeRequestId}/consent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ consent }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || body.error || `Request failed (${res.status})`);
-  }
-  return res.json();
-}

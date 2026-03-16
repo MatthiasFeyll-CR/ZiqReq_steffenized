@@ -60,7 +60,6 @@ describe("T-16.1.01: All text in both languages", () => {
       "collaboration",
       "review",
       "timeline",
-      "merge",
       "notifications",
       "emailPrefs",
       "admin",

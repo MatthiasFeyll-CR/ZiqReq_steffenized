@@ -73,7 +73,6 @@ function makeIdea(overrides: Partial<ReviewIdea> = {}): ReviewIdea {
     title: "Test Idea",
     state: "in_review",
     owner_id: OWNER_ID,
-    co_owner_id: null,
     owner_name: "Alice Owner",
     submitted_at: "2026-01-01T00:00:00Z",
     reviewers: [],
@@ -201,14 +200,6 @@ describe("UI-ASSIGN.02: Unassign button works", () => {
 describe("UI-ASSIGN.03: Conflict of interest", () => {
   it("disables Assign button when reviewer is owner", () => {
     const idea = makeIdea({ owner_id: REVIEWER_ID });
-    renderCard(idea, "unassigned");
-
-    const btn = screen.getByTestId("assign-button");
-    expect(btn).toBeDisabled();
-  });
-
-  it("disables Assign button when reviewer is co-owner", () => {
-    const idea = makeIdea({ co_owner_id: REVIEWER_ID });
     renderCard(idea, "unassigned");
 
     const btn = screen.getByTestId("assign-button");
