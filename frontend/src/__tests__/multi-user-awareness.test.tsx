@@ -4,9 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import type { ChatMessage } from "@/api/chat";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 const OWNER_ID = "00000000-0000-0000-0000-000000000001";
 const COLLAB_ID = "00000000-0000-0000-0000-000000000002";
 
@@ -14,7 +14,7 @@ const COLLAB_ID = "00000000-0000-0000-0000-000000000002";
 const {
   mockFetchChatMessages,
   mockFetchCollaborators,
-  mockLeaveIdea,
+  mockLeaveProject,
   mockToastSuccess,
   mockToastError,
   mockSearchUsers,
@@ -26,7 +26,7 @@ const {
 } = vi.hoisted(() => ({
   mockFetchChatMessages: vi.fn(),
   mockFetchCollaborators: vi.fn(),
-  mockLeaveIdea: vi.fn(),
+  mockLeaveProject: vi.fn(),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockSearchUsers: vi.fn(),
@@ -48,7 +48,7 @@ vi.mock("@/api/collaboration", () => ({
   fetchCollaborators: mockFetchCollaborators,
   removeCollaborator: mockRemoveCollaborator,
   transferOwnership: mockTransferOwnership,
-  leaveIdea: mockLeaveIdea,
+  leaveProject: mockLeaveProject,
   fetchPendingInvitations: mockFetchPendingInvitations,
   revokeInvitation: mockRevokeInvitation,
 }));
@@ -107,9 +107,9 @@ function createQueryClient() {
   });
 }
 
-function makeIdea(overrides: Partial<Idea> = {}): Idea {
+function makeProject(overrides: Partial<Project> = {}): Project {
   return {
-    id: IDEA_ID,
+    id: PROJECT_ID,
     title: "Test Idea",
     state: "open",
     agent_mode: "interactive",
@@ -125,7 +125,7 @@ function makeIdea(overrides: Partial<Idea> = {}): Idea {
 function makeMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
   return {
     id: "msg-1",
-    idea_id: IDEA_ID,
+    project_id: PROJECT_ID,
     sender_type: "user",
     sender_id: OWNER_ID,
     ai_agent: null,
@@ -150,7 +150,7 @@ beforeEach(() => {
 
 describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
   it("shows sender names when collaborators > 0", async () => {
-    const idea = makeIdea({
+    const project = makeProject({
       collaborators: [
         { user_id: COLLAB_ID, display_name: "Collab User" },
       ],
@@ -167,7 +167,7 @@ describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
 
     render(
       <QueryClientProvider client={createQueryClient()}>
-        <ChatMessageList idea={idea} />
+        <ChatMessageList project={project} />
       </QueryClientProvider>,
     );
 
@@ -181,7 +181,7 @@ describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
   });
 
   it("does NOT show sender names for single-user ideas", async () => {
-    const idea = makeIdea({ collaborators: [] });
+    const project = makeProject({ collaborators: [] });
     mockFetchChatMessages.mockResolvedValue({
       messages: [
         makeMessage({ id: "msg-1", sender_id: OWNER_ID, content: "Solo message" }),
@@ -193,7 +193,7 @@ describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
 
     render(
       <QueryClientProvider client={createQueryClient()}>
-        <ChatMessageList idea={idea} />
+        <ChatMessageList project={project} />
       </QueryClientProvider>,
     );
 
@@ -209,7 +209,7 @@ describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
   });
 
   it("shows sender name with correct styling (text-xs text-muted-foreground)", async () => {
-    const idea = makeIdea({
+    const project = makeProject({
       collaborators: [
         { user_id: COLLAB_ID, display_name: "Collab User" },
       ],
@@ -225,7 +225,7 @@ describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
 
     render(
       <QueryClientProvider client={createQueryClient()}>
-        <ChatMessageList idea={idea} />
+        <ChatMessageList project={project} />
       </QueryClientProvider>,
     );
 
@@ -250,7 +250,7 @@ describe("T-8.4.07: Single owner leave disabled", () => {
       ...render(
         <QueryClientProvider client={qc}>
           <CollaboratorModal
-            ideaId={IDEA_ID}
+            projectId={PROJECT_ID}
             ownerId={props.ownerId ?? OWNER_ID}
             open={true}
             onOpenChange={onOpenChange}

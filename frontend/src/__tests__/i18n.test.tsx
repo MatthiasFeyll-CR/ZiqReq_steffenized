@@ -87,12 +87,12 @@ describe("T-16.2.01: Language switcher changes text", () => {
 
   it("switching from en to de changes translations", async () => {
     expect(i18n.t("common.loading")).toBe("Loading...");
-    expect(i18n.t("nav.ideas")).toBe("Ideas");
+    expect(i18n.t("nav.projects")).toBe("Projects");
 
     await i18n.changeLanguage("de");
 
     expect(i18n.t("common.loading")).toBe("Laden...");
-    expect(i18n.t("nav.ideas")).toBe("Ideen");
+    expect(i18n.t("nav.projects")).toBe("Projekte");
   });
 
   it("switching from de to en changes translations", async () => {
@@ -107,7 +107,7 @@ describe("T-16.2.01: Language switcher changes text", () => {
     // Spot-check that at least one key in each namespace is different
     const spotChecks: Record<string, string> = {
       "common.loading": "common.loading",
-      "nav.ideas": "nav.ideas",
+      "nav.projects": "nav.projects",
       "errors.title": "errors.title",
       "offline.reconnect": "offline.reconnect",
       "review.pageTitle": "review.pageTitle",

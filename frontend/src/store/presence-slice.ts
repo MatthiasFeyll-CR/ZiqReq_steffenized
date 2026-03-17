@@ -10,12 +10,12 @@ export interface PresenceUser {
 }
 
 interface PresenceSliceState {
-  /** Presence list per idea_id */
-  byIdea: Record<string, PresenceUser[]>;
+  /** Presence list per project_id */
+  byProject: Record<string, PresenceUser[]>;
 }
 
 const initialState: PresenceSliceState = {
-  byIdea: {},
+  byProject: {},
 };
 
 const presenceSlice = createSlice({
@@ -25,16 +25,16 @@ const presenceSlice = createSlice({
     updatePresence(
       state,
       action: PayloadAction<{
-        idea_id: string;
+        project_id: string;
         user: { id: string; display_name: string };
         state: PresenceState;
       }>,
     ) {
-      const { idea_id, user, state: presenceState } = action.payload;
-      if (!state.byIdea[idea_id]) {
-        state.byIdea[idea_id] = [];
+      const { project_id, user, state: presenceState } = action.payload;
+      if (!state.byProject[project_id]) {
+        state.byProject[project_id] = [];
       }
-      const list = state.byIdea[idea_id]!;
+      const list = state.byProject[project_id]!;
       const idx = list.findIndex((u) => u.user_id === user.id);
 
       if (presenceState === "offline") {
@@ -53,15 +53,15 @@ const presenceSlice = createSlice({
         });
       }
     },
-    clearIdeaPresence(state, action: PayloadAction<string>) {
-      delete state.byIdea[action.payload];
+    clearProjectPresence(state, action: PayloadAction<string>) {
+      delete state.byProject[action.payload];
     },
   },
 });
 
-export const { updatePresence, clearIdeaPresence } = presenceSlice.actions;
+export const { updatePresence, clearProjectPresence } = presenceSlice.actions;
 
-export const selectIdeaPresence = (ideaId: string) => (state: RootState) =>
-  state.presence.byIdea[ideaId] ?? [];
+export const selectProjectPresence = (projectId: string) => (state: RootState) =>
+  state.presence.byProject[projectId] ?? [];
 
 export const presenceReducer = presenceSlice.reducer;

@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 
 interface AIProcessingIndicatorProps {
-  ideaId: string;
+  projectId: string;
 }
 
-export function AIProcessingIndicator({ ideaId }: AIProcessingIndicatorProps) {
+export function AIProcessingIndicator({ projectId }: AIProcessingIndicatorProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const { idea_id, state } = (e as CustomEvent).detail;
-      if (idea_id !== ideaId) return;
+      const { project_id, state } = (e as CustomEvent).detail;
+      if (project_id !== projectId) return;
       if (state === "started") {
         setVisible(true);
       } else if (state === "completed" || state === "failed") {
@@ -19,7 +19,7 @@ export function AIProcessingIndicator({ ideaId }: AIProcessingIndicatorProps) {
     };
     window.addEventListener("ws:ai_processing", handler);
     return () => window.removeEventListener("ws:ai_processing", handler);
-  }, [ideaId]);
+  }, [projectId]);
 
   if (!visible) return null;
 

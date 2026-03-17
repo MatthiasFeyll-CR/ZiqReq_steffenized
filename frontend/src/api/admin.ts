@@ -192,7 +192,7 @@ export interface AdminUser {
 
 // ---------- Ideas (Admin) ----------
 
-export interface AdminIdea {
+export interface AdminProject {
   id: string;
   title: string;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected";
@@ -202,19 +202,19 @@ export interface AdminIdea {
   updated_at: string;
 }
 
-export interface AdminIdeasResponse {
-  results: AdminIdea[];
+export interface AdminProjectsResponse {
+  results: AdminProject[];
   count: number;
   next: number | null;
   previous: number | null;
 }
 
-export async function fetchAdminIdeas(params?: {
+export async function fetchAdminProjects(params?: {
   page?: number;
   page_size?: number;
   state?: string;
   search?: string;
-}): Promise<AdminIdeasResponse> {
+}): Promise<AdminProjectsResponse> {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.page_size) searchParams.set("page_size", String(params.page_size));

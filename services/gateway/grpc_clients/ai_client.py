@@ -45,29 +45,29 @@ class AiClient:
         return self._stub
 
     def trigger_chat_processing(
-        self, idea_id: str, message_id: str
+        self, project_id: str, message_id: str
     ) -> dict[str, Any]:
         stub = self._ensure_channel()
         request = ai_pb2.ChatProcessingRequest(
-            idea_id=idea_id,
+            project_id=project_id,
             message_id=message_id,
         )
         response = stub.TriggerChatProcessing(request)
         logger.info(
-            "AI trigger_chat_processing: idea=%s, status=%s, processing_id=%s",
-            idea_id, response.status, response.processing_id,
+            "AI trigger_chat_processing: project=%s, status=%s, processing_id=%s",
+            project_id, response.status, response.processing_id,
         )
         return {"status": response.status, "processing_id": response.processing_id}
 
     def trigger_brd_generation(
         self,
-        idea_id: str,
+        project_id: str,
         mode: str = "full_generation",
         section_name: str = "",
     ) -> dict[str, Any]:
         stub = self._ensure_channel()
         request = ai_pb2.BrdGenerationRequest(
-            idea_id=idea_id,
+            project_id=project_id,
             mode=mode,
         )
         response = stub.TriggerBrdGeneration(request)

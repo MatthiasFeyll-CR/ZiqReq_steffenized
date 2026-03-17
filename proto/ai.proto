@@ -16,7 +16,7 @@ service AiService {
 }
 
 message ChatProcessingRequest {
-  string idea_id = 1;
+  string project_id = 1;
   string message_id = 2;
 }
 
@@ -26,7 +26,7 @@ message ChatProcessingResponse {
 }
 
 message BrdGenerationRequest {
-  string idea_id = 1;
+  string project_id = 1;
   string mode = 2;
   repeated string sections_to_regenerate = 3;
   string instruction = 4;

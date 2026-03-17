@@ -1,7 +1,7 @@
 import { env } from "@/config/env";
 import { authFetch } from "@/lib/auth-token";
 
-export interface ReviewIdea {
+export interface ReviewProject {
   id: string;
   title: string;
   state: string;
@@ -12,11 +12,11 @@ export interface ReviewIdea {
 }
 
 export interface ReviewListResponse {
-  assigned_to_me: ReviewIdea[];
-  unassigned: ReviewIdea[];
-  accepted: ReviewIdea[];
-  rejected: ReviewIdea[];
-  dropped: ReviewIdea[];
+  assigned_to_me: ReviewProject[];
+  unassigned: ReviewProject[];
+  accepted: ReviewProject[];
+  rejected: ReviewProject[];
+  dropped: ReviewProject[];
 }
 
 export async function fetchReviews(): Promise<ReviewListResponse> {
@@ -32,8 +32,8 @@ export async function fetchReviews(): Promise<ReviewListResponse> {
   return res.json();
 }
 
-export async function assignReview(ideaId: string): Promise<{ message: string }> {
-  const res = await authFetch(`${env.apiBaseUrl}/reviews/${ideaId}/assign`, {
+export async function assignReview(projectId: string): Promise<{ message: string }> {
+  const res = await authFetch(`${env.apiBaseUrl}/reviews/${projectId}/assign`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -66,8 +66,8 @@ export interface ReviewerInfo {
   display_name: string;
 }
 
-export async function fetchTimeline(ideaId: string): Promise<TimelineEntry[]> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/review/timeline`, {
+export async function fetchTimeline(projectId: string): Promise<TimelineEntry[]> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/review/timeline`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -79,8 +79,8 @@ export async function fetchTimeline(ideaId: string): Promise<TimelineEntry[]> {
   return res.json();
 }
 
-export async function fetchIdeaReviewers(ideaId: string): Promise<{ reviewers: ReviewerInfo[] }> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/review/reviewers`, {
+export async function fetchProjectReviewers(projectId: string): Promise<{ reviewers: ReviewerInfo[] }> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/review/reviewers`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -93,10 +93,10 @@ export async function fetchIdeaReviewers(ideaId: string): Promise<{ reviewers: R
 }
 
 export async function postComment(
-  ideaId: string,
+  projectId: string,
   data: { content: string; parent_entry_id?: string },
 ): Promise<TimelineEntry> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/review/timeline`, {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/review/timeline`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -130,8 +130,8 @@ export async function fetchReviewerUsers(): Promise<ReviewerUser[]> {
   return res.json();
 }
 
-export async function unassignReview(ideaId: string): Promise<{ message: string }> {
-  const res = await authFetch(`${env.apiBaseUrl}/reviews/${ideaId}/unassign`, {
+export async function unassignReview(projectId: string): Promise<{ message: string }> {
+  const res = await authFetch(`${env.apiBaseUrl}/reviews/${projectId}/unassign`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

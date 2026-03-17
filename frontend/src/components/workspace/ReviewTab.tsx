@@ -35,12 +35,12 @@ function hasTodoMarkers(draft: BrdDraft): boolean {
 }
 
 interface ReviewTabProps {
-  ideaId: string;
-  ideaState?: string;
+  projectId: string;
+  projectState?: string;
   disabled?: boolean;
 }
 
-export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
+export function ReviewTab({ projectId, projectState, disabled }: ReviewTabProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
@@ -52,15 +52,15 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
     data: brdDraft,
     isLoading: isDraftLoading,
   } = useQuery({
-    queryKey: ["brd", ideaId],
-    queryFn: () => fetchBrdDraft(ideaId),
+    queryKey: ["brd", projectId],
+    queryFn: () => fetchBrdDraft(projectId),
   });
 
   const generateMutation = useMutation({
-    mutationFn: () => triggerBrdGeneration(ideaId, "full_generation"),
+    mutationFn: () => triggerBrdGeneration(projectId, "full_generation"),
     onSuccess: () => {
       setIsGenerating(true);
-      queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
     },
     onError: (error: Error) => {
       toast.error(
@@ -81,12 +81,12 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
   useEffect(() => {
     const handler = async (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.idea_id === ideaId) {
+      if (detail?.project_id === projectId) {
         setIsGenerating(false);
-        queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
+        queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
         // Auto-fetch PDF preview
         try {
-          const blob = await fetchBrdPreviewPdf(ideaId);
+          const blob = await fetchBrdPreviewPdf(projectId);
           setPdfBlob(blob);
         } catch (error) {
           console.warn("PDF preview fetch failed, user can download manually", error);
@@ -95,7 +95,7 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
     };
     window.addEventListener("ws:brd_ready", handler);
     return () => window.removeEventListener("ws:brd_ready", handler);
-  }, [ideaId, queryClient]);
+  }, [projectId, queryClient]);
 
   const hasBrdContent = brdDraft && (
     brdDraft.section_title ||
@@ -108,13 +108,13 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
 
   const doDownload = useCallback(async () => {
     try {
-      const blob = await fetchBrdPdf(ideaId);
+      const blob = await fetchBrdPdf(projectId);
       setPdfBlob(blob);
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `brd-${ideaId}.pdf`;
+      a.download = `brd-${projectId}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -124,7 +124,7 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
         (error as Error).message || t("review.downloadError", "Failed to download PDF"),
       );
     }
-  }, [ideaId, t]);
+  }, [projectId, t]);
 
   const handleDownload = useCallback(() => {
     if (brdDraft && hasTodoMarkers(brdDraft)) {
@@ -233,14 +233,14 @@ export function ReviewTab({ ideaId, ideaState, disabled }: ReviewTabProps) {
       </div>
 
       {/* Submit Area (visible for open/rejected states) */}
-      {ideaState && (
-        <SubmitArea ideaId={ideaId} ideaState={ideaState} />
+      {projectState && (
+        <SubmitArea projectId={projectId} projectState={projectState} />
       )}
 
       {/* Slide-in Editor */}
       {brdDraft && (
         <BRDSectionEditor
-          ideaId={ideaId}
+          projectId={projectId}
           brdDraft={brdDraft}
           open={editorOpen}
           onClose={() => setEditorOpen(false)}

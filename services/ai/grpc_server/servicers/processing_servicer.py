@@ -37,35 +37,35 @@ class AiProcessingServicer:
     """gRPC servicer for AI processing methods."""
 
     def TriggerChatProcessing(self, request, context):  # type: ignore[no-untyped-def]
-        idea_id = self._get_field(request, "idea_id")
+        project_id = self._get_field(request, "project_id")
         message_id = self._get_field(request, "message_id")
         processing_id = str(uuid.uuid4())
 
         logger.info(
-            "TriggerChatProcessing: idea_id=%s, message_id=%s, processing_id=%s",
-            idea_id, message_id, processing_id,
+            "TriggerChatProcessing: project_id=%s, message_id=%s, processing_id=%s",
+            project_id, message_id, processing_id,
         )
 
         loop = _get_pipeline_loop()
         asyncio.run_coroutine_threadsafe(
-            self._run_chat_pipeline(idea_id), loop,
+            self._run_chat_pipeline(project_id), loop,
         )
 
         return {"status": "accepted", "processing_id": processing_id}
 
-    async def _run_chat_pipeline(self, idea_id: str) -> None:
+    async def _run_chat_pipeline(self, project_id: str) -> None:
         """Run the chat processing pipeline."""
         try:
             from processing.pipeline import ChatProcessingPipeline
 
             pipeline = ChatProcessingPipeline()
-            result = await pipeline.execute(idea_id)
+            result = await pipeline.execute(project_id)
             logger.info(
-                "Chat pipeline completed for idea %s: status=%s",
-                idea_id, result.get("status"),
+                "Chat pipeline completed for project %s: status=%s",
+                project_id, result.get("status"),
             )
         except Exception:
-            logger.exception("Chat pipeline failed for idea %s", idea_id)
+            logger.exception("Chat pipeline failed for project %s", project_id)
 
     def _get_field(self, request, name: str, default: str = "") -> str:  # type: ignore[no-untyped-def]
         if isinstance(request, dict):
@@ -73,7 +73,7 @@ class AiProcessingServicer:
         return getattr(request, name, default)
 
     def TriggerBrdGeneration(self, request, context):  # type: ignore[no-untyped-def]
-        idea_id = self._get_field(request, "idea_id")
+        project_id = self._get_field(request, "project_id")
         mode = self._get_field(request, "mode", "full_generation")
         section_name = self._get_field(request, "section_name")
 
@@ -81,12 +81,12 @@ class AiProcessingServicer:
 
         loop = _get_pipeline_loop()
         asyncio.run_coroutine_threadsafe(
-            self._run_brd_pipeline(idea_id, mode, section_name), loop,
+            self._run_brd_pipeline(project_id, mode, section_name), loop,
         )
 
         return {"status": "accepted", "generation_id": generation_id}
 
-    async def _run_brd_pipeline(self, idea_id: str, mode: str, section_name: str) -> None:
+    async def _run_brd_pipeline(self, project_id: str, mode: str, section_name: str) -> None:
         """Run BRD pipeline."""
         try:
             from events.publishers import publish_event
@@ -94,27 +94,27 @@ class AiProcessingServicer:
 
             pipeline = BrdGenerationPipeline()
             result = await pipeline.execute(
-                idea_id=idea_id,
+                project_id=project_id,
                 mode=mode,
                 section_name=section_name or None,
             )
 
             if result.get("status") == "completed":
                 await publish_event("ai.brd.ready", {
-                    "idea_id": idea_id,
+                    "project_id": project_id,
                     "mode": mode,
                     "sections": result.get("sections", {}),
                     "readiness_evaluation": result.get("readiness_evaluation", {}),
                     "fabrication_flags": result.get("fabrication_flags", []),
                 })
-                logger.info("ai.brd.ready event published for idea %s", idea_id)
+                logger.info("ai.brd.ready event published for project %s", project_id)
             else:
                 logger.warning(
-                    "BRD pipeline did not complete for idea %s: status=%s",
-                    idea_id, result.get("status"),
+                    "BRD pipeline did not complete for project %s: status=%s",
+                    project_id, result.get("status"),
                 )
         except Exception:
-            logger.exception("BRD pipeline failed for idea %s", idea_id)
+            logger.exception("BRD pipeline failed for project %s", project_id)
 
     def TriggerContextReindex(self, request, context):  # type: ignore[no-untyped-def]
         return {"status": "accepted", "chunk_count": 0}

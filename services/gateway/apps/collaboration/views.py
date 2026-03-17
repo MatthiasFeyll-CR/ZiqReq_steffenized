@@ -11,8 +11,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.authentication.models import User
-from apps.ideas.authentication import MiddlewareAuthentication
-from apps.ideas.models import Idea, IdeaCollaborator
+from apps.projects.authentication import MiddlewareAuthentication
+from apps.projects.models import Project, ProjectCollaborator
 
 from .models import CollaborationInvitation
 
@@ -87,21 +87,21 @@ def invitations_list(request: Request) -> Response:
         status="pending",
     ).order_by("-created_at")
 
-    idea_ids = {inv.idea_id for inv in invitations}
+    project_ids = {inv.project_id for inv in invitations}
     inviter_ids = {inv.inviter_id for inv in invitations}
 
-    ideas_map = {idea.id: idea for idea in Idea.objects.filter(id__in=idea_ids)}
+    projects_map = {project.id: project for project in Project.objects.filter(id__in=project_ids)}
     inviters_map = {u.id: u for u in User.objects.filter(id__in=inviter_ids)}
 
     results = []
     for inv in invitations:
-        idea = ideas_map.get(inv.idea_id)
+        project = projects_map.get(inv.project_id)
         inviter = inviters_map.get(inv.inviter_id)
         results.append(
             {
                 "id": str(inv.id),
-                "idea_id": str(inv.idea_id),
-                "idea_title": idea.title if idea else "",
+                "project_id": str(inv.project_id),
+                "project_title": project.title if project else "",
                 "inviter": {
                     "id": str(inv.inviter_id),
                     "display_name": inviter.display_name if inviter else "",
@@ -115,31 +115,31 @@ def invitations_list(request: Request) -> Response:
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def send_invitation(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/collaborators/invite — Send collaboration invitation."""
+def send_invitation(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/collaborators/invite — Send collaboration invitation."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        idea_uuid = uuid.UUID(idea_id)
+        project_uuid = uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_uuid)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_uuid)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
-            {"error": "FORBIDDEN", "message": "Only the idea owner can send invitations"},
+            {"error": "FORBIDDEN", "message": "Only the project owner can send invitations"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -182,13 +182,13 @@ def send_invitation(request: Request, idea_id: str) -> Response:
         User.objects.filter(id__in=invitee_uuids).values_list("id", flat=True)
     )
     existing_collaborators = set(
-        IdeaCollaborator.objects.filter(
-            idea_id=idea_uuid, user_id__in=invitee_uuids
+        ProjectCollaborator.objects.filter(
+            project_id=project_uuid, user_id__in=invitee_uuids
         ).values_list("user_id", flat=True)
     )
     existing_pending = set(
         CollaborationInvitation.objects.filter(
-            idea_id=idea_uuid, invitee_id__in=invitee_uuids, status="pending"
+            project_id=project_uuid, invitee_id__in=invitee_uuids, status="pending"
         ).values_list("invitee_id", flat=True)
     )
 
@@ -209,7 +209,7 @@ def send_invitation(request: Request, idea_id: str) -> Response:
             continue
 
         invitation = CollaborationInvitation.objects.create(
-            idea_id=idea_uuid,
+            project_id=project_uuid,
             inviter_id=user.id,
             invitee_id=invitee_uuid,
             status="pending",
@@ -218,9 +218,9 @@ def send_invitation(request: Request, idea_id: str) -> Response:
         notif_kwargs = dict(
             event_type="collaboration_invitation",
             title="Collaboration Invitation",
-            body=f"{user.display_name} invited you to collaborate on \"{idea.title}\"",
-            reference_id=str(idea_uuid),
-            reference_type="idea",
+            body=f"{user.display_name} invited you to collaborate on \"{project.title}\"",
+            reference_id=str(project_uuid),
+            reference_type="project",
         )
         _publish_notification(
             routing_key="notification.collaboration.invitation",
@@ -291,31 +291,31 @@ def accept_invitation(request: Request, invitation_id: str) -> Response:
         invitation.responded_at = timezone.now()
         invitation.save(update_fields=["status", "responded_at"])
 
-        IdeaCollaborator.objects.get_or_create(
-            idea_id=invitation.idea_id,
+        ProjectCollaborator.objects.get_or_create(
+            project_id=invitation.project_id,
             user_id=user.id,
             defaults={"joined_at": timezone.now()},
         )
 
-        collaborator_count = IdeaCollaborator.objects.filter(
-            idea_id=invitation.idea_id
+        collaborator_count = ProjectCollaborator.objects.filter(
+            project_id=invitation.project_id
         ).count()
         if collaborator_count == 1:
-            Idea.objects.filter(id=invitation.idea_id, visibility="private").update(
+            Project.objects.filter(id=invitation.project_id, visibility="private").update(
                 visibility="collaborating"
             )
 
-    # Fetch idea title for notification body
+    # Fetch project title for notification body
     try:
-        idea = Idea.objects.get(id=invitation.idea_id)
-        idea_title = idea.title or "Untitled Idea"
-    except Idea.DoesNotExist:
-        idea_title = "an idea"
+        project = Project.objects.get(id=invitation.project_id)
+        project_title = project.title or "Untitled Project"
+    except Project.DoesNotExist:
+        project_title = "a project"
 
     # System event for comment timeline
     try:
         from apps.comments.system_events import on_collaborator_joined
-        on_collaborator_joined(str(invitation.idea_id), user.display_name)
+        on_collaborator_joined(str(invitation.project_id), user.display_name)
     except Exception:
         logger.exception("Failed to create collaborator_joined system event")
 
@@ -323,9 +323,9 @@ def accept_invitation(request: Request, invitation_id: str) -> Response:
     accepted_kwargs = dict(
         event_type="collaborator_joined",
         title="Invitation Accepted",
-        body=f"{user.display_name} accepted your invitation to \"{idea_title}\"",
-        reference_id=str(invitation.idea_id),
-        reference_type="idea",
+        body=f"{user.display_name} accepted your invitation to \"{project_title}\"",
+        reference_id=str(invitation.project_id),
+        reference_type="project",
     )
     _publish_notification(
         routing_key="notification.collaboration.accepted",
@@ -382,8 +382,8 @@ def decline_invitation(request: Request, invitation_id: str) -> Response:
         event_type="collaborator_left",
         title="Invitation Declined",
         body=f"{user.display_name} declined your collaboration invitation",
-        reference_id=str(invitation.idea_id),
-        reference_type="idea",
+        reference_id=str(invitation.project_id),
+        reference_type="project",
     )
     _publish_notification(
         routing_key="notification.collaboration.declined",
@@ -440,32 +440,32 @@ def revoke_invitation(request: Request, invitation_id: str) -> Response:
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def list_collaborators(request: Request, idea_id: str) -> Response:
-    """GET /api/ideas/:id/collaborators — List owner, co-owner, and collaborators."""
+def list_collaborators(request: Request, project_id: str) -> Response:
+    """GET /api/projects/:id/collaborators — List owner, co-owner, and collaborators."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        idea_uuid = uuid.UUID(idea_id)
+        project_uuid = uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_uuid)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_uuid)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     # Batch-load all relevant users
-    user_ids = {idea.owner_id}
+    user_ids = {project.owner_id}
 
-    collab_entries = IdeaCollaborator.objects.filter(idea_id=idea_uuid)
+    collab_entries = ProjectCollaborator.objects.filter(project_id=project_uuid)
     for c in collab_entries:
         user_ids.add(c.user_id)
 
@@ -478,8 +478,8 @@ def list_collaborators(request: Request, idea_id: str) -> Response:
             "email": u.email,
         }
 
-    owner_user = users_map.get(idea.owner_id)
-    owner_data = _user_dict(owner_user) if owner_user else {"id": str(idea.owner_id)}
+    owner_user = users_map.get(project.owner_id)
+    owner_data = _user_dict(owner_user) if owner_user else {"id": str(project.owner_id)}
 
     collaborators_data = []
     for c in collab_entries:
@@ -496,14 +496,14 @@ def list_collaborators(request: Request, idea_id: str) -> Response:
 
 @api_view(["DELETE"])
 @authentication_classes([MiddlewareAuthentication])
-def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> Response:
-    """DELETE /api/ideas/:id/collaborators/:userId — Remove collaborator (owner only)."""
+def remove_collaborator(request: Request, project_id: str, user_id_param: str) -> Response:
+    """DELETE /api/projects/:id/collaborators/:userId — Remove collaborator (owner only)."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        idea_uuid = uuid.UUID(idea_id)
+        project_uuid = uuid.UUID(project_id)
         target_uuid = uuid.UUID(user_id_param)
     except ValueError:
         return Response(
@@ -512,21 +512,21 @@ def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> R
         )
 
     try:
-        idea = Idea.objects.get(id=idea_uuid)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_uuid)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
-            {"error": "FORBIDDEN", "message": "Only the idea owner can remove collaborators"},
+            {"error": "FORBIDDEN", "message": "Only the project owner can remove collaborators"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    deleted_count, _ = IdeaCollaborator.objects.filter(
-        idea_id=idea_uuid, user_id=target_uuid
+    deleted_count, _ = ProjectCollaborator.objects.filter(
+        project_id=project_uuid, user_id=target_uuid
     ).delete()
 
     if deleted_count == 0:
@@ -539,17 +539,17 @@ def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> R
     try:
         target_user = User.objects.filter(id=target_uuid).first()
         from apps.comments.system_events import on_collaborator_removed
-        on_collaborator_removed(str(idea_uuid), target_user.display_name if target_user else str(target_uuid))
+        on_collaborator_removed(str(project_uuid), target_user.display_name if target_user else str(target_uuid))
     except Exception:
         logger.exception("Failed to create collaborator_removed system event")
 
     # Notify removed collaborator
     removed_kwargs = dict(
-        event_type="removed_from_idea",
-        title="Removed from Idea",
-        body=f"You were removed from \"{idea.title}\" by {user.display_name}",
-        reference_id=str(idea_uuid),
-        reference_type="idea",
+        event_type="removed_from_project",
+        title="Removed from Project",
+        body=f"You were removed from \"{project.title}\" by {user.display_name}",
+        reference_id=str(project_uuid),
+        reference_type="project",
     )
     _publish_notification(
         routing_key="notification.collaboration.removed",
@@ -563,31 +563,31 @@ def remove_collaborator(request: Request, idea_id: str, user_id_param: str) -> R
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def transfer_ownership(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/transfer-ownership — Transfer ownership to a collaborator."""
+def transfer_ownership(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/transfer-ownership — Transfer ownership to a collaborator."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        idea_uuid = uuid.UUID(idea_id)
+        project_uuid = uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_uuid)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_uuid)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
-            {"error": "FORBIDDEN", "message": "Only the idea owner can transfer ownership"},
+            {"error": "FORBIDDEN", "message": "Only the project owner can transfer ownership"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -613,7 +613,7 @@ def transfer_ownership(request: Request, idea_id: str) -> Response:
         )
 
     # New owner must be an existing collaborator
-    if not IdeaCollaborator.objects.filter(idea_id=idea_uuid, user_id=new_owner_uuid).exists():
+    if not ProjectCollaborator.objects.filter(project_id=project_uuid, user_id=new_owner_uuid).exists():
         return Response(
             {"error": "BAD_REQUEST", "message": "Target user is not a collaborator"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -621,25 +621,25 @@ def transfer_ownership(request: Request, idea_id: str) -> Response:
 
     with transaction.atomic():
         # Remove new owner from collaborators table
-        IdeaCollaborator.objects.filter(idea_id=idea_uuid, user_id=new_owner_uuid).delete()
+        ProjectCollaborator.objects.filter(project_id=project_uuid, user_id=new_owner_uuid).delete()
 
         # Add previous owner as collaborator
-        IdeaCollaborator.objects.get_or_create(
-            idea_id=idea_uuid,
+        ProjectCollaborator.objects.get_or_create(
+            project_id=project_uuid,
             user_id=user.id,
             defaults={"joined_at": timezone.now()},
         )
 
         # Transfer ownership
-        idea.owner_id = new_owner_uuid
-        idea.save(update_fields=["owner_id"])
+        project.owner_id = new_owner_uuid
+        project.save(update_fields=["owner_id"])
 
     # System event for comment timeline
     try:
         new_owner_user = User.objects.filter(id=new_owner_uuid).first()
         from apps.comments.system_events import on_owner_changed
         on_owner_changed(
-            str(idea_uuid),
+            str(project_uuid),
             user.display_name,
             new_owner_user.display_name if new_owner_user else str(new_owner_uuid),
         )
@@ -650,9 +650,9 @@ def transfer_ownership(request: Request, idea_id: str) -> Response:
     transfer_kwargs = dict(
         event_type="ownership_transferred",
         title="Ownership Transferred",
-        body=f"{user.display_name} transferred ownership of \"{idea.title}\" to you",
-        reference_id=str(idea_uuid),
-        reference_type="idea",
+        body=f"{user.display_name} transferred ownership of \"{project.title}\" to you",
+        reference_id=str(project_uuid),
+        reference_type="project",
     )
     _publish_notification(
         routing_key="notification.collaboration.transfer",
@@ -666,50 +666,50 @@ def transfer_ownership(request: Request, idea_id: str) -> Response:
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def leave_idea(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/leave — Leave idea (collaborator or co-owner)."""
+def leave_project(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/leave — Leave project (collaborator or co-owner)."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        idea_uuid = uuid.UUID(idea_id)
+        project_uuid = uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_uuid)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_uuid)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # Owner cannot leave their own idea
-    if idea.owner_id == user.id:
+    # Owner cannot leave their own project
+    if project.owner_id == user.id:
         return Response(
             {"error": "BAD_REQUEST", "message": "Owner cannot leave without transferring ownership"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Regular collaborator leaves
-    deleted_count, _ = IdeaCollaborator.objects.filter(
-        idea_id=idea_uuid, user_id=user.id
+    deleted_count, _ = ProjectCollaborator.objects.filter(
+        project_id=project_uuid, user_id=user.id
     ).delete()
 
     if deleted_count == 0:
         return Response(
-            {"error": "BAD_REQUEST", "message": "You are not a collaborator on this idea"},
+            {"error": "BAD_REQUEST", "message": "You are not a collaborator on this project"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # System event for comment timeline
     try:
         from apps.comments.system_events import on_collaborator_left
-        on_collaborator_left(str(idea_uuid), user.display_name)
+        on_collaborator_left(str(project_uuid), user.display_name)
     except Exception:
         logger.exception("Failed to create collaborator_left system event")
 
@@ -717,52 +717,52 @@ def leave_idea(request: Request, idea_id: str) -> Response:
     left_kwargs = dict(
         event_type="collaborator_left",
         title="Collaborator Left",
-        body=f"{user.display_name} left \"{idea.title}\"",
-        reference_id=str(idea_uuid),
-        reference_type="idea",
+        body=f"{user.display_name} left \"{project.title}\"",
+        reference_id=str(project_uuid),
+        reference_type="project",
     )
     _publish_notification(
         routing_key="notification.collaboration.left",
-        user_id=str(idea.owner_id),
+        user_id=str(project.owner_id),
         **left_kwargs,
     )
-    _broadcast_user_notification(str(idea.owner_id), **left_kwargs)
+    _broadcast_user_notification(str(project.owner_id), **left_kwargs)
 
-    return Response({"message": "You have left the idea"})
+    return Response({"message": "You have left the project"})
 
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def idea_pending_invitations(request: Request, idea_id: str) -> Response:
-    """GET /api/ideas/:id/invitations — List pending invitations for an idea (owner only)."""
+def project_pending_invitations(request: Request, project_id: str) -> Response:
+    """GET /api/projects/:id/invitations — List pending invitations for a project (owner only)."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        idea_uuid = uuid.UUID(idea_id)
+        project_uuid = uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_uuid)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_uuid)
+    except Project.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
-            {"error": "FORBIDDEN", "message": "Only the idea owner can view pending invitations"},
+            {"error": "FORBIDDEN", "message": "Only the project owner can view pending invitations"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
     invitations = CollaborationInvitation.objects.filter(
-        idea_id=idea_uuid,
+        project_id=project_uuid,
         status="pending",
     ).order_by("-created_at")
 

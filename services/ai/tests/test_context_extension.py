@@ -123,12 +123,12 @@ class TestContextExtensionAgent:
         agent = ContextExtensionAgent(core_client=mock_client)
         result = await agent._execute({
             "query": "What did we discuss?",
-            "idea_id": "idea-1",
+            "project_id": "project-1",
         })
 
         assert "empty" in result["response"]
         assert result["messages_cited"] == []
-        mock_client.get_full_chat_history.assert_called_once_with("idea-1")
+        mock_client.get_full_chat_history.assert_called_once_with("project-1")
 
     @pytest.mark.asyncio
     async def test_grpc_failure_returns_error(self):
@@ -139,7 +139,7 @@ class TestContextExtensionAgent:
         agent = ContextExtensionAgent(core_client=mock_client)
         result = await agent._execute({
             "query": "What did we discuss?",
-            "idea_id": "idea-1",
+            "project_id": "project-1",
         })
 
         assert "Unable to retrieve" in result["response"]
@@ -185,7 +185,7 @@ class TestContextExtensionAgent:
 
             result = await agent._execute({
                 "query": "What authentication approach?",
-                "idea_id": "idea-1",
+                "project_id": "project-1",
             })
 
         # Verify escalated tier used
@@ -231,7 +231,7 @@ class TestContextExtensionAgent:
 
             await agent._execute({
                 "query": "test",
-                "idea_id": "idea-1",
+                "project_id": "project-1",
             })
 
         mock_deploy.assert_called_once_with("escalated")
@@ -250,7 +250,7 @@ class TestContextExtensionMockMode:
         agent = ContextExtensionAgent()
         result = await agent.process({
             "query": "test question",
-            "idea_id": "test-idea",
+            "project_id": "test-project",
         })
         assert "response" in result
         assert "messages_cited" in result

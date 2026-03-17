@@ -17,9 +17,9 @@ class CoreClient:
     def __init__(self, address: str = "localhost:50051") -> None:
         self.address = address
 
-    def get_idea_context(
+    def get_project_context(
         self,
-        idea_id: str,
+        project_id: str,
         recent_message_limit: int = 0,
         include_brd_draft: bool = False,
     ) -> dict[str, Any]:
@@ -27,9 +27,9 @@ class CoreClient:
 
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT id, title, state, owner_id FROM ideas "
+                "SELECT id, title, state, owner_id FROM projects "
                 "WHERE id = %s AND deleted_at IS NULL",
-                [idea_id],
+                [project_id],
             )
             row = cursor.fetchone()
             if not row:
@@ -37,7 +37,7 @@ class CoreClient:
 
             return {
                 "metadata": {
-                    "idea_id": str(row[0]),
+                    "project_id": str(row[0]),
                     "title": row[1] or "",
                     "state": row[2] or "open",
                     "owner_id": str(row[3]) if row[3] else "",

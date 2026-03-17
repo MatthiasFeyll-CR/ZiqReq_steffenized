@@ -19,7 +19,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.monitoring",
     "apps.admin_config",
-    "apps.ideas",
+    "apps.projects",
     "apps.chat",
     "apps.collaboration",
     "apps.brd",

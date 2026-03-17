@@ -73,22 +73,22 @@ class AlertRecipient(_message.Message):
     display_name: str
     def __init__(self, user_id: _Optional[str] = ..., email: _Optional[str] = ..., display_name: _Optional[str] = ...) -> None: ...
 
-class IdeaDetailsRequest(_message.Message):
-    __slots__ = ("idea_id", "ensure_share_link_token")
-    IDEA_ID_FIELD_NUMBER: _ClassVar[int]
+class ProjectDetailsRequest(_message.Message):
+    __slots__ = ("project_id", "ensure_share_link_token")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
     ENSURE_SHARE_LINK_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    idea_id: str
+    project_id: str
     ensure_share_link_token: bool
-    def __init__(self, idea_id: _Optional[str] = ..., ensure_share_link_token: bool = ...) -> None: ...
+    def __init__(self, project_id: _Optional[str] = ..., ensure_share_link_token: bool = ...) -> None: ...
 
-class IdeaDetailsResponse(_message.Message):
-    __slots__ = ("idea_id", "title", "owner_id", "share_link_token")
-    IDEA_ID_FIELD_NUMBER: _ClassVar[int]
+class ProjectDetailsResponse(_message.Message):
+    __slots__ = ("project_id", "title", "owner_id", "share_link_token")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
     TITLE_FIELD_NUMBER: _ClassVar[int]
     OWNER_ID_FIELD_NUMBER: _ClassVar[int]
     SHARE_LINK_TOKEN_FIELD_NUMBER: _ClassVar[int]
-    idea_id: str
+    project_id: str
     title: str
     owner_id: str
     share_link_token: str
-    def __init__(self, idea_id: _Optional[str] = ..., title: _Optional[str] = ..., owner_id: _Optional[str] = ..., share_link_token: _Optional[str] = ...) -> None: ...
+    def __init__(self, project_id: _Optional[str] = ..., title: _Optional[str] = ..., owner_id: _Optional[str] = ..., share_link_token: _Optional[str] = ...) -> None: ...

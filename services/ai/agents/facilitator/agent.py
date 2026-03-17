@@ -1,4 +1,4 @@
-"""FacilitatorAgent — the primary AI agent for brainstorming facilitation.
+"""FacilitatorAgent — the primary AI agent for requirements structuring.
 
 Extends BaseAgent with SK function-calling loop, system prompt rendering,
 and the FacilitatorPlugin (5 tools).
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class FacilitatorAgent(BaseAgent):
-    """Facilitator agent — guides brainstorming via 5 tools.
+    """Facilitator agent — guides requirements structuring via 5 tools.
 
     Uses SK's automatic function-calling loop with max_auto_invoke_attempts=3.
     """
@@ -40,16 +40,16 @@ class FacilitatorAgent(BaseAgent):
 
         Args:
             input_data: Dict with keys:
-                - idea_id: str
-                - idea_context: dict (title, state, agent_mode, title_manually_edited, etc.)
+                - project_id: str
+                - project_context: dict (title, state, agent_mode, title_manually_edited, etc.)
                 - recent_messages: list[dict]
                 - chat_summary: str | None
                 - facilitator_bucket_content: str
                 - delegation_results: str | None
                 - extension_results: str | None
         """
-        idea_id: str = input_data["idea_id"]
-        idea_context: dict[str, Any] = input_data.get("idea_context", {})
+        project_id: str = input_data["project_id"]
+        project_context: dict[str, Any] = input_data.get("project_context", {})
 
         # Build system prompt
         prompt_context = _build_prompt_context(input_data)
@@ -61,9 +61,9 @@ class FacilitatorAgent(BaseAgent):
 
         # Create and register plugin
         plugin = FacilitatorPlugin(
-            idea_id=idea_id,
-            idea_context={
-                **idea_context,
+            project_id=project_id,
+            project_context={
+                **project_context,
                 "recent_messages": input_data.get("recent_messages", []),
             },
         )
@@ -123,11 +123,11 @@ class FacilitatorAgent(BaseAgent):
 
 def _build_prompt_context(input_data: dict[str, Any]) -> dict[str, Any]:
     """Map pipeline input_data to prompt template variables."""
-    ctx = input_data.get("idea_context", {})
+    ctx = input_data.get("project_context", {})
     return {
         "agent_mode": ctx.get("agent_mode", "interactive"),
-        "idea_title": ctx.get("title", ""),
-        "idea_state": ctx.get("state", "brainstorming"),
+        "project_title": ctx.get("title", ""),
+        "project_state": ctx.get("state", "open"),
         "title_manually_edited": ctx.get("title_manually_edited", False),
         "facilitator_bucket_content": input_data.get("facilitator_bucket_content", ""),
         "recent_messages_formatted": _format_messages(input_data.get("recent_messages", [])),

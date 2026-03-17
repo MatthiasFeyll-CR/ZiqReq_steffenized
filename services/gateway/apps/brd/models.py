@@ -7,7 +7,7 @@ class BrdDraft(models.Model):
     """Unmanaged mirror model — reads Core service's brd_drafts table."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField(unique=True)
+    project_id = models.UUIDField(unique=True)
     section_title = models.TextField(null=True, blank=True)
     section_short_description = models.TextField(null=True, blank=True)
     section_current_workflow = models.TextField(null=True, blank=True)
@@ -26,4 +26,4 @@ class BrdDraft(models.Model):
         db_table = "brd_drafts"
 
     def __str__(self) -> str:
-        return f"BrdDraft for idea {self.idea_id}"
+        return f"BrdDraft for project {self.project_id}"

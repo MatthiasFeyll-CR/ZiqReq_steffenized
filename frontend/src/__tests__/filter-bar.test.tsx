@@ -26,11 +26,11 @@ vi.mock("react-router-dom", async () => {
 const mockDeleteMutate = vi.fn();
 const mockRestoreMutate = vi.fn();
 
-vi.mock("@/hooks/use-my-ideas", () => ({
-  useMyIdeas: vi.fn(() => ({ data: null, isLoading: false })),
+vi.mock("@/hooks/use-my-projects", () => ({
+  useMyProjects: vi.fn(() => ({ data: null, isLoading: false })),
 }));
-vi.mock("@/hooks/use-collaborating-ideas", () => ({
-  useCollaboratingIdeas: vi.fn(() => ({ data: null, isLoading: false })),
+vi.mock("@/hooks/use-collaborating-projects", () => ({
+  useCollaboratingProjects: vi.fn(() => ({ data: null, isLoading: false })),
 }));
 vi.mock("@/hooks/use-invitations", () => ({
   useInvitations: vi.fn(() => ({ data: null, isLoading: false })),
@@ -38,11 +38,11 @@ vi.mock("@/hooks/use-invitations", () => ({
 vi.mock("@/hooks/use-trash", () => ({
   useTrash: vi.fn(() => ({ data: null, isLoading: false })),
 }));
-vi.mock("@/hooks/use-delete-idea", () => ({
-  useDeleteIdea: vi.fn(() => ({ mutate: mockDeleteMutate })),
+vi.mock("@/hooks/use-delete-project", () => ({
+  useDeleteProject: vi.fn(() => ({ mutate: mockDeleteMutate })),
 }));
-vi.mock("@/hooks/use-restore-idea", () => ({
-  useRestoreIdea: vi.fn(() => ({ mutate: mockRestoreMutate })),
+vi.mock("@/hooks/use-restore-project", () => ({
+  useRestoreProject: vi.fn(() => ({ mutate: mockRestoreMutate })),
 }));
 
 vi.mock("react-toastify", () => ({
@@ -50,8 +50,8 @@ vi.mock("react-toastify", () => ({
   ToastContainer: () => null,
 }));
 
-import { useMyIdeas } from "@/hooks/use-my-ideas";
-import { useCollaboratingIdeas } from "@/hooks/use-collaborating-ideas";
+import { useMyProjects } from "@/hooks/use-my-projects";
+import { useCollaboratingProjects } from "@/hooks/use-collaborating-projects";
 import { useInvitations } from "@/hooks/use-invitations";
 import { useTrash } from "@/hooks/use-trash";
 
@@ -113,8 +113,8 @@ function renderLandingPage() {
 }
 
 beforeEach(() => {
-  vi.mocked(useMyIdeas).mockReturnValue(mockHook(emptyIdeasResponse));
-  vi.mocked(useCollaboratingIdeas).mockReturnValue(
+  vi.mocked(useMyProjects).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useCollaboratingProjects).mockReturnValue(
     mockHook(emptyIdeasResponse),
   );
   vi.mocked(useInvitations).mockReturnValue(
@@ -150,7 +150,7 @@ describe("FilterBar component (controlled)", () => {
   it("renders search input with placeholder", () => {
     renderFilterBar();
     expect(
-      screen.getByPlaceholderText("Search ideas by title..."),
+      screen.getByPlaceholderText("Search projects by title..."),
     ).toBeInTheDocument();
   });
 
@@ -159,16 +159,16 @@ describe("FilterBar component (controlled)", () => {
     expect(screen.getByText("All states")).toBeInTheDocument();
   });
 
-  it("renders ownership filter dropdown with All ideas option", () => {
+  it("renders ownership filter dropdown with All projects option", () => {
     renderFilterBar();
-    expect(screen.getByText("All ideas")).toBeInTheDocument();
+    expect(screen.getByText("All projects")).toBeInTheDocument();
   });
 
   it("calls onSearchChange when typing in search input", () => {
     const onSearchChange = vi.fn();
     renderFilterBar({ onSearchChange });
 
-    const input = screen.getByPlaceholderText("Search ideas by title...");
+    const input = screen.getByPlaceholderText("Search projects by title...");
     fireEvent.change(input, { target: { value: "test" } });
 
     expect(onSearchChange).toHaveBeenCalledWith("test");
@@ -217,26 +217,26 @@ describe("T-9.4.01 / T-9.4.02: FilterBar integration with LandingPage", () => {
   it("renders FilterBar on the landing page", () => {
     renderLandingPage();
     expect(
-      screen.getByPlaceholderText("Search ideas by title..."),
+      screen.getByPlaceholderText("Search projects by title..."),
     ).toBeInTheDocument();
     expect(screen.getByText("All states")).toBeInTheDocument();
-    expect(screen.getByText("All ideas")).toBeInTheDocument();
+    expect(screen.getByText("All projects")).toBeInTheDocument();
   });
 
-  it("debounces search and passes filters to useMyIdeas", async () => {
+  it("debounces search and passes filters to useMyProjects", async () => {
     vi.useFakeTimers();
 
     renderLandingPage();
 
     const searchInput = screen.getByPlaceholderText(
-      "Search ideas by title...",
+      "Search projects by title...",
     );
 
     // Use fireEvent.change to avoid userEvent timing issues
     fireEvent.change(searchInput, { target: { value: "test" } });
 
     // Before debounce fires, search should not be in filters
-    const callsBefore = vi.mocked(useMyIdeas).mock.calls;
+    const callsBefore = vi.mocked(useMyProjects).mock.calls;
     const lastCallBefore = callsBefore[callsBefore.length - 1]!;
     expect(lastCallBefore[0]?.search || "").toBe("");
 
@@ -245,8 +245,8 @@ describe("T-9.4.01 / T-9.4.02: FilterBar integration with LandingPage", () => {
       vi.advanceTimersByTime(350);
     });
 
-    // After debounce, useMyIdeas should be called with search param
-    const callsAfter = vi.mocked(useMyIdeas).mock.calls;
+    // After debounce, useMyProjects should be called with search param
+    const callsAfter = vi.mocked(useMyProjects).mock.calls;
     const lastCallAfter = callsAfter[callsAfter.length - 1]!;
     expect(lastCallAfter[0]?.search).toBe("test");
 
@@ -259,7 +259,7 @@ describe("T-9.4.01 / T-9.4.02: FilterBar integration with LandingPage", () => {
     renderLandingPage();
 
     const searchInput = screen.getByPlaceholderText(
-      "Search ideas by title...",
+      "Search projects by title...",
     );
     fireEvent.change(searchInput, { target: { value: "test" } });
 

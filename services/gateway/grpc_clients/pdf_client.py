@@ -47,22 +47,22 @@ class PdfClient:
 
     def generate_pdf(
         self,
-        idea_id: str,
-        idea_title: str,
+        project_id: str,
+        project_title: str,
         sections: dict[str, str],
         generated_at: str = "",
     ) -> dict[str, Any]:
         stub = self._ensure_channel()
         request = pdf_pb2.PdfGenerationRequest(
-            idea_id=idea_id,
-            idea_title=idea_title,
+            project_id=project_id,
+            project_title=project_title,
             sections=sections,
             generated_at=generated_at,
         )
         response = stub.GeneratePdf(request)
         logger.info(
-            "PDF generated for idea %s: %d bytes",
-            idea_id,
+            "PDF generated for project %s: %d bytes",
+            project_id,
             len(response.pdf_data),
         )
         return {"pdf_data": response.pdf_data, "filename": response.filename}

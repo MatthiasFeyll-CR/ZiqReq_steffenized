@@ -6,14 +6,14 @@ import { configureStore } from "@reduxjs/toolkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { websocketReducer } from "@/store/websocket-slice";
 import i18n from "@/i18n/config";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
 vi.mock("@/components/workspace/WorkspaceLayout", () => ({
   WorkspaceLayout: () => <div data-testid="workspace-layout">WorkspaceLayout</div>,
 }));
 vi.mock("@/components/workspace/WorkspaceHeader", () => ({
-  WorkspaceHeader: ({ idea }: { idea: { title: string } }) => (
-    <div data-testid="workspace-header">{idea.title}</div>
+  WorkspaceHeader: ({ project }: { project: { title: string } }) => (
+    <div data-testid="workspace-header">{project.title}</div>
   ),
 }));
 vi.mock("@/components/workspace/ChatPanel", () => ({
@@ -36,11 +36,11 @@ const { mockFetchIdea, mockFetchTimeline, mockFetchIdeaReviewers } = vi.hoisted(
   mockFetchIdeaReviewers: vi.fn(),
 }));
 
-vi.mock("@/api/ideas", async () => {
-  const actual = await vi.importActual("@/api/ideas");
+vi.mock("@/api/projects", async () => {
+  const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
-    fetchIdea: mockFetchIdea,
+    fetchProject: mockFetchIdea,
   };
 });
 
@@ -54,21 +54,21 @@ vi.mock("@/api/review", async () => {
   return {
     ...actual,
     fetchTimeline: mockFetchTimeline,
-    fetchIdeaReviewers: mockFetchIdeaReviewers,
+    fetchProjectReviewers: mockFetchIdeaReviewers,
   };
 });
 
-import IdeaWorkspacePage from "@/pages/IdeaWorkspace/index";
+import ProjectWorkspacePage from "@/pages/ProjectWorkspace/index";
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
-function makeIdea(state: Idea["state"]): Idea {
+function makeProject(state: Project["state"]): Project {
   return {
-    id: IDEA_ID,
+    id: PROJECT_ID,
     title: "Test Idea",
     state,
     agent_mode: "interactive",
@@ -80,7 +80,7 @@ function makeIdea(state: Idea["state"]): Idea {
   };
 }
 
-function renderWorkspace(idea: Idea, step?: string) {
+function renderWorkspace(idea: Project, step?: string) {
   mockFetchIdea.mockResolvedValue(idea);
 
   const store = configureStore({
@@ -94,15 +94,15 @@ function renderWorkspace(idea: Idea, step?: string) {
   });
 
   const url = step
-    ? `/idea/${idea.id}?step=${step}`
-    : `/idea/${idea.id}`;
+    ? `/project/${idea.id}?step=${step}`
+    : `/project/${idea.id}`;
 
   return render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[url]}>
           <Routes>
-            <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
+            <Route path="/project/:id" element={<ProjectWorkspacePage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -121,10 +121,10 @@ beforeEach(() => {
 
 describe("T-1.2.01: Review step not accessible for never-submitted idea", () => {
   it("does not show review section when state is open (brainstorm step active)", async () => {
-    renderWorkspace(makeIdea("open"));
+    renderWorkspace(makeProject("open"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     // Should be on brainstorm step, review section not rendered
@@ -134,30 +134,30 @@ describe("T-1.2.01: Review step not accessible for never-submitted idea", () => 
 
 describe("T-1.2.02: Review step accessible after first submission", () => {
   it("auto-navigates to review step when state is in_review", async () => {
-    renderWorkspace(makeIdea("in_review"));
+    renderWorkspace(makeProject("in_review"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 
   it("auto-navigates to review step when state is accepted", async () => {
-    renderWorkspace(makeIdea("accepted"));
+    renderWorkspace(makeProject("accepted"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 
   it("shows brainstorm step when state is rejected (user can refine)", async () => {
-    renderWorkspace(makeIdea("rejected"));
+    renderWorkspace(makeProject("rejected"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     // Rejected auto-navigates to brainstorm, but review step should be accessible
@@ -165,10 +165,10 @@ describe("T-1.2.02: Review step accessible after first submission", () => {
   });
 
   it("auto-navigates to review step when state is dropped", async () => {
-    renderWorkspace(makeIdea("dropped"));
+    renderWorkspace(makeProject("dropped"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("review-section")).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe("UI-REVIEW.03: Review section rendering with timeline", () => {
       reviewers: [{ id: "r1", display_name: "Bob Reviewer" }],
     });
 
-    renderWorkspace(makeIdea("in_review"));
+    renderWorkspace(makeProject("in_review"));
 
     await waitFor(() => {
       expect(screen.getByTestId("review-section")).toBeInTheDocument();
@@ -220,7 +220,7 @@ describe("UI-REVIEW.03: Review section rendering with timeline", () => {
   });
 
   it("shows empty timeline when no entries exist", async () => {
-    renderWorkspace(makeIdea("in_review"));
+    renderWorkspace(makeProject("in_review"));
 
     await waitFor(() => {
       expect(screen.getByTestId("review-section")).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe("UI-REVIEW.03: Review section rendering with timeline", () => {
   it("shows 'No reviewers assigned' when no reviewers", async () => {
     mockFetchIdeaReviewers.mockResolvedValue({ reviewers: [] });
 
-    renderWorkspace(makeIdea("in_review"));
+    renderWorkspace(makeProject("in_review"));
 
     await waitFor(() => {
       expect(screen.getByTestId("review-section")).toBeInTheDocument();

@@ -1,4 +1,4 @@
-export interface Idea {
+export interface Project {
   id: string;
   title: string;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected";
@@ -12,7 +12,7 @@ export interface Idea {
 
 export interface ChatMessage {
   id: string;
-  ideaId: string;
+  projectId: string;
   senderType: "user" | "ai";
   senderId: string | null;
   aiAgent: string | null;

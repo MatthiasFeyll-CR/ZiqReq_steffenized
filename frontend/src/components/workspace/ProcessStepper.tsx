@@ -34,12 +34,12 @@ export function ProcessStepper({
 
   const stepConfig = {
     brainstorm: {
-      label: t("process.brainstorm", "Brainstorm"),
-      description: t("process.brainstormDesc", "Chat with AI to shape your idea"),
+      label: t("process.brainstorm", "Define"),
+      description: t("process.brainstormDesc", "Chat with AI to define your project"),
     },
     document: {
-      label: t("process.document", "Document"),
-      description: t("process.documentDesc", "Generate & refine your BRD"),
+      label: t("process.document", "Structure"),
+      description: t("process.documentDesc", "Generate & refine your requirements document"),
     },
     review: {
       label: t("process.review", "Review"),

@@ -35,14 +35,14 @@ function sectionKeyToFieldKey(sectionKey: string): SectionFieldKey {
 }
 
 interface BRDSectionEditorProps {
-  ideaId: string;
+  projectId: string;
   brdDraft: BrdDraft;
   open: boolean;
   onClose: () => void;
 }
 
 export function BRDSectionEditor({
-  ideaId,
+  projectId,
   brdDraft,
   open,
   onClose,
@@ -67,9 +67,9 @@ export function BRDSectionEditor({
 
   const patchMutation = useMutation({
     mutationFn: (data: Parameters<typeof patchBrdDraft>[1]) =>
-      patchBrdDraft(ideaId, data),
+      patchBrdDraft(projectId, data),
     onSuccess: (updated) => {
-      queryClient.setQueryData(["brd", ideaId], updated);
+      queryClient.setQueryData(["brd", projectId], updated);
     },
     onError: (error: Error) => {
       toast.error(error.message || t("brd.saveError", "Failed to save changes"));
@@ -83,7 +83,7 @@ export function BRDSectionEditor({
       // Auto-lock on edit: optimistic
       if (!brdDraft.section_locks[sectionKey]) {
         const newLocks = { ...brdDraft.section_locks, [sectionKey]: true };
-        queryClient.setQueryData(["brd", ideaId], {
+        queryClient.setQueryData(["brd", projectId], {
           ...brdDraft,
           section_locks: newLocks,
         });
@@ -98,7 +98,7 @@ export function BRDSectionEditor({
         patchMutation.mutate({ [fieldKey]: value });
       }, 300);
     },
-    [brdDraft, ideaId, queryClient, patchMutation],
+    [brdDraft, projectId, queryClient, patchMutation],
   );
 
   const handleBlur = useCallback(
@@ -126,8 +126,8 @@ export function BRDSectionEditor({
     async (sectionKey: string) => {
       try {
         setRegeneratingSection(sectionKey);
-        await triggerBrdGeneration(ideaId, "section_regeneration", sectionKey);
-        queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
+        await triggerBrdGeneration(projectId, "section_regeneration", sectionKey);
+        queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
       } catch (error) {
         toast.error(
           (error as Error).message ||
@@ -137,7 +137,7 @@ export function BRDSectionEditor({
         setRegeneratingSection(null);
       }
     },
-    [ideaId, queryClient, t],
+    [projectId, queryClient, t],
   );
 
   const handleGapsToggle = useCallback(

@@ -1,4 +1,4 @@
-"""SummarizingAIAgent — generates 6-section BRDs from brainstorming data.
+"""SummarizingAIAgent — generates 6-section BRDs from project requirements data.
 
 Extends BaseAgent with direct chat completion (no tools). Supports 3 modes:
 full_generation, selective_regeneration, and section_regeneration.
@@ -67,7 +67,7 @@ class SummarizingAIAgent(BaseAgent):
         # Build chat history
         chat_history = ChatHistory(system_message=system_prompt)
         chat_history.add_user_message(
-            "Generate the BRD sections based on the brainstorming data provided."
+            "Generate the BRD sections based on the project requirements data provided."
         )
 
         # Invoke SK chat completion

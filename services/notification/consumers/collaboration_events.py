@@ -15,7 +15,7 @@ COLLABORATION_EVENT_TYPES = {
     "collaboration_invitation",
     "collaborator_joined",
     "collaborator_left",
-    "removed_from_idea",
+    "removed_from_project",
     "ownership_transferred",
 }
 

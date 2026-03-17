@@ -15,7 +15,7 @@ SECTION_LOCK_KEYS = {f: f.replace("section_", "") for f in SECTION_FIELDS}
 
 class BrdDraftResponseSerializer(serializers.Serializer):
     id = serializers.UUIDField()
-    idea_id = serializers.UUIDField()
+    project_id = serializers.UUIDField()
     section_title = serializers.CharField(allow_null=True)
     section_short_description = serializers.CharField(allow_null=True)
     section_current_workflow = serializers.CharField(allow_null=True)

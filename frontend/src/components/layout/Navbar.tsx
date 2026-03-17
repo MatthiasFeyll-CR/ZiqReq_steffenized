@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { NavbarLink } from "./NavbarLink"
 import { UserDropdown } from "./UserDropdown"
 import { ConnectionIndicator } from "./ConnectionIndicator"
-import { IdeasListFloating } from "./IdeasListFloating"
+import { ProjectsListFloating } from "./ProjectsListFloating"
 import { NotificationBell } from "./NotificationBell"
 import { NotificationPanel } from "@/components/notifications/NotificationPanel"
 
@@ -30,7 +30,7 @@ export function Navbar() {
 
       {/* Desktop nav links */}
       <div className="hidden md:flex md:items-center md:gap-1">
-        <NavbarLink to="/">{t("nav.ideas")}</NavbarLink>
+        <NavbarLink to="/">{t("nav.projects")}</NavbarLink>
         {hasRole("reviewer") && <NavbarLink to="/reviews">{t("nav.reviews")}</NavbarLink>}
         {hasRole("admin") && <NavbarLink to="/admin">{t("nav.admin")}</NavbarLink>}
       </div>
@@ -45,12 +45,12 @@ export function Navbar() {
           <button
             className="flex items-center gap-1 rounded-full px-2 py-1.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
             onClick={() => setIdeasOpen((o) => !o)}
-            aria-label={t("ideasFloat.title")}
+            aria-label={t("projectsFloat.title")}
           >
             <Lightbulb className="h-5 w-5" />
-            <span className="hidden sm:inline">{t("nav.ideas")}</span>
+            <span className="hidden sm:inline">{t("nav.projects")}</span>
           </button>
-          {ideasOpen && <IdeasListFloating onClose={closeIdeas} />}
+          {ideasOpen && <ProjectsListFloating onClose={closeIdeas} />}
         </div>
         <div className="relative">
           <NotificationBell onTogglePanel={toggleNotifPanel} />
@@ -72,7 +72,7 @@ export function Navbar() {
       {mobileOpen && (
         <div className="absolute left-0 top-14 z-50 w-full bg-[#002E3C] shadow-lg dark:bg-[#1C1C22] md:hidden">
           <div className="flex flex-col py-2">
-            <MobileLink to="/" onClick={() => setMobileOpen(false)}>{t("nav.ideas")}</MobileLink>
+            <MobileLink to="/" onClick={() => setMobileOpen(false)}>{t("nav.projects")}</MobileLink>
             {hasRole("reviewer") && (
               <MobileLink to="/reviews" onClick={() => setMobileOpen(false)}>{t("nav.reviews")}</MobileLink>
             )}

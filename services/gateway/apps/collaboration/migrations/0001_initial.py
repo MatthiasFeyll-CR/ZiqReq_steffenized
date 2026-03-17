@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
                         serialize=False,
                     ),
                 ),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 ("inviter_id", models.UUIDField()),
                 ("invitee_id", models.UUIDField()),
                 (

@@ -167,21 +167,21 @@ function TimelineEntryItem({
 
 interface ReviewTimelineProps {
   entries: TimelineEntry[];
-  ideaId?: string;
+  projectId?: string;
 }
 
-export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
+export function ReviewTimeline({ entries, projectId }: ReviewTimelineProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
 
   const commentMutation = useMutation({
     mutationFn: (data: { content: string; parent_entry_id?: string }) => {
-      if (!ideaId) throw new Error("No idea ID");
-      return postComment(ideaId, data);
+      if (!projectId) throw new Error("No project ID");
+      return postComment(projectId, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["timeline", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["timeline", projectId] });
       setReplyingTo(null);
     },
     onError: (error: Error) => {
@@ -217,18 +217,18 @@ export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
 
   // Listen for WebSocket timeline_update events to invalidate cache
   useEffect(() => {
-    if (!ideaId) return;
+    if (!projectId) return;
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.idea_id === ideaId) {
-        queryClient.invalidateQueries({ queryKey: ["timeline", ideaId] });
+      if (detail?.project_id === projectId) {
+        queryClient.invalidateQueries({ queryKey: ["timeline", projectId] });
       }
     };
     window.addEventListener("ws:timeline_update", handler);
     return () => window.removeEventListener("ws:timeline_update", handler);
-  }, [ideaId, queryClient]);
+  }, [projectId, queryClient]);
 
-  if (entries.length === 0 && !ideaId) {
+  if (entries.length === 0 && !projectId) {
     return (
       <div className="flex items-center justify-center py-8 text-sm text-muted-foreground" data-testid="timeline-empty">
         <MessageCircle className="h-4 w-4 mr-2" />
@@ -261,7 +261,7 @@ export function ReviewTimeline({ entries, ideaId }: ReviewTimelineProps) {
       )}
 
       {/* Top-level comment input */}
-      {ideaId && (
+      {projectId && (
         <div className="mt-4" data-testid="top-level-comment-input">
           <CommentInput
             onSubmit={handleSubmitTopLevel}

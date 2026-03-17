@@ -11,10 +11,10 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.authentication.models import User
-from apps.ideas.authentication import MiddlewareAuthentication
-from apps.ideas.models import Idea, IdeaCollaborator
+from apps.projects.authentication import MiddlewareAuthentication
+from apps.projects.models import Project, ProjectCollaborator
 
-from .models import CommentReaction, CommentReadStatus, IdeaComment
+from .models import CommentReaction, CommentReadStatus, ProjectComment
 from .serializers import CommentCreateSerializer, CommentUpdateSerializer, ReactionSerializer
 
 logger = logging.getLogger(__name__)
@@ -37,22 +37,22 @@ def _unauthorized_response() -> Response:
     )
 
 
-def _check_idea_access(idea_id: str, user_id, request=None) -> tuple:
-    """Return (idea, has_access, is_owner_or_collaborator) or (None, False, False).
+def _check_project_access(project_id: str, user_id, request=None) -> tuple:
+    """Return (project, has_access, is_owner_or_collaborator) or (None, False, False).
 
-    Any authenticated user who can reach the idea (owner, co-owner, collaborator,
+    Any authenticated user who can reach the project (owner, co-owner, collaborator,
     or share-link viewer) has full comment access (create/edit own/delete own).
     is_privileged is True only for owner/co-owner/collaborator (they can delete
     foreign comments).
     """
     try:
-        idea = Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return None, False, False
 
-    is_owner = idea.owner_id == user_id
-    is_collaborator = IdeaCollaborator.objects.filter(
-        idea_id=idea.id, user_id=user_id
+    is_owner = project.owner_id == user_id
+    is_collaborator = ProjectCollaborator.objects.filter(
+        project_id=project.id, user_id=user_id
     ).exists()
 
     has_access = is_owner or is_collaborator
@@ -68,7 +68,7 @@ def _check_idea_access(idea_id: str, user_id, request=None) -> tuple:
             has_access = True
 
     is_privileged = is_owner or is_collaborator
-    return idea, has_access, is_privileged
+    return project, has_access, is_privileged
 
 
 def _broadcast_ws_event(group_name: str, event_type: str, payload: dict) -> None:
@@ -117,7 +117,7 @@ def _broadcast_user_notification(
         logger.exception("Failed to broadcast notification to user %s", user_id)
 
 
-def _serialize_comment(comment: IdeaComment, user_map: dict, current_user_id=None) -> dict:
+def _serialize_comment(comment: ProjectComment, user_map: dict, current_user_id=None) -> dict:
     """Serialize a single comment with author info and reactions."""
     author = user_map.get(comment.author_id) if comment.author_id else None
 
@@ -134,7 +134,7 @@ def _serialize_comment(comment: IdeaComment, user_map: dict, current_user_id=Non
 
     return {
         "id": str(comment.id),
-        "idea_id": str(comment.idea_id),
+        "project_id": str(comment.project_id),
         "author": {
             "id": str(author.id),
             "display_name": author.display_name,
@@ -156,7 +156,7 @@ def _extract_mentions(content: str) -> list[str]:
     return re.findall(r"@(\w[\w.\-]*)", content)
 
 
-def _notify_mentions(content: str, idea: Idea, author: User, comment_id: str) -> None:
+def _notify_mentions(content: str, project: Project, author: User, comment_id: str) -> None:
     """Send notifications to @mentioned users."""
     mentioned_names = _extract_mentions(content)
     if not mentioned_names:
@@ -174,9 +174,9 @@ def _notify_mentions(content: str, idea: Idea, author: User, comment_id: str) ->
         notif_kwargs = dict(
             event_type="comment_mention",
             title="You were mentioned in a comment",
-            body=f"{author.display_name} mentioned you in a comment on \"{idea.title}\"",
-            reference_id=str(idea.id),
-            reference_type="idea",
+            body=f"{author.display_name} mentioned you in a comment on \"{project.title}\"",
+            reference_id=str(project.id),
+            reference_type="project",
         )
         _publish_notification(
             routing_key="notification.comment.mention",
@@ -191,35 +191,35 @@ def _notify_mentions(content: str, idea: Idea, author: User, comment_id: str) ->
 
 @api_view(["GET", "POST"])
 @authentication_classes([MiddlewareAuthentication])
-def comments_root(request: Request, idea_id: str) -> Response:
+def comments_root(request: Request, project_id: str) -> Response:
     """GET lists comments, POST creates a comment."""
     if request.method == "POST":
-        return _create_comment(request, idea_id)
-    return _list_comments(request, idea_id)
+        return _create_comment(request, project_id)
+    return _list_comments(request, project_id)
 
 
-def _list_comments(request: Request, idea_id: str) -> Response:
+def _list_comments(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    idea, has_access, _ = _check_idea_access(idea_id, user.id, request)
-    if idea is None:
+    project, has_access, _ = _check_project_access(project_id, user.id, request)
+    if project is None:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
     if not has_access:
         return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this project"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -229,7 +229,7 @@ def _list_comments(request: Request, idea_id: str) -> Response:
         MAX_PAGE_SIZE,
     )
 
-    qs = IdeaComment.objects.filter(idea_id=idea_id).order_by("created_at")
+    qs = ProjectComment.objects.filter(project_id=project_id).order_by("created_at")
     total_count = qs.count()
     offset = (page - 1) * page_size
     comments = list(qs[offset : offset + page_size])
@@ -251,35 +251,35 @@ def _list_comments(request: Request, idea_id: str) -> Response:
     })
 
 
-def _create_comment(request: Request, idea_id: str) -> Response:
+def _create_comment(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    idea, has_access, _ = _check_idea_access(idea_id, user.id, request)
-    if idea is None:
+    project, has_access, _ = _check_project_access(project_id, user.id, request)
+    if project is None:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
     if not has_access:
         return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this project"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    # Block comments on deleted ideas
-    if idea.deleted_at is not None:
+    # Block comments on deleted projects
+    if project.deleted_at is not None:
         return Response(
-            {"error": "BAD_REQUEST", "message": "Cannot comment on a deleted idea"},
+            {"error": "BAD_REQUEST", "message": "Cannot comment on a deleted project"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -289,8 +289,8 @@ def _create_comment(request: Request, idea_id: str) -> Response:
 
     parent_id = serializer.validated_data.get("parent_id")
     if parent_id:
-        parent_exists = IdeaComment.objects.filter(
-            id=parent_id, idea_id=idea_id, deleted_at__isnull=True
+        parent_exists = ProjectComment.objects.filter(
+            id=parent_id, project_id=project_id, deleted_at__isnull=True
         ).exists()
         if not parent_exists:
             return Response(
@@ -298,8 +298,8 @@ def _create_comment(request: Request, idea_id: str) -> Response:
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    comment = IdeaComment.objects.create(
-        idea_id=idea_id,
+    comment = ProjectComment.objects.create(
+        project_id=project_id,
         author_id=user.id,
         parent_id=parent_id,
         content=serializer.validated_data["content"],
@@ -310,33 +310,33 @@ def _create_comment(request: Request, idea_id: str) -> Response:
 
     # Broadcast via WebSocket
     _broadcast_ws_event(
-        f"idea_{idea_id}",
+        f"project_{project_id}",
         "comment_created",
         data,
     )
 
     # Notify @mentioned users
-    _notify_mentions(comment.content, idea, user, str(comment.id))
+    _notify_mentions(comment.content, project, user, str(comment.id))
 
     return Response(data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["PATCH", "DELETE"])
 @authentication_classes([MiddlewareAuthentication])
-def comment_detail(request: Request, idea_id: str, comment_id: str) -> Response:
+def comment_detail(request: Request, project_id: str, comment_id: str) -> Response:
     """PATCH updates, DELETE soft-deletes a comment."""
     if request.method == "DELETE":
-        return _delete_comment(request, idea_id, comment_id)
-    return _update_comment(request, idea_id, comment_id)
+        return _delete_comment(request, project_id, comment_id)
+    return _update_comment(request, project_id, comment_id)
 
 
-def _update_comment(request: Request, idea_id: str, comment_id: str) -> Response:
+def _update_comment(request: Request, project_id: str, comment_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
         uuid.UUID(comment_id)
     except ValueError:
         return Response(
@@ -345,8 +345,8 @@ def _update_comment(request: Request, idea_id: str, comment_id: str) -> Response
         )
 
     try:
-        comment = IdeaComment.objects.get(id=comment_id, idea_id=idea_id)
-    except IdeaComment.DoesNotExist:
+        comment = ProjectComment.objects.get(id=comment_id, project_id=project_id)
+    except ProjectComment.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Comment not found"},
             status=status.HTTP_404_NOT_FOUND,
@@ -382,23 +382,23 @@ def _update_comment(request: Request, idea_id: str, comment_id: str) -> Response
     user_map = {author.id: author} if author else {}
     data = _serialize_comment(comment, user_map, user.id)
 
-    _broadcast_ws_event(f"idea_{idea_id}", "comment_updated", data)
+    _broadcast_ws_event(f"project_{project_id}", "comment_updated", data)
 
     # Re-check mentions for new content
-    idea = Idea.objects.filter(id=idea_id).first()
-    if idea:
-        _notify_mentions(comment.content, idea, user, str(comment.id))
+    project = Project.objects.filter(id=project_id).first()
+    if project:
+        _notify_mentions(comment.content, project, user, str(comment.id))
 
     return Response(data)
 
 
-def _delete_comment(request: Request, idea_id: str, comment_id: str) -> Response:
+def _delete_comment(request: Request, project_id: str, comment_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
         uuid.UUID(comment_id)
     except ValueError:
         return Response(
@@ -407,8 +407,8 @@ def _delete_comment(request: Request, idea_id: str, comment_id: str) -> Response
         )
 
     try:
-        comment = IdeaComment.objects.get(id=comment_id, idea_id=idea_id)
-    except IdeaComment.DoesNotExist:
+        comment = ProjectComment.objects.get(id=comment_id, project_id=project_id)
+    except ProjectComment.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Comment not found"},
             status=status.HTTP_404_NOT_FOUND,
@@ -428,7 +428,7 @@ def _delete_comment(request: Request, idea_id: str, comment_id: str) -> Response
 
     # Author can delete their own; owner/co-owner/collaborator can delete any
     is_author = comment.author_id == user.id
-    idea, _, is_privileged = _check_idea_access(idea_id, user.id, request)
+    project, _, is_privileged = _check_project_access(project_id, user.id, request)
     if not is_author and not is_privileged:
         return Response(
             {"error": "FORBIDDEN", "message": "You cannot delete this comment"},
@@ -439,9 +439,9 @@ def _delete_comment(request: Request, idea_id: str, comment_id: str) -> Response
     comment.save(update_fields=["deleted_at", "updated_at"])
 
     _broadcast_ws_event(
-        f"idea_{idea_id}",
+        f"project_{project_id}",
         "comment_deleted",
-        {"id": str(comment.id), "idea_id": idea_id},
+        {"id": str(comment.id), "project_id": project_id},
     )
 
     return Response({"message": "Comment deleted"})
@@ -449,14 +449,14 @@ def _delete_comment(request: Request, idea_id: str, comment_id: str) -> Response
 
 @api_view(["POST", "DELETE"])
 @authentication_classes([MiddlewareAuthentication])
-def comment_reaction(request: Request, idea_id: str, comment_id: str) -> Response:
+def comment_reaction(request: Request, project_id: str, comment_id: str) -> Response:
     """POST adds a reaction, DELETE removes it."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
         uuid.UUID(comment_id)
     except ValueError:
         return Response(
@@ -466,8 +466,8 @@ def comment_reaction(request: Request, idea_id: str, comment_id: str) -> Respons
 
     # Verify comment exists
     try:
-        comment = IdeaComment.objects.get(id=comment_id, idea_id=idea_id, deleted_at__isnull=True)
-    except IdeaComment.DoesNotExist:
+        comment = ProjectComment.objects.get(id=comment_id, project_id=project_id, deleted_at__isnull=True)
+    except ProjectComment.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Comment not found"},
             status=status.HTTP_404_NOT_FOUND,
@@ -500,11 +500,11 @@ def comment_reaction(request: Request, idea_id: str, comment_id: str) -> Respons
         action = "removed"
 
     _broadcast_ws_event(
-        f"idea_{idea_id}",
+        f"project_{project_id}",
         "comment_reaction",
         {
             "comment_id": str(comment_id),
-            "idea_id": idea_id,
+            "project_id": project_id,
             "emoji": emoji,
             "user_id": str(user.id),
             "action": action,
@@ -516,23 +516,23 @@ def comment_reaction(request: Request, idea_id: str, comment_id: str) -> Respons
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def mark_comments_read(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/comments/mark-read — Update last-read timestamp."""
+def mark_comments_read(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/comments/mark-read — Update last-read timestamp."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     now = timezone.now()
     CommentReadStatus.objects.update_or_create(
-        idea_id=idea_id,
+        project_id=project_id,
         user_id=user.id,
         defaults={"last_read_at": now},
     )
@@ -542,26 +542,26 @@ def mark_comments_read(request: Request, idea_id: str) -> Response:
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def unread_comment_count(request: Request, idea_id: str) -> Response:
-    """GET /api/ideas/:id/comments/unread-count — Count comments since last read."""
+def unread_comment_count(request: Request, project_id: str) -> Response:
+    """GET /api/projects/:id/comments/unread-count — Count comments since last read."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     read_status = CommentReadStatus.objects.filter(
-        idea_id=idea_id, user_id=user.id
+        project_id=project_id, user_id=user.id
     ).first()
 
-    qs = IdeaComment.objects.filter(
-        idea_id=idea_id,
+    qs = ProjectComment.objects.filter(
+        project_id=project_id,
         deleted_at__isnull=True,
         is_system_event=False,
     ).exclude(author_id=user.id)
@@ -576,8 +576,8 @@ def unread_comment_count(request: Request, idea_id: str) -> Response:
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def search_ideas_for_reference(request: Request) -> Response:
-    """GET /api/ideas/search-ref?q=<query> — Search ideas by title for # references."""
+def search_projects_for_reference(request: Request) -> Response:
+    """GET /api/projects/search-ref?q=<query> — Search projects by title for # references."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
@@ -586,14 +586,14 @@ def search_ideas_for_reference(request: Request) -> Response:
     if not query or len(query) < 2:
         return Response({"results": []})
 
-    ideas = Idea.objects.filter(
+    projects = Project.objects.filter(
         title__icontains=query,
         deleted_at__isnull=True,
     ).order_by("-updated_at")[:10]
 
     results = [
-        {"id": str(idea.id), "title": idea.title}
-        for idea in ideas
+        {"id": str(project.id), "title": project.title}
+        for project in projects
     ]
 
     return Response({"results": results})

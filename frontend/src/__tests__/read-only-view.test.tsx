@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { presenceReducer } from "@/store/presence-slice";
 import { websocketReducer } from "@/store/websocket-slice";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => vi.fn(),
@@ -53,11 +53,11 @@ vi.mock("@/hooks/use-auth", () => ({
   AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));
 
-vi.mock("@/api/ideas", async () => {
-  const actual = await vi.importActual("@/api/ideas");
+vi.mock("@/api/projects", async () => {
+  const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
-    fetchIdea: vi.fn(),
+    fetchProject: vi.fn(),
     fetchInvitations: vi.fn().mockResolvedValue({ invitations: [] }),
   };
 });
@@ -67,14 +67,14 @@ vi.mock("@/api/chat", () => ({
   sendChatMessage: vi.fn(),
 }));
 
-import { fetchIdea } from "@/api/ideas";
-import IdeaWorkspacePage from "@/pages/IdeaWorkspace/index";
+import { fetchProject } from "@/api/projects";
+import ProjectWorkspacePage from "@/pages/ProjectWorkspace/index";
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const MOCK_IDEA: Idea = {
+const MOCK_PROJECT: Project = {
   id: "11111111-1111-1111-1111-111111111111",
   title: "Test Brainstorm",
   state: "open",
@@ -106,7 +106,7 @@ function renderWorkspacePage(path: string) {
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[path]}>
           <Routes>
-            <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
+            <Route path="/project/:id" element={<ProjectWorkspacePage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -115,16 +115,16 @@ function renderWorkspacePage(path: string) {
 }
 
 beforeEach(() => {
-  vi.mocked(fetchIdea).mockReset();
-  vi.mocked(fetchIdea).mockResolvedValue(MOCK_IDEA);
+  vi.mocked(fetchProject).mockReset();
+  vi.mocked(fetchProject).mockResolvedValue(MOCK_PROJECT);
 });
 
 describe("UI-SHARE.01: Detect ?token= param and enable read-only mode", () => {
   it("shows read-only banner when token is present", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}?token=${TOKEN}`);
+    renderWorkspacePage(`/project/${MOCK_PROJECT.id}?token=${TOKEN}`);
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("read-only-banner")).toBeInTheDocument();
@@ -132,30 +132,30 @@ describe("UI-SHARE.01: Detect ?token= param and enable read-only mode", () => {
   });
 
   it("does not show read-only banner without token", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}`);
+    renderWorkspacePage(`/project/${MOCK_PROJECT.id}`);
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.queryByTestId("read-only-banner")).not.toBeInTheDocument();
   });
 
-  it("passes token to fetchIdea", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}?token=${TOKEN}`);
+  it("passes token to fetchProject", async () => {
+    renderWorkspacePage(`/project/${MOCK_PROJECT.id}?token=${TOKEN}`);
 
     await waitFor(() => {
-      expect(fetchIdea).toHaveBeenCalledWith(MOCK_IDEA.id, TOKEN);
+      expect(fetchProject).toHaveBeenCalledWith(MOCK_PROJECT.id, TOKEN);
     });
   });
 });
 
 describe("UI-SHARE.02: Hide edit controls in read-only mode", () => {
   it("hides chat input and shows read-only notice", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}?token=${TOKEN}`);
+    renderWorkspacePage(`/project/${MOCK_PROJECT.id}?token=${TOKEN}`);
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.queryByTestId("chat-input")).not.toBeInTheDocument();
@@ -164,10 +164,10 @@ describe("UI-SHARE.02: Hide edit controls in read-only mode", () => {
   });
 
   it("shows chat input when not in read-only mode", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}`);
+    renderWorkspacePage(`/project/${MOCK_PROJECT.id}`);
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("chat-input")).toBeInTheDocument();
@@ -175,20 +175,20 @@ describe("UI-SHARE.02: Hide edit controls in read-only mode", () => {
   });
 
   it("hides manage collaborators button", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}?token=${TOKEN}`);
+    renderWorkspacePage(`/project/${MOCK_PROJECT.id}?token=${TOKEN}`);
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.queryByTestId("manage-collaborators-button")).not.toBeInTheDocument();
   });
 
   it("does not show invitation banner in read-only mode", async () => {
-    renderWorkspacePage(`/idea/${MOCK_IDEA.id}?token=${TOKEN}`);
+    renderWorkspacePage(`/project/${MOCK_PROJECT.id}?token=${TOKEN}`);
 
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     // InvitationBanner should not render at all in read-only mode

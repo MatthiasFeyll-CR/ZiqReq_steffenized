@@ -11,11 +11,11 @@ from rest_framework.response import Response
 
 from apps.authentication.models import User
 from apps.brd.models import BrdDraft
-from apps.ideas.authentication import MiddlewareAuthentication
-from apps.ideas.models import Idea
+from apps.projects.authentication import MiddlewareAuthentication
+from apps.projects.models import Project
 
 from .models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
-from .serializers import ReviewActionCommentSerializer, SubmitIdeaSerializer, TimelineCommentSerializer
+from .serializers import ReviewActionCommentSerializer, SubmitProjectSerializer, TimelineCommentSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -48,54 +48,54 @@ def _unauthorized_response() -> Response:
     )
 
 
-def _get_idea_or_error(idea_id: str):
-    """Validate idea_id UUID and return (idea, None) or (None, error_response)."""
+def _get_project_or_error(project_id: str):
+    """Validate project_id UUID and return (project, None) or (None, error_response)."""
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return None, Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
         return None, Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    return idea, None
+    return project, None
 
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def submit_idea(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/submit — Submit idea for review."""
+def submit_project(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/submit — Submit project for review."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
     # Access control: only owner
-    if idea.owner_id != user.id:
+    if project.owner_id != user.id:
         return Response(
             {"error": "ACCESS_DENIED", "message": "Only owner can submit"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    # State validation: only 'open' and 'rejected' ideas can be submitted
-    if idea.state not in ("open", "rejected"):
+    # State validation: only 'open' and 'rejected' projects can be submitted
+    if project.state not in ("open", "rejected"):
         return Response(
-            {"error": "INVALID_STATE", "message": "Only open or rejected ideas can be submitted for review"},
+            {"error": "INVALID_STATE", "message": "Only open or rejected projects can be submitted for review"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    serializer = SubmitIdeaSerializer(data=request.data)
+    serializer = SubmitProjectSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -105,12 +105,12 @@ def submit_idea(request: Request, idea_id: str) -> Response:
 
     # Get BRD draft for snapshot
     try:
-        draft = BrdDraft.objects.get(idea_id=idea.id)
+        draft = BrdDraft.objects.get(project_id=project.id)
     except BrdDraft.DoesNotExist:
         draft = None
 
     # Calculate next version number
-    max_version = BrdVersion.objects.filter(idea_id=idea.id).aggregate(
+    max_version = BrdVersion.objects.filter(project_id=project.id).aggregate(
         max_v=Max("version_number")
     )["max_v"]
     next_version = (max_version or 0) + 1
@@ -129,30 +129,30 @@ def submit_idea(request: Request, idea_id: str) -> Response:
                 "success_criteria": draft.section_success_criteria or "",
             }
         pdf_client.generate_pdf(
-            idea_id=str(idea.id),
-            idea_title=idea.title or "",
+            project_id=str(project.id),
+            project_title=project.title or "",
             sections=sections,
         )
     except Exception:
-        logger.exception("PDF generation failed for idea %s", idea_id)
+        logger.exception("PDF generation failed for project %s", project_id)
         return Response(
             {"error": "PDF_GENERATION_FAILED", "message": "PDF generation service is unavailable"},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
     # Store PDF
-    pdf_file_path = f"ideas/{idea.id}/brd/v{next_version}.pdf"
+    pdf_file_path = f"projects/{project.id}/brd/v{next_version}.pdf"
 
-    old_state = idea.state
+    old_state = project.state
 
     # Check if this is a resubmission (previous version exists)
-    previous_version = BrdVersion.objects.filter(idea_id=idea.id).order_by("-version_number").first()
+    previous_version = BrdVersion.objects.filter(project_id=project.id).order_by("-version_number").first()
 
     # Atomic transaction for all writes
     with transaction.atomic():
         # 1. Create immutable BRD version
         brd_version = BrdVersion.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             version_number=next_version,
             section_title=draft.section_title if draft else None,
             section_short_description=draft.section_short_description if draft else None,
@@ -163,21 +163,21 @@ def submit_idea(request: Request, idea_id: str) -> Response:
             pdf_file_path=pdf_file_path,
         )
 
-        # 2. Update idea state
-        idea.state = "in_review"
-        idea.save(update_fields=["state", "updated_at"])
+        # 2. Update project state
+        project.state = "in_review"
+        project.save(update_fields=["state", "updated_at"])
 
         # 3. Create reviewer assignments
         for reviewer_id in reviewer_ids:
             ReviewAssignment.objects.create(
-                idea_id=idea.id,
+                project_id=project.id,
                 reviewer_id=reviewer_id,
                 assigned_by="submitter",
             )
 
         # 4. Create state_change timeline entry
         ReviewTimelineEntry.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             entry_type="state_change",
             author_id=user.id,
             content="Submitted for review",
@@ -188,7 +188,7 @@ def submit_idea(request: Request, idea_id: str) -> Response:
         # 5. Create comment timeline entry (if message provided)
         if message:
             ReviewTimelineEntry.objects.create(
-                idea_id=idea.id,
+                project_id=project.id,
                 entry_type="comment",
                 author_id=user.id,
                 content=message,
@@ -197,19 +197,19 @@ def submit_idea(request: Request, idea_id: str) -> Response:
         # 6. Create resubmission timeline entry (if previous version exists)
         if previous_version:
             ReviewTimelineEntry.objects.create(
-                idea_id=idea.id,
+                project_id=project.id,
                 entry_type="resubmission",
                 author_id=user.id,
                 old_version_id=previous_version.id,
                 new_version_id=brd_version.id,
             )
 
-    pdf_url = f"/api/ideas/{idea.id}/brd/versions/{next_version}/pdf"
+    pdf_url = f"/api/projects/{project.id}/brd/versions/{next_version}/pdf"
 
     # System event for comment timeline
     try:
         from apps.comments.system_events import on_state_changed
-        on_state_changed(str(idea.id), old_state, "in_review")
+        on_state_changed(str(project.id), old_state, "in_review")
     except Exception:
         logger.exception("Failed to create state_changed system event on submit")
 
@@ -218,11 +218,11 @@ def submit_idea(request: Request, idea_id: str) -> Response:
         _publish_notification(
             routing_key="notification.review.submitted",
             user_id=str(reviewer_id),
-            event_type="idea_submitted",
-            title="Idea Submitted for Review",
-            body=f'"{idea.title}" was submitted for review by {user.display_name}',
-            reference_id=str(idea.id),
-            reference_type="idea",
+            event_type="project_submitted",
+            title="Project Submitted for Review",
+            body=f'"{project.title}" was submitted for review by {user.display_name}',
+            reference_id=str(project.id),
+            reference_type="project",
         )
 
     return Response({
@@ -245,7 +245,7 @@ def _require_reviewer(user) -> Response | None:
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def assign_review(request: Request, idea_id: str) -> Response:
+def assign_review(request: Request, project_id: str) -> Response:
     """POST /api/reviews/:id/assign — Self-assign as reviewer."""
     user = _require_auth(request)
     if user is None:
@@ -255,35 +255,35 @@ def assign_review(request: Request, idea_id: str) -> Response:
     if role_error:
         return role_error
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
-    # State validation: only 'in_review' ideas can be assigned
-    if idea.state != "in_review":
+    # State validation: only 'in_review' projects can be assigned
+    if project.state != "in_review":
         return Response(
-            {"error": "INVALID_STATE", "message": "Only ideas in review can be assigned"},
+            {"error": "INVALID_STATE", "message": "Only projects in review can be assigned"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Conflict of interest: reviewer cannot assign to own idea
-    if user.id == idea.owner_id:
+    # Conflict of interest: reviewer cannot assign to own project
+    if user.id == project.owner_id:
         return Response(
-            {"error": "CONFLICT_OF_INTEREST", "message": "Cannot review your own idea"},
+            {"error": "CONFLICT_OF_INTEREST", "message": "Cannot review your own project"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Duplicate check: active assignment (unassigned_at IS NULL)
     if ReviewAssignment.objects.filter(
-        idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+        project_id=project.id, reviewer_id=user.id, unassigned_at__isnull=True
     ).exists():
         return Response(
-            {"error": "ALREADY_ASSIGNED", "message": "Already assigned to this idea"},
+            {"error": "ALREADY_ASSIGNED", "message": "Already assigned to this project"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     ReviewAssignment.objects.create(
-        idea_id=idea.id,
+        project_id=project.id,
         reviewer_id=user.id,
         assigned_by="self",
     )
@@ -293,7 +293,7 @@ def assign_review(request: Request, idea_id: str) -> Response:
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def unassign_review(request: Request, idea_id: str) -> Response:
+def unassign_review(request: Request, project_id: str) -> Response:
     """POST /api/reviews/:id/unassign — Self-unassign as reviewer."""
     user = _require_auth(request)
     if user is None:
@@ -303,14 +303,14 @@ def unassign_review(request: Request, idea_id: str) -> Response:
     if role_error:
         return role_error
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
     # Find active assignment
     try:
         assignment = ReviewAssignment.objects.get(
-            idea_id=idea.id, reviewer_id=user.id, unassigned_at__isnull=True
+            project_id=project.id, reviewer_id=user.id, unassigned_at__isnull=True
         )
     except ReviewAssignment.DoesNotExist:
         return Response(
@@ -346,7 +346,7 @@ _REVIEW_ACTION_TARGET_STATE: dict[str, str] = {
 _COMMENT_REQUIRED_ACTIONS = {"reject", "drop", "undo"}
 
 
-def _handle_review_action(request: Request, idea_id: str, action: str) -> Response:
+def _handle_review_action(request: Request, project_id: str, action: str) -> Response:
     """Shared logic for accept/reject/drop/undo review actions."""
     user = _require_auth(request)
     if user is None:
@@ -356,15 +356,15 @@ def _handle_review_action(request: Request, idea_id: str, action: str) -> Respon
     if role_error:
         return role_error
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
     # State validation
     valid_states = _REVIEW_ACTION_VALID_STATES[action]
-    if idea.state not in valid_states:
+    if project.state not in valid_states:
         return Response(
-            {"error": "INVALID_STATE", "message": f"Cannot {action} idea in state '{idea.state}'"},
+            {"error": "INVALID_STATE", "message": f"Cannot {action} project in state '{project.state}'"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -379,16 +379,16 @@ def _handle_review_action(request: Request, idea_id: str, action: str) -> Respon
             )
         comment = serializer.validated_data["comment"]
 
-    old_state = idea.state
+    old_state = project.state
     new_state = _REVIEW_ACTION_TARGET_STATE[action]
 
     with transaction.atomic():
-        idea.state = new_state
-        idea.save(update_fields=["state", "updated_at"])
+        project.state = new_state
+        project.save(update_fields=["state", "updated_at"])
 
-        content = comment or f"Idea {action}ed"
+        content = comment or f"Project {action}ed"
         ReviewTimelineEntry.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             entry_type="state_change",
             author_id=user.id,
             content=content,
@@ -399,49 +399,49 @@ def _handle_review_action(request: Request, idea_id: str, action: str) -> Respon
     # System event for comment timeline
     try:
         from apps.comments.system_events import on_state_changed
-        on_state_changed(str(idea.id), old_state, new_state)
+        on_state_changed(str(project.id), old_state, new_state)
     except Exception:
         logger.exception("Failed to create state_changed system event")
 
-    # Notify idea owner of state change
+    # Notify project owner of state change
     _publish_notification(
         routing_key="notification.review.state_changed",
-        user_id=str(idea.owner_id),
+        user_id=str(project.owner_id),
         event_type="review_state_changed",
-        title=f"Idea {action.capitalize()}ed",
-        body=f'"{idea.title}" was {action}ed by {user.display_name}',
-        reference_id=str(idea.id),
-        reference_type="idea",
+        title=f"Project {action.capitalize()}ed",
+        body=f'"{project.title}" was {action}ed by {user.display_name}',
+        reference_id=str(project.id),
+        reference_type="project",
     )
     return Response({"state": new_state})
 
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def accept_review(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/review/accept — Reviewer accepts idea."""
-    return _handle_review_action(request, idea_id, "accept")
+def accept_review(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/review/accept — Reviewer accepts project."""
+    return _handle_review_action(request, project_id, "accept")
 
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def reject_review(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/review/reject — Reviewer rejects idea."""
-    return _handle_review_action(request, idea_id, "reject")
+def reject_review(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/review/reject — Reviewer rejects project."""
+    return _handle_review_action(request, project_id, "reject")
 
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def drop_review(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/review/drop — Reviewer drops idea."""
-    return _handle_review_action(request, idea_id, "drop")
+def drop_review(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/review/drop — Reviewer drops project."""
+    return _handle_review_action(request, project_id, "drop")
 
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def undo_review(request: Request, idea_id: str) -> Response:
-    """POST /api/ideas/:id/review/undo — Undo review action."""
-    return _handle_review_action(request, idea_id, "undo")
+def undo_review(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/review/undo — Undo review action."""
+    return _handle_review_action(request, project_id, "undo")
 
 
 @api_view(["GET"])
@@ -456,68 +456,68 @@ def list_reviews(request: Request) -> Response:
     if role_error:
         return role_error
 
-    # Fetch all non-open ideas (open ideas are not in review workflow)
-    ideas = list(
-        Idea.objects.filter(
+    # Fetch all non-open projects (open projects are not in review workflow)
+    projects = list(
+        Project.objects.filter(
             state__in=["in_review", "accepted", "rejected", "dropped"],
             deleted_at__isnull=True,
         )
     )
 
-    # Batch-load active assignments for all ideas
-    idea_ids = [i.id for i in ideas]
+    # Batch-load active assignments for all projects
+    project_ids = [i.id for i in projects]
     active_assignments = ReviewAssignment.objects.filter(
-        idea_id__in=idea_ids, unassigned_at__isnull=True
+        project_id__in=project_ids, unassigned_at__isnull=True
     )
 
-    # Build assignment map: idea_id -> list of reviewer_ids
-    assignments_by_idea: dict[uuid.UUID, list[uuid.UUID]] = {}
+    # Build assignment map: project_id -> list of reviewer_ids
+    assignments_by_project: dict[uuid.UUID, list[uuid.UUID]] = {}
     for a in active_assignments:
-        assignments_by_idea.setdefault(a.idea_id, []).append(a.reviewer_id)
+        assignments_by_project.setdefault(a.project_id, []).append(a.reviewer_id)
 
     # Batch-load owner and reviewer user info
-    all_user_ids: set[uuid.UUID] = {i.owner_id for i in ideas}
-    for reviewer_ids in assignments_by_idea.values():
+    all_user_ids: set[uuid.UUID] = {i.owner_id for i in projects}
+    for reviewer_ids in assignments_by_project.values():
         all_user_ids.update(reviewer_ids)
     users_map: dict[uuid.UUID, User] = {}
     if all_user_ids:
         users_map = {u.id: u for u in User.objects.filter(id__in=all_user_ids)}
 
-    # Categorize ideas
+    # Categorize projects
     assigned_to_me: list[dict] = []
     unassigned: list[dict] = []
     accepted: list[dict] = []
     rejected: list[dict] = []
     dropped: list[dict] = []
 
-    for idea in ideas:
-        idea_reviewers = assignments_by_idea.get(idea.id, [])
+    for project in projects:
+        project_reviewers = assignments_by_project.get(project.id, [])
         reviewer_info = [
             {"id": str(rid), "display_name": users_map[rid].display_name}
-            for rid in idea_reviewers
+            for rid in project_reviewers
             if rid in users_map
         ]
-        owner = users_map.get(idea.owner_id)
+        owner = users_map.get(project.owner_id)
         item = {
-            "id": str(idea.id),
-            "title": idea.title,
-            "state": idea.state,
-            "owner_id": str(idea.owner_id),
+            "id": str(project.id),
+            "title": project.title,
+            "state": project.state,
+            "owner_id": str(project.owner_id),
             "owner_name": owner.display_name if owner else "",
-            "submitted_at": idea.updated_at.isoformat() if idea.updated_at else None,
+            "submitted_at": project.updated_at.isoformat() if project.updated_at else None,
             "reviewers": reviewer_info,
         }
 
-        if idea.state == "in_review":
-            if user.id in idea_reviewers:
+        if project.state == "in_review":
+            if user.id in project_reviewers:
                 assigned_to_me.append(item)
-            elif not idea_reviewers:
+            elif not project_reviewers:
                 unassigned.append(item)
-        elif idea.state == "accepted":
+        elif project.state == "accepted":
             accepted.append(item)
-        elif idea.state == "rejected":
+        elif project.state == "rejected":
             rejected.append(item)
-        elif idea.state == "dropped":
+        elif project.state == "dropped":
             dropped.append(item)
 
     return Response({
@@ -531,17 +531,17 @@ def list_reviews(request: Request) -> Response:
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def get_idea_reviewers(request: Request, idea_id: str) -> Response:
-    """GET /api/ideas/:id/review/reviewers — Get active reviewers for an idea."""
+def get_project_reviewers(request: Request, project_id: str) -> Response:
+    """GET /api/projects/:id/review/reviewers — Get active reviewers for a project."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
-    assignments = ReviewAssignment.objects.filter(idea_id=idea.id, unassigned_at__isnull=True)
+    assignments = ReviewAssignment.objects.filter(project_id=project.id, unassigned_at__isnull=True)
     reviewer_ids = [a.reviewer_id for a in assignments]
     users_map: dict[uuid.UUID, User] = {}
     if reviewer_ids:
@@ -594,25 +594,25 @@ def _serialize_timeline_entry(entry: ReviewTimelineEntry, author_map: dict) -> d
 
 @api_view(["GET", "POST"])
 @authentication_classes([MiddlewareAuthentication])
-def review_timeline(request: Request, idea_id: str) -> Response:
-    """GET/POST /api/ideas/:id/review/timeline — Get or add timeline entries."""
+def review_timeline(request: Request, project_id: str) -> Response:
+    """GET/POST /api/projects/:id/review/timeline — Get or add timeline entries."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
     if request.method == "GET":
-        return _get_timeline(idea)
+        return _get_timeline(project)
     else:
-        return _post_timeline_comment(request, idea, user)
+        return _post_timeline_comment(request, project, user)
 
 
-def _get_timeline(idea: Idea) -> Response:
-    """Return chronological list of timeline entries for the idea."""
-    entries = ReviewTimelineEntry.objects.filter(idea_id=idea.id).order_by("created_at")
+def _get_timeline(project: Project) -> Response:
+    """Return chronological list of timeline entries for the project."""
+    entries = ReviewTimelineEntry.objects.filter(project_id=project.id).order_by("created_at")
 
     # Batch-load authors
     author_ids = {e.author_id for e in entries if e.author_id}
@@ -625,7 +625,7 @@ def _get_timeline(idea: Idea) -> Response:
     return Response(data)
 
 
-def _post_timeline_comment(request: Request, idea: Idea, user) -> Response:
+def _post_timeline_comment(request: Request, project: Project, user) -> Response:
     """Create a comment entry on the timeline."""
     serializer = TimelineCommentSerializer(data=request.data)
     if not serializer.is_valid():
@@ -640,7 +640,7 @@ def _post_timeline_comment(request: Request, idea: Idea, user) -> Response:
     # Validate parent_entry_id if provided
     if parent_entry_id:
         try:
-            ReviewTimelineEntry.objects.get(id=parent_entry_id, idea_id=idea.id)
+            ReviewTimelineEntry.objects.get(id=parent_entry_id, project_id=project.id)
         except ReviewTimelineEntry.DoesNotExist:
             return Response(
                 {"error": "NOT_FOUND", "message": "Parent entry not found"},
@@ -648,23 +648,23 @@ def _post_timeline_comment(request: Request, idea: Idea, user) -> Response:
             )
 
     entry = ReviewTimelineEntry.objects.create(
-        idea_id=idea.id,
+        project_id=project.id,
         entry_type="comment",
         author_id=user.id,
         content=content,
         parent_entry_id=parent_entry_id,
     )
 
-    # Notify idea owner of new review comment (unless they posted it)
-    if idea.owner_id != user.id:
+    # Notify project owner of new review comment (unless they posted it)
+    if project.owner_id != user.id:
         _publish_notification(
             routing_key="notification.review.comment",
-            user_id=str(idea.owner_id),
+            user_id=str(project.owner_id),
             event_type="review_comment",
             title="New Review Comment",
-            body=f'{user.display_name} commented on "{idea.title}"',
-            reference_id=str(idea.id),
-            reference_type="idea",
+            body=f'{user.display_name} commented on "{project.title}"',
+            reference_id=str(project.id),
+            reference_type="project",
         )
     author_map = {user.id: user}
     data = _serialize_timeline_entry(entry, author_map)

@@ -10,7 +10,7 @@ import { AuthContext } from "@/hooks/use-auth";
 import type { AuthContextValue } from "@/hooks/use-auth";
 import { websocketReducer } from "@/store/websocket-slice";
 import { ReviewCard } from "@/components/review/ReviewCard";
-import type { ReviewIdea } from "@/api/review";
+import type { ReviewProject } from "@/api/review";
 import i18n from "@/i18n/config";
 
 beforeAll(async () => {
@@ -67,7 +67,7 @@ function createAuthValue(userId = REVIEWER_ID): AuthContextValue {
   };
 }
 
-function makeIdea(overrides: Partial<ReviewIdea> = {}): ReviewIdea {
+function makeProject(overrides: Partial<ReviewProject> = {}): ReviewProject {
   return {
     id: "idea-1",
     title: "Test Idea",
@@ -81,7 +81,7 @@ function makeIdea(overrides: Partial<ReviewIdea> = {}): ReviewIdea {
 }
 
 function renderCard(
-  idea: ReviewIdea,
+  project: ReviewProject,
   category: "assigned" | "unassigned" | "accepted" | "rejected" | "dropped",
   authValue?: AuthContextValue,
 ) {
@@ -105,7 +105,7 @@ function renderCard(
           {createElement(
             AuthContext.Provider,
             { value: authValue ?? createAuthValue() },
-            <ReviewCard idea={idea} category={category} />,
+            <ReviewCard project={project} category={category} />,
           )}
         </MemoryRouter>
       </QueryClientProvider>
@@ -122,7 +122,7 @@ beforeEach(() => {
 
 describe("UI-ASSIGN.01: Assign button works", () => {
   it("shows Assign button on unassigned idea", () => {
-    renderCard(makeIdea(), "unassigned");
+    renderCard(makeProject(), "unassigned");
     expect(screen.getByTestId("assign-button")).toBeInTheDocument();
     expect(screen.getByTestId("assign-button")).toHaveTextContent("Assign");
   });
@@ -130,7 +130,7 @@ describe("UI-ASSIGN.01: Assign button works", () => {
   it("calls assignReview API when Assign clicked", async () => {
     mockAssignReview.mockResolvedValue({ message: "Assigned" });
     const user = userEvent.setup();
-    renderCard(makeIdea(), "unassigned");
+    renderCard(makeProject(), "unassigned");
 
     await user.click(screen.getByTestId("assign-button"));
 
@@ -140,7 +140,7 @@ describe("UI-ASSIGN.01: Assign button works", () => {
   it("does not navigate when clicking Assign button", async () => {
     mockAssignReview.mockResolvedValue({ message: "Assigned" });
     const user = userEvent.setup();
-    renderCard(makeIdea(), "unassigned");
+    renderCard(makeProject(), "unassigned");
 
     await user.click(screen.getByTestId("assign-button"));
 
@@ -155,7 +155,7 @@ describe("UI-ASSIGN.01: Assign button works", () => {
       }),
     );
     const user = userEvent.setup();
-    renderCard(makeIdea(), "unassigned");
+    renderCard(makeProject(), "unassigned");
 
     await user.click(screen.getByTestId("assign-button"));
 
@@ -169,7 +169,7 @@ describe("UI-ASSIGN.01: Assign button works", () => {
 
 describe("UI-ASSIGN.02: Unassign button works", () => {
   it("shows Unassign button on assigned idea", () => {
-    renderCard(makeIdea(), "assigned");
+    renderCard(makeProject(), "assigned");
     expect(screen.getByTestId("unassign-button")).toBeInTheDocument();
     expect(screen.getByTestId("unassign-button")).toHaveTextContent("Unassign");
   });
@@ -177,7 +177,7 @@ describe("UI-ASSIGN.02: Unassign button works", () => {
   it("calls unassignReview API when Unassign clicked", async () => {
     mockUnassignReview.mockResolvedValue({ message: "Unassigned" });
     const user = userEvent.setup();
-    renderCard(makeIdea(), "assigned");
+    renderCard(makeProject(), "assigned");
 
     await user.click(screen.getByTestId("unassign-button"));
 
@@ -187,7 +187,7 @@ describe("UI-ASSIGN.02: Unassign button works", () => {
   it("shows error toast on unassign failure", async () => {
     mockUnassignReview.mockRejectedValue(new Error("Network error"));
     const user = userEvent.setup();
-    renderCard(makeIdea(), "assigned");
+    renderCard(makeProject(), "assigned");
 
     await user.click(screen.getByTestId("unassign-button"));
 
@@ -199,15 +199,15 @@ describe("UI-ASSIGN.02: Unassign button works", () => {
 
 describe("UI-ASSIGN.03: Conflict of interest", () => {
   it("disables Assign button when reviewer is owner", () => {
-    const idea = makeIdea({ owner_id: REVIEWER_ID });
-    renderCard(idea, "unassigned");
+    const project = makeProject({ owner_id: REVIEWER_ID });
+    renderCard(project, "unassigned");
 
     const btn = screen.getByTestId("assign-button");
     expect(btn).toBeDisabled();
   });
 
   it("does not show action button on accepted/rejected/dropped categories", () => {
-    renderCard(makeIdea({ state: "accepted" }), "accepted");
+    renderCard(makeProject({ state: "accepted" }), "accepted");
     expect(screen.queryByTestId("assign-button")).not.toBeInTheDocument();
     expect(screen.queryByTestId("unassign-button")).not.toBeInTheDocument();
   });
@@ -215,7 +215,7 @@ describe("UI-ASSIGN.03: Conflict of interest", () => {
   it("shows error toast on assign failure with Retry", async () => {
     mockAssignReview.mockRejectedValue(new Error("Server error"));
     const user = userEvent.setup();
-    renderCard(makeIdea(), "unassigned");
+    renderCard(makeProject(), "unassigned");
 
     await user.click(screen.getByTestId("assign-button"));
 

@@ -18,11 +18,11 @@ const { mockSubmitIdea, mockFetchReviewerUsers, mockToastSuccess, mockToastError
   };
 });
 
-vi.mock("@/api/ideas", async () => {
-  const actual = await vi.importActual("@/api/ideas");
+vi.mock("@/api/projects", async () => {
+  const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
-    submitIdea: mockSubmitIdea,
+    submitProject: mockSubmitIdea,
   };
 });
 
@@ -42,7 +42,7 @@ vi.mock("react-toastify", () => ({
   ToastContainer: () => null,
 }));
 
-const IDEA_ID = "00000000-0000-0000-0000-000000000001";
+const PROJECT_ID = "00000000-0000-0000-0000-000000000001";
 
 const MOCK_REVIEWERS = [
   { id: "rev-1", display_name: "Alice Reviewer", email: "alice@test.com" },
@@ -55,11 +55,11 @@ function createQueryClient() {
   });
 }
 
-function renderSubmitArea(ideaState = "open", onSubmitted?: () => void) {
+function renderSubmitArea(projectState = "open", onSubmitted?: () => void) {
   const qc = createQueryClient();
   return render(
     <QueryClientProvider client={qc}>
-      <SubmitArea ideaId={IDEA_ID} ideaState={ideaState} onSubmitted={onSubmitted} />
+      <SubmitArea projectId={PROJECT_ID} projectState={projectState} onSubmitted={onSubmitted} />
     </QueryClientProvider>,
   );
 }
@@ -96,7 +96,7 @@ describe("UI-SUBMIT.01: Submit with message and reviewers", () => {
     const user = userEvent.setup();
     mockSubmitIdea.mockResolvedValue({
       version_number: 1,
-      pdf_url: "/api/ideas/1/brd/versions/1/pdf",
+      pdf_url: "/api/projects/1/brd/versions/1/pdf",
       state: "in_review",
     });
 
@@ -120,13 +120,13 @@ describe("UI-SUBMIT.01: Submit with message and reviewers", () => {
     await user.click(screen.getByTestId("submit-button"));
 
     await waitFor(() => {
-      expect(mockSubmitIdea).toHaveBeenCalledWith(IDEA_ID, {
+      expect(mockSubmitIdea).toHaveBeenCalledWith(PROJECT_ID, {
         message: "Please review this idea",
         reviewer_ids: ["rev-1", "rev-2"],
       });
     });
 
-    expect(mockToastSuccess).toHaveBeenCalledWith("Idea submitted");
+    expect(mockToastSuccess).toHaveBeenCalledWith("Project submitted");
   });
 });
 
@@ -135,7 +135,7 @@ describe("UI-SUBMIT.02: Submit without optional fields", () => {
     const user = userEvent.setup();
     mockSubmitIdea.mockResolvedValue({
       version_number: 1,
-      pdf_url: "/api/ideas/1/brd/versions/1/pdf",
+      pdf_url: "/api/projects/1/brd/versions/1/pdf",
       state: "in_review",
     });
 
@@ -144,13 +144,13 @@ describe("UI-SUBMIT.02: Submit without optional fields", () => {
     await user.click(screen.getByTestId("submit-button"));
 
     await waitFor(() => {
-      expect(mockSubmitIdea).toHaveBeenCalledWith(IDEA_ID, {
+      expect(mockSubmitIdea).toHaveBeenCalledWith(PROJECT_ID, {
         message: undefined,
         reviewer_ids: undefined,
       });
     });
 
-    expect(mockToastSuccess).toHaveBeenCalledWith("Idea submitted");
+    expect(mockToastSuccess).toHaveBeenCalledWith("Project submitted");
   });
 });
 

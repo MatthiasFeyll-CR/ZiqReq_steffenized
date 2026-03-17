@@ -7,7 +7,7 @@ from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from apps.ideas.authentication import MiddlewareAuthentication
+from apps.projects.authentication import MiddlewareAuthentication
 
 from .models import AdminParameter
 from .serializers import AdminParameterSerializer, AdminParameterUpdateSerializer
@@ -84,14 +84,14 @@ MAX_PAGE_SIZE = 100
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def admin_ideas_list(request: Request) -> Response:
-    """GET /api/admin/ideas — list all ideas with state and keywords (admin only)."""
+def admin_projects_list(request: Request) -> Response:
+    """GET /api/admin/projects — list all projects with state and keywords (admin only)."""
     denied = _require_admin(request)
     if denied:
         return denied
 
     from apps.authentication.models import User
-    from apps.ideas.models import Idea
+    from apps.projects.models import Project
 
     state_param = request.query_params.get("state")
     search_param = request.query_params.get("search")
@@ -101,7 +101,7 @@ def admin_ideas_list(request: Request) -> Response:
         MAX_PAGE_SIZE,
     )
 
-    qs = Idea.objects.filter(deleted_at__isnull=True)
+    qs = Project.objects.filter(deleted_at__isnull=True)
 
     if state_param:
         qs = qs.filter(state=state_param)
@@ -113,27 +113,27 @@ def admin_ideas_list(request: Request) -> Response:
 
     total_count = qs.count()
     offset = (page - 1) * page_size
-    ideas = list(qs[offset : offset + page_size])
+    projects = list(qs[offset : offset + page_size])
 
     # Fetch owners
-    owner_ids = {idea.owner_id for idea in ideas}
+    owner_ids = {project.owner_id for project in projects}
     users = User.objects.filter(id__in=owner_ids)
     user_map = {u.id: u for u in users}
 
     results = []
-    for idea in ideas:
-        owner = user_map.get(idea.owner_id)
+    for project in projects:
+        owner = user_map.get(project.owner_id)
         results.append(
             {
-                "id": str(idea.id),
-                "title": idea.title,
-                "state": idea.state,
+                "id": str(project.id),
+                "title": project.title,
+                "state": project.state,
                 "owner": {
-                    "id": str(owner.id) if owner else str(idea.owner_id),
+                    "id": str(owner.id) if owner else str(project.owner_id),
                     "display_name": owner.display_name if owner else "",
                 },
-                "created_at": idea.created_at.isoformat(),
-                "updated_at": idea.updated_at.isoformat(),
+                "created_at": project.created_at.isoformat(),
+                "updated_at": project.updated_at.isoformat(),
             }
         )
 

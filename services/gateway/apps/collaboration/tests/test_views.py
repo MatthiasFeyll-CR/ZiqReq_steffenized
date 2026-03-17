@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 
 from apps.authentication.models import User
 from apps.collaboration.models import CollaborationInvitation
-from apps.ideas.models import Idea
+from apps.projects.models import Project
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 USER_2_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -40,9 +40,9 @@ class TestInvitationsList(TestCase):
 
     def test_list_pending_invitations(self):
         """GET /api/invitations returns pending invitations for current user."""
-        idea = Idea.objects.create(owner_id=self.user2.id, title="Cool Project")
+        project = Project.objects.create(owner_id=self.user2.id, title="Cool Project")
         CollaborationInvitation.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             inviter_id=self.user2.id,
             invitee_id=self.user1.id,
             status="pending",
@@ -56,29 +56,29 @@ class TestInvitationsList(TestCase):
 
         inv = data["invitations"][0]
         assert "id" in inv
-        assert inv["idea_id"] == str(idea.id)
-        assert inv["idea_title"] == "Cool Project"
+        assert inv["project_id"] == str(project.id)
+        assert inv["project_title"] == "Cool Project"
         assert inv["inviter"]["id"] == str(self.user2.id)
         assert inv["inviter"]["display_name"] == "Test User2"
         assert "created_at" in inv
 
     def test_only_pending_returned(self):
         """Only pending invitations are returned, not accepted/declined/revoked."""
-        idea = Idea.objects.create(owner_id=self.user2.id, title="Idea A")
+        project = Project.objects.create(owner_id=self.user2.id, title="Project A")
         CollaborationInvitation.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             inviter_id=self.user2.id,
             invitee_id=self.user1.id,
             status="pending",
         )
         CollaborationInvitation.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             inviter_id=self.user3.id,
             invitee_id=self.user1.id,
             status="accepted",
         )
         CollaborationInvitation.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             inviter_id=self.user2.id,
             invitee_id=self.user1.id,
             status="declined",
@@ -104,9 +104,9 @@ class TestInvitationsList(TestCase):
 
     def test_does_not_return_other_users_invitations(self):
         """Invitations for other users are not returned."""
-        idea = Idea.objects.create(owner_id=self.user3.id, title="Other Idea")
+        project = Project.objects.create(owner_id=self.user3.id, title="Other Project")
         CollaborationInvitation.objects.create(
-            idea_id=idea.id,
+            project_id=project.id,
             inviter_id=self.user3.id,
             invitee_id=self.user2.id,
             status="pending",

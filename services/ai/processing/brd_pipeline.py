@@ -31,8 +31,8 @@ class BrdGenerationPipeline:
     """Orchestrates BRD generation with context assembly and fabrication validation.
 
     Attributes:
-        _versions: Per-idea processing version counters.
-        _abort_flags: Per-idea abort flags.
+        _versions: Per-project processing version counters.
+        _abort_flags: Per-project abort flags.
     """
 
     # Class-level state shared across pipeline instances (per-process)
@@ -47,14 +47,14 @@ class BrdGenerationPipeline:
 
     async def execute(
         self,
-        idea_id: str,
+        project_id: str,
         mode: str = "full_generation",
         section_name: str | None = None,
     ) -> dict[str, Any]:
         """Run the BRD generation pipeline.
 
         Args:
-            idea_id: The idea UUID string.
+            project_id: The project UUID string.
             mode: Generation mode (full_generation, selective_regeneration,
                   section_regeneration).
             section_name: Required for section_regeneration mode.
@@ -64,50 +64,50 @@ class BrdGenerationPipeline:
             and fabrication_flags.
         """
         processing_id = str(uuid.uuid4())
-        version = self._start_processing(idea_id)
+        version = self._start_processing(project_id)
 
         logger.info(
-            "BRD pipeline started for idea %s (processing_id=%s, mode=%s, version=%d)",
-            idea_id, processing_id, mode, version,
+            "BRD pipeline started for project %s (processing_id=%s, mode=%s, version=%d)",
+            project_id, processing_id, mode, version,
         )
 
         try:
-            # Step 1: Load idea context and BRD draft state
-            self._check_abort(idea_id, version, step=1)
-            context_data = await self._step_load_context(idea_id)
+            # Step 1: Load project context and BRD draft state
+            self._check_abort(project_id, version, step=1)
+            context_data = await self._step_load_context(project_id)
 
             # Step 2: Assemble agent input
-            self._check_abort(idea_id, version, step=2)
+            self._check_abort(project_id, version, step=2)
             input_data = self._step_assemble_context(
                 context_data, mode, section_name,
             )
 
             # Step 3: Invoke SummarizingAIAgent
-            self._check_abort(idea_id, version, step=3)
+            self._check_abort(project_id, version, step=3)
             agent_result = await self._step_invoke_agent(input_data)
 
             # Step 4: Fabrication validation
-            self._check_abort(idea_id, version, step=4)
+            self._check_abort(project_id, version, step=4)
             fabrication_flags = self._step_validate_fabrication(
                 agent_result, context_data,
             )
 
             # Step 5: Publish ai.brd.generated event
-            self._check_abort(idea_id, version, step=5)
+            self._check_abort(project_id, version, step=5)
             await self._step_publish_generated(
-                idea_id, mode, agent_result, fabrication_flags,
+                project_id, mode, agent_result, fabrication_flags,
             )
 
             # Step 6: Publish fabrication flag events
             if fabrication_flags:
                 await self._step_publish_fabrication_flags(
-                    idea_id, fabrication_flags,
+                    project_id, fabrication_flags,
                 )
 
             # Step 7: Cleanup
-            self._step_cleanup(idea_id)
+            self._step_cleanup(project_id)
 
-            logger.info("BRD pipeline completed for idea %s", idea_id)
+            logger.info("BRD pipeline completed for project %s", project_id)
             return {
                 "processing_id": processing_id,
                 "status": "completed",
@@ -123,8 +123,8 @@ class BrdGenerationPipeline:
 
         except BrdPipelineAborted:
             logger.warning(
-                "BRD pipeline aborted for idea %s (version=%d)",
-                idea_id, version,
+                "BRD pipeline aborted for project %s (version=%d)",
+                project_id, version,
             )
             return {
                 "processing_id": processing_id,
@@ -136,9 +136,9 @@ class BrdGenerationPipeline:
 
         except Exception:
             logger.exception(
-                "BRD pipeline failed for idea %s", idea_id,
+                "BRD pipeline failed for project %s", project_id,
             )
-            self._step_cleanup(idea_id)
+            self._step_cleanup(project_id)
             return {
                 "processing_id": processing_id,
                 "status": "error",
@@ -149,55 +149,55 @@ class BrdGenerationPipeline:
 
     # ── Version tracking & abort ──
 
-    def _start_processing(self, idea_id: str) -> int:
-        """Increment and return version for this idea."""
-        current = self._versions.get(idea_id, 0) + 1
-        self._versions[idea_id] = current
-        self._abort_flags[idea_id] = False
+    def _start_processing(self, project_id: str) -> int:
+        """Increment and return version for this project."""
+        current = self._versions.get(project_id, 0) + 1
+        self._versions[project_id] = current
+        self._abort_flags[project_id] = False
         return current
 
-    def _check_abort(self, idea_id: str, expected_version: int, step: int) -> None:
+    def _check_abort(self, project_id: str, expected_version: int, step: int) -> None:
         """Check version mismatch or abort flag before each step."""
-        if self._abort_flags.get(idea_id, False):
-            logger.info("BRD abort flag set for idea %s at step %d", idea_id, step)
+        if self._abort_flags.get(project_id, False):
+            logger.info("BRD abort flag set for project %s at step %d", project_id, step)
             raise BrdPipelineAborted(f"Abort flag set at step {step}")
 
-        current_version = self._versions.get(idea_id, 0)
+        current_version = self._versions.get(project_id, 0)
         if current_version != expected_version:
             logger.info(
-                "BRD version mismatch for idea %s at step %d: expected=%d, current=%d",
-                idea_id, step, expected_version, current_version,
+                "BRD version mismatch for project %s at step %d: expected=%d, current=%d",
+                project_id, step, expected_version, current_version,
             )
             raise BrdPipelineAborted(
                 f"Version mismatch at step {step}: "
                 f"expected={expected_version}, current={current_version}"
             )
 
-    def set_abort(self, idea_id: str) -> None:
-        """Set the abort flag for an idea."""
-        self._abort_flags[idea_id] = True
-        logger.info("BRD abort flag set for idea %s", idea_id)
+    def set_abort(self, project_id: str) -> None:
+        """Set the abort flag for a project."""
+        self._abort_flags[project_id] = True
+        logger.info("BRD abort flag set for project %s", project_id)
 
-    def get_version(self, idea_id: str) -> int:
-        """Get the current processing version for an idea."""
-        return self._versions.get(idea_id, 0)
+    def get_version(self, project_id: str) -> int:
+        """Get the current processing version for a project."""
+        return self._versions.get(project_id, 0)
 
     # ── Step implementations ──
 
-    async def _step_load_context(self, idea_id: str) -> dict[str, Any]:
-        """Step 1: Load idea context and BRD draft state."""
-        logger.info("BRD Step 1: Loading context for idea %s", idea_id)
+    async def _step_load_context(self, project_id: str) -> dict[str, Any]:
+        """Step 1: Load project context and BRD draft state."""
+        logger.info("BRD Step 1: Loading context for project %s", project_id)
 
-        idea_context = self.core_client.get_idea_context(
-            idea_id,
+        project_context = self.core_client.get_project_context(
+            project_id,
             recent_message_limit=20,
             include_brd_draft=True,
         )
 
-        brd_draft = self.core_client.get_brd_draft(idea_id)
+        brd_draft = self.core_client.get_brd_draft(project_id)
 
         return {
-            "idea_context": idea_context,
+            "project_context": project_context,
             "brd_draft": brd_draft,
         }
 
@@ -210,16 +210,16 @@ class BrdGenerationPipeline:
         """Step 2: Assemble input data for SummarizingAIAgent."""
         logger.info("BRD Step 2: Assembling context")
 
-        idea_context = context_data["idea_context"]
+        project_context = context_data["project_context"]
         brd_draft = context_data["brd_draft"]
 
         # Extract chat summary
-        chat_summary_data = idea_context.get("chat_summary")
+        chat_summary_data = project_context.get("chat_summary")
         chat_summary = ""
         if chat_summary_data:
             chat_summary = chat_summary_data.get("summary_text", "")
 
-        recent_messages = idea_context.get("recent_messages", [])
+        recent_messages = project_context.get("recent_messages", [])
 
         # Extract locked sections and gaps toggle from BRD draft
         section_locks = brd_draft.get("section_locks", {})
@@ -255,14 +255,14 @@ class BrdGenerationPipeline:
         """Step 4: Post-processing fabrication validation."""
         logger.info("BRD Step 4: Validating for fabrication")
 
-        idea_context = context_data["idea_context"]
+        project_context = context_data["project_context"]
 
-        chat_summary_data = idea_context.get("chat_summary")
+        chat_summary_data = project_context.get("chat_summary")
         chat_summary = ""
         if chat_summary_data:
             chat_summary = chat_summary_data.get("summary_text", "")
 
-        recent_messages = idea_context.get("recent_messages", [])
+        recent_messages = project_context.get("recent_messages", [])
 
         source_material = build_source_material(
             chat_summary, recent_messages,
@@ -278,13 +278,13 @@ class BrdGenerationPipeline:
 
     async def _step_publish_generated(
         self,
-        idea_id: str,
+        project_id: str,
         mode: str,
         agent_result: dict[str, Any],
         fabrication_flags: list[dict[str, Any]],
     ) -> None:
         """Step 5: Publish ai.brd.generated event."""
-        logger.info("BRD Step 5: Publishing ai.brd.generated for idea %s", idea_id)
+        logger.info("BRD Step 5: Publishing ai.brd.generated for project %s", project_id)
 
         sections = {
             k.removeprefix("section_"): v for k, v in agent_result.items()
@@ -292,7 +292,7 @@ class BrdGenerationPipeline:
         }
 
         await publish_event("ai.brd.generated", {
-            "idea_id": idea_id,
+            "project_id": project_id,
             "mode": mode,
             "sections": sections,
             "readiness_evaluation": agent_result.get("readiness_evaluation", {}),
@@ -301,23 +301,23 @@ class BrdGenerationPipeline:
 
     async def _step_publish_fabrication_flags(
         self,
-        idea_id: str,
+        project_id: str,
         fabrication_flags: list[dict[str, Any]],
     ) -> None:
         """Step 6: Publish ai.security.fabrication_flag events for monitoring."""
         logger.info(
-            "BRD Step 6: Publishing %d fabrication flag events for idea %s",
-            len(fabrication_flags), idea_id,
+            "BRD Step 6: Publishing %d fabrication flag events for project %s",
+            len(fabrication_flags), project_id,
         )
         for flag in fabrication_flags:
             await publish_event("ai.security.fabrication_flag", {
-                "idea_id": idea_id,
+                "project_id": project_id,
                 "section": flag["section"],
                 "ungrounded_keywords": flag["ungrounded_keywords"],
                 "match_ratio": flag["match_ratio"],
             })
 
-    def _step_cleanup(self, idea_id: str) -> None:
+    def _step_cleanup(self, project_id: str) -> None:
         """Step 7: Cleanup — clear abort flag."""
-        logger.info("BRD Step 7: Cleanup for idea %s", idea_id)
-        self._abort_flags.pop(idea_id, None)
+        logger.info("BRD Step 7: Cleanup for project %s", project_id)
+        self._abort_flags.pop(project_id, None)

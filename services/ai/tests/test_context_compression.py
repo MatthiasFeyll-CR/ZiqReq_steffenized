@@ -116,7 +116,7 @@ class TestContextCompressionAgent:
         agent = ContextCompressionAgent(core_client=mock_client)
 
         result = await agent._execute({
-            "idea_id": "idea-1",
+            "project_id": "project-1",
             "messages_to_compress": [],
             "previous_summary": "Previous decisions made.",
             "compression_iteration": 2,
@@ -164,7 +164,7 @@ class TestContextCompressionAgent:
             mock_kernel_factory.return_value = mock_kernel
 
             result = await agent._execute({
-                "idea_id": "idea-1",
+                "project_id": "project-1",
                 "messages_to_compress": messages,
                 "previous_summary": None,
                 "compression_iteration": 0,
@@ -177,7 +177,7 @@ class TestContextCompressionAgent:
 
         # Verify persistence
         mock_client.upsert_context_summary.assert_called_once_with(
-            idea_id="idea-1",
+            project_id="project-1",
             summary_text="Team decided to use JWT authentication.",
             messages_covered_up_to_id="msg-2",
             compression_iteration=1,
@@ -218,7 +218,7 @@ class TestContextCompressionAgent:
             mock_kernel_factory.return_value = mock_kernel
 
             await agent._execute({
-                "idea_id": "idea-1",
+                "project_id": "project-1",
                 "messages_to_compress": messages,
                 "previous_summary": None,
             })
@@ -259,7 +259,7 @@ class TestContextCompressionAgent:
             mock_kernel_factory.return_value = mock_kernel
 
             result = await agent._execute({
-                "idea_id": "idea-1",
+                "project_id": "project-1",
                 "messages_to_compress": messages,
                 "previous_summary": "Team decided on JWT.",
                 "compression_iteration": 1,
@@ -310,7 +310,7 @@ class TestContextCompressionAgent:
 
             # Should not raise — handles gracefully
             result = await agent._execute({
-                "idea_id": "idea-1",
+                "project_id": "project-1",
                 "messages_to_compress": messages,
                 "previous_summary": None,
             })
@@ -330,7 +330,7 @@ class TestContextCompressionMockMode:
 
         agent = ContextCompressionAgent()
         result = await agent.process({
-            "idea_id": "test-idea",
+            "project_id": "test-project",
             "messages_to_compress": [],
             "previous_summary": None,
         })
@@ -373,8 +373,8 @@ class TestPipelineCompressionTrigger:
         # 128000 tokens * 60% = 76800 tokens * 4 chars/token = 307200 chars
         big_content = "x" * 320000  # Slightly over 60%
         core_client = MagicMock()
-        core_client.get_idea_context.return_value = {
-            "idea": {"title": "Test", "state": "brainstorming",
+        core_client.get_project_context.return_value = {
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-1", "content": big_content, "sender_type": "user"},
@@ -411,7 +411,7 @@ class TestPipelineCompressionTrigger:
         ):
             MockFacilitator.return_value.process = mock_facilitator_process
             MockCompression.return_value.process = mock_compression_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert compression_called is True
@@ -426,8 +426,8 @@ class TestPipelineCompressionTrigger:
 
         # Small content — well below threshold
         core_client = MagicMock()
-        core_client.get_idea_context.return_value = {
-            "idea": {"title": "Test", "state": "brainstorming",
+        core_client.get_project_context.return_value = {
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-1", "content": "Short message", "sender_type": "user"},
@@ -460,7 +460,7 @@ class TestPipelineCompressionTrigger:
         ):
             MockFacilitator.return_value.process = mock_facilitator_process
             MockCompression.return_value.process = mock_compression_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         assert compression_called is False
@@ -474,8 +474,8 @@ class TestPipelineCompressionTrigger:
         from processing.pipeline import ChatProcessingPipeline
 
         core_client = MagicMock()
-        core_client.get_idea_context.return_value = {
-            "idea": {"title": "Test", "state": "brainstorming",
+        core_client.get_project_context.return_value = {
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [],
             "chat_summary": None,
@@ -494,7 +494,7 @@ class TestPipelineCompressionTrigger:
 
         with patch("agents.facilitator.agent.FacilitatorAgent") as MockFacilitator:
             MockFacilitator.return_value.process = mock_facilitator_process
-            result = await pipeline.execute("idea-1")
+            result = await pipeline.execute("project-1")
 
         assert result["status"] == "completed"
         # get_admin_parameter should NOT be called for compression in mock mode
@@ -511,8 +511,8 @@ class TestPipelineCompressionTrigger:
 
         big_content = "x" * 320000
         core_client = MagicMock()
-        core_client.get_idea_context.return_value = {
-            "idea": {"title": "Test", "state": "brainstorming",
+        core_client.get_project_context.return_value = {
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-5", "content": big_content, "sender_type": "user"},
@@ -552,7 +552,7 @@ class TestPipelineCompressionTrigger:
         ):
             MockFacilitator.return_value.process = mock_facilitator_process
             MockCompression.return_value.process = mock_compression_process
-            await pipeline.execute("idea-1")
+            await pipeline.execute("project-1")
 
         assert compression_input["previous_summary"] == "Previous decisions about auth."
         assert compression_input["compression_iteration"] == 2

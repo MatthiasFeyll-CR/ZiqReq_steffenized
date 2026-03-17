@@ -30,7 +30,7 @@ def _make_event(event_type: str, **kwargs) -> dict:
     base = {
         "event_id": str(uuid.uuid4()),
         "event_type": event_type,
-        "idea_id": str(uuid.uuid4()),
+        "project_id": str(uuid.uuid4()),
     }
     base.update(kwargs)
     return base
@@ -69,13 +69,13 @@ class TestAIEventConsumerChatResponse(TestCase):
 
         assert result is True
         self.core_client.persist_ai_chat_message.assert_called_once_with(
-            idea_id=event["idea_id"],
+            project_id=event["project_id"],
             content="Hello from AI",
             message_type="regular",
         )
         mock_group_send.assert_called_once()
         call_args = mock_group_send.call_args[0]
-        assert call_args[0] == f"idea_{event['idea_id']}"
+        assert call_args[0] == f"project_{event['project_id']}"
         ws_event = call_args[1]
         assert ws_event["type"] == "chat_message"
         assert ws_event["payload"]["sender_type"] == "ai"
@@ -142,7 +142,7 @@ class TestAIEventConsumerReaction(TestCase):
 
         assert result is True
         self.core_client.persist_ai_reaction.assert_called_once_with(
-            idea_id=event["idea_id"],
+            project_id=event["project_id"],
             message_id=msg_id,
             reaction_type="thumbs_up",
         )
@@ -158,7 +158,7 @@ class TestAIEventConsumerTitleUpdate(TestCase):
 
     def setUp(self):
         self.core_client = MagicMock()
-        self.core_client.update_idea_title.return_value = {"success": True}
+        self.core_client.update_project_title.return_value = {"success": True}
         self.consumer = AIEventConsumer(core_client=self.core_client)
 
     @override_settings(CHANNEL_LAYERS={"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
@@ -170,7 +170,7 @@ class TestAIEventConsumerTitleUpdate(TestCase):
 
         event = _make_event(
             "ai.title.updated",
-            title="New Idea Title",
+            title="New Project Title",
         )
 
         result = asyncio.get_event_loop().run_until_complete(
@@ -178,14 +178,14 @@ class TestAIEventConsumerTitleUpdate(TestCase):
         )
 
         assert result is True
-        self.core_client.update_idea_title.assert_called_once_with(
-            idea_id=event["idea_id"],
-            new_title="New Idea Title",
+        self.core_client.update_project_title.assert_called_once_with(
+            project_id=event["project_id"],
+            new_title="New Project Title",
         )
         ws_event = mock_layer.group_send.call_args[0][1]
         assert ws_event["type"] == "title_update"
-        assert ws_event["payload"]["title"] == "New Idea Title"
-        assert ws_event["payload"]["idea_id"] == event["idea_id"]
+        assert ws_event["payload"]["title"] == "New Project Title"
+        assert ws_event["payload"]["project_id"] == event["project_id"]
 
 
 class TestAIEventConsumerIdempotency(TestCase):
@@ -348,7 +348,7 @@ class TestAIEventConsumerBrdReady(TestCase):
 
         assert result is True
         self.core_client.update_brd_draft.assert_called_once_with(
-            idea_id=event["idea_id"],
+            project_id=event["project_id"],
             sections=sections,
             readiness_evaluation_json=json.dumps(readiness),
         )

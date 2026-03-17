@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 
 from apps.authentication.models import User
 from apps.collaboration.models import CollaborationInvitation
-from apps.ideas.models import Idea, IdeaCollaborator
+from apps.projects.models import Project, ProjectCollaborator
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 USER_2_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -25,14 +25,14 @@ def _create_user(user_id: uuid.UUID, email: str, display_name: str) -> User:
 
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
 class TestSendInvitation(TestCase):
-    """API-INVITE.01: POST /api/ideas/:id/collaborators/invite — owner sends invitation."""
+    """API-INVITE.01: POST /api/projects/:id/collaborators/invite — owner sends invitation."""
 
     def setUp(self):
         self.client = APIClient()
         self.owner = _create_user(USER_1_ID, "owner@test.local", "Owner User")
         self.invitee = _create_user(USER_2_ID, "invitee@test.local", "Invitee User")
         self.other = _create_user(USER_3_ID, "other@test.local", "Other User")
-        self.idea = Idea.objects.create(owner_id=self.owner.id, title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.owner.id, title="Test Project")
         self.client.post(
             "/api/auth/dev-login",
             {"user_id": str(self.owner.id)},
@@ -41,7 +41,7 @@ class TestSendInvitation(TestCase):
 
     def test_send_invitation_success(self):
         response = self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.invitee.id)},
             format="json",
         )
@@ -51,7 +51,7 @@ class TestSendInvitation(TestCase):
         assert data["status"] == "pending"
 
         inv = CollaborationInvitation.objects.get(id=data["invitation_id"])
-        assert inv.idea_id == self.idea.id
+        assert inv.project_id == self.project.id
         assert inv.inviter_id == self.owner.id
         assert inv.invitee_id == self.invitee.id
         assert inv.status == "pending"
@@ -63,7 +63,7 @@ class TestSendInvitation(TestCase):
             format="json",
         )
         response = self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.other.id)},
             format="json",
         )
@@ -71,16 +71,16 @@ class TestSendInvitation(TestCase):
 
     def test_cannot_self_invite(self):
         response = self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.owner.id)},
             format="json",
         )
         assert response.status_code == 400
 
     def test_cannot_invite_existing_collaborator(self):
-        IdeaCollaborator.objects.create(idea=self.idea, user_id=self.invitee.id)
+        ProjectCollaborator.objects.create(project=self.project, user_id=self.invitee.id)
         response = self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.invitee.id)},
             format="json",
         )
@@ -88,21 +88,21 @@ class TestSendInvitation(TestCase):
 
     def test_cannot_duplicate_pending_invitation(self):
         self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.invitee.id)},
             format="json",
         )
         response = self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.invitee.id)},
             format="json",
         )
         assert response.status_code == 400
 
-    def test_idea_not_found(self):
+    def test_project_not_found(self):
         fake_id = uuid.uuid4()
         response = self.client.post(
-            f"/api/ideas/{fake_id}/collaborators/invite",
+            f"/api/projects/{fake_id}/collaborators/invite",
             {"invitee_id": str(self.invitee.id)},
             format="json",
         )
@@ -117,11 +117,11 @@ class TestAcceptInvitation(TestCase):
         self.client = APIClient()
         self.owner = _create_user(USER_1_ID, "owner@test.local", "Owner User")
         self.invitee = _create_user(USER_2_ID, "invitee@test.local", "Invitee User")
-        self.idea = Idea.objects.create(
-            owner_id=self.owner.id, title="Test Idea", visibility="private"
+        self.project = Project.objects.create(
+            owner_id=self.owner.id, title="Test Project", visibility="private"
         )
         self.invitation = CollaborationInvitation.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             inviter_id=self.owner.id,
             invitee_id=self.invitee.id,
             status="pending",
@@ -142,14 +142,14 @@ class TestAcceptInvitation(TestCase):
         assert self.invitation.status == "accepted"
         assert self.invitation.responded_at is not None
 
-        assert IdeaCollaborator.objects.filter(
-            idea_id=self.idea.id, user_id=self.invitee.id
+        assert ProjectCollaborator.objects.filter(
+            project_id=self.project.id, user_id=self.invitee.id
         ).exists()
 
     def test_first_accept_transitions_visibility(self):
         self.client.post(f"/api/invitations/{self.invitation.id}/accept")
-        self.idea.refresh_from_db()
-        assert self.idea.visibility == "collaborating"
+        self.project.refresh_from_db()
+        assert self.project.visibility == "collaborating"
 
     def test_non_invitee_cannot_accept(self):
         self.client.post(
@@ -175,9 +175,9 @@ class TestDeclineInvitation(TestCase):
         self.client = APIClient()
         self.owner = _create_user(USER_1_ID, "owner@test.local", "Owner User")
         self.invitee = _create_user(USER_2_ID, "invitee@test.local", "Invitee User")
-        self.idea = Idea.objects.create(owner_id=self.owner.id, title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.owner.id, title="Test Project")
         self.invitation = CollaborationInvitation.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             inviter_id=self.owner.id,
             invitee_id=self.invitee.id,
             status="pending",
@@ -214,9 +214,9 @@ class TestRevokeInvitation(TestCase):
         self.client = APIClient()
         self.owner = _create_user(USER_1_ID, "owner@test.local", "Owner User")
         self.invitee = _create_user(USER_2_ID, "invitee@test.local", "Invitee User")
-        self.idea = Idea.objects.create(owner_id=self.owner.id, title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.owner.id, title="Test Project")
         self.invitation = CollaborationInvitation.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             inviter_id=self.owner.id,
             invitee_id=self.invitee.id,
             status="pending",
@@ -253,7 +253,7 @@ class TestReInviteAfterDecline(TestCase):
         self.client = APIClient()
         self.owner = _create_user(USER_1_ID, "owner@test.local", "Owner User")
         self.invitee = _create_user(USER_2_ID, "invitee@test.local", "Invitee User")
-        self.idea = Idea.objects.create(owner_id=self.owner.id, title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.owner.id, title="Test Project")
         self.client.post(
             "/api/auth/dev-login",
             {"user_id": str(self.owner.id)},
@@ -263,7 +263,7 @@ class TestReInviteAfterDecline(TestCase):
     def test_reinvite_after_decline(self):
         # First invitation
         resp1 = self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.invitee.id)},
             format="json",
         )
@@ -286,7 +286,7 @@ class TestReInviteAfterDecline(TestCase):
             format="json",
         )
         resp2 = self.client.post(
-            f"/api/ideas/{self.idea.id}/collaborators/invite",
+            f"/api/projects/{self.project.id}/collaborators/invite",
             {"invitee_id": str(self.invitee.id)},
             format="json",
         )
@@ -294,7 +294,7 @@ class TestReInviteAfterDecline(TestCase):
         assert resp2.json()["invitation_id"] != inv_id
 
         assert CollaborationInvitation.objects.filter(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             invitee_id=self.invitee.id,
             status="pending",
         ).count() == 1

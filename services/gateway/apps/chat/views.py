@@ -10,8 +10,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.admin_config.models import AdminParameter
-from apps.ideas.authentication import MiddlewareAuthentication
-from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator, UserReaction
+from apps.projects.authentication import MiddlewareAuthentication
+from apps.projects.models import ChatMessage, Project, ProjectCollaborator, UserReaction
 
 from .serializers import (
     ChatMessageCreateSerializer,
@@ -30,26 +30,26 @@ def _publish_notification(**kwargs) -> None:
     publish_notification_event(**kwargs)
 
 
-def _broadcast_ai_processing_started(idea_id: str) -> None:
+def _broadcast_ai_processing_started(project_id: str) -> None:
     """Broadcast ai_processing {state: started} so frontends can lock UI sections."""
     try:
         channel_layer = get_channel_layer()
         if channel_layer is None:
             return
-        group_name = f"idea_{idea_id}"
+        group_name = f"project_{project_id}"
         async_to_sync(channel_layer.group_send)(
             group_name,
             {
                 "type": "ai_processing",
-                "idea_id": idea_id,
-                "payload": {"idea_id": idea_id, "state": "started"},
+                "project_id": project_id,
+                "payload": {"project_id": project_id, "state": "started"},
             },
         )
     except Exception:
-        logger.exception("Failed to broadcast ai_processing started for idea %s", idea_id)
+        logger.exception("Failed to broadcast ai_processing started for project %s", project_id)
 
 
-def _trigger_ai_processing(idea_id: str, message_id: str) -> None:
+def _trigger_ai_processing(project_id: str, message_id: str) -> None:
     """Trigger AI chat processing via the AI gRPC client."""
     import os
 
@@ -57,15 +57,15 @@ def _trigger_ai_processing(idea_id: str, message_id: str) -> None:
 
     address = os.environ.get("AI_GRPC_ADDRESS", "localhost:50052")
     logger.info(
-        "[DEBUG] Creating AiClient with address=%s for idea=%s",
-        address, idea_id,
+        "[DEBUG] Creating AiClient with address=%s for project=%s",
+        address, project_id,
     )
     client = AiClient(address=address)
-    result = client.trigger_chat_processing(idea_id=idea_id, message_id=message_id)
+    result = client.trigger_chat_processing(project_id=project_id, message_id=message_id)
     logger.info("[DEBUG] AiClient.trigger_chat_processing returned: %s", result)
 
     # Notify all connected clients that AI processing has started
-    _broadcast_ai_processing_started(idea_id)
+    _broadcast_ai_processing_started(project_id)
 
 
 DEFAULT_LIMIT = 50
@@ -89,20 +89,20 @@ def _get_chat_message_cap() -> int:
         return DEFAULT_CHAT_MESSAGE_CAP
 
 
-def get_unprocessed_message_count(idea_id: str) -> int:
-    """Count user messages sent after the last AI response for an idea.
+def get_unprocessed_message_count(project_id: str) -> int:
+    """Count user messages sent after the last AI response for a project.
 
     This queries the database directly, avoiding cross-process state issues
     that occurred with the previous in-memory counter approach.
     """
     last_ai_message = (
-        ChatMessage.objects.filter(idea_id=idea_id, sender_type="ai")
+        ChatMessage.objects.filter(project_id=project_id, sender_type="ai")
         .order_by("-created_at")
         .values("created_at")
         .first()
     )
 
-    qs = ChatMessage.objects.filter(idea_id=idea_id, sender_type="user")
+    qs = ChatMessage.objects.filter(project_id=project_id, sender_type="user")
     if last_ai_message:
         qs = qs.filter(created_at__gt=last_ai_message["created_at"])
 
@@ -124,44 +124,44 @@ def _unauthorized_response() -> Response:
     )
 
 
-def _get_idea_or_error(idea_id: str):
-    """Validate UUID and fetch idea. Returns (idea, None) or (None, Response)."""
+def _get_project_or_error(project_id: str):
+    """Validate UUID and fetch project. Returns (project, None) or (None, Response)."""
     try:
-        uuid.UUID(idea_id)
+        uuid.UUID(project_id)
     except ValueError:
         return None, Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
     try:
-        idea = Idea.objects.get(id=idea_id, deleted_at__isnull=True)
-    except Idea.DoesNotExist:
+        project = Project.objects.get(id=project_id, deleted_at__isnull=True)
+    except Project.DoesNotExist:
         return None, Response(
-            {"error": "NOT_FOUND", "message": "Idea not found"},
+            {"error": "NOT_FOUND", "message": "Project not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    return idea, None
+    return project, None
 
 
-def _check_access(user, idea) -> bool:
-    """Check if user has access to idea (owner or collaborator)."""
-    if idea.owner_id == user.id:
+def _check_access(user, project) -> bool:
+    """Check if user has access to project (owner or collaborator)."""
+    if project.owner_id == user.id:
         return True
-    return IdeaCollaborator.objects.filter(
-        idea_id=idea.id, user_id=user.id
+    return ProjectCollaborator.objects.filter(
+        project_id=project.id, user_id=user.id
     ).exists()
 
 
 def _broadcast_chat_message(message: ChatMessage, sender_user) -> None:
-    """Broadcast a chat_message event to the idea's WebSocket group."""
+    """Broadcast a chat_message event to the project's WebSocket group."""
     try:
         channel_layer = get_channel_layer()
         if channel_layer is None:
             return
 
-        group_name = f"idea_{message.idea_id}"
+        group_name = f"project_{message.project_id}"
         payload = {
             "id": str(message.id),
             "sender_type": message.sender_type,
@@ -178,7 +178,7 @@ def _broadcast_chat_message(message: ChatMessage, sender_user) -> None:
             group_name,
             {
                 "type": "chat_message",
-                "idea_id": str(message.idea_id),
+                "project_id": str(message.project_id),
                 "payload": payload,
             },
         )
@@ -186,57 +186,57 @@ def _broadcast_chat_message(message: ChatMessage, sender_user) -> None:
         logger.exception("Failed to broadcast chat message %s", message.id)
 
 
-def _broadcast_rate_limit(idea_id: str) -> None:
-    """Broadcast a rate_limit event to the idea's WebSocket group."""
+def _broadcast_rate_limit(project_id: str) -> None:
+    """Broadcast a rate_limit event to the project's WebSocket group."""
     try:
         channel_layer = get_channel_layer()
         if channel_layer is None:
             return
 
-        group_name = f"idea_{idea_id}"
+        group_name = f"project_{project_id}"
         async_to_sync(channel_layer.group_send)(
             group_name,
             {
                 "type": "rate_limit",
-                "idea_id": idea_id,
-                "payload": {"idea_id": idea_id},
+                "project_id": project_id,
+                "payload": {"project_id": project_id},
             },
         )
     except Exception:
-        logger.exception("Failed to broadcast rate limit for idea %s", idea_id)
+        logger.exception("Failed to broadcast rate limit for project %s", project_id)
 
 
 @api_view(["GET", "POST"])
 @authentication_classes([MiddlewareAuthentication])
-def chat_messages(request: Request, idea_id: str) -> Response:
-    """Route /api/ideas/:id/chat — GET lists, POST creates."""
+def chat_messages(request: Request, project_id: str) -> Response:
+    """Route /api/projects/:id/chat — GET lists, POST creates."""
     if request.method == "POST":
-        return _create_message(request, idea_id)
-    return _list_messages(request, idea_id)
+        return _create_message(request, project_id)
+    return _list_messages(request, project_id)
 
 
-def _create_message(request: Request, idea_id: str) -> Response:
+def _create_message(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
-    if not _check_access(user, idea):
+    if not _check_access(user, project):
         return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this project"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
     # Rate limit check: 429 when unprocessed user messages >= chat_message_cap
-    idea_id_str = str(idea.id)
+    project_id_str = str(project.id)
     cap = _get_chat_message_cap()
-    current_count = get_unprocessed_message_count(idea_id_str)
+    current_count = get_unprocessed_message_count(project_id_str)
     if current_count >= cap:
         # Broadcast rate_limit event via WebSocket
-        _broadcast_rate_limit(idea_id_str)
+        _broadcast_rate_limit(project_id_str)
         return Response(
             {
                 "error": {
@@ -252,7 +252,7 @@ def _create_message(request: Request, idea_id: str) -> Response:
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     message = ChatMessage.objects.create(
-        idea_id=idea.id,
+        project_id=project.id,
         sender_type="user",
         sender_id=user.id,
         content=serializer.validated_data["content"],
@@ -264,24 +264,24 @@ def _create_message(request: Request, idea_id: str) -> Response:
     _broadcast_chat_message(message, user)
 
     # Detect @mentions and publish notification events
-    _publish_mention_notifications(message, user, idea)
+    _publish_mention_notifications(message, user, project)
 
     # Trigger AI processing for this message
     logger.info(
-        "[DEBUG] Chat message created: id=%s, idea_id=%s, sender=%s. "
+        "[DEBUG] Chat message created: id=%s, project_id=%s, sender=%s. "
         "Attempting to trigger AI processing...",
-        message.id, idea.id, user.id,
+        message.id, project.id, user.id,
     )
     try:
-        _trigger_ai_processing(str(idea.id), str(message.id))
+        _trigger_ai_processing(str(project.id), str(message.id))
         logger.info(
-            "[DEBUG] AI processing trigger succeeded for idea=%s, message=%s",
-            idea.id, message.id,
+            "[DEBUG] AI processing trigger succeeded for project=%s, message=%s",
+            project.id, message.id,
         )
     except Exception:
         logger.exception(
-            "[DEBUG] AI processing trigger FAILED for idea=%s, message=%s",
-            idea.id, message.id,
+            "[DEBUG] AI processing trigger FAILED for project=%s, message=%s",
+            project.id, message.id,
         )
 
     return Response(response_serializer.data, status=status.HTTP_201_CREATED)
@@ -290,7 +290,7 @@ def _create_message(request: Request, idea_id: str) -> Response:
 _MENTION_PATTERN = re.compile(r"@user\[([0-9a-fA-F-]{36})\]")
 
 
-def _publish_mention_notifications(message: ChatMessage, sender, idea: Idea) -> None:
+def _publish_mention_notifications(message: ChatMessage, sender, project: Project) -> None:
     """Detect @user[<uuid>] mentions in message content and publish notification events."""
     matches = _MENTION_PATTERN.findall(message.content)
     seen: set[str] = set()
@@ -307,9 +307,9 @@ def _publish_mention_notifications(message: ChatMessage, sender, idea: Idea) -> 
                 user_id=mentioned_id,
                 event_type="chat_mention",
                 title="You were mentioned",
-                body=f"{sender.display_name} mentioned you in \"{idea.title}\"",
-                reference_id=str(idea.id),
-                reference_type="idea",
+                body=f"{sender.display_name} mentioned you in \"{project.title}\"",
+                reference_id=str(project.id),
+                reference_type="project",
             )
         except Exception:
             logger.exception(
@@ -317,12 +317,12 @@ def _publish_mention_notifications(message: ChatMessage, sender, idea: Idea) -> 
             )
 
 
-def _list_messages(request: Request, idea_id: str) -> Response:
+def _list_messages(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
@@ -331,7 +331,7 @@ def _list_messages(request: Request, idea_id: str) -> Response:
     limit = min(int(request.query_params.get("limit", DEFAULT_LIMIT)), MAX_LIMIT)
     offset = max(int(request.query_params.get("offset", 0)), 0)
 
-    qs = ChatMessage.objects.filter(idea_id=idea.id).order_by("created_at")
+    qs = ChatMessage.objects.filter(project_id=project.id).order_by("created_at")
     total = qs.count()
     messages = list(qs[offset : offset + limit])
 
@@ -349,28 +349,28 @@ def _list_messages(request: Request, idea_id: str) -> Response:
 @api_view(["POST", "DELETE"])
 @authentication_classes([MiddlewareAuthentication])
 def message_reactions(
-    request: Request, idea_id: str, message_id: str
+    request: Request, project_id: str, message_id: str
 ) -> Response:
-    """Route /api/ideas/:id/chat/:msgId/reactions — POST adds, DELETE removes."""
+    """Route /api/projects/:id/chat/:msgId/reactions — POST adds, DELETE removes."""
     if request.method == "POST":
-        return _add_reaction(request, idea_id, message_id)
-    return _remove_reaction(request, idea_id, message_id)
+        return _add_reaction(request, project_id, message_id)
+    return _remove_reaction(request, project_id, message_id)
 
 
 def _add_reaction(
-    request: Request, idea_id: str, message_id: str
+    request: Request, project_id: str, message_id: str
 ) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
-    if not _check_access(user, idea):
+    if not _check_access(user, project):
         return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this project"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -383,9 +383,9 @@ def _add_reaction(
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # Fetch the target message and verify it belongs to this idea
+    # Fetch the target message and verify it belongs to this project
     try:
-        message = ChatMessage.objects.get(id=message_id, idea_id=idea.id)
+        message = ChatMessage.objects.get(id=message_id, project_id=project.id)
     except ChatMessage.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Message not found"},
@@ -428,19 +428,19 @@ def _add_reaction(
 
 
 def _remove_reaction(
-    request: Request, idea_id: str, message_id: str
+    request: Request, project_id: str, message_id: str
 ) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
 
-    idea, error = _get_idea_or_error(idea_id)
+    project, error = _get_project_or_error(project_id)
     if error:
         return error
 
-    if not _check_access(user, idea):
+    if not _check_access(user, project):
         return Response(
-            {"error": "ACCESS_DENIED", "message": "You do not have access to this idea"},
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this project"},
             status=status.HTTP_403_FORBIDDEN,
         )
 

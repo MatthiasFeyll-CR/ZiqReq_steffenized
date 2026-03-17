@@ -23,11 +23,11 @@ def _error_response(code: str, message: str) -> dict[str, Any]:
 
 
 class FacilitatorPlugin:
-    """Tools for the Facilitator AI to interact with the idea workspace."""
+    """Tools for the Facilitator AI to interact with the project workspace."""
 
-    def __init__(self, idea_id: str, idea_context: dict[str, Any] | None = None) -> None:
-        self.idea_id = idea_id
-        self.idea_context = idea_context or {}
+    def __init__(self, project_id: str, project_context: dict[str, Any] | None = None) -> None:
+        self.project_id = project_id
+        self.project_context = project_context or {}
         self.delegations: list[dict[str, Any]] = []
         self.chat_message_sent: bool = False
 
@@ -51,7 +51,7 @@ class FacilitatorPlugin:
             message_type = "regular"
 
         await publish_event("ai.chat_response.ready", {
-            "idea_id": self.idea_id,
+            "project_id": self.project_id,
             "content": content,
             "message_type": message_type,
             "sender_type": "ai",
@@ -82,7 +82,7 @@ class FacilitatorPlugin:
             )
 
         # Validate target message is a user message (via context)
-        recent_messages = self.idea_context.get("recent_messages", [])
+        recent_messages = self.project_context.get("recent_messages", [])
         target_msg = _find_message(recent_messages, message_id)
 
         if target_msg is None:
@@ -102,7 +102,7 @@ class FacilitatorPlugin:
             )
 
         await publish_event("ai.reaction.ready", {
-            "idea_id": self.idea_id,
+            "project_id": self.project_id,
             "message_id": message_id,
             "reaction_type": reaction_type,
         })
@@ -112,13 +112,13 @@ class FacilitatorPlugin:
     @kernel_function(
         name="update_title",
         description=(
-            "Update the idea's title. Generate a short, concise title (under 60 characters) "
-            "that reflects the current direction of the brainstorming."
+            "Update the project's title. Generate a short, concise title (under 60 characters) "
+            "that reflects the current direction of the project."
         ),
     )
     async def update_title(self, title: str) -> dict[str, Any]:
         """Publish ai.title.updated event."""
-        if self.idea_context.get("title_manually_edited"):
+        if self.project_context.get("title_manually_edited"):
             return _error_response(
                 "title_locked",
                 "The title was manually edited. AI title updates are disabled.",
@@ -128,7 +128,7 @@ class FacilitatorPlugin:
         truncated = title[:60] if len(title) > 60 else title
 
         await publish_event("ai.title.updated", {
-            "idea_id": self.idea_id,
+            "project_id": self.project_id,
             "title": truncated,
         })
 
@@ -162,7 +162,7 @@ class FacilitatorPlugin:
         })
 
         await publish_event("ai.delegation.started", {
-            "idea_id": self.idea_id,
+            "project_id": self.project_id,
             "delegation_type": "context_agent",
             "delegation_id": delegation_id,
             "query": query,
@@ -182,11 +182,11 @@ class FacilitatorPlugin:
         if not query or not query.strip():
             return _error_response("validation_error", "Query must not be empty.")
 
-        # Validate that compression has occurred for this idea
+        # Validate that compression has occurred for this project
         if not self._has_compressed_context():
             return _error_response(
                 "no_compressed_context",
-                "No compressed context exists for this idea. All messages are already "
+                "No compressed context exists for this project. All messages are already "
                 "available in recent context — no need for context extension.",
             )
 
@@ -198,7 +198,7 @@ class FacilitatorPlugin:
         })
 
         await publish_event("ai.delegation.started", {
-            "idea_id": self.idea_id,
+            "project_id": self.project_id,
             "delegation_type": "context_extension",
             "delegation_id": delegation_id,
             "query": query,
@@ -207,11 +207,11 @@ class FacilitatorPlugin:
         return {"delegation_id": delegation_id, "status": "queued"}
 
     def _has_compressed_context(self) -> bool:
-        """Check if chat_context_summaries exist for this idea."""
+        """Check if chat_context_summaries exist for this project."""
         try:
             from apps.context.models import ChatContextSummary
 
-            return ChatContextSummary.objects.filter(idea_id=self.idea_id).exists()
+            return ChatContextSummary.objects.filter(project_id=self.project_id).exists()
         except Exception:
             logger.warning("Failed to check chat_context_summaries — assuming none exist")
             return False

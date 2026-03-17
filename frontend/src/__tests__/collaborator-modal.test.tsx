@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 const OWNER_ID = "00000000-0000-0000-0000-000000000001";
 const COLLAB_ID = "00000000-0000-0000-0000-000000000002";
 const INVITE_ID = "22222222-2222-2222-2222-222222222222";
@@ -18,7 +18,7 @@ const {
   mockTransferOwnership,
   mockFetchPendingInvitations,
   mockRevokeInvitation,
-  mockLeaveIdea,
+  mockLeaveProject,
   mockToastSuccess,
   mockToastError,
 } = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ const {
   mockTransferOwnership: vi.fn(),
   mockFetchPendingInvitations: vi.fn(),
   mockRevokeInvitation: vi.fn(),
-  mockLeaveIdea: vi.fn(),
+  mockLeaveProject: vi.fn(),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
 }));
@@ -40,7 +40,7 @@ vi.mock("@/api/collaboration", () => ({
   fetchCollaborators: mockFetchCollaborators,
   removeCollaborator: mockRemoveCollaborator,
   transferOwnership: mockTransferOwnership,
-  leaveIdea: mockLeaveIdea,
+  leaveProject: mockLeaveProject,
   fetchPendingInvitations: mockFetchPendingInvitations,
   revokeInvitation: mockRevokeInvitation,
 }));
@@ -99,7 +99,7 @@ function renderModal(props?: { ownerId?: string }) {
     ...render(
       <QueryClientProvider client={qc}>
         <CollaboratorModal
-          ideaId={IDEA_ID}
+          projectId={PROJECT_ID}
           ownerId={props?.ownerId ?? OWNER_ID}
           open={true}
           onOpenChange={onOpenChange}
@@ -128,7 +128,7 @@ beforeEach(() => {
   });
   mockSearchUsers.mockResolvedValue([]);
   mockSendBulkInvitations.mockResolvedValue({ results: [] });
-  mockLeaveIdea.mockResolvedValue({ message: "Left" });
+  mockLeaveProject.mockResolvedValue({ message: "Left" });
 });
 
 describe("UI-COLLAB.01: Modal opens with 3 tabs", () => {
@@ -200,7 +200,7 @@ describe("UI-COLLAB.02: Invite tab search and invite", () => {
     await user.click(screen.getByTestId("invite-selected-button"));
 
     await waitFor(() => {
-      expect(mockSendBulkInvitations).toHaveBeenCalledWith(IDEA_ID, ["user-1"]);
+      expect(mockSendBulkInvitations).toHaveBeenCalledWith(PROJECT_ID, ["user-1"]);
     });
   });
 });
@@ -243,7 +243,7 @@ describe("UI-COLLAB.03: Collaborators tab — remove and transfer", () => {
     await user.click(screen.getByTestId("confirm-remove-button"));
 
     await waitFor(() => {
-      expect(mockRemoveCollaborator).toHaveBeenCalledWith(IDEA_ID, COLLAB_ID);
+      expect(mockRemoveCollaborator).toHaveBeenCalledWith(PROJECT_ID, COLLAB_ID);
     });
     expect(mockToastSuccess).toHaveBeenCalledWith("Collaborator removed");
   });
@@ -269,7 +269,7 @@ describe("UI-COLLAB.03: Collaborators tab — remove and transfer", () => {
     await user.click(screen.getByTestId("confirm-transfer-button"));
 
     await waitFor(() => {
-      expect(mockTransferOwnership).toHaveBeenCalledWith(IDEA_ID, COLLAB_ID);
+      expect(mockTransferOwnership).toHaveBeenCalledWith(PROJECT_ID, COLLAB_ID);
     });
     expect(mockToastSuccess).toHaveBeenCalledWith("Ownership transferred");
   });

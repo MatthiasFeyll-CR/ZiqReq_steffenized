@@ -73,14 +73,14 @@ export function MonitoringTab() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard label={t("admin.activeConnections")} value={data.active_connections} />
-        <KPICard label={t("admin.ideasByState")} value={totalIdeas} />
+        <KPICard label={t("admin.projectsByState")} value={totalIdeas} />
         <KPICard label={t("admin.activeUsers")} value={data.active_users} />
         <KPICard label={t("admin.aiRequests")} value={data.ai_processing.request_count} />
       </div>
 
       {/* Ideas by state breakdown */}
       <div className="rounded-md border bg-card p-4">
-        <h4 className="mb-3 text-sm font-medium">{t("admin.ideasByState")}</h4>
+        <h4 className="mb-3 text-sm font-medium">{t("admin.projectsByState")}</h4>
         <div className="flex flex-wrap gap-4 text-sm">
           {Object.entries(data.ideas_by_state).map(([state, count]) => (
             <span key={state} className="flex items-center gap-1.5">

@@ -11,7 +11,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.ideas.models import Idea
+from apps.projects.models import Project
 
 ADMIN_ID = uuid.UUID("00000000-0000-0000-0000-b00000000001")
 USER_ID = uuid.UUID("00000000-0000-0000-0000-b00000000002")
@@ -59,44 +59,44 @@ class TestMonitoringDashboard(TestCase):
         response = self.client.get("/api/admin/monitoring")
         data = response.json()
         assert "active_connections" in data
-        assert "ideas_by_state" in data
+        assert "projects_by_state" in data
         assert "active_users" in data
         assert "online_users" in data
         assert "ai_processing" in data
         assert "system_health" in data
 
-    def test_ideas_by_state_contains_all_states(self):
-        """T-11.4.01: ideas_by_state has all expected state keys."""
+    def test_projects_by_state_contains_all_states(self):
+        """T-11.4.01: projects_by_state has all expected state keys."""
         response = self.client.get("/api/admin/monitoring")
-        ideas = response.json()["ideas_by_state"]
+        projects = response.json()["projects_by_state"]
         for state in ["open", "in_review", "accepted", "dropped", "rejected"]:
-            assert state in ideas
-            assert isinstance(ideas[state], int)
+            assert state in projects
+            assert isinstance(projects[state], int)
 
-    def test_ideas_by_state_counts_correctly(self):
-        """T-11.4.01: ideas_by_state counts match actual idea records."""
-        # Create ideas in various states
-        Idea.objects.create(title="Open 1", state="open", owner_id=ADMIN_ID)
-        Idea.objects.create(title="Open 2", state="open", owner_id=ADMIN_ID)
-        Idea.objects.create(title="Review 1", state="in_review", owner_id=ADMIN_ID)
-        Idea.objects.create(title="Accepted 1", state="accepted", owner_id=USER_ID)
+    def test_projects_by_state_counts_correctly(self):
+        """T-11.4.01: projects_by_state counts match actual project records."""
+        # Create projects in various states
+        Project.objects.create(title="Open 1", state="open", owner_id=ADMIN_ID)
+        Project.objects.create(title="Open 2", state="open", owner_id=ADMIN_ID)
+        Project.objects.create(title="Review 1", state="in_review", owner_id=ADMIN_ID)
+        Project.objects.create(title="Accepted 1", state="accepted", owner_id=USER_ID)
 
         response = self.client.get("/api/admin/monitoring")
-        ideas = response.json()["ideas_by_state"]
-        assert ideas["open"] == 2
-        assert ideas["in_review"] == 1
-        assert ideas["accepted"] == 1
-        assert ideas["dropped"] == 0
-        assert ideas["rejected"] == 0
+        projects = response.json()["projects_by_state"]
+        assert projects["open"] == 2
+        assert projects["in_review"] == 1
+        assert projects["accepted"] == 1
+        assert projects["dropped"] == 0
+        assert projects["rejected"] == 0
 
-    def test_deleted_ideas_not_counted(self):
-        """ideas_by_state excludes soft-deleted ideas."""
+    def test_deleted_projects_not_counted(self):
+        """projects_by_state excludes soft-deleted projects."""
         from django.utils import timezone
-        Idea.objects.create(title="Deleted", state="open", owner_id=ADMIN_ID, deleted_at=timezone.now())
-        Idea.objects.create(title="Active", state="open", owner_id=ADMIN_ID)
+        Project.objects.create(title="Deleted", state="open", owner_id=ADMIN_ID, deleted_at=timezone.now())
+        Project.objects.create(title="Active", state="open", owner_id=ADMIN_ID)
 
         response = self.client.get("/api/admin/monitoring")
-        assert response.json()["ideas_by_state"]["open"] == 1
+        assert response.json()["projects_by_state"]["open"] == 1
 
     def test_active_users_count(self):
         """T-11.4.01: active_users returns total user count."""

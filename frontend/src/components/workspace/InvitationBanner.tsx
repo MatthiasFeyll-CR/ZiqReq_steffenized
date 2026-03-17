@@ -4,14 +4,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { acceptInvitation, declineInvitation } from "@/api/collaboration";
-import { fetchInvitations } from "@/api/ideas";
+import { fetchInvitations } from "@/api/projects";
 import { useAuth } from "@/hooks/use-auth";
 
 interface InvitationBannerProps {
-  ideaId: string;
+  projectId: string;
 }
 
-export function InvitationBanner({ ideaId }: InvitationBannerProps) {
+export function InvitationBanner({ projectId }: InvitationBannerProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -22,14 +22,14 @@ export function InvitationBanner({ ideaId }: InvitationBannerProps) {
     enabled: !!user,
   });
 
-  const invitation = data?.invitations?.find((inv) => inv.idea_id === ideaId);
+  const invitation = data?.invitations?.find((inv) => inv.project_id === projectId);
   const prefersReducedMotion = useReducedMotion();
 
   const acceptMut = useMutation({
     mutationFn: acceptInvitation,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
-      queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["collaborators", projectId] });
       toast.success(t("landing.invitations.accepted", "Invitation accepted"));
     },
   });

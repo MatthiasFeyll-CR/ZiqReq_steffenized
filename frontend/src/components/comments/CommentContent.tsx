@@ -7,9 +7,9 @@ interface CommentContentProps {
 
 /**
  * Renders comment content with markdown-style bold/italic,
- * @mentions highlighted, and #idea-references as clickable links.
+ * @mentions highlighted, and #project-references as clickable links.
  *
- * Reference format in content: [#IdeaTitle](idea:uuid)
+ * Reference format in content: [#IdeaTitle](project:uuid)
  * Mention format: @username
  */
 export function CommentContent({ content }: CommentContentProps) {
@@ -38,7 +38,7 @@ export function CommentContent({ content }: CommentContentProps) {
             return (
               <Link
                 key={i}
-                to={`/idea/${part.meta}`}
+                to={`/project/${part.meta}`}
                 className="text-primary font-medium hover:underline"
               >
                 #{part.value}
@@ -62,7 +62,7 @@ function parseContent(content: string): ContentPart[] {
   const parts: ContentPart[] = [];
   // Combined regex for bold, italic, idea refs, and mentions
   const regex =
-    /\*\*(.+?)\*\*|_(.+?)_|\[#(.+?)\]\(idea:([0-9a-f-]+)\)|@(\w[\w.\-]*)/g;
+    /\*\*(.+?)\*\*|_(.+?)_|\[#(.+?)\]\(project:([0-9a-f-]+)\)|@(\w[\w.\-]*)/g;
 
   let lastIndex = 0;
   let match: RegExpExecArray | null;

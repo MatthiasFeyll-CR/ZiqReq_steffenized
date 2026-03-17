@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             sql="""
                 CREATE TABLE IF NOT EXISTS brd_drafts (
                     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-                    idea_id uuid NOT NULL UNIQUE,
+                    project_id uuid NOT NULL UNIQUE,
                     section_title text,
                     section_short_description text,
                     section_current_workflow text,

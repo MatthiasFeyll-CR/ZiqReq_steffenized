@@ -23,9 +23,9 @@ interface NotificationPanelProps {
 function getNavigationPath(refType?: string | null, refId?: string | null): string | null {
   if (!refId) return null;
   switch (refType) {
-    case "idea":
+    case "project":
     case "invitation":
-      return `/idea/${refId}`;
+      return `/project/${refId}`;
     default:
       return null;
   }

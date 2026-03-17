@@ -39,11 +39,11 @@ class ContextCompressionAgent(BaseAgent):
 
         Args:
             input_data: Dict with keys:
-                - idea_id: str — the idea context
+                - project_id: str — the project context
                 - messages_to_compress: list[dict] — messages to compress
                 - previous_summary: str|None — existing summary from prior iteration
         """
-        idea_id: str = input_data["idea_id"]
+        project_id: str = input_data["project_id"]
         messages_to_compress: list[dict[str, Any]] = input_data.get(
             "messages_to_compress", []
         )
@@ -51,8 +51,8 @@ class ContextCompressionAgent(BaseAgent):
 
         if not messages_to_compress:
             logger.info(
-                "[context_compression] No messages to compress for idea %s",
-                idea_id,
+                "[context_compression] No messages to compress for project %s",
+                project_id,
             )
             return {
                 "summary_text": previous_summary or "",
@@ -103,7 +103,7 @@ class ContextCompressionAgent(BaseAgent):
 
         try:
             self._core_client.upsert_context_summary(
-                idea_id=idea_id,
+                project_id=project_id,
                 summary_text=summary_text,
                 messages_covered_up_to_id=last_message_id,
                 compression_iteration=compression_iteration,
@@ -111,15 +111,15 @@ class ContextCompressionAgent(BaseAgent):
             )
         except Exception:
             logger.exception(
-                "[context_compression] Failed to persist summary for idea %s",
-                idea_id,
+                "[context_compression] Failed to persist summary for project %s",
+                project_id,
             )
 
         logger.info(
-            "[context_compression] Compressed %d messages for idea %s "
+            "[context_compression] Compressed %d messages for project %s "
             "(iteration %d, usage %.1f%%)",
             len(messages_to_compress),
-            idea_id,
+            project_id,
             compression_iteration,
             context_window_usage,
         )

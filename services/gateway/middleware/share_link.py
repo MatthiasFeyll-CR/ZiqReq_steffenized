@@ -7,7 +7,7 @@ If invalid, returns 403.
 
 from django.http import JsonResponse
 
-from apps.ideas.models import Idea
+from apps.projects.models import Project
 
 
 class ShareLinkMiddleware:
@@ -19,14 +19,14 @@ class ShareLinkMiddleware:
         if not token:
             return self.get_response(request)
 
-        # Only apply to idea workspace paths
+        # Only apply to project workspace paths
         path = request.path.rstrip("/")
-        if not path.startswith("/api/ideas/"):
+        if not path.startswith("/api/projects/"):
             return self.get_response(request)
 
         # Validate token against database
-        idea = Idea.objects.filter(share_link_token=token).first()
-        if idea is None:
+        project = Project.objects.filter(share_link_token=token).first()
+        if project is None:
             return JsonResponse(
                 {"error": "FORBIDDEN", "message": "Invalid share link token"},
                 status=403,
@@ -39,8 +39,8 @@ class ShareLinkMiddleware:
                 user.roles = [*user.roles, "share_link_viewer"]
         else:
             # For unauthenticated users viewing via share link,
-            # attach the idea reference so downstream can check
-            request.share_link_idea = idea  # type: ignore[attr-defined]
+            # attach the project reference so downstream can check
+            request.share_link_project = project  # type: ignore[attr-defined]
             request.share_link_viewer = True  # type: ignore[attr-defined]
 
         return self.get_response(request)

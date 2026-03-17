@@ -14,9 +14,9 @@ logger = logging.getLogger(__name__)
 REVIEW_EVENT_TYPES = {
     "review_state_changed",
     "review_comment",
-    "idea_submitted",
-    "idea_assigned",
-    "idea_resubmitted",
+    "project_submitted",
+    "project_assigned",
+    "project_resubmitted",
     "append_request_received",
 }
 

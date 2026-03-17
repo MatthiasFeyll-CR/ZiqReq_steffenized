@@ -27,7 +27,7 @@ def _sample_content() -> BrdContent:
         section_success_criteria="- 80% straight-through processing rate\n"
         "- <2% error rate on GL code assignment\n"
         "- 50% reduction in processing time",
-        idea_title="Invoice Automation Project",
+        project_title="Invoice Automation Project",
         generated_date="2026-03-11",
     )
 
@@ -41,13 +41,13 @@ def _make_request(**overrides: str) -> SimpleNamespace:
         "core_capabilities": "Test Capabilities",
         "success_criteria": "Test Criteria",
     }
-    idea_title = overrides.pop("idea_title", "Test Idea")
-    idea_id = overrides.pop("idea_id", "test-idea-id")
+    project_title = overrides.pop("project_title", "Test Project")
+    project_id = overrides.pop("project_id", "test-project-id")
     generated_at = overrides.pop("generated_at", "2026-03-11")
     defaults.update(overrides)
     return SimpleNamespace(
-        idea_id=idea_id,
-        idea_title=idea_title,
+        project_id=project_id,
+        project_title=project_title,
         sections=defaults,
         generated_at=generated_at,
     )
@@ -73,7 +73,7 @@ class TestHtmlBuilder:
         assert "5. Core Capabilities" in html
         assert "6. Success Criteria" in html
 
-    def test_build_html_contains_idea_title(self) -> None:
+    def test_build_html_contains_project_title(self) -> None:
         content = _sample_content()
         html = build_html(content)
         assert "Invoice Automation Project" in html
@@ -97,7 +97,7 @@ class TestHtmlBuilder:
             section_affected_department="",
             section_core_capabilities="",
             section_success_criteria="",
-            idea_title='Test "Idea"',
+            project_title='Test "Project"',
             generated_date="2026-03-11",
         )
         html = build_html(content)

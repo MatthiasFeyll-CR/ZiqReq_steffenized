@@ -5,43 +5,44 @@ package ziqreq.core;
 import "common.proto";
 
 service CoreService {
-  rpc GetIdeaContext(IdeaContextRequest) returns (IdeaContextResponse);
+  rpc GetProjectContext(ProjectContextRequest) returns (ProjectContextResponse);
   rpc GetFullChatHistory(FullChatHistoryRequest) returns (FullChatHistoryResponse);
   rpc PersistAiChatMessage(AiChatMessageRequest) returns (AiChatMessageResponse);
   rpc PersistAiReaction(AiReactionRequest) returns (AiReactionResponse);
-  rpc UpdateIdeaTitle(UpdateTitleRequest) returns (UpdateTitleResponse);
+  rpc UpdateProjectTitle(UpdateTitleRequest) returns (UpdateTitleResponse);
   rpc UpdateBrdDraft(UpdateBrdDraftRequest) returns (UpdateBrdDraftResponse);
 
-  rpc GetIdeasByState(IdeasByStateRequest) returns (IdeasByStateResponse);
+  rpc GetProjectsByState(ProjectsByStateRequest) returns (ProjectsByStateResponse);
   rpc GetUserStats(GetUserStatsRequest) returns (UserStatsResponse);
   rpc GetRateLimitStatus(RateLimitRequest) returns (RateLimitResponse);
 }
 
-message IdeaContextRequest {
-  string idea_id = 1;
+message ProjectContextRequest {
+  string project_id = 1;
   int32 recent_message_limit = 2;
   bool include_brd_draft = 3;
 }
 
-message IdeaContextResponse {
-  IdeaMetadata metadata = 1;
+message ProjectContextResponse {
+  ProjectMetadata metadata = 1;
   repeated ChatMessage recent_messages = 2;
   BrdDraftState brd_draft = 3;
   repeated UserInfo active_users = 5;
 }
 
-message IdeaMetadata {
-  string idea_id = 1;
+message ProjectMetadata {
+  string project_id = 1;
   string title = 2;
   bool title_manually_edited = 3;
   string state = 4;
   string agent_mode = 5;
   string owner_display_name = 6;
   string co_owner_display_name = 7;
+  string project_type = 8;
 }
 
 message BrdDraftState {
-  string idea_id = 1;
+  string project_id = 1;
   map<string, string> sections = 2;
   map<string, bool> locked_sections = 3;
   string updated_at = 4;
@@ -64,7 +65,7 @@ message ChatMessage {
 }
 
 message FullChatHistoryRequest {
-  string idea_id = 1;
+  string project_id = 1;
 }
 
 message FullChatHistoryResponse {
@@ -72,7 +73,7 @@ message FullChatHistoryResponse {
 }
 
 message AiChatMessageRequest {
-  string idea_id = 1;
+  string project_id = 1;
   string content = 2;
   string message_type = 3;
   string language = 4;
@@ -85,7 +86,7 @@ message AiChatMessageResponse {
 }
 
 message AiReactionRequest {
-  string idea_id = 1;
+  string project_id = 1;
   string message_id = 2;
   string reaction_type = 3;
 }
@@ -95,7 +96,7 @@ message AiReactionResponse {
 }
 
 message UpdateTitleRequest {
-  string idea_id = 1;
+  string project_id = 1;
   string new_title = 2;
 }
 
@@ -104,7 +105,7 @@ message UpdateTitleResponse {
 }
 
 message UpdateBrdDraftRequest {
-  string idea_id = 1;
+  string project_id = 1;
   map<string, string> sections = 2;
   string readiness_evaluation_json = 3;
 }
@@ -113,9 +114,9 @@ message UpdateBrdDraftResponse {
   bool success = 1;
 }
 
-message IdeasByStateRequest {}
+message ProjectsByStateRequest {}
 
-message IdeasByStateResponse {
+message ProjectsByStateResponse {
   repeated StateCount counts = 1;
 }
 
@@ -129,13 +130,13 @@ message GetUserStatsRequest {
 }
 
 message UserStatsResponse {
-  int32 idea_count = 1;
+  int32 project_count = 1;
   int32 review_count = 2;
   int32 contribution_count = 3;
 }
 
 message RateLimitRequest {
-  string idea_id = 1;
+  string project_id = 1;
 }
 
 message RateLimitResponse {

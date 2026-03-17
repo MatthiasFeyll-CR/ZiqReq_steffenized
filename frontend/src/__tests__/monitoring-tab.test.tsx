@@ -90,7 +90,7 @@ describe("MonitoringTab — UI-ADMIN.03: Monitoring dashboard renders stats", ()
     render(<MonitoringTab />);
 
     await waitFor(() => {
-      expect(screen.getAllByText("Ideas by State").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Projects by State").length).toBeGreaterThanOrEqual(1);
     });
 
     expect(screen.getByText("10")).toBeInTheDocument();

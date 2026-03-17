@@ -124,13 +124,13 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
     );
   });
 
-  it("displays warning toast for removed_from_idea event", async () => {
+  it("displays warning toast for removed_from_project event", async () => {
     renderBell();
     await screen.findByRole("button", { name: "Notifications" });
 
     await act(async () => {
       dispatchNotification({
-        event_type: "removed_from_idea",
+        event_type: "removed_from_project",
         title: "Removed",
         body: "You were removed from an idea",
       });

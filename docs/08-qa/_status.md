@@ -3,11 +3,11 @@
 ## Project
 - **Name:** ZiqReq
 - **Started:** 2026-03-09
-- **Last updated:** 2026-03-16
+- **Last updated:** 2026-03-17
 
 ## Current Review
-- **Milestone:** 17 — Remove Features (Clean Slate)
-- **Phase:** 6 (verdict delivered — final pipeline re-review)
+- **Milestone:** 18 — Rename Idea to Project
+- **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 1
 - **Status:** passed
 
@@ -31,28 +31,24 @@
 | M15 — Admin Panel | `qa-m15-admin.md` | 0 | PASS | 2026-03-11 |
 | M16 — Polish & Cross-Cutting | `qa-m16-polish.md` | 1 | PASS | 2026-03-11 |
 | M17 — Remove Features | `qa-m17-remove-features.md` | 1 | PASS | 2026-03-16 |
+| M18 — Rename Project | `qa-m18-rename-project.md` | 1 | PASS | 2026-03-17 |
 
 ## Input Consumed
-- .ralph/prd.json
+- .ralph/prd.json (symlink to tasks/prd-m18.json)
 - .ralph/progress.txt
-- docs/05-milestones/milestone-17.md
-- tasks/prd-m17.json
-- services/core/apps/ideas/migrations/0002_remove_merge_similarity.py
-- services/core/apps/ideas/migrations/0003_remove_board.py
-- services/ai/agents/facilitator/prompt.py
-- services/ai/agents/summarizing_ai/prompt.py
-- services/ai/processing/pipeline.py
-- frontend/src/components/workspace/WorkspaceLayout.tsx
-- frontend/package.json
-- proto/*.proto
+- docs/01-requirements/*.md
+- docs/02-architecture/*.md
+- docs/03-design/*.md
+- docs/04-test-architecture/test-matrix.md
+- docs/04-test-architecture/runtime-safety.md
+- docs/05-milestones/milestone-18.md
+- tasks/prd-m18.json
 
 ## Handoff
 - **Ready for merge:** true
-- **Next phase:** Merge + Verify, then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m17-remove-features.md, docs/08-qa/_status.md
-- **Deviations for Spec Reconciler:** 0
+- **Next phase:** Merge + Verify (handled by pipeline), then Spec Reconciler
+- **Files produced:** docs/08-qa/qa-m18-rename-project.md, docs/08-qa/_status.md
+- **Deviations for Spec Reconciler:** 1 (DEV-001 — internal step identifiers remain "brainstorm"/"document"/"review")
 
 ## Open Issues
-- Pre-existing pytest failures (3): `test_brd_pipeline.py::test_publish_generated_event`, `test_brd_pipeline.py::test_mock_mode_full_pipeline`, `test_embedding_pipeline.py::test_get_stubs_still_work`. Not introduced by M17.
-- Pre-existing ESLint errors (4): unused vars / useless escape in DocumentView, BRDSectionEditor, test files. Not introduced by M17.
-- Ruff: All checks now pass (0 errors after BF-001 fixed M17-introduced issues and also cleaned up additional files).
+- Pre-existing ESLint errors (4): unused vars in DocumentView, missing deps warnings in CommentsPanel, AIContextTab, MonitoringTab, ParametersTab, UsersTab. Not introduced by M18.

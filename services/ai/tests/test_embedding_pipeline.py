@@ -318,9 +318,19 @@ class TestContextServicer:
 
     def test_get_stubs_still_work(self):
         """Non-updated methods still return placeholder responses."""
+        import sys
+
         from grpc_server.servicers.context_servicer import AiContextServicer
 
-        servicer = AiContextServicer()
-        result = servicer.GetContextAgentBucket(MagicMock(), None)
+        mock_bucket_model = MagicMock()
+        mock_bucket_model.objects.first.return_value = None
+
+        mock_context_models = MagicMock()
+        mock_context_models.ContextAgentBucket = mock_bucket_model
+        mock_context_models.FacilitatorContextBucket = mock_bucket_model
+
+        with patch.dict(sys.modules, {"apps.context.models": mock_context_models}):
+            servicer = AiContextServicer()
+            result = servicer.GetContextAgentBucket(MagicMock(), None)
         assert "sections_json" in result
         assert result["sections_json"] == "{}"

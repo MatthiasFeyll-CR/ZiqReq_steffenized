@@ -34,10 +34,10 @@ class CoreServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.GetIdeaContext = channel.unary_unary(
-                '/ziqreq.core.CoreService/GetIdeaContext',
-                request_serializer=core__pb2.IdeaContextRequest.SerializeToString,
-                response_deserializer=core__pb2.IdeaContextResponse.FromString,
+        self.GetProjectContext = channel.unary_unary(
+                '/ziqreq.core.CoreService/GetProjectContext',
+                request_serializer=core__pb2.ProjectContextRequest.SerializeToString,
+                response_deserializer=core__pb2.ProjectContextResponse.FromString,
                 _registered_method=True)
         self.GetFullChatHistory = channel.unary_unary(
                 '/ziqreq.core.CoreService/GetFullChatHistory',
@@ -54,8 +54,8 @@ class CoreServiceStub(object):
                 request_serializer=core__pb2.AiReactionRequest.SerializeToString,
                 response_deserializer=core__pb2.AiReactionResponse.FromString,
                 _registered_method=True)
-        self.UpdateIdeaTitle = channel.unary_unary(
-                '/ziqreq.core.CoreService/UpdateIdeaTitle',
+        self.UpdateProjectTitle = channel.unary_unary(
+                '/ziqreq.core.CoreService/UpdateProjectTitle',
                 request_serializer=core__pb2.UpdateTitleRequest.SerializeToString,
                 response_deserializer=core__pb2.UpdateTitleResponse.FromString,
                 _registered_method=True)
@@ -64,10 +64,10 @@ class CoreServiceStub(object):
                 request_serializer=core__pb2.UpdateBrdDraftRequest.SerializeToString,
                 response_deserializer=core__pb2.UpdateBrdDraftResponse.FromString,
                 _registered_method=True)
-        self.GetIdeasByState = channel.unary_unary(
-                '/ziqreq.core.CoreService/GetIdeasByState',
-                request_serializer=core__pb2.IdeasByStateRequest.SerializeToString,
-                response_deserializer=core__pb2.IdeasByStateResponse.FromString,
+        self.GetProjectsByState = channel.unary_unary(
+                '/ziqreq.core.CoreService/GetProjectsByState',
+                request_serializer=core__pb2.ProjectsByStateRequest.SerializeToString,
+                response_deserializer=core__pb2.ProjectsByStateResponse.FromString,
                 _registered_method=True)
         self.GetUserStats = channel.unary_unary(
                 '/ziqreq.core.CoreService/GetUserStats',
@@ -84,7 +84,7 @@ class CoreServiceStub(object):
 class CoreServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def GetIdeaContext(self, request, context):
+    def GetProjectContext(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -108,7 +108,7 @@ class CoreServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def UpdateIdeaTitle(self, request, context):
+    def UpdateProjectTitle(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -120,7 +120,7 @@ class CoreServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetIdeasByState(self, request, context):
+    def GetProjectsByState(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -141,10 +141,10 @@ class CoreServiceServicer(object):
 
 def add_CoreServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'GetIdeaContext': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetIdeaContext,
-                    request_deserializer=core__pb2.IdeaContextRequest.FromString,
-                    response_serializer=core__pb2.IdeaContextResponse.SerializeToString,
+            'GetProjectContext': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProjectContext,
+                    request_deserializer=core__pb2.ProjectContextRequest.FromString,
+                    response_serializer=core__pb2.ProjectContextResponse.SerializeToString,
             ),
             'GetFullChatHistory': grpc.unary_unary_rpc_method_handler(
                     servicer.GetFullChatHistory,
@@ -161,8 +161,8 @@ def add_CoreServiceServicer_to_server(servicer, server):
                     request_deserializer=core__pb2.AiReactionRequest.FromString,
                     response_serializer=core__pb2.AiReactionResponse.SerializeToString,
             ),
-            'UpdateIdeaTitle': grpc.unary_unary_rpc_method_handler(
-                    servicer.UpdateIdeaTitle,
+            'UpdateProjectTitle': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateProjectTitle,
                     request_deserializer=core__pb2.UpdateTitleRequest.FromString,
                     response_serializer=core__pb2.UpdateTitleResponse.SerializeToString,
             ),
@@ -171,10 +171,10 @@ def add_CoreServiceServicer_to_server(servicer, server):
                     request_deserializer=core__pb2.UpdateBrdDraftRequest.FromString,
                     response_serializer=core__pb2.UpdateBrdDraftResponse.SerializeToString,
             ),
-            'GetIdeasByState': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetIdeasByState,
-                    request_deserializer=core__pb2.IdeasByStateRequest.FromString,
-                    response_serializer=core__pb2.IdeasByStateResponse.SerializeToString,
+            'GetProjectsByState': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProjectsByState,
+                    request_deserializer=core__pb2.ProjectsByStateRequest.FromString,
+                    response_serializer=core__pb2.ProjectsByStateResponse.SerializeToString,
             ),
             'GetUserStats': grpc.unary_unary_rpc_method_handler(
                     servicer.GetUserStats,
@@ -198,7 +198,7 @@ class CoreService(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def GetIdeaContext(request,
+    def GetProjectContext(request,
             target,
             options=(),
             channel_credentials=None,
@@ -211,9 +211,9 @@ class CoreService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ziqreq.core.CoreService/GetIdeaContext',
-            core__pb2.IdeaContextRequest.SerializeToString,
-            core__pb2.IdeaContextResponse.FromString,
+            '/ziqreq.core.CoreService/GetProjectContext',
+            core__pb2.ProjectContextRequest.SerializeToString,
+            core__pb2.ProjectContextResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -306,7 +306,7 @@ class CoreService(object):
             _registered_method=True)
 
     @staticmethod
-    def UpdateIdeaTitle(request,
+    def UpdateProjectTitle(request,
             target,
             options=(),
             channel_credentials=None,
@@ -319,7 +319,7 @@ class CoreService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ziqreq.core.CoreService/UpdateIdeaTitle',
+            '/ziqreq.core.CoreService/UpdateProjectTitle',
             core__pb2.UpdateTitleRequest.SerializeToString,
             core__pb2.UpdateTitleResponse.FromString,
             options,
@@ -360,7 +360,7 @@ class CoreService(object):
             _registered_method=True)
 
     @staticmethod
-    def GetIdeasByState(request,
+    def GetProjectsByState(request,
             target,
             options=(),
             channel_credentials=None,
@@ -373,9 +373,9 @@ class CoreService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/ziqreq.core.CoreService/GetIdeasByState',
-            core__pb2.IdeasByStateRequest.SerializeToString,
-            core__pb2.IdeasByStateResponse.FromString,
+            '/ziqreq.core.CoreService/GetProjectsByState',
+            core__pb2.ProjectsByStateRequest.SerializeToString,
+            core__pb2.ProjectsByStateResponse.FromString,
             options,
             channel_credentials,
             insecure,

@@ -14,7 +14,7 @@ class AIProcessingSerializer(serializers.Serializer):
     failure_count = serializers.IntegerField()
 
 
-class IdeasByStateSerializer(serializers.Serializer):
+class ProjectsByStateSerializer(serializers.Serializer):
     open = serializers.IntegerField()
     in_review = serializers.IntegerField()
     accepted = serializers.IntegerField()
@@ -24,7 +24,7 @@ class IdeasByStateSerializer(serializers.Serializer):
 
 class MonitoringDashboardSerializer(serializers.Serializer):
     active_connections = serializers.IntegerField()
-    ideas_by_state = IdeasByStateSerializer()
+    projects_by_state = ProjectsByStateSerializer()
     active_users = serializers.IntegerField()
     online_users = serializers.IntegerField()
     ai_processing = AIProcessingSerializer()

@@ -8,12 +8,12 @@ from typing import ClassVar as _ClassVar, Optional as _Optional
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class ChatProcessingRequest(_message.Message):
-    __slots__ = ("idea_id", "message_id")
-    IDEA_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("project_id", "message_id")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_ID_FIELD_NUMBER: _ClassVar[int]
-    idea_id: str
+    project_id: str
     message_id: str
-    def __init__(self, idea_id: _Optional[str] = ..., message_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, project_id: _Optional[str] = ..., message_id: _Optional[str] = ...) -> None: ...
 
 class ChatProcessingResponse(_message.Message):
     __slots__ = ("status", "processing_id")
@@ -24,18 +24,18 @@ class ChatProcessingResponse(_message.Message):
     def __init__(self, status: _Optional[str] = ..., processing_id: _Optional[str] = ...) -> None: ...
 
 class BrdGenerationRequest(_message.Message):
-    __slots__ = ("idea_id", "mode", "sections_to_regenerate", "instruction", "allow_information_gaps")
-    IDEA_ID_FIELD_NUMBER: _ClassVar[int]
+    __slots__ = ("project_id", "mode", "sections_to_regenerate", "instruction", "allow_information_gaps")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
     MODE_FIELD_NUMBER: _ClassVar[int]
     SECTIONS_TO_REGENERATE_FIELD_NUMBER: _ClassVar[int]
     INSTRUCTION_FIELD_NUMBER: _ClassVar[int]
     ALLOW_INFORMATION_GAPS_FIELD_NUMBER: _ClassVar[int]
-    idea_id: str
+    project_id: str
     mode: str
     sections_to_regenerate: _containers.RepeatedScalarFieldContainer[str]
     instruction: str
     allow_information_gaps: bool
-    def __init__(self, idea_id: _Optional[str] = ..., mode: _Optional[str] = ..., sections_to_regenerate: _Optional[_Iterable[str]] = ..., instruction: _Optional[str] = ..., allow_information_gaps: bool = ...) -> None: ...
+    def __init__(self, project_id: _Optional[str] = ..., mode: _Optional[str] = ..., sections_to_regenerate: _Optional[_Iterable[str]] = ..., instruction: _Optional[str] = ..., allow_information_gaps: bool = ...) -> None: ...
 
 class BrdGenerationResponse(_message.Message):
     __slots__ = ("status", "generation_id")

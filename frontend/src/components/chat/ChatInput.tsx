@@ -6,16 +6,16 @@ import { sendChatMessage, type ChatMessage } from "@/api/chat";
 import { MentionDropdown, type MentionItem } from "./MentionDropdown";
 import { ContextWindowIndicator } from "./ContextWindowIndicator";
 import { QuickReplyChips } from "./QuickReplyChips";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
 interface ChatInputProps {
-  ideaId: string;
-  idea?: Idea;
+  projectId: string;
+  project?: Project;
   onMessageSent: (message: ChatMessage) => void;
   disabled?: boolean;
 }
 
-export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputProps) {
+export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatInputProps) {
   const { t } = useTranslation();
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
@@ -33,12 +33,12 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
   // Build mention items: @ai first, then collaborators alphabetically
   const allMentionItems: MentionItem[] = useMemo(() => {
     const aiItem: MentionItem = { id: "ai", display_name: "ai", isAi: true };
-    const collaborators: MentionItem[] = (idea?.collaborators ?? [])
+    const collaborators: MentionItem[] = (project?.collaborators ?? [])
       .slice()
       .sort((a, b) => a.display_name.localeCompare(b.display_name))
       .map((c) => ({ id: c.user_id, display_name: c.display_name }));
     return [aiItem, ...collaborators];
-  }, [idea?.collaborators]);
+  }, [project?.collaborators]);
 
   const filteredMentionItems = useMemo(() => {
     if (!mentionQuery) return allMentionItems;
@@ -109,7 +109,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
     closeMention();
     setSending(true);
     try {
-      const message = await sendChatMessage(ideaId, content);
+      const message = await sendChatMessage(projectId, content);
       setValue("");
       resetHeight();
       onMessageSent(message);
@@ -119,7 +119,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [value, sending, disabled, ideaId, onMessageSent, resetHeight, closeMention]);
+  }, [value, sending, disabled, projectId, onMessageSent, resetHeight, closeMention]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -229,7 +229,7 @@ export function ChatInput({ ideaId, idea, onMessageSent, disabled }: ChatInputPr
         <QuickReplyChips onSelect={handleQuickReply} disabled={disabled} />
       )}
       <div className="flex items-end gap-2 px-6 py-4">
-      <ContextWindowIndicator ideaId={ideaId} ideaState={idea?.state ?? "open"} />
+      <ContextWindowIndicator projectId={projectId} projectState={project?.state ?? "open"} />
       <div className="relative flex-1">
         {mentionOpen && (
           <MentionDropdown

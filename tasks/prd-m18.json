@@ -1,198 +1,52 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m18-rename-project",
-  "description": "Rename the core 'Idea' entity to 'Project' across the entire codebase — database, backend models, API routes, frontend code, and all user-facing text. This is a comprehensive refactoring that touches every layer of the stack. The project_type column is added here but the type selection UI comes in M19.",
+  "description": "Bugfix cycle 1 for Milestone 18 \u2014 Rename Idea to Project. Fixes 1 defect found in QA review: process step labels and user-facing strings still display old 'Brainstorm'/'idea' terminology instead of 'Define'/'project'.",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "[Backend] Rename database tables and models from Idea to Project",
-      "description": "As a developer, I want all database tables and backend models renamed from 'idea' to 'project' so that the codebase reflects the new product terminology and prepares for the project types feature.",
+      "id": "BF-001",
+      "title": "Fix: Process step labels and user-facing strings still display old terminology",
+      "description": "Fix defect DEF-001 from QA report qa-m18-rename-project.md. Multiple user-facing strings in ProcessStepper, ProjectWorkspace, and DocumentView still show 'Brainstorm'/'idea' terminology. Translation keys are missing from en.json and de.json.",
       "acceptanceCriteria": [
-        "Migration created to rename 'ideas' table to 'projects'",
-        "Migration created to rename 'idea_collaborators' table to 'project_collaborators'",
-        "Migration created to rename all 'idea_id' foreign key columns to 'project_id' in: chat_messages, requirements_document_drafts, requirements_document_versions, review_assignments, review_timeline_entries, collaboration_invitations, chat_context_summaries",
-        "Migration created to add 'project_type' column to projects table (varchar(20), NOT NULL, CHECK constraint for 'software'/'non_software'). Note: This column is added now but not yet populated or used — M19 will add type selection UI.",
-        "Migration adds index on projects.project_type column",
-        "Django app 'ideas' renamed to 'projects' in services/core/apps/ (update app name in apps.py, INSTALLED_APPS in settings)",
-        "Django app 'ideas' renamed to 'projects' in services/gateway/apps/ (update app name in apps.py, INSTALLED_APPS in settings)",
-        "Core models.py: Idea class renamed to Project, IdeaCollaborator renamed to ProjectCollaborator",
-        "Gateway models.py: Idea class renamed to Project, IdeaCollaborator renamed to ProjectCollaborator (mirror models)",
-        "All model method names and docstrings updated (e.g., 'idea.title' still valid as 'project.title')",
-        "All ForeignKey related_name updated: 'idea' -> 'project', 'collaborators' stays same",
-        "proto/core.proto: Idea message renamed to Project, IdeaCollaborator to ProjectCollaborator, all idea_id fields renamed to project_id",
-        "proto/common.proto: Idea message renamed to Project, idea_id fields renamed to project_id",
-        "proto/gateway.proto: Idea message renamed to Project, idea_id fields renamed to project_id",
-        "proto/ai.proto: idea_id fields renamed to project_id",
-        "proto/pdf.proto: idea_id fields renamed to project_id",
-        "All proto files regenerated (run scripts/codegen.sh or equivalent protoc commands)",
-        "All gRPC servicers updated to use Project instead of Idea in method signatures",
-        "All gRPC clients updated to use Project instead of Idea",
-        "WebSocket consumer class renamed: IdeaConsumer -> ProjectConsumer",
-        "WebSocket channel groups renamed: 'idea_{id}' -> 'project_{id}'",
-        "RabbitMQ event types renamed: 'idea.*' -> 'project.*' (e.g., 'idea.created' -> 'project.created')",
-        "Notification templates updated: all 'idea' references -> 'project'",
-        "All test files updated to use Project instead of Idea",
-        "Typecheck passes (mypy services/)",
-        "Ruff check passes (ruff check services/)",
-        "Docker build succeeds (docker compose -f docker-compose.test.yml up -d --build)"
+        "frontend/src/i18n/locales/en.json: Add 'process' section with keys: brainstorm='Define', brainstormDesc='Chat with AI to define your project', document='Structure', documentDesc='Generate & refine your requirements document', review='Review', reviewDesc='Submit for approval', stepper='Process steps', brainstormDoneHint='Ready to formalize your project? Continue to generate your Business Requirements Document.'",
+        "frontend/src/i18n/locales/de.json: Add equivalent 'process' section with German translations (Definieren, Strukturieren, Uberprufung, etc.)",
+        "frontend/src/i18n/locales/en.json: Add review.rejectedHint='Your project was rejected. You can refine it and resubmit.' and review.backToBrainstorm='Back to Define'",
+        "frontend/src/i18n/locales/de.json: Add equivalent review.rejectedHint and review.backToBrainstorm in German",
+        "frontend/src/i18n/locales/en.json: Add submit.readyDescription='Once submitted, your project will be sent to reviewers for evaluation.'",
+        "frontend/src/i18n/locales/de.json: Add equivalent submit.readyDescription in German",
+        "frontend/src/components/workspace/ProcessStepper.tsx: Update fallback strings \u2014 'Brainstorm' -> 'Define', 'Document' -> 'Structure', 'Chat with AI to shape your idea' -> 'Chat with AI to define your project'",
+        "frontend/src/pages/ProjectWorkspace/index.tsx line ~256: Replace hardcoded 'Send at least one message in the brainstorming chat before proceeding to the document.' with t() call using correct terminology",
+        "frontend/src/pages/ProjectWorkspace/index.tsx line ~260: Replace hardcoded 'Submit your idea for review first.' with t() call or update text to 'Submit your project for review first.'",
+        "All user-facing strings in ProcessStepper, ProjectWorkspace, and DocumentView use 'project' not 'idea' and 'Define'/'Structure' not 'Brainstorm'/'Document'",
+        "grep -r 'your idea' frontend/src/ --include='*.tsx' --exclude-dir=__tests__ returns zero hits",
+        "grep -r 'brainstorming' frontend/src/ --include='*.tsx' --exclude-dir=__tests__ returns zero hits (excluding comments)",
+        "Typecheck passes (cd frontend && npx tsc --noEmit)"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
-      "notes": "Architecture: docs/02-architecture/data-model.md § projects, project_collaborators, chat_messages, requirements_document_drafts, requirements_document_versions, review_assignments, review_timeline_entries, collaboration_invitations — table rename and FK renames\nArchitecture: docs/02-architecture/project-structure.md § Service Decomposition, Django Model Sharing — app rename in core and gateway\nArchitecture: docs/02-architecture/api-design.md § gRPC Communication — proto changes and regeneration\nTesting: No specific test matrix entries for this scaffolding story — implement-first workflow\nFiles: services/core/apps/ideas/ (rename to projects/), services/gateway/apps/ideas/ (rename to projects/), services/core/apps/ideas/models.py, services/gateway/apps/ideas/models.py, services/core/apps/ideas/migrations/, services/gateway/apps/ideas/migrations/, proto/core.proto, proto/common.proto, proto/gateway.proto, proto/ai.proto, proto/pdf.proto, services/core/grpc_server/servicers/, services/gateway/grpc_clients/, services/ai/grpc_clients/, services/notification/grpc_clients/, services/gateway/apps/websocket/consumers.py, services/core/events/, services/gateway/events/, services/notification/consumers/\nGotchas: Django app rename requires updating apps.py AppConfig.name, INSTALLED_APPS in settings.py, and all import paths across the codebase. The 'ideas' app name appears in dozens of imports. Migration files must be created in the NEW app directory path after renaming. WebSocket consumer routing must be updated in gateway/routing.py. RabbitMQ queue names and routing keys in docker-compose.yml may need updates. The project_type column is added but migration should set a temporary default value (e.g., 'software') for existing rows, then M19 will handle proper type assignment.",
-      "context": {
-        "data_model": [
-          "ideas → projects: id uuid PK, title varchar(500), title_manually_edited bool, state varchar(20), visibility varchar(20), agent_mode varchar(20), owner_id uuid FK, share_link_token varchar(64) UNIQUE, deleted_at timestamptz, created_at timestamptz, updated_at timestamptz. Add: project_type varchar(20) NOT NULL CHECK (project_type IN ('software', 'non_software'))",
-          "idea_collaborators → project_collaborators: id uuid PK, idea → project FK, user_id uuid FK, joined_at timestamptz",
-          "chat_messages: rename idea_id → project_id (FK to projects)",
-          "requirements_document_drafts: rename idea_id → project_id (FK to projects)",
-          "requirements_document_versions: rename idea_id → project_id (FK to projects)",
-          "review_assignments: rename idea_id → project_id (FK to projects)",
-          "review_timeline_entries: rename idea_id → project_id (FK to projects)",
-          "collaboration_invitations: rename idea_id → project_id (FK to projects)",
-          "chat_context_summaries: rename idea_id → project_id (FK to projects)"
-        ],
-        "existing_code": [
-          "services/core/apps/ideas/models.py: class Idea(models.Model), class IdeaCollaborator(models.Model)",
-          "services/gateway/apps/ideas/models.py: class Idea(models.Model), class IdeaCollaborator(models.Model) — mirror models",
-          "services/gateway/apps/websocket/consumers.py: class IdeaConsumer(AsyncWebsocketConsumer)",
-          "proto/core.proto: message Idea, message IdeaCollaborator, RPC methods with idea_id parameters",
-          "services/core/events/: event types 'idea.created', 'idea.updated', 'idea.deleted'",
-          ".ralph/archive/m17-remove-features/progress.txt: patterns on Django migration, app rename, proto regeneration"
-        ]
-      }
-    },
-    {
-      "id": "US-002",
-      "title": "[Backend] Rename API routes from /api/ideas to /api/projects",
-      "description": "As a developer, I want all REST API endpoints renamed from '/api/ideas/' to '/api/projects/' and URL parameters from 'idea_id' to 'project_id' so that the API reflects the new product terminology.",
-      "acceptanceCriteria": [
-        "services/gateway/apps/projects/urls.py: All URL patterns changed from 'ideas/' to 'projects/'",
-        "All URL parameter names changed from '<uuid:idea_id>' to '<uuid:project_id>'",
-        "services/gateway/apps/projects/views.py: All view function parameters renamed from 'idea_id' to 'project_id'",
-        "services/gateway/apps/chat/views.py: URL patterns and view parameters updated",
-        "services/gateway/apps/brd/views.py: URL patterns and view parameters updated",
-        "services/gateway/apps/review/views.py: URL patterns and view parameters updated",
-        "services/gateway/apps/collaboration/views.py: URL patterns and view parameters updated",
-        "services/gateway/apps/comments/views.py: URL parameters updated",
-        "All error messages and response text updated from 'idea' to 'project'",
-        "All serializer field names remain compatible (e.g., JSON responses use 'id' not 'project_id' for the project's own ID)",
-        "WebSocket routing updated if it references /ws/ideas/ paths",
-        "All test files updated to use new URL patterns",
-        "Typecheck passes (mypy services/)",
-        "Ruff check passes (ruff check services/)"
-      ],
-      "priority": 2,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: docs/02-architecture/api-design.md § REST Endpoints — all /api/ideas/* endpoints become /api/projects/*\nArchitecture: docs/02-architecture/project-structure.md § Gateway Service — URL routing structure\nTesting: No specific test matrix entries for this scaffolding story — implement-first workflow\nFiles: services/gateway/apps/projects/urls.py (was ideas/urls.py), services/gateway/apps/projects/views.py, services/gateway/apps/chat/urls.py, services/gateway/apps/chat/views.py, services/gateway/apps/brd/urls.py, services/gateway/apps/brd/views.py, services/gateway/apps/review/urls.py, services/gateway/apps/review/views.py, services/gateway/apps/collaboration/urls.py, services/gateway/apps/collaboration/views.py, services/gateway/apps/comments/urls.py, services/gateway/apps/comments/views.py, services/gateway/apps/websocket/routing.py, services/gateway/apps/projects/tests/\nGotchas: Django URL patterns must match exactly — forgotten renames will cause 404s. View function parameter names must match URL pattern parameter names. Serializers may have 'idea' field names that need renaming but be careful not to break the JSON schema that frontend expects. Test files mock URL paths — all need updates. WebSocket consumers may have URL routing that references 'ideas' in the path pattern.",
-      "context": {
-        "api_endpoints": [
-          "POST /api/ideas/ → /api/projects/ — create project",
-          "GET /api/ideas/:idea_id → /api/projects/:project_id — get project details",
-          "PATCH /api/ideas/:idea_id → /api/projects/:project_id — update project",
-          "DELETE /api/ideas/:idea_id → /api/projects/:project_id — soft delete project",
-          "POST /api/ideas/:idea_id/restore → /api/projects/:project_id/restore — restore from trash",
-          "All nested routes: /api/ideas/:idea_id/chat → /api/projects/:project_id/chat, etc."
-        ],
-        "existing_code": [
-          "services/gateway/apps/ideas/urls.py: urlpatterns with path('ideas/', ...) and path('<uuid:idea_id>/', ...)",
-          "services/gateway/apps/ideas/views.py: def view_function(request, idea_id: uuid.UUID)",
-          "services/gateway/apps/websocket/routing.py: websocket_urlpatterns with 'ws/ideas/<uuid:idea_id>/'",
-          ".ralph/archive/m17-remove-features/progress.txt: US-001 and US-002 show patterns for updating views, serializers, URLs"
-        ]
-      }
-    },
-    {
-      "id": "US-003",
-      "title": "[Frontend] Rename all idea references to project",
-      "description": "As a developer, I want all frontend files, types, components, hooks, and routing renamed from 'idea' to 'project' so that the frontend codebase reflects the new product terminology.",
-      "acceptanceCriteria": [
-        "frontend/src/api/ideas.ts renamed to projects.ts, all functions renamed (createIdea -> createProject, etc.)",
-        "frontend/src/types/models.ts: Idea interface renamed to Project, IdeaCollaborator renamed to ProjectCollaborator",
-        "frontend/src/pages/IdeaWorkspace/ renamed to ProjectWorkspace/",
-        "frontend/src/components/landing/IdeaCard.tsx renamed to ProjectCard.tsx",
-        "frontend/src/components/landing/IdeaCardSkeleton.tsx renamed to ProjectCardSkeleton.tsx",
-        "frontend/src/components/landing/IdeaCardCompact.tsx renamed to ProjectCardCompact.tsx",
-        "frontend/src/components/layout/IdeasListFloating.tsx renamed to ProjectsListFloating.tsx",
-        "frontend/src/features/admin/IdeasTab.tsx renamed to ProjectsTab.tsx",
-        "All idea-related hooks renamed: use-create-idea.ts -> use-create-project.ts, use-landing-sync.ts updated",
-        "frontend/src/app/routes.tsx: /idea/:id -> /project/:id",
-        "All API client calls updated to use /api/projects/ endpoints",
-        "All React Query keys updated: ['ideas', ...] -> ['projects', ...]",
-        "Redux slices updated if they reference 'idea' state",
-        "WebSocket event handlers updated: 'idea_created' -> 'project_created', etc.",
-        "All component props renamed: ideaId -> projectId, idea -> project",
-        "All state variables renamed: idea -> project, ideas -> projects",
-        "All function names renamed: handleIdeaClick -> handleProjectClick, etc.",
-        "All test files updated to use Project instead of Idea",
-        "All test mocks updated to use new API paths and field names",
-        "TypeScript typecheck passes (cd frontend && npx tsc --noEmit)",
-        "ESLint passes (cd frontend && npx eslint src/)",
-        "Docker build succeeds (docker compose -f docker-compose.test.yml up -d --build)"
-      ],
-      "priority": 3,
-      "passes": false,
-      "testIds": [],
-      "notes": "Design: docs/03-design/component-specs.md § Project Card — component rename from IdeaCard to ProjectCard\nDesign: docs/03-design/page-layouts.md § Landing Page — references to idea cards become project cards\nArchitecture: docs/02-architecture/project-structure.md § Frontend Structure — file path conventions\nTesting: No specific test matrix entries for this scaffolding story — implement-first workflow\nFiles: frontend/src/api/ideas.ts (rename to projects.ts), frontend/src/types/models.ts, frontend/src/pages/IdeaWorkspace/ (rename to ProjectWorkspace/), frontend/src/components/landing/IdeaCard.tsx (rename to ProjectCard.tsx), frontend/src/components/landing/IdeaCardSkeleton.tsx, frontend/src/components/landing/IdeaCardCompact.tsx, frontend/src/components/layout/IdeasListFloating.tsx, frontend/src/features/admin/IdeasTab.tsx, frontend/src/hooks/use-create-idea.ts, frontend/src/hooks/use-landing-sync.ts, frontend/src/hooks/use-websocket.ts, frontend/src/app/routes.tsx, frontend/src/store/, frontend/src/__tests__/\nGotchas: File renames in React require updating all imports across the codebase — use IDE refactor or grep to find all import paths. Type renames cascade to all type annotations throughout the frontend. WebSocket event names must match the backend's new event names exactly. React Query keys must be updated consistently or cache will break. Component prop renames require updating all usage sites. The word 'idea' appears in many contexts (e.g., 'good idea', 'no idea') in comments and strings — only rename actual code references, not natural language. Some test files mock API responses — all 'idea' field names in mocks must become 'project'.",
-      "context": {
-        "components": [
-          "IdeaCard → ProjectCard — props: idea → project, onIdeaClick → onProjectClick",
-          "IdeaCardSkeleton → ProjectCardSkeleton — no props change",
-          "IdeaCardCompact → ProjectCardCompact — props: idea → project",
-          "IdeaWorkspace → ProjectWorkspace — route param: ideaId → projectId",
-          "IdeasListFloating → ProjectsListFloating — internal state: ideas → projects"
-        ],
-        "api_endpoints": [
-          "All endpoints from ideas.ts API client updated to /api/projects/*"
-        ],
-        "existing_code": [
-          "frontend/src/api/ideas.ts: export const createIdea, fetchIdea, updateIdea, deleteIdea, restoreIdea",
-          "frontend/src/types/models.ts: export interface Idea { id: string; title: string; ... }",
-          "frontend/src/hooks/use-create-idea.ts: export const useCreateIdea hook",
-          "frontend/src/app/routes.tsx: <Route path='/idea/:id' element={<IdeaWorkspace />} />",
-          ".ralph/archive/m17-remove-features/progress.txt: US-002 and US-004 show patterns for frontend file renames and type updates"
-        ]
-      }
-    },
-    {
-      "id": "US-004",
-      "title": "[Both] Rename terminology and translations from brainstorming to requirements assembly",
-      "description": "As a user, I want all user-facing text updated from 'idea'/'brainstorming' language to 'project'/'requirements assembly' language so that the product terminology matches the new purpose as a requirements assembly platform.",
-      "acceptanceCriteria": [
-        "frontend/src/i18n/locales/en.json: All 'idea' strings replaced with 'project' (nav.ideas -> nav.projects, landing.lists.myIdeas -> myProjects, etc.)",
-        "frontend/src/i18n/locales/de.json: All 'idea' strings replaced with 'project' equivalent in German (Idee -> Projekt)",
-        "Process step labels updated in translations: 'Brainstorm' -> 'Define', 'Document' -> 'Structure', 'Review' stays same",
-        "Landing page hero text updated: 'Start a new brainstorm' -> 'Create a new project', 'Describe your idea' -> 'Describe your project'",
-        "All navigation labels updated: 'Ideas' -> 'Projects'",
-        "All button labels updated: 'Create Idea' -> 'Create Project', 'Delete Idea' -> 'Delete Project', etc.",
-        "All empty state messages updated: 'Start your first brainstorm' -> 'Create your first project'",
-        "All notification messages updated: 'idea' -> 'project'",
-        "services/ai/agents/facilitator/prompt.py: System prompt updated to use 'project' and 'requirements' language instead of 'idea' and 'brainstorming'",
-        "services/ai/agents/summarizing_ai/prompt.py: System prompt updated to use 'project' language",
-        "services/ai/processing/pipeline.py: Any hardcoded messages updated to use 'project' language",
-        "All email templates updated: 'idea' -> 'project'",
-        "All notification templates updated: 'idea' -> 'project'",
-        "grep -r 'idea\\|Idea\\|brainstorm' frontend/src/i18n/ returns only intentional hits (e.g., 'good idea' in comments)",
-        "grep -r 'brainstorm\\|Brainstorm' services/ai/ returns no hits in production code (comments OK)",
-        "TypeScript typecheck passes",
-        "Docker build succeeds"
-      ],
-      "priority": 4,
-      "passes": false,
-      "testIds": [],
-      "notes": "Architecture: docs/01-requirements/features.md § FA-1 Project Workspace — process step terminology\nAI: docs/03-ai/system-prompts.md § Facilitator — full system prompt with 'idea' and 'brainstorming' language to update\nAI: docs/03-ai/system-prompts.md § Summarizing AI — system prompt with 'idea' language to update\nTesting: No specific test matrix entries for this scaffolding story — implement-first workflow\nFiles: frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, services/ai/agents/facilitator/prompt.py, services/ai/agents/summarizing_ai/prompt.py, services/ai/processing/pipeline.py, services/notification/templates/, services/gateway/apps/notifications/\nGotchas: The word 'idea' appears in many natural language contexts ('good idea', 'no idea', 'ideally') — do NOT replace these. Only replace user-facing product terminology. The AI prompts have significant 'brainstorming' and 'idea refinement' language that needs careful rewording to 'requirements structuring' and 'project definition' while preserving the prompt's functionality and tone. German translations must be grammatically correct (Idee -> Projekt, but check plurals and cases). Translation keys themselves may need renaming (e.g., 'landing.hero.ideaPlaceholder' -> 'landing.hero.projectPlaceholder') but be careful not to break existing references before the key is renamed everywhere. Process steps appear in multiple places: stepper component, translations, AI prompts — must be consistent everywhere.",
-      "context": {
-        "ai_specs": [
-          "Facilitator prompt.py — replace 'brainstorming', 'refine your idea', 'idea development' with 'requirements assembly', 'structure your project', 'requirements definition'. Preserve agent mode logic, delegation logic, tone guidance.",
-          "Summarizing AI prompt.py — replace 'idea' references with 'project', ensure summary focuses on requirements content not brainstorm process"
-        ],
-        "existing_code": [
-          "frontend/src/i18n/locales/en.json: 'nav.ideas', 'landing.hero.heading', 'landing.lists.myIdeas', 'landing.empty.myIdeas', etc. — 44 'idea' hits total",
-          "frontend/src/i18n/locales/de.json: 'nav.ideas': 'Ideen', 'landing.hero.heading': 'Neue Idee brainstormen', etc. — 17 'idea' hits total",
-          "services/ai/agents/facilitator/prompt.py: 'You are the Brainstorming Assistant...', 'help them refine their ideas...', 'brainstorming session...' — multiple hits",
-          "services/ai/agents/summarizing_ai/prompt.py: 'Summarize the idea discussion...', 'key idea points...' — a few hits",
-          ".ralph/archive/m17-remove-features/progress.txt: US-002 shows i18n translation file update patterns"
+      "notes": "Defect: DEF-001. Files: frontend/src/components/workspace/ProcessStepper.tsx:37-42, frontend/src/pages/ProjectWorkspace/index.tsx:256,260,462,512,520, frontend/src/components/workspace/DocumentView.tsx:445, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json. Expected: Process step labels 'Define'/'Structure'/'Review' and all strings use 'project' not 'idea'. Actual: Fallback strings display 'Brainstorm'/'Document' and 'your idea'. Translation keys (process.*, review.rejectedHint, review.backToBrainstorm, submit.readyDescription) do not exist in en.json/de.json. Suggested fix: Add all missing translation keys to both locale files, update fallback strings in components as safety net, replace hardcoded strings with t() calls.",
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n\u2500\u2500 PREVIOUS CYCLE ANALYSIS \u2500\u2500\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=614, failed=0, errors=0)\n  Evidence: expected side effects. Deprecated in Pydantic V2.11 to be\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-17T01:39:29+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "expected side effects. Deprecated in Pydantic V2.11 to be",
+            "test_results": {
+              "passed": 614,
+              "failed": 0,
+              "errors": 0,
+              "total": 614
+            },
+            "error_patterns": [],
+            "qa_summary_excerpt": "# QA Report: Milestone 18 \u2014 Rename Idea to Project\n**Date:** 2026-03-17\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m18.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nMilestone 18 renames the core \"Idea\" entity to \"Project\" across the entire codebase \u2014 database, backend models, API routes, frontend code, and all user-facing text. The implementation is thorough across database migrations, model classes, proto files, gRPC layer, API routes, and"
+          }
         ]
       }
     }

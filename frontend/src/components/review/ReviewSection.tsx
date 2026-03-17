@@ -3,12 +3,12 @@ import { FileText, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReviewTimeline } from "./ReviewTimeline";
-import { fetchTimeline, fetchIdeaReviewers } from "@/api/review";
-import type { Idea } from "@/api/ideas";
+import { fetchTimeline, fetchProjectReviewers } from "@/api/review";
+import type { Project } from "@/api/projects";
 
 interface ReviewSectionProps {
-  ideaId: string;
-  idea: Idea;
+  projectId: string;
+  project: Project;
 }
 
 const STATE_LABELS: Record<string, string> = {
@@ -19,21 +19,21 @@ const STATE_LABELS: Record<string, string> = {
   rejected: "Rejected",
 };
 
-export function ReviewSection({ ideaId, idea }: ReviewSectionProps) {
+export function ReviewSection({ projectId, project }: ReviewSectionProps) {
   const {
     data: timelineEntries,
     isLoading: isTimelineLoading,
   } = useQuery({
-    queryKey: ["timeline", ideaId],
-    queryFn: () => fetchTimeline(ideaId),
+    queryKey: ["timeline", projectId],
+    queryFn: () => fetchTimeline(projectId),
   });
 
   const {
     data: reviewerData,
     isLoading: isReviewersLoading,
   } = useQuery({
-    queryKey: ["reviewers", ideaId],
-    queryFn: () => fetchIdeaReviewers(ideaId),
+    queryKey: ["reviewers", projectId],
+    queryFn: () => fetchProjectReviewers(projectId),
   });
 
   const reviewers = reviewerData?.reviewers ?? [];
@@ -49,12 +49,12 @@ export function ReviewSection({ ideaId, idea }: ReviewSectionProps) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-lg font-semibold truncate text-foreground">{idea.title}</h2>
+            <h2 className="text-lg font-semibold truncate text-foreground">{project.title}</h2>
             <Badge
-              variant={idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected"}
+              variant={project.state as "open" | "in_review" | "accepted" | "dropped" | "rejected"}
               className="shrink-0"
             >
-              {STATE_LABELS[idea.state] || idea.state}
+              {STATE_LABELS[project.state] || project.state}
             </Badge>
           </div>
 
@@ -85,7 +85,7 @@ export function ReviewSection({ ideaId, idea }: ReviewSectionProps) {
             <Skeleton className="h-10 w-3/4" />
           </div>
         ) : (
-          <ReviewTimeline entries={timelineEntries ?? []} ideaId={ideaId} />
+          <ReviewTimeline entries={timelineEntries ?? []} projectId={projectId} />
         )}
       </div>
     </div>

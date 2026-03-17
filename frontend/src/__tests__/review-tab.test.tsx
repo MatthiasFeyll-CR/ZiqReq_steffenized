@@ -17,12 +17,12 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 function emptyDraft(): BrdDraft {
   return {
     id: "22222222-2222-2222-2222-222222222222",
-    idea_id: IDEA_ID,
+    project_id: PROJECT_ID,
     section_title: null,
     section_short_description: null,
     section_current_workflow: null,
@@ -67,10 +67,10 @@ beforeEach(() => {
   });
 });
 
-function renderReviewTab(ideaId = IDEA_ID) {
+function renderReviewTab(projectId = PROJECT_ID) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReviewTab ideaId={ideaId} />
+      <ReviewTab projectId={projectId} />
     </QueryClientProvider>,
   );
 }
@@ -140,7 +140,7 @@ describe("T-4.5.03: Generate button triggers full_generation", () => {
     fireEvent.click(screen.getByTestId("generate-brd-button"));
 
     await waitFor(() => {
-      expect(triggerBrdGeneration).toHaveBeenCalledWith(IDEA_ID, "full_generation");
+      expect(triggerBrdGeneration).toHaveBeenCalledWith(PROJECT_ID, "full_generation");
     });
   });
 });

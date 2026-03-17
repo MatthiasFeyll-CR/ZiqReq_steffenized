@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.ideas.models import ChatMessage, Idea, IdeaCollaborator, UserReaction
+from apps.projects.models import ChatMessage, Project, ProjectCollaborator, UserReaction
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 USER_2_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -32,27 +32,27 @@ class TestUserReactionsAPI(TestCase):
         self.user2 = _create_user(USER_2_ID, "user2@test.local", "Test User2")
         self.user3 = _create_user(USER_3_ID, "user3@test.local", "Test User3")
 
-        self.idea = Idea.objects.create(owner_id=self.user1.id, title="Test Idea")
+        self.project = Project.objects.create(owner_id=self.user1.id, title="Test Project")
         # user2 is a collaborator
-        IdeaCollaborator.objects.create(idea=self.idea, user_id=self.user2.id)
+        ProjectCollaborator.objects.create(project=self.project, user_id=self.user2.id)
 
         # user1 sends a message (other users can react to it)
         self.user1_message = ChatMessage.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             sender_type="user",
             sender_id=self.user1.id,
             content="Hello from user1",
         )
         # user2 sends a message
         self.user2_message = ChatMessage.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             sender_type="user",
             sender_id=self.user2.id,
             content="Hello from user2",
         )
         # AI sends a message
         self.ai_message = ChatMessage.objects.create(
-            idea_id=self.idea.id,
+            project_id=self.project.id,
             sender_type="ai",
             sender_id=None,
             content="AI response",
@@ -72,9 +72,9 @@ class TestUserReactionsAPI(TestCase):
             format="json",
         )
 
-    def _reactions_url(self, message_id, idea_id=None):
-        iid = idea_id or self.idea.id
-        return f"/api/ideas/{iid}/chat/{message_id}/reactions"
+    def _reactions_url(self, message_id, project_id=None):
+        iid = project_id or self.project.id
+        return f"/api/projects/{iid}/chat/{message_id}/reactions"
 
     # --- T-2.8.01: User can react to other user's message ---
 

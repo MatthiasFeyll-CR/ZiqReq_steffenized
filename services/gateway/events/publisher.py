@@ -52,7 +52,7 @@ def publish_notification_event(
     reference_id:
         Optional UUID of the related entity.
     reference_type:
-        Optional type of the related entity (``idea``, ``invitation``, etc.).
+        Optional type of the related entity (``project``, ``invitation``, etc.).
     """
     payload = {
         "user_id": str(user_id),

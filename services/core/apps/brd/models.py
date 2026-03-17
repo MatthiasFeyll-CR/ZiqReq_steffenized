@@ -6,7 +6,7 @@ from django.db import models
 
 class BrdDraft(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField(unique=True)
+    project_id = models.UUIDField(unique=True)
     section_title = models.TextField(null=True, blank=True)
     section_short_description = models.TextField(null=True, blank=True)
     section_current_workflow = models.TextField(null=True, blank=True)
@@ -24,12 +24,12 @@ class BrdDraft(models.Model):
         db_table = "brd_drafts"
 
     def __str__(self) -> str:
-        return f"BrdDraft for idea {self.idea_id}"
+        return f"BrdDraft for project {self.project_id}"
 
 
 class BrdVersion(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    idea_id = models.UUIDField()
+    project_id = models.UUIDField()
     version_number = models.IntegerField()
     section_title = models.TextField(null=True, blank=True)
     section_short_description = models.TextField(null=True, blank=True)
@@ -42,9 +42,9 @@ class BrdVersion(models.Model):
 
     class Meta:
         db_table = "brd_versions"
-        unique_together = [("idea_id", "version_number")]
+        unique_together = [("project_id", "version_number")]
         indexes = [
-            models.Index(fields=["idea_id", "version_number"], name="idx_brd_ver_idea"),
+            models.Index(fields=["project_id", "version_number"], name="idx_brd_ver_project"),
         ]
 
     def save(self, *args, **kwargs):  # type: ignore[override]
@@ -53,4 +53,4 @@ class BrdVersion(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f"BrdVersion {self.version_number} for idea {self.idea_id}"
+        return f"BrdVersion {self.version_number} for project {self.project_id}"

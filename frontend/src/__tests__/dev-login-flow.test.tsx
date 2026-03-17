@@ -51,8 +51,8 @@ vi.mock("@/api/notifications", () => ({
   markAllRead: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("@/hooks/use-ideas-by-state", () => ({
-  useIdeasByState: vi.fn(() => ({ data: null, isLoading: false })),
+vi.mock("@/hooks/use-projects-by-state", () => ({
+  useProjectsByState: vi.fn(() => ({ data: null, isLoading: false })),
 }));
 
 function createAuthValue(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
