@@ -7,9 +7,14 @@ making gRPC calls, since all services share the same database.
 from __future__ import annotations
 
 import logging
+import uuid as uuid_mod
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+class MutationError(Exception):
+    """Raised when a single mutation cannot be applied."""
 
 
 class CoreClient:
@@ -242,6 +247,94 @@ class CoreClient:
             logger.exception("Failed to update requirements structure for project %s", project_id)
             return {"success": False}
 
+    def apply_requirements_mutations(
+        self,
+        project_id: str,
+        mutations: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Apply incremental mutations to a project's requirements structure.
+
+        Args:
+            project_id: The project UUID string.
+            mutations: List of {operation, data} dicts (already validated by Facilitator plugin).
+
+        Returns:
+            Dict with accepted, mutation_count, and mutations_applied fields.
+        """
+        import json
+
+        from django.db import connection as db_conn
+
+        # Fetch current state
+        state = self.get_requirements_state(project_id)
+        structure = list(state.get("structure", []))
+        item_locks = state.get("item_locks", {})
+        project_type = self._get_project_type(project_id)
+
+        results: list[dict[str, Any]] = []
+        for mutation in mutations:
+            operation = mutation.get("operation", "")
+            data = mutation.get("data", {})
+            try:
+                structure = _apply_single_mutation(
+                    structure, operation, data, item_locks, project_type,
+                )
+                results.append({"operation": operation, "status": "success", "error": ""})
+            except MutationError as e:
+                results.append({"operation": operation, "status": "failed", "error": str(e)})
+
+        # Persist updated structure
+        success_count = sum(1 for r in results if r["status"] == "success")
+        if success_count > 0:
+            structure_json = json.dumps(structure)
+            try:
+                with db_conn.cursor() as cursor:
+                    cursor.execute(
+                        "UPDATE requirements_document_drafts "
+                        "SET structure = %s, updated_at = NOW() WHERE project_id = %s",
+                        [structure_json, project_id],
+                    )
+                    if cursor.rowcount == 0:
+                        cursor.execute(
+                            "INSERT INTO requirements_document_drafts "
+                            "(id, project_id, title, short_description, structure, item_locks, "
+                            "allow_information_gaps, readiness_evaluation, created_at, updated_at) "
+                            "VALUES (gen_random_uuid(), %s, '', '', %s, '{}', false, '{}', NOW(), NOW())",
+                            [project_id, structure_json],
+                        )
+            except Exception:
+                logger.exception(
+                    "Failed to persist mutations for project %s", project_id,
+                )
+                return {
+                    "accepted": False,
+                    "mutation_count": 0,
+                    "mutations_applied": [
+                        {"operation": m["operation"], "status": "failed", "error": "persistence_error"}
+                        for m in mutations
+                    ],
+                }
+
+        return {
+            "accepted": success_count > 0,
+            "mutation_count": success_count,
+            "mutations_applied": results,
+        }
+
+    def _get_project_type(self, project_id: str) -> str:
+        """Fetch project_type for a given project."""
+        from django.db import connection as db_conn
+
+        with db_conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT project_type FROM projects WHERE id = %s AND deleted_at IS NULL",
+                [project_id],
+            )
+            row = cursor.fetchone()
+            if row:
+                return row[0] or "software"
+        return "software"
+
     # ── BRD operations ──
 
     def get_brd_draft(self, project_id: str) -> dict[str, Any]:
@@ -366,3 +459,169 @@ class CoreClient:
         except Exception:
             logger.exception("Failed to persist context summary for project %s", project_id)
             return {"success": False}
+
+
+# ── Mutation application helpers ──
+
+_SOFTWARE_OPS = frozenset({
+    "add_epic", "update_epic", "remove_epic", "reorder_epics",
+    "add_story", "update_story", "remove_story", "reorder_stories",
+})
+_NON_SOFTWARE_OPS = frozenset({
+    "add_milestone", "update_milestone", "remove_milestone", "reorder_milestones",
+    "add_package", "update_package", "remove_package", "reorder_packages",
+})
+
+
+def _apply_single_mutation(
+    structure: list[dict[str, Any]],
+    operation: str,
+    data: dict[str, Any],
+    item_locks: dict[str, Any],
+    project_type: str,
+) -> list[dict[str, Any]]:
+    """Apply one mutation to the structure in-place and return the updated list.
+
+    Raises MutationError on validation failure.
+    """
+    valid_ops = _SOFTWARE_OPS if project_type == "software" else _NON_SOFTWARE_OPS
+    if operation not in valid_ops:
+        raise MutationError(f"Operation '{operation}' not valid for {project_type} projects")
+
+    # --- Parent-level add ---
+    if operation in ("add_epic", "add_milestone"):
+        item_type = "epic" if operation == "add_epic" else "milestone"
+        new_item = {
+            "id": str(uuid_mod.uuid4()),
+            "type": item_type,
+            "title": data.get("title", ""),
+            "description": data.get("description", ""),
+            "children": [],
+        }
+        structure.append(new_item)
+        return structure
+
+    # --- Parent-level update ---
+    if operation in ("update_epic", "update_milestone"):
+        id_key = "epic_id" if operation == "update_epic" else "milestone_id"
+        item_id = data.get(id_key, "")
+        if item_id in item_locks:
+            raise MutationError(f"Item {item_id} is locked")
+        parent = _find_item(structure, item_id)
+        if parent is None:
+            raise MutationError(f"Item {item_id} not found")
+        if "title" in data:
+            parent["title"] = data["title"]
+        if "description" in data:
+            parent["description"] = data["description"]
+        return structure
+
+    # --- Parent-level remove ---
+    if operation in ("remove_epic", "remove_milestone"):
+        id_key = "epic_id" if operation == "remove_epic" else "milestone_id"
+        item_id = data.get(id_key, "")
+        if item_id in item_locks:
+            raise MutationError(f"Item {item_id} is locked")
+        idx = _find_item_index(structure, item_id)
+        if idx is None:
+            raise MutationError(f"Item {item_id} not found")
+        structure.pop(idx)
+        return structure
+
+    # --- Parent-level reorder ---
+    if operation in ("reorder_epics", "reorder_milestones"):
+        order = data.get("order", [])
+        id_map = {item["id"]: item for item in structure}
+        reordered = [id_map[oid] for oid in order if oid in id_map]
+        remaining = [item for item in structure if item["id"] not in {o for o in order}]
+        return reordered + remaining
+
+    # --- Child-level add ---
+    if operation in ("add_story", "add_package"):
+        parent_key = "epic_id" if operation == "add_story" else "milestone_id"
+        parent_id = data.get(parent_key, "")
+        parent = _find_item(structure, parent_id)
+        if parent is None:
+            raise MutationError(f"Parent {parent_id} not found")
+        child_type = "user_story" if operation == "add_story" else "work_package"
+        child: dict[str, Any] = {
+            "id": str(uuid_mod.uuid4()),
+            "type": child_type,
+            "title": data.get("title", ""),
+            "description": data.get("description", ""),
+        }
+        if child_type == "user_story":
+            child["acceptance_criteria"] = data.get("acceptance_criteria", "")
+            child["priority"] = data.get("priority", "Medium")
+        else:
+            child["deliverables"] = data.get("deliverables", "")
+            child["dependencies"] = data.get("dependencies", "")
+        parent.setdefault("children", []).append(child)
+        return structure
+
+    # --- Child-level update ---
+    if operation in ("update_story", "update_package"):
+        id_key = "story_id" if operation == "update_story" else "package_id"
+        child_id = data.get(id_key, "")
+        if child_id in item_locks:
+            raise MutationError(f"Item {child_id} is locked")
+        child_item = _find_child(structure, child_id)
+        if child_item is None:
+            raise MutationError(f"Item {child_id} not found")
+        for key in ("title", "description", "acceptance_criteria", "priority", "deliverables", "dependencies"):
+            if key in data:
+                child_item[key] = data[key]
+        return structure
+
+    # --- Child-level remove ---
+    if operation in ("remove_story", "remove_package"):
+        id_key = "story_id" if operation == "remove_story" else "package_id"
+        child_id = data.get(id_key, "")
+        if child_id in item_locks:
+            raise MutationError(f"Item {child_id} is locked")
+        for parent_item in structure:
+            children = parent_item.get("children", [])
+            for i, c in enumerate(children):
+                if c.get("id") == child_id:
+                    children.pop(i)
+                    return structure
+        raise MutationError(f"Item {child_id} not found")
+
+    # --- Child-level reorder ---
+    if operation in ("reorder_stories", "reorder_packages"):
+        parent_key = "epic_id" if operation == "reorder_stories" else "milestone_id"
+        parent_id = data.get(parent_key, "")
+        parent = _find_item(structure, parent_id)
+        if parent is None:
+            raise MutationError(f"Parent {parent_id} not found")
+        order = data.get("order", [])
+        children = parent.get("children", [])
+        id_map = {c["id"]: c for c in children}
+        reordered = [id_map[oid] for oid in order if oid in id_map]
+        remaining = [c for c in children if c["id"] not in {o for o in order}]
+        parent["children"] = reordered + remaining
+        return structure
+
+    raise MutationError(f"Unhandled operation: {operation}")
+
+
+def _find_item(structure: list[dict[str, Any]], item_id: str) -> dict[str, Any] | None:
+    for item in structure:
+        if item.get("id") == item_id:
+            return item
+    return None
+
+
+def _find_item_index(structure: list[dict[str, Any]], item_id: str) -> int | None:
+    for i, item in enumerate(structure):
+        if item.get("id") == item_id:
+            return i
+    return None
+
+
+def _find_child(structure: list[dict[str, Any]], child_id: str) -> dict[str, Any] | None:
+    for parent_item in structure:
+        for child in parent_item.get("children", []):
+            if child.get("id") == child_id:
+                return child
+    return None

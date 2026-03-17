@@ -1,12 +1,13 @@
-"""ChatProcessingPipeline (6-step) — end-to-end AI processing orchestrator.
+"""ChatProcessingPipeline (7-step) — end-to-end AI processing orchestrator.
 
 Steps:
-  1. Load project state via GetProjectContext gRPC
+  1. Load project state via GetProjectContext + GetRequirementsState
   2. Assemble context for Facilitator
   3. Invoke Facilitator agent
   4. If delegation requested → invoke delegate → re-invoke Facilitator
-  5. Publish ai.processing.complete
-  6. Cleanup version / abort flag
+  5. Requirements structure mutation handler (apply Facilitator mutations via Core)
+  6. Publish ai.processing.complete
+  7. Cleanup version / abort flag
 """
 
 from __future__ import annotations
@@ -62,7 +63,7 @@ class ChatProcessingPipeline:
         )
 
         try:
-            # Step 1: Load project state
+            # Step 1: Load project state + requirements state
             self._check_abort(project_id, version, step=1)
             project_context_response = await self._step_load_context(project_id)
 
@@ -98,11 +99,15 @@ class ChatProcessingPipeline:
                         "ai_agent": "facilitator",
                     })
 
-            # Step 5: Publish completion
+            # Step 5: Requirements structure mutation handler
             self._check_abort(project_id, version, step=5)
+            await self._step_apply_mutations(project_id, facilitator_result)
+
+            # Step 6: Publish completion
+            self._check_abort(project_id, version, step=6)
             await self._step_publish_complete(project_id)
 
-            # Step 6: Cleanup
+            # Step 7: Cleanup
             self._step_cleanup(project_id)
 
             logger.info("Pipeline completed for project %s", project_id)
@@ -163,9 +168,27 @@ class ChatProcessingPipeline:
     # ── Step implementations ──
 
     async def _step_load_context(self, project_id: str) -> dict[str, Any]:
-        """Step 1: Load project state via Core gRPC GetProjectContext."""
+        """Step 1: Load project state via Core gRPC GetProjectContext + GetRequirementsState."""
         logger.info("Step 1: Loading context for project %s", project_id)
-        return self.core_client.get_project_context(project_id)
+        project_context = self.core_client.get_project_context(project_id)
+
+        # Fetch requirements state and inject into response for context_assembler
+        try:
+            requirements_state = self.core_client.get_requirements_state(project_id)
+        except Exception:
+            logger.warning("Failed to fetch requirements state for project %s", project_id)
+            requirements_state = {}
+        project_context["requirements_state"] = requirements_state
+
+        # Ensure project_type is available in project metadata
+        project = project_context.get("project", {})
+        if "project_type" not in project:
+            try:
+                project["project_type"] = self.core_client._get_project_type(project_id)
+            except Exception:
+                project["project_type"] = "software"
+
+        return project_context
 
     def _step_assemble_context(
         self, project_id: str, project_context_response: dict[str, Any],
@@ -335,12 +358,51 @@ class ChatProcessingPipeline:
             )
             return "(Context Extension Agent encountered an error. No findings available.)"
 
+    async def _step_apply_mutations(
+        self,
+        project_id: str,
+        facilitator_result: dict[str, Any],
+    ) -> None:
+        """Step 5: Apply requirements structure mutations from Facilitator.
+
+        Extracts mutations stored by FacilitatorPlugin.update_requirements_structure,
+        applies them via CoreClient, and publishes events for each successful mutation.
+        """
+        mutations = facilitator_result.get("requirements_mutations", [])
+        if not mutations:
+            logger.info("Step 5: No requirements mutations for project %s", project_id)
+            return
+
+        logger.info(
+            "Step 5: Applying %d requirements mutations for project %s",
+            len(mutations), project_id,
+        )
+
+        result = self.core_client.apply_requirements_mutations(project_id, mutations)
+
+        if result.get("accepted"):
+            # Publish ai.requirements.updated with summary of applied mutations
+            await publish_event("ai.requirements.updated", {
+                "project_id": project_id,
+                "mutation_count": result.get("mutation_count", 0),
+                "mutations_applied": result.get("mutations_applied", []),
+            })
+            logger.info(
+                "Step 5: Applied %d/%d mutations for project %s",
+                result.get("mutation_count", 0), len(mutations), project_id,
+            )
+        else:
+            logger.warning(
+                "Step 5: All mutations failed for project %s: %s",
+                project_id, result.get("mutations_applied", []),
+            )
+
     async def _step_publish_complete(self, project_id: str) -> None:
-        """Step 5: Check compression threshold, then publish ai.processing.complete."""
+        """Step 6: Check compression threshold, then publish ai.processing.complete."""
         # Compression check before publishing
         await self._check_and_compress(project_id)
 
-        logger.info("Step 5: Publishing completion for project %s", project_id)
+        logger.info("Step 6: Publishing completion for project %s", project_id)
         await publish_event("ai.processing.complete", {
             "project_id": project_id,
             "counter_reset": True,
@@ -356,7 +418,7 @@ class ChatProcessingPipeline:
 
         if getattr(django_settings, "AI_MOCK_MODE", False):
             logger.info(
-                "Step 5: Compression check skipped in mock mode for project %s",
+                "Step 6: Compression check skipped in mock mode for project %s",
                 project_id,
             )
             return
@@ -394,7 +456,7 @@ class ChatProcessingPipeline:
         usage_pct = (estimated_tokens / context_limit) * 100
 
         logger.info(
-            "Step 5: Context usage for project %s: %.1f%% (threshold: %d%%)",
+            "Step 6: Context usage for project %s: %.1f%% (threshold: %d%%)",
             project_id, usage_pct, threshold,
         )
 
@@ -403,7 +465,7 @@ class ChatProcessingPipeline:
 
         # Trigger compression
         logger.info(
-            "Step 5: Triggering compression for project %s (usage %.1f%% > %d%%)",
+            "Step 6: Triggering compression for project %s (usage %.1f%% > %d%%)",
             project_id, usage_pct, threshold,
         )
 
@@ -426,10 +488,10 @@ class ChatProcessingPipeline:
             })
         except Exception:
             logger.exception(
-                "Step 5: Compression failed for project %s", project_id,
+                "Step 6: Compression failed for project %s", project_id,
             )
 
     def _step_cleanup(self, project_id: str) -> None:
-        """Step 6: Cleanup — clear abort flag."""
-        logger.info("Step 6: Cleanup for project %s", project_id)
+        """Step 7: Cleanup — clear abort flag."""
+        logger.info("Step 7: Cleanup for project %s", project_id)
         self._abort_flags.pop(project_id, None)

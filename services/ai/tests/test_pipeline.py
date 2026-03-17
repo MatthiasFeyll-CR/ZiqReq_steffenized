@@ -40,6 +40,7 @@ def _mock_core_client(project_context: dict | None = None) -> MagicMock:
             "state": "open",
             "agent_mode": "interactive",
             "title_manually_edited": False,
+            "project_type": "software",
         },
         "recent_messages": [
             {
@@ -52,6 +53,17 @@ def _mock_core_client(project_context: dict | None = None) -> MagicMock:
         ],
         "chat_summary": None,
         "facilitator_bucket_content": "",
+    }
+    client.get_requirements_state.return_value = {
+        "project_id": "project-1",
+        "structure": [],
+        "item_locks": {},
+    }
+    client._get_project_type.return_value = "software"
+    client.apply_requirements_mutations.return_value = {
+        "accepted": True,
+        "mutation_count": 0,
+        "mutations_applied": [],
     }
     return client
 
@@ -77,6 +89,7 @@ class TestPipelineExecution:
 
         # Step 1: gRPC was called
         core_client.get_project_context.assert_called_once_with("project-1")
+        core_client.get_requirements_state.assert_called_once_with("project-1")
 
         # Step 6: completion event published
         events = get_published_events()
@@ -656,6 +669,137 @@ class TestContextExtensionDelegation:
         assert received_extension_results is not None
         assert "error" in received_extension_results.lower()
 
+
+
+# ── Requirements Structure Mutations (M20) ──
+
+
+class TestRequirementsMutations:
+    @pytest.mark.asyncio
+    async def test_mutations_applied_when_facilitator_returns_them(self, _clear_pipeline_state, settings):
+        """Step 5: When Facilitator returns mutations, pipeline applies them via CoreClient."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        core_client.apply_requirements_mutations.return_value = {
+            "accepted": True,
+            "mutation_count": 1,
+            "mutations_applied": [{"operation": "add_epic", "status": "success", "error": ""}],
+        }
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        async def mock_process(input_data):
+            return {
+                "delegations": [],
+                "requirements_mutations": [
+                    {"operation": "add_epic", "data": {"title": "User Management"}},
+                ],
+                "chat_message_sent": True,
+                "response": "I've added an epic for User Management.",
+                "token_usage": {"input": 100, "output": 20},
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
+            MockAgent.return_value.process = mock_process
+            result = await pipeline.execute("project-1")
+
+        assert result["status"] == "completed"
+        core_client.apply_requirements_mutations.assert_called_once_with(
+            "project-1",
+            [{"operation": "add_epic", "data": {"title": "User Management"}}],
+        )
+
+        # Check ai.requirements.updated event was published
+        events = get_published_events()
+        req_events = [e for e in events if e["event_type"] == "ai.requirements.updated"]
+        assert len(req_events) >= 1
+        assert req_events[-1]["project_id"] == "project-1"
+        assert req_events[-1]["mutation_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_no_mutations_skips_apply(self, _clear_pipeline_state, settings):
+        """Step 5: When no mutations returned, pipeline skips mutation step."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        async def mock_process(input_data):
+            return {
+                "delegations": [],
+                "requirements_mutations": [],
+                "chat_message_sent": True,
+                "response": "Hello!",
+                "token_usage": {"input": 100, "output": 20},
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
+            MockAgent.return_value.process = mock_process
+            await pipeline.execute("project-1")
+
+        core_client.apply_requirements_mutations.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_requirements_state_fetched_in_step1(self, _clear_pipeline_state, settings):
+        """Step 1: Pipeline fetches requirements state and injects into context."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        core_client.get_requirements_state.return_value = {
+            "project_id": "project-1",
+            "structure": [{"id": "epic-1", "type": "epic", "title": "Auth", "children": []}],
+            "item_locks": {},
+        }
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        result = await pipeline.execute("project-1")
+        assert result["status"] == "completed"
+        core_client.get_requirements_state.assert_called_once_with("project-1")
+
+    @pytest.mark.asyncio
+    async def test_partial_mutation_failure(self, _clear_pipeline_state, settings):
+        """Step 5: Partial mutation failures are handled gracefully."""
+        settings.AI_MOCK_MODE = True
+        from pathlib import Path
+        settings.BASE_DIR = Path(__file__).resolve().parent.parent
+
+        core_client = _mock_core_client()
+        core_client.apply_requirements_mutations.return_value = {
+            "accepted": True,
+            "mutation_count": 1,
+            "mutations_applied": [
+                {"operation": "add_epic", "status": "success", "error": ""},
+                {"operation": "add_story", "status": "failed", "error": "Parent not found"},
+            ],
+        }
+        pipeline = ChatProcessingPipeline(core_client=core_client)
+
+        async def mock_process(input_data):
+            return {
+                "delegations": [],
+                "requirements_mutations": [
+                    {"operation": "add_epic", "data": {"title": "E1"}},
+                    {"operation": "add_story", "data": {"epic_id": "nonexistent", "title": "S1"}},
+                ],
+                "chat_message_sent": True,
+                "response": "Done.",
+                "token_usage": {"input": 100, "output": 20},
+            }
+
+        with patch("agents.facilitator.agent.FacilitatorAgent") as MockAgent:
+            MockAgent.return_value.process = mock_process
+            result = await pipeline.execute("project-1")
+
+        assert result["status"] == "completed"
+        events = get_published_events()
+        req_events = [e for e in events if e["event_type"] == "ai.requirements.updated"]
+        assert len(req_events) >= 1
 
 
 # ── Context Assembler ──
