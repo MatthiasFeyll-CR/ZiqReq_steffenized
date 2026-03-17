@@ -54,7 +54,7 @@ export function ChatPanel({ project, locked, lockReason, readOnly }: ChatPanelPr
       <AIProcessingIndicator projectId={project.id} />
       {readOnly ? (
         <div className="px-4 py-3 text-sm text-muted-foreground border-t text-center" data-testid="chat-read-only-notice">
-          Viewing shared idea — chat is read-only
+          Viewing shared project — chat is read-only
         </div>
       ) : (
         <ChatInput

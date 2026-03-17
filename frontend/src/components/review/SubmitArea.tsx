@@ -31,7 +31,7 @@ export function SubmitArea({ projectId, projectState, onSubmitted }: SubmitAreaP
         reviewer_ids: selectedReviewerIds.length > 0 ? selectedReviewerIds : undefined,
       }),
     onSuccess: () => {
-      toast.success(t("submit.success", "Idea submitted"));
+      toast.success(t("submit.success", "Project submitted"));
       queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       queryClient.invalidateQueries({ queryKey: ["timeline", projectId] });
@@ -42,7 +42,7 @@ export function SubmitArea({ projectId, projectState, onSubmitted }: SubmitAreaP
     onError: (error: Error) => {
       toast.error(
         <div className="flex items-center justify-between gap-4">
-          <span>{error.message || t("submit.error", "Failed to submit idea")}</span>
+          <span>{error.message || t("submit.error", "Failed to submit project")}</span>
           <button
             className="shrink-0 font-medium text-primary underline"
             onClick={() => submitMutation.mutate()}

@@ -99,6 +99,18 @@
     "noAccess": "You don't have access to this project",
     "backToHome": "Back to home",
     "editTitle": "Edit project title",
+    "back": "Back",
+    "manage": "Manage",
+    "comments": "Comments",
+    "options": "Options",
+    "deleteProject": "Delete Project",
+    "deletedReason": "This project has been deleted. All content is read-only.",
+    "inReviewReadOnly": "This project is currently under review. Content is read-only until the review is complete.",
+    "goToReview": "Go to Review",
+    "restoreProject": "Restore",
+    "agentMode": "AI Mode",
+    "modeInteractive": "Interactive",
+    "modeSilent": "Silent",
     "invitationBanner": {
       "text": "invited you to collaborate on this project"
     }
@@ -380,8 +392,6 @@
   "process": {
     "define": "Define",
     "defineDesc": "Chat with AI to define your project",
-    "document": "Structure",
-    "documentDesc": "Generate & refine your requirements document",
     "review": "Review",
     "reviewDesc": "Submit for approval",
     "stepper": "Process steps",
@@ -389,11 +399,8 @@
     "structureDesc": "Review & refine your requirements",
     "defineDoneHint": "Ready to formalize your project? Continue to structure your requirements.",
     "structureGate": "Send at least one message in the chat before proceeding to structure.",
-    "documentGate": "Send at least one message in the chat before proceeding to the document.",
     "reviewGate": "Submit your project for review first.",
-    "continueToStructure": "Continue to Structure",
-    "continueToDocument": "Continue to Structure",
-    "documentGuide": "Review and refine each section below, then submit for review when you're ready."
+    "continueToStructure": "Continue to Structure"
   },
   "projectType": {
     "software": "Software",

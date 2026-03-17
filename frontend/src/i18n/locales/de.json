@@ -99,6 +99,18 @@
     "noAccess": "Sie haben keinen Zugriff auf dieses Projekt",
     "backToHome": "Zurück zur Startseite",
     "editTitle": "Projekttitel bearbeiten",
+    "back": "Zurück",
+    "manage": "Verwalten",
+    "comments": "Kommentare",
+    "options": "Optionen",
+    "deleteProject": "Projekt löschen",
+    "deletedReason": "Dieses Projekt wurde gelöscht. Alle Inhalte sind schreibgeschützt.",
+    "inReviewReadOnly": "Dieses Projekt wird derzeit überprüft. Inhalte sind schreibgeschützt, bis die Überprüfung abgeschlossen ist.",
+    "goToReview": "Zur Überprüfung",
+    "restoreProject": "Wiederherstellen",
+    "agentMode": "KI-Modus",
+    "modeInteractive": "Interaktiv",
+    "modeSilent": "Still",
     "invitationBanner": {
       "text": "hat Sie zur Zusammenarbeit an diesem Projekt eingeladen"
     }
@@ -380,8 +392,6 @@
   "process": {
     "define": "Definieren",
     "defineDesc": "Chatten Sie mit KI, um Ihr Projekt zu definieren",
-    "document": "Strukturieren",
-    "documentDesc": "Erstellen und verfeinern Sie Ihr Anforderungsdokument",
     "review": "Überprüfung",
     "reviewDesc": "Zur Genehmigung einreichen",
     "stepper": "Prozessschritte",
@@ -389,11 +399,8 @@
     "structureDesc": "Anforderungen überprüfen und verfeinern",
     "defineDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihre Anforderungen zu strukturieren.",
     "structureGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zur Strukturierung übergehen.",
-    "documentGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zum Dokument übergehen.",
     "reviewGate": "Reichen Sie Ihr Projekt zuerst zur Überprüfung ein.",
-    "continueToStructure": "Weiter zur Strukturierung",
-    "continueToDocument": "Weiter zur Strukturierung",
-    "documentGuide": "Überprüfen und verfeinern Sie jeden Abschnitt unten, dann reichen Sie zur Überprüfung ein, wenn Sie bereit sind."
+    "continueToStructure": "Weiter zur Strukturierung"
   },
   "projectType": {
     "software": "Software",

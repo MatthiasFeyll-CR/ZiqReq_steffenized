@@ -9,7 +9,7 @@ interface CommentContentProps {
  * Renders comment content with markdown-style bold/italic,
  * @mentions highlighted, and #project-references as clickable links.
  *
- * Reference format in content: [#IdeaTitle](project:uuid)
+ * Reference format in content: [#ProjectTitle](project:uuid)
  * Mention format: @username
  */
 export function CommentContent({ content }: CommentContentProps) {
@@ -34,7 +34,7 @@ export function CommentContent({ content }: CommentContentProps) {
                 @{part.value}
               </span>
             );
-          case "idea_ref":
+          case "project_ref":
             return (
               <Link
                 key={i}
@@ -53,14 +53,14 @@ export function CommentContent({ content }: CommentContentProps) {
 }
 
 interface ContentPart {
-  type: "text" | "bold" | "italic" | "mention" | "idea_ref";
+  type: "text" | "bold" | "italic" | "mention" | "project_ref";
   value: string;
   meta?: string;
 }
 
 function parseContent(content: string): ContentPart[] {
   const parts: ContentPart[] = [];
-  // Combined regex for bold, italic, idea refs, and mentions
+  // Combined regex for bold, italic, project refs, and mentions
   const regex =
     /\*\*(.+?)\*\*|_(.+?)_|\[#(.+?)\]\(project:([0-9a-f-]+)\)|@(\w[\w.\-]*)/g;
 
@@ -78,7 +78,7 @@ function parseContent(content: string): ContentPart[] {
     } else if (match[2] !== undefined) {
       parts.push({ type: "italic", value: match[2] });
     } else if (match[3] !== undefined && match[4] !== undefined) {
-      parts.push({ type: "idea_ref", value: match[3], meta: match[4] });
+      parts.push({ type: "project_ref", value: match[3], meta: match[4] });
     } else if (match[5] !== undefined) {
       parts.push({ type: "mention", value: match[5] });
     }

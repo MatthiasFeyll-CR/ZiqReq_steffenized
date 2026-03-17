@@ -32,7 +32,7 @@ const PREFERENCE_GROUPS: PreferenceGroup[] = [
       { key: "collaboration_invitation", label: "Invitation received" },
       { key: "collaborator_joined", label: "Collaborator joined" },
       { key: "collaborator_left", label: "Collaborator left" },
-      { key: "removed_from_project", label: "Removed from idea" },
+      { key: "removed_from_project", label: "Removed from project" },
       { key: "ownership_transferred", label: "Ownership transferred" },
     ],
   },
@@ -51,9 +51,9 @@ const PREFERENCE_GROUPS: PreferenceGroup[] = [
     label: "Review Management",
     requiredRole: "reviewer",
     items: [
-      { key: "project_submitted", label: "Idea submitted" },
-      { key: "project_assigned", label: "Idea assigned" },
-      { key: "project_resubmitted", label: "Idea resubmitted" },
+      { key: "project_submitted", label: "Project submitted" },
+      { key: "project_assigned", label: "Project assigned" },
+      { key: "project_resubmitted", label: "Project resubmitted" },
     ],
   },
   {

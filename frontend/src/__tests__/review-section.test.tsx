@@ -19,9 +19,6 @@ vi.mock("@/components/workspace/WorkspaceHeader", () => ({
 vi.mock("@/components/workspace/ChatPanel", () => ({
   ChatPanel: () => <div data-testid="chat-panel">ChatPanel</div>,
 }));
-vi.mock("@/components/workspace/DocumentView", () => ({
-  DocumentView: () => <div data-testid="document-view">DocumentView</div>,
-}));
 vi.mock("@/components/workspace/InvitationBanner", () => ({
   InvitationBanner: () => null,
 }));
@@ -69,7 +66,7 @@ const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 function makeProject(state: Project["state"]): Project {
   return {
     id: PROJECT_ID,
-    title: "Test Idea",
+    title: "Test Project",
     project_type: "software",
     state,
     agent_mode: "interactive",
@@ -81,8 +78,8 @@ function makeProject(state: Project["state"]): Project {
   };
 }
 
-function renderWorkspace(idea: Project, step?: string) {
-  mockFetchIdea.mockResolvedValue(idea);
+function renderWorkspace(project: Project, step?: string) {
+  mockFetchIdea.mockResolvedValue(project);
 
   const store = configureStore({
     reducer: { websocket: websocketReducer },
@@ -95,8 +92,8 @@ function renderWorkspace(idea: Project, step?: string) {
   });
 
   const url = step
-    ? `/project/${idea.id}?step=${step}`
-    : `/project/${idea.id}`;
+    ? `/project/${project.id}?step=${step}`
+    : `/project/${project.id}`;
 
   return render(
     <Provider store={store}>
@@ -120,7 +117,7 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-describe("T-1.2.01: Review step not accessible for never-submitted idea", () => {
+describe("T-1.2.01: Review step not accessible for never-submitted project", () => {
   it("does not show review section when state is open (define step active)", async () => {
     renderWorkspace(makeProject("open"));
 
@@ -177,7 +174,7 @@ describe("T-1.2.02: Review step accessible after first submission", () => {
 });
 
 describe("UI-REVIEW.03: Review section rendering with timeline", () => {
-  it("renders review section with header info for submitted idea", async () => {
+  it("renders review section with header info for submitted project", async () => {
     mockFetchTimeline.mockResolvedValue([
       {
         id: "entry-1",
@@ -204,7 +201,7 @@ describe("UI-REVIEW.03: Review section rendering with timeline", () => {
 
     // Header: title in review section
     const reviewHeader = screen.getByTestId("review-section-header");
-    expect(reviewHeader).toHaveTextContent("Test Idea");
+    expect(reviewHeader).toHaveTextContent("Test Project");
     expect(screen.getByText("In Review")).toBeInTheDocument();
 
     // Reviewers

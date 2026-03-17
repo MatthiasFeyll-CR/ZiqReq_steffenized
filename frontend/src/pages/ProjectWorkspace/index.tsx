@@ -153,9 +153,9 @@ export default function ProjectWorkspacePage() {
         <AlertTriangle className="h-12 w-12 text-destructive" />
         <h2 className="text-lg font-semibold text-foreground">
           {is404
-            ? t("workspace.notFound", "Idea not found")
+            ? t("workspace.notFound", "Project not found")
             : is403
-              ? t("workspace.noAccess", "You don't have access to this idea")
+              ? t("workspace.noAccess", "You don't have access to this project")
               : t("common.error")}
         </h2>
         <p className="text-sm text-muted-foreground">{error.message}</p>
@@ -191,10 +191,10 @@ function ProjectWorkspaceContent({
   const connectionState = useSelector(selectConnectionState);
   const sendWs = useWsSend();
 
-  // Step management via URL — default step depends on idea state
+  // Step management via URL — default step depends on project state
   const [activeStep, setActiveStep] = useState<ProcessStep>(() => {
     const urlStep = parseStep(searchParams.get("step"));
-    // If no explicit step in URL, derive from idea state
+    // If no explicit step in URL, derive from project state
     if (!searchParams.get("step")) {
       if (project.state === "rejected" || project.state === "deleted") return "define";
       if (["in_review", "accepted", "dropped"].includes(project.state)) return "review";
@@ -202,7 +202,7 @@ function ProjectWorkspaceContent({
     return urlStep;
   });
 
-  // Track whether the idea has at least one chat message
+  // Track whether the project has at least one chat message
   const [hasMessages, setHasMessages] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -284,7 +284,7 @@ function ProjectWorkspaceContent({
     }
   }, [activeStep, canAccessStructure, canAccessReview, handleStepChange]);
 
-  // Subscribe to idea's WebSocket group when connected
+  // Subscribe to project's WebSocket group when connected
   useEffect(() => {
     if (connectionState === "online") {
       sendWs({ type: "subscribe_project", project_id: project.id });
@@ -336,13 +336,13 @@ function ProjectWorkspaceContent({
 
   const effectiveChatLocked = chatLocked || !isOnline || readOnly || isDeleted || isInReviewReadOnly;
   const effectiveLockReason = readOnly
-    ? "Viewing shared idea — chat is read-only"
+    ? "Viewing shared project — chat is read-only"
     : !isOnline
       ? "You are currently offline. Chat is disabled."
       : isDeleted
-        ? "This idea has been deleted. All sections are read-only."
+        ? "This project has been deleted. All sections are read-only."
         : isInReviewReadOnly
-          ? "This idea is currently under review. Content is read-only."
+          ? "This project is currently under review. Content is read-only."
           : lockReason;
   const effectiveReadOnly = allReadOnly || readOnly || isDeleted || isInReviewReadOnly;
 
@@ -385,7 +385,7 @@ function ProjectWorkspaceContent({
           data-testid="deleted-banner"
         >
           <p className="text-sm text-red-700 dark:text-red-400 flex-1">
-            {t("workspace.deletedReason", "This idea has been deleted. All content is read-only.")}
+            {t("workspace.deletedReason", "This project has been deleted. All content is read-only.")}
           </p>
           <Button
             variant="outline"
@@ -410,7 +410,7 @@ function ProjectWorkspaceContent({
           data-testid="in-review-banner"
         >
           <p className="text-sm text-amber-700 dark:text-amber-400 flex-1">
-            {t("workspace.inReviewReadOnly", "This idea is currently under review. Content is read-only until the review is complete.")}
+            {t("workspace.inReviewReadOnly", "This project is currently under review. Content is read-only until the review is complete.")}
           </p>
           <Button
             variant="outline"
@@ -463,7 +463,7 @@ function ProjectWorkspaceContent({
             }
           />
 
-          {/* Next step CTA — shown when user has chat messages and idea is still open */}
+          {/* Next step CTA — shown when user has chat messages and project is still open */}
           {hasMessages && !effectiveReadOnly && !isDeleted && !isInReviewReadOnly && (
             <div className="shrink-0 border-t border-border bg-surface/80 backdrop-blur-sm px-6 py-3" data-testid="next-step-cta">
               <div className="flex items-center justify-between gap-4">

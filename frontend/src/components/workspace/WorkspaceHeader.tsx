@@ -163,7 +163,7 @@ export function WorkspaceHeader({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleTitleSave}
             onKeyDown={handleTitleKeyDown}
-            aria-label={t("workspace.editTitle", "Edit idea title")}
+            aria-label={t("workspace.editTitle", "Edit project title")}
             data-testid="title-input"
           />
         ) : (
@@ -247,10 +247,10 @@ export function WorkspaceHeader({
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={handleDelete}
-                data-testid="delete-idea-option"
+                data-testid="delete-project-option"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                {t("workspace.deleteProject", "Delete Idea")}
+                {t("workspace.deleteProject", "Delete Project")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
