@@ -1,102 +1,50 @@
 {
   "from": "milestone_planner",
   "to": "pipeline_configurator",
-  "timestamp": "2026-03-16T12:00:00Z",
-  "summary": "5 refactoring milestones (M17-M21), sequential execution. Transforms ZiqReq from brainstorming platform to requirements assembly platform. All MVP. 20 total stories across: feature removal (M17), entity rename (M18), new data models + UI (M19), AI rework (M20), PDF + polish (M21). All 17 refactoring plan stories covered (100%). No splits required.",
+  "timestamp": "2026-03-17T14:00:00Z",
+  "summary": "1 new milestone (M22: Chat File Attachments), 10 stories (split from 8 for context window optimization). Adds file attachment support to chat with MinIO storage, AI content extraction (PDF text + vision fallback, image vision), prompt injection sandboxing, pipeline-extraction synchronization, and full frontend UI (upload + drag/drop + message display). Depends on M21. Verification passed: 10/10 functional, 19/19 NFRs covered. Two story splits: AI extraction (PDF vs image+orchestration) and frontend (upload vs display).",
   "files_produced": [
-    "docs/05-milestones/release-plan-refactoring.md",
-    "docs/05-milestones/verification-report-refactoring.md",
-    "docs/05-milestones/milestone-17.md",
-    "docs/05-milestones/milestone-18.md",
-    "docs/05-milestones/milestone-19.md",
-    "docs/05-milestones/milestone-20.md",
-    "docs/05-milestones/milestone-21.md"
+    "docs/05-milestones/release-plan-attachments.md",
+    "docs/05-milestones/verification-report-attachments.md",
+    "docs/05-milestones/milestone-22.md"
   ],
   "context": {
-    "existing_milestones": "M1-M16 already implemented (original platform). Previous M17-M21 (E2E tests) superseded by this refactoring plan.",
-    "source_document": "REFACTORING_PLAN.md",
-    "breaking_refactor": true,
-    "no_backwards_compatibility": true
+    "existing_milestones": "M1-M16 (original platform, complete), M17-M21 (refactoring, complete). M22 appended as new feature milestone.",
+    "source_document": "User-defined feature specification (chat file attachments)",
+    "breaking_refactor": false,
+    "no_backwards_compatibility": false
   },
   "strategy": {
-    "total_milestones": 5,
-    "total_stories_estimate": 20,
-    "mvp_milestones": [17, 18, 19, 20, 21],
+    "total_milestones": 1,
+    "total_stories_estimate": 10,
+    "mvp_milestones": [22],
     "milestones": [
       {
-        "id": 17,
-        "slug": "remove-features",
-        "name": "Remove Features (Clean Slate)",
-        "stories_estimate": 4,
-        "dependencies": [16],
-        "phase": "Phase 1: Remove Features",
+        "id": 22,
+        "slug": "chat-attachments",
+        "name": "Chat File Attachments",
+        "stories_estimate": 10,
+        "dependencies": [21],
+        "phase": "New Feature: File Attachments",
         "complexity": {
-          "info_loss_score": 2,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 12000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 0
-        }
-      },
-      {
-        "id": 18,
-        "slug": "rename-project",
-        "name": "Rename Idea to Project",
-        "stories_estimate": 4,
-        "dependencies": [17],
-        "phase": "Phase 2: Rename",
-        "complexity": {
-          "info_loss_score": 5,
+          "info_loss_score": 7,
           "info_loss_rating": "Medium",
-          "max_story_context_tokens": 15000,
-          "domain_size_rating": "Large",
-          "heavy_stories": 1
-        }
-      },
-      {
-        "id": 19,
-        "slug": "structured-requirements",
-        "name": "Project Types & Structured Requirements",
-        "stories_estimate": 4,
-        "dependencies": [18],
-        "phase": "Phase 3: Add Project Type & New Data Models",
-        "complexity": {
-          "info_loss_score": 6,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 20000,
+          "max_story_context_tokens": 14000,
           "domain_size_rating": "Large",
           "heavy_stories": 2
-        }
-      },
-      {
-        "id": 20,
-        "slug": "ai-rework",
-        "name": "AI System Prompt Rework",
-        "stories_estimate": 3,
-        "dependencies": [19],
-        "phase": "Phase 4: AI System Prompt Rework",
-        "complexity": {
-          "info_loss_score": 5,
-          "info_loss_rating": "Medium",
-          "max_story_context_tokens": 15000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 0
-        }
-      },
-      {
-        "id": 21,
-        "slug": "polish-final",
-        "name": "Document View, PDF Generation & Final Polish",
-        "stories_estimate": 5,
-        "dependencies": [20],
-        "phase": "Phase 5+6: Document, PDF & Polish",
-        "complexity": {
-          "info_loss_score": 3,
-          "info_loss_rating": "Low",
-          "max_story_context_tokens": 12000,
-          "domain_size_rating": "Medium",
-          "heavy_stories": 0
-        }
+        },
+        "splits_applied": [
+          {
+            "original": "AI extraction (1 story)",
+            "split_into": ["S6: PDF extraction", "S7: Image extraction + orchestration"],
+            "reason": "PDF page-level logic and image processing are distinct code paths; pipeline synchronization is a separate orchestration concern"
+          },
+          {
+            "original": "Frontend UI (1 story)",
+            "split_into": ["S9: Upload flow (API + hook + input + drag/drop)", "S10: Display flow (message rendering + thumbnails + presigned URLs)"],
+            "reason": "Upload flow (~14k context) and display flow (~10k context) are independent; combined they exceed comfortable single-story scope for Claude Opus 4.6"
+          }
+        ]
       }
     ]
   },
@@ -110,8 +58,8 @@
   "next_commands": [
     {
       "skill": "pipeline_configurator",
-      "command": "/pipeline_configurator Read handover at docs/05-milestones/handover.json. Generate pipeline configuration for refactoring milestones M17-M21.",
-      "description": "Generate pipeline-config.json for automated execution of the refactoring"
+      "command": "/pipeline_configurator Read handover at docs/05-milestones/handover.json. Generate pipeline configuration for M22.",
+      "description": "Generate pipeline-config.json for M22 execution"
     }
   ]
 }
