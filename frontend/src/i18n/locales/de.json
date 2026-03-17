@@ -53,7 +53,7 @@
     "lists": {
       "myProjects": "Meine Projekte",
       "collaborating": "Zusammenarbeit",
-      "invitations": "Einladungen",
+      "invitations": "Ausstehende Einladungen",
       "trash": "Papierkorb"
     },
     "empty": {
@@ -394,6 +394,10 @@
     "continueToStructure": "Weiter zur Strukturierung",
     "continueToDocument": "Weiter zur Strukturierung",
     "documentGuide": "Überprüfen und verfeinern Sie jeden Abschnitt unten, dann reichen Sie zur Überprüfung ein, wenn Sie bereit sind."
+  },
+  "projectType": {
+    "software": "Software",
+    "nonSoftware": "Nicht-Software"
   },
   "email": {
     "greeting": "Hallo {{name}},",

@@ -192,6 +192,7 @@ def _list_projects(request: Request) -> Response:
             {
                 "id": str(project.id),
                 "title": project.title,
+                "project_type": project.project_type,
                 "state": project.state,
                 "visibility": project.visibility,
                 "role": role,

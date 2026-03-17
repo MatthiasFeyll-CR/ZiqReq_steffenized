@@ -53,7 +53,7 @@
     "lists": {
       "myProjects": "My Projects",
       "collaborating": "Collaborating",
-      "invitations": "Invitations",
+      "invitations": "Pending Invitations",
       "trash": "Trash"
     },
     "empty": {
@@ -394,6 +394,10 @@
     "continueToStructure": "Continue to Structure",
     "continueToDocument": "Continue to Structure",
     "documentGuide": "Review and refine each section below, then submit for review when you're ready."
+  },
+  "projectType": {
+    "software": "Software",
+    "nonSoftware": "Non-Software"
   },
   "email": {
     "greeting": "Hi {{name}},",
