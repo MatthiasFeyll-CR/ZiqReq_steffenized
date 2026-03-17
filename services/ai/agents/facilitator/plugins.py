@@ -113,7 +113,7 @@ class FacilitatorPlugin:
         name="update_title",
         description=(
             "Update the project's title. Generate a short, concise title (under 60 characters) "
-            "that reflects the current direction of the brainstorming."
+            "that reflects the current direction of the project."
         ),
     )
     async def update_title(self, title: str) -> dict[str, Any]:

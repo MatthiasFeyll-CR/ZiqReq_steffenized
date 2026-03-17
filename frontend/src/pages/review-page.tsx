@@ -48,7 +48,7 @@ function CollapsibleCategory({
         projects.length === 0 ? (
           <EmptyState
             icon={Inbox}
-            message={t("review.noCategoryIdeas", { category: title.toLowerCase() })}
+            message={t("review.noCategoryProjects", { category: title.toLowerCase() })}
           />
         ) : (
           <div className="flex flex-col gap-2">

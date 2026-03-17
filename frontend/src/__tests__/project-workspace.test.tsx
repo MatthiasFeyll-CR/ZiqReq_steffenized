@@ -135,7 +135,7 @@ describe("T-1.7.02: invalid UUID → 404 error state", () => {
       expect(screen.getByTestId("workspace-error")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Idea not found")).toBeInTheDocument();
+    expect(screen.getByText("Project not found")).toBeInTheDocument();
   });
 
   it("shows error state when API returns 403", async () => {
@@ -150,7 +150,7 @@ describe("T-1.7.02: invalid UUID → 404 error state", () => {
     });
 
     expect(
-      screen.getByText("You don't have access to this idea"),
+      screen.getByText("You don't have access to this project"),
     ).toBeInTheDocument();
   });
 });

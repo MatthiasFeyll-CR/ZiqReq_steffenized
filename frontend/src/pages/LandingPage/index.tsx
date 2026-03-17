@@ -124,7 +124,7 @@ export default function LandingPage() {
         onSuccess: () => {
           const toastId = toast(
             <div className="flex items-center justify-between gap-4">
-              <span>{t("landing.ideaCard.deletedUndo")}</span>
+              <span>{t("landing.projectCard.deletedUndo")}</span>
               <button
                 type="button"
                 className="shrink-0 font-medium text-primary underline"
@@ -133,7 +133,7 @@ export default function LandingPage() {
                   toast.dismiss(toastId);
                 }}
               >
-                {t("landing.ideaCard.undo")}
+                {t("landing.projectCard.undo")}
               </button>
             </div>,
             { autoClose: 5000 },
@@ -170,7 +170,7 @@ export default function LandingPage() {
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">
           <Section
-            title={t("landing.lists.myIdeas")}
+            title={t("landing.lists.myProjects")}
             count={myProjectsData.length}
           >
             {myProjects.isLoading ? (
@@ -178,7 +178,7 @@ export default function LandingPage() {
             ) : myProjectsData.length === 0 ? (
               <EmptyState
                 icon={Lightbulb}
-                message={t("landing.empty.myIdeas")}
+                message={t("landing.empty.myProjects")}
               />
             ) : (
               <div className="flex flex-col gap-2">

@@ -112,7 +112,7 @@ export function ReviewCard({ project, category }: ReviewCardProps) {
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-base font-medium text-foreground">
-          {project.title || t("review.untitledIdea")}
+          {project.title || t("review.untitledProject")}
         </p>
         <p className="text-sm text-text-secondary">
           {t("review.byOwner", { owner: project.owner_name, time: formatRelativeTime(project.submitted_at) })}

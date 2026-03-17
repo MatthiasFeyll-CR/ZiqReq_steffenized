@@ -37,7 +37,7 @@ class ContextAssembler:
             "project_id": project_id,
             "project_context": {
                 "title": project.get("title", ""),
-                "state": project.get("state", "brainstorming"),
+                "state": project.get("state", "open"),
                 "agent_mode": project.get("agent_mode", "interactive"),
                 "title_manually_edited": project.get("title_manually_edited", False),
             },

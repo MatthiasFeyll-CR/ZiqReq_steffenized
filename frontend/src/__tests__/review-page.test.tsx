@@ -173,13 +173,13 @@ describe("T-10.2.03: Collapsible categories", () => {
     expect(await screen.findByText("Assigned to me")).toBeInTheDocument();
 
     // Assigned and Unassigned should show empty states (expanded)
-    expect(screen.getByText("No assigned to me ideas")).toBeInTheDocument();
-    expect(screen.getByText("No unassigned ideas")).toBeInTheDocument();
+    expect(screen.getByText("No assigned to me projects")).toBeInTheDocument();
+    expect(screen.getByText("No unassigned projects")).toBeInTheDocument();
 
     // Accepted, Rejected, Dropped should be collapsed — their empty states should NOT be visible
-    expect(screen.queryByText("No accepted ideas")).not.toBeInTheDocument();
-    expect(screen.queryByText("No rejected ideas")).not.toBeInTheDocument();
-    expect(screen.queryByText("No dropped ideas")).not.toBeInTheDocument();
+    expect(screen.queryByText("No accepted projects")).not.toBeInTheDocument();
+    expect(screen.queryByText("No rejected projects")).not.toBeInTheDocument();
+    expect(screen.queryByText("No dropped projects")).not.toBeInTheDocument();
   });
 
   it("clicking a collapsed category expands it", async () => {
@@ -189,13 +189,13 @@ describe("T-10.2.03: Collapsible categories", () => {
     expect(await screen.findByText("Accepted")).toBeInTheDocument();
 
     // Accepted is collapsed — no empty state
-    expect(screen.queryByText("No accepted ideas")).not.toBeInTheDocument();
+    expect(screen.queryByText("No accepted projects")).not.toBeInTheDocument();
 
     // Click to expand
     await user.click(screen.getByText("Accepted"));
 
     // Now empty state should show
-    expect(screen.getByText("No accepted ideas")).toBeInTheDocument();
+    expect(screen.getByText("No accepted projects")).toBeInTheDocument();
   });
 
   it("clicking an expanded category collapses it", async () => {
@@ -205,13 +205,13 @@ describe("T-10.2.03: Collapsible categories", () => {
     expect(await screen.findByText("Assigned to me")).toBeInTheDocument();
 
     // Assigned is expanded
-    expect(screen.getByText("No assigned to me ideas")).toBeInTheDocument();
+    expect(screen.getByText("No assigned to me projects")).toBeInTheDocument();
 
     // Click to collapse
     await user.click(screen.getByText("Assigned to me"));
 
     // Empty state should disappear
-    expect(screen.queryByText("No assigned to me ideas")).not.toBeInTheDocument();
+    expect(screen.queryByText("No assigned to me projects")).not.toBeInTheDocument();
   });
 });
 
@@ -228,7 +228,7 @@ describe("UI-REVIEW.01: Review page renders content", () => {
     renderReviewPage();
 
     expect(await screen.findByRole("heading", { name: "Reviews" })).toBeInTheDocument();
-    expect(screen.getByText("Manage ideas submitted for your review")).toBeInTheDocument();
+    expect(screen.getByText("Manage projects submitted for your review")).toBeInTheDocument();
   });
 });
 
@@ -236,7 +236,7 @@ describe("UI-REVIEW.02: Empty state for each category", () => {
   it("shows empty state message for expanded empty categories", async () => {
     renderReviewPage();
 
-    expect(await screen.findByText("No assigned to me ideas")).toBeInTheDocument();
-    expect(screen.getByText("No unassigned ideas")).toBeInTheDocument();
+    expect(await screen.findByText("No assigned to me projects")).toBeInTheDocument();
+    expect(screen.getByText("No unassigned projects")).toBeInTheDocument();
   });
 });

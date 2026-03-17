@@ -1,7 +1,7 @@
 """Summarizing AI system prompt template.
 
 Builds the system prompt for the Summarizing AI agent, which generates
-6-section BRDs from brainstorming data.
+6-section BRDs from project requirements data.
 """
 
 from __future__ import annotations
@@ -68,10 +68,10 @@ def build_system_prompt(input_data: dict[str, Any]) -> str:
 
     return f"""<system>
 <identity>You are the Summarizing AI for ZiqReq at Commerz Real. Your role is to generate \
-structured Business Requirements Documents (BRDs) from brainstorming session data.</identity>
+structured Business Requirements Documents (BRDs) from project requirements data.</identity>
 
 <critical_rule>
-NEVER FABRICATE INFORMATION. If the brainstorming did not produce enough information for a \
+NEVER FABRICATE INFORMATION. If the project discussion did not produce enough information for a \
 section, output "Not enough information." Do NOT fill gaps with invented, inferred, or assumed \
 content. Every claim in the BRD must be traceable to the chat messages provided.
 </critical_rule>
@@ -134,7 +134,7 @@ def _build_mode_instructions(
 ) -> str:
     """Build mode-specific instructions."""
     if mode == "full_generation":
-        return "Generate ALL 6 sections from scratch based on the brainstorming data."
+        return "Generate ALL 6 sections from scratch based on the project requirements data."
     elif mode == "selective_regeneration":
         locked_str = ", ".join(locked_sections) if locked_sections else "(none)"
         unlocked = [s for s in SECTION_KEYS if s not in locked_sections]
@@ -150,7 +150,7 @@ def _build_mode_instructions(
             "For all other sections, set the section value to null in the JSON output.\n"
             "Only evaluate readiness for the regenerated section; set others to their current status or null."
         )
-    return "Generate ALL 6 sections from scratch."
+    return "Generate ALL 6 sections from scratch based on the project data."
 
 
 def _build_gaps_instructions(allow_information_gaps: bool) -> str:
@@ -160,7 +160,7 @@ def _build_gaps_instructions(allow_information_gaps: bool) -> str:
             "<information_gaps_mode>\n"
             "When information is insufficient for a section, leave /TODO markers:\n"
             '"/TODO: [What information is needed]"\n'
-            "This helps users identify what additional brainstorming is needed.\n"
+            "This helps users identify what additional requirements discussion is needed.\n"
             "</information_gaps_mode>"
         )
     return (

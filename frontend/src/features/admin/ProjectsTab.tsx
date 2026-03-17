@@ -45,7 +45,7 @@ export function ProjectsTab() {
       setProjects(data.results);
       setTotalCount(data.count);
     } catch (err) {
-      toast.error(`${t("admin.ideas.failedLoad")}: ${(err as Error).message}`);
+      toast.error(`${t("admin.projects.failedLoad")}: ${(err as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export function ProjectsTab() {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("admin.ideas.searchPlaceholder")}
+            placeholder={t("admin.projects.searchPlaceholder")}
             className="pl-9 pr-8"
             data-testid="admin-projects-search"
           />
@@ -90,10 +90,10 @@ export function ProjectsTab() {
           onValueChange={(val) => setStateFilter(val === "all" ? "" : val)}
         >
           <SelectTrigger className="w-full sm:w-44" data-testid="admin-projects-state-filter">
-            <SelectValue placeholder={t("admin.ideas.allStates")} />
+            <SelectValue placeholder={t("admin.projects.allStates")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t("admin.ideas.allStates")}</SelectItem>
+            <SelectItem value="all">{t("admin.projects.allStates")}</SelectItem>
             {IDEA_STATES.map((state) => (
               <SelectItem key={state} value={state}>
                 {t(`review.stateLabels.${state}`)}
@@ -102,7 +102,7 @@ export function ProjectsTab() {
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {t("admin.ideas.totalCount", { count: totalCount })}
+          {t("admin.projects.totalCount", { count: totalCount })}
         </span>
       </div>
 
@@ -144,7 +144,7 @@ export function ProjectsTab() {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
           >
-            {t("admin.ideas.next")}
+            {t("admin.projects.next")}
             <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>

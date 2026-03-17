@@ -18,7 +18,7 @@ const {
   mockTransferOwnership,
   mockFetchPendingInvitations,
   mockRevokeInvitation,
-  mockLeaveIdea,
+  mockLeaveProject,
   mockToastSuccess,
   mockToastError,
 } = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ const {
   mockTransferOwnership: vi.fn(),
   mockFetchPendingInvitations: vi.fn(),
   mockRevokeInvitation: vi.fn(),
-  mockLeaveIdea: vi.fn(),
+  mockLeaveProject: vi.fn(),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
 }));
@@ -40,7 +40,7 @@ vi.mock("@/api/collaboration", () => ({
   fetchCollaborators: mockFetchCollaborators,
   removeCollaborator: mockRemoveCollaborator,
   transferOwnership: mockTransferOwnership,
-  leaveIdea: mockLeaveIdea,
+  leaveProject: mockLeaveProject,
   fetchPendingInvitations: mockFetchPendingInvitations,
   revokeInvitation: mockRevokeInvitation,
 }));
@@ -128,7 +128,7 @@ beforeEach(() => {
   });
   mockSearchUsers.mockResolvedValue([]);
   mockSendBulkInvitations.mockResolvedValue({ results: [] });
-  mockLeaveIdea.mockResolvedValue({ message: "Left" });
+  mockLeaveProject.mockResolvedValue({ message: "Left" });
 });
 
 describe("UI-COLLAB.01: Modal opens with 3 tabs", () => {

@@ -126,7 +126,7 @@ describe("UI-SUBMIT.01: Submit with message and reviewers", () => {
       });
     });
 
-    expect(mockToastSuccess).toHaveBeenCalledWith("Idea submitted");
+    expect(mockToastSuccess).toHaveBeenCalledWith("Project submitted");
   });
 });
 
@@ -150,7 +150,7 @@ describe("UI-SUBMIT.02: Submit without optional fields", () => {
       });
     });
 
-    expect(mockToastSuccess).toHaveBeenCalledWith("Idea submitted");
+    expect(mockToastSuccess).toHaveBeenCalledWith("Project submitted");
   });
 });
 

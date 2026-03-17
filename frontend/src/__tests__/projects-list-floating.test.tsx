@@ -66,10 +66,10 @@ describe("ProjectsListFloating", () => {
     expect(screen.getByText("Second Idea")).toBeInTheDocument();
   });
 
-  it("shows empty message when no ideas", () => {
+  it("shows empty message when no projects", () => {
     vi.mocked(useProjectsByState).mockReturnValue(mockHookReturn([]));
     renderFloating();
-    expect(screen.getByText(/No active ideas/)).toBeInTheDocument();
+    expect(screen.getByText(/No active projects/)).toBeInTheDocument();
   });
 
   it("shows loading state", () => {

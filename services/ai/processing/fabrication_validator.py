@@ -172,7 +172,7 @@ def build_source_material(
     chat_summary: str,
     recent_messages: list[dict[str, Any]],
 ) -> str:
-    """Build a combined source material string from brainstorming data.
+    """Build a combined source material string from project requirements data.
 
     Args:
         chat_summary: Summary of chat context.

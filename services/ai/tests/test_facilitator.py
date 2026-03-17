@@ -56,7 +56,7 @@ class TestSilentModePrompt:
         prompt = build_system_prompt({
             "agent_mode": "silent",
             "project_title": "Test",
-            "project_state": "brainstorming",
+            "project_state": "open",
             "title_manually_edited": False,
             "recent_messages_formatted": '<message id="1" sender="Lisa" type="user">Hello</message>',
 
@@ -69,7 +69,7 @@ class TestSilentModePrompt:
         prompt = build_system_prompt({
             "agent_mode": "silent",
             "project_title": "Test",
-            "project_state": "brainstorming",
+            "project_state": "open",
             "title_manually_edited": False,
             "recent_messages_formatted": '<message id="1" sender="Lisa" type="user">@ai what do you think?</message>',
 
@@ -637,7 +637,7 @@ class TestSystemPromptRendering:
         prompt = build_system_prompt({
             "agent_mode": "interactive",
             "project_title": "Invoice Automation",
-            "project_state": "brainstorming",
+            "project_state": "open",
             "title_manually_edited": False,
             "facilitator_bucket_content": "Systems: SAP, DocuSign",
             "recent_messages_formatted": "(no messages yet)",
@@ -655,7 +655,7 @@ class TestSystemPromptRendering:
         prompt = build_system_prompt({
             "agent_mode": "interactive",
             "project_title": "Test",
-            "project_state": "brainstorming",
+            "project_state": "open",
             "title_manually_edited": False,
             "chat_summary": "Previous discussion about workflows.",
             "recent_messages_formatted": "",
@@ -669,7 +669,7 @@ class TestSystemPromptRendering:
         prompt = build_system_prompt({
             "agent_mode": "interactive",
             "project_title": "Test",
-            "project_state": "brainstorming",
+            "project_state": "open",
             "title_manually_edited": False,
             "delegation_results": "Commerz Real uses SAP for ERP.",
             "recent_messages_formatted": "",
@@ -682,7 +682,7 @@ class TestSystemPromptRendering:
         prompt = build_system_prompt({
             "agent_mode": "interactive",
             "project_title": "Test",
-            "project_state": "brainstorming",
+            "project_state": "open",
             "title_manually_edited": False,
             "is_multi_user": True,
             "user_names_list": "Lisa, Max",

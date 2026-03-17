@@ -69,9 +69,9 @@ describe("ProjectCard component", () => {
     expect(title.className).toContain("truncate");
   });
 
-  it("renders 'Untitled idea' when title is empty", () => {
+  it("renders 'Untitled project' when title is empty", () => {
     renderProjectCard({ title: "" });
-    expect(screen.getByText("Untitled idea")).toBeInTheDocument();
+    expect(screen.getByText("Untitled project")).toBeInTheDocument();
   });
 
   it("renders relative timestamp", () => {

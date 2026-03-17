@@ -77,7 +77,7 @@ export function ProjectCard({
           {title || t("landing.untitled")}
         </p>
         <p className="text-sm text-text-secondary">
-          {t("landing.ideaCard.lastUpdated", {
+          {t("landing.projectCard.lastUpdated", {
             time: formatRelativeTime(updatedAt),
           })}
         </p>
@@ -112,7 +112,7 @@ export function ProjectCard({
               }}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              {t("landing.ideaCard.restore")}
+              {t("landing.projectCard.restore")}
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem
@@ -122,7 +122,7 @@ export function ProjectCard({
               }}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              {t("landing.ideaCard.delete")}
+              {t("landing.projectCard.delete")}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

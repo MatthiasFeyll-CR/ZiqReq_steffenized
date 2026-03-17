@@ -374,7 +374,7 @@ class TestPipelineCompressionTrigger:
         big_content = "x" * 320000  # Slightly over 60%
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
-            "project": {"title": "Test", "state": "brainstorming",
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-1", "content": big_content, "sender_type": "user"},
@@ -427,7 +427,7 @@ class TestPipelineCompressionTrigger:
         # Small content — well below threshold
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
-            "project": {"title": "Test", "state": "brainstorming",
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-1", "content": "Short message", "sender_type": "user"},
@@ -475,7 +475,7 @@ class TestPipelineCompressionTrigger:
 
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
-            "project": {"title": "Test", "state": "brainstorming",
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [],
             "chat_summary": None,
@@ -512,7 +512,7 @@ class TestPipelineCompressionTrigger:
         big_content = "x" * 320000
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
-            "project": {"title": "Test", "state": "brainstorming",
+            "project": {"title": "Test", "state": "open",
                      "agent_mode": "interactive", "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-5", "content": big_content, "sender_type": "user"},

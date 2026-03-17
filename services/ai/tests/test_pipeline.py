@@ -37,14 +37,14 @@ def _mock_core_client(project_context: dict | None = None) -> MagicMock:
     client.get_project_context.return_value = project_context or {
         "project": {
             "title": "Test Project",
-            "state": "brainstorming",
+            "state": "open",
             "agent_mode": "interactive",
             "title_manually_edited": False,
         },
         "recent_messages": [
             {
                 "id": "msg-1",
-                "content": "Let's brainstorm about invoices",
+                "content": "Let's discuss invoices",
                 "sender_type": "user",
                 "sender_name": "Lisa",
                 "has_ai_reaction": False,
@@ -669,7 +669,7 @@ class TestContextAssembler:
         response = {
             "project": {
                 "title": "Invoice Automation",
-                "state": "brainstorming",
+                "state": "open",
                 "agent_mode": "interactive",
                 "title_manually_edited": False,
             },

@@ -128,9 +128,9 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   it("renders hero section with heading, subtext, input, and submit button", () => {
     renderLandingPage();
 
-    expect(screen.getByText("Start a new brainstorm")).toBeInTheDocument();
+    expect(screen.getByText("Create a new project")).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText("Describe your idea..."),
+      screen.getByPlaceholderText("Describe your project..."),
     ).toBeInTheDocument();
     expect(screen.getByText("Begin")).toBeInTheDocument();
   });
@@ -138,7 +138,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   it("renders all 4 section headings", () => {
     renderLandingPage();
 
-    expect(screen.getByText("My Ideas")).toBeInTheDocument();
+    expect(screen.getByText("My Projects")).toBeInTheDocument();
     expect(screen.getByText("Collaborating")).toBeInTheDocument();
     expect(screen.getByText("Invitations")).toBeInTheDocument();
     expect(screen.getByText("Trash")).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   it("renders empty states when no data returned", () => {
     renderLandingPage();
 
-    expect(screen.getByText("Start your first brainstorm")).toBeInTheDocument();
+    expect(screen.getByText("Create your first project")).toBeInTheDocument();
     expect(screen.getByText("No collaborations yet")).toBeInTheDocument();
     expect(screen.getByText("No pending invitations")).toBeInTheDocument();
     expect(screen.getByText("Trash is empty")).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     expect(zeros.length).toBe(4);
   });
 
-  it("renders ideas in My Ideas list with correct count", () => {
+  it("renders projects in My Projects list with correct count", () => {
     vi.mocked(useMyProjects).mockReturnValue(
       mockHook({
         results: [
@@ -225,7 +225,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
 
     // LandingPage no longer includes Navbar directly — it's wrapped by AuthenticatedLayout.
     // Verify the page's own content renders instead.
-    expect(screen.getByText("Start a new brainstorm")).toBeInTheDocument();
+    expect(screen.getByText("Create a new project")).toBeInTheDocument();
   });
 
   it("shows skeleton loaders when data is loading", () => {

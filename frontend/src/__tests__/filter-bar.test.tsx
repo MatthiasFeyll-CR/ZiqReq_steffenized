@@ -150,7 +150,7 @@ describe("FilterBar component (controlled)", () => {
   it("renders search input with placeholder", () => {
     renderFilterBar();
     expect(
-      screen.getByPlaceholderText("Search ideas by title..."),
+      screen.getByPlaceholderText("Search projects by title..."),
     ).toBeInTheDocument();
   });
 
@@ -159,16 +159,16 @@ describe("FilterBar component (controlled)", () => {
     expect(screen.getByText("All states")).toBeInTheDocument();
   });
 
-  it("renders ownership filter dropdown with All ideas option", () => {
+  it("renders ownership filter dropdown with All projects option", () => {
     renderFilterBar();
-    expect(screen.getByText("All ideas")).toBeInTheDocument();
+    expect(screen.getByText("All projects")).toBeInTheDocument();
   });
 
   it("calls onSearchChange when typing in search input", () => {
     const onSearchChange = vi.fn();
     renderFilterBar({ onSearchChange });
 
-    const input = screen.getByPlaceholderText("Search ideas by title...");
+    const input = screen.getByPlaceholderText("Search projects by title...");
     fireEvent.change(input, { target: { value: "test" } });
 
     expect(onSearchChange).toHaveBeenCalledWith("test");
@@ -217,10 +217,10 @@ describe("T-9.4.01 / T-9.4.02: FilterBar integration with LandingPage", () => {
   it("renders FilterBar on the landing page", () => {
     renderLandingPage();
     expect(
-      screen.getByPlaceholderText("Search ideas by title..."),
+      screen.getByPlaceholderText("Search projects by title..."),
     ).toBeInTheDocument();
     expect(screen.getByText("All states")).toBeInTheDocument();
-    expect(screen.getByText("All ideas")).toBeInTheDocument();
+    expect(screen.getByText("All projects")).toBeInTheDocument();
   });
 
   it("debounces search and passes filters to useMyProjects", async () => {
@@ -229,7 +229,7 @@ describe("T-9.4.01 / T-9.4.02: FilterBar integration with LandingPage", () => {
     renderLandingPage();
 
     const searchInput = screen.getByPlaceholderText(
-      "Search ideas by title...",
+      "Search projects by title...",
     );
 
     // Use fireEvent.change to avoid userEvent timing issues
@@ -259,7 +259,7 @@ describe("T-9.4.01 / T-9.4.02: FilterBar integration with LandingPage", () => {
     renderLandingPage();
 
     const searchInput = screen.getByPlaceholderText(
-      "Search ideas by title...",
+      "Search projects by title...",
     );
     fireEvent.change(searchInput, { target: { value: "test" } });
 

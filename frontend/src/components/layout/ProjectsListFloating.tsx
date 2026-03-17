@@ -12,10 +12,10 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { value: "active", labelKey: "ideasFloat.tabs.active", state: "open" },
-  { value: "in_review", labelKey: "ideasFloat.tabs.inReview", state: "in_review" },
-  { value: "accepted", labelKey: "ideasFloat.tabs.accepted", state: "accepted" },
-  { value: "closed", labelKey: "ideasFloat.tabs.closed", state: "dropped" },
+  { value: "active", labelKey: "projectsFloat.tabs.active", state: "open" },
+  { value: "in_review", labelKey: "projectsFloat.tabs.inReview", state: "in_review" },
+  { value: "accepted", labelKey: "projectsFloat.tabs.accepted", state: "accepted" },
+  { value: "closed", labelKey: "projectsFloat.tabs.closed", state: "dropped" },
 ];
 
 interface ProjectsListFloatingProps {
@@ -48,7 +48,7 @@ export function ProjectsListFloating({ onClose }: ProjectsListFloatingProps) {
       ref={panelRef}
       className="absolute right-0 top-full z-20 mt-1 w-80 rounded-lg border border-border bg-surface shadow-lg"
       role="dialog"
-      aria-label={t("ideasFloat.title")}
+      aria-label={t("projectsFloat.title")}
     >
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="w-full">
@@ -85,7 +85,7 @@ function TabPanel({ state, onItemClick }: { state: string; onItemClick: () => vo
   if (projects.length === 0) {
     return (
       <div className="px-3 py-4 text-center text-sm text-text-secondary">
-        {t("ideasFloat.empty", { state: t(`ideasFloat.stateLabels.${state}`) })}
+        {t("projectsFloat.empty", { state: t(`projectsFloat.stateLabels.${state}`) })}
       </div>
     );
   }

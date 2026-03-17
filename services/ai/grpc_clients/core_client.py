@@ -38,7 +38,7 @@ class CoreClient:
                 project = {
                     "id": str(row[0]),
                     "title": row[1] or "",
-                    "state": row[2] or "brainstorming",
+                    "state": row[2] or "open",
                     "owner_id": str(row[3]) if row[3] else "",
                 }
 

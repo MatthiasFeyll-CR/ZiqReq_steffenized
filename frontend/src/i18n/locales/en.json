@@ -16,7 +16,7 @@
     "back": "Back"
   },
   "nav": {
-    "ideas": "Ideas",
+    "projects": "Projects",
     "reviews": "Reviews",
     "admin": "Admin",
     "openMenu": "Open menu",
@@ -36,31 +36,31 @@
   },
   "landing": {
     "hero": {
-      "heading": "Start a new brainstorm",
-      "subtext": "Describe your idea and let AI help you refine it.",
-      "placeholder": "Describe your idea...",
+      "heading": "Create a new project",
+      "subtext": "Describe your project and let AI help you structure the requirements.",
+      "placeholder": "Describe your project...",
       "submit": "Begin",
-      "validationEmpty": "Please describe your idea before submitting.",
-      "errorCreating": "Failed to create idea. Please try again."
+      "validationEmpty": "Please describe your project before submitting.",
+      "errorCreating": "Failed to create project. Please try again."
     },
     "lists": {
-      "myIdeas": "My Ideas",
+      "myProjects": "My Projects",
       "collaborating": "Collaborating",
       "invitations": "Invitations",
       "trash": "Trash"
     },
     "empty": {
-      "myIdeas": "Start your first brainstorm",
+      "myProjects": "Create your first project",
       "collaborating": "No collaborations yet",
       "invitations": "No pending invitations",
       "trash": "Trash is empty"
     },
-    "untitled": "Untitled idea",
-    "ideaCard": {
+    "untitled": "Untitled project",
+    "projectCard": {
       "lastUpdated": "Last updated {{time}}",
       "delete": "Delete",
       "restore": "Restore",
-      "deletedUndo": "Idea moved to trash",
+      "deletedUndo": "Project moved to trash",
       "undo": "Undo"
     },
     "invitations": {
@@ -71,7 +71,7 @@
       "declined": "Invitation declined"
     },
     "filter": {
-      "searchPlaceholder": "Search ideas by title...",
+      "searchPlaceholder": "Search projects by title...",
       "clearSearch": "Clear search",
       "statePlaceholder": "State",
       "stateAll": "All states",
@@ -81,30 +81,30 @@
       "stateDropped": "Dropped",
       "stateRejected": "Rejected",
       "ownershipPlaceholder": "Ownership",
-      "ownershipAll": "All ideas",
-      "ownershipMyIdeas": "My Ideas",
+      "ownershipAll": "All projects",
+      "ownershipMyProjects": "My Projects",
       "ownershipCollaborating": "Collaborating",
       "clearAll": "Clear filters"
     }
   },
   "workspace": {
-    "notFound": "Idea not found",
-    "noAccess": "You don't have access to this idea",
+    "notFound": "Project not found",
+    "noAccess": "You don't have access to this project",
     "backToHome": "Back to home",
-    "editTitle": "Edit idea title",
+    "editTitle": "Edit project title",
     "invitationBanner": {
-      "text": "invited you to collaborate on this idea"
+      "text": "invited you to collaborate on this project"
     }
   },
-  "ideasFloat": {
-    "title": "Ideas",
+  "projectsFloat": {
+    "title": "Projects",
     "tabs": {
       "active": "Active",
       "inReview": "In Review",
       "accepted": "Accepted",
       "closed": "Closed"
     },
-    "empty": "No {{state}} ideas",
+    "empty": "No {{state}} projects",
     "stateLabels": {
       "open": "active",
       "in_review": "in review",
@@ -161,18 +161,18 @@
     "transfer": "Transfer",
     "remove": "Remove",
     "noCollaborators": "No collaborators yet",
-    "leaveIdea": "Leave Idea",
+    "leaveProject": "Leave Project",
     "transferBeforeLeaving": "Transfer ownership before leaving",
     "removeCollaborator": "Remove Collaborator",
-    "removeConfirm": "Are you sure you want to remove {{name}} from this idea?",
+    "removeConfirm": "Are you sure you want to remove {{name}} from this project?",
     "collaboratorRemoved": "Collaborator removed",
     "failedToRemove": "Failed to remove collaborator",
     "transferOwnership": "Transfer Ownership",
     "transferConfirm": "Transfer ownership to {{name}}? You will become a collaborator.",
     "ownershipTransferred": "Ownership transferred",
     "failedToTransfer": "Failed to transfer ownership",
-    "leftIdea": "You have left the idea",
-    "failedToLeave": "Failed to leave idea",
+    "leftProject": "You have left the project",
+    "failedToLeave": "Failed to leave project",
     "ownerOnly": "Only the owner can view pending invitations.",
     "noPending": "No pending invitations",
     "invited": "Invited {{time}}",
@@ -180,7 +180,7 @@
     "invitationRevoked": "Invitation revoked",
     "failedToRevoke": "Failed to revoke invitation",
     "shareLink": "Share Link (Read-Only)",
-    "shareLinkDescription": "Anyone at Commerz Real with this link can view this idea in read-only mode.",
+    "shareLinkDescription": "Anyone at Commerz Real with this link can view this project in read-only mode.",
     "generateLink": "Generate Link",
     "copyLink": "Copy link",
     "copied": "Copied",
@@ -190,7 +190,7 @@
   },
   "review": {
     "pageTitle": "Reviews",
-    "pageDescription": "Manage ideas submitted for your review",
+    "pageDescription": "Manage projects submitted for your review",
     "loadingReviews": "Loading reviews...",
     "failedToLoad": "Failed to load reviews",
     "tryAgainLater": "Please try again later.",
@@ -199,7 +199,7 @@
     "accepted": "Accepted",
     "rejected": "Rejected",
     "dropped": "Dropped",
-    "noCategoryIdeas": "No {{category}} ideas",
+    "noCategoryProjects": "No {{category}} projects",
     "stateLabels": {
       "open": "Open",
       "in_review": "In Review",
@@ -207,11 +207,11 @@
       "dropped": "Dropped",
       "rejected": "Rejected"
     },
-    "untitledIdea": "Untitled idea",
+    "untitledProject": "Untitled project",
     "byOwner": "by {{owner}} \u2022 Submitted {{time}}",
     "assign": "Assign",
     "unassign": "Unassign",
-    "cannotReviewOwn": "Cannot review own idea",
+    "cannotReviewOwn": "Cannot review own project",
     "failedToAssign": "Failed to assign",
     "failedToUnassign": "Failed to unassign",
     "generateError": "Failed to generate BRD",
@@ -256,14 +256,14 @@
       "collaboration_invitation": "Invitation received",
       "collaborator_joined": "Collaborator joined",
       "collaborator_left": "Collaborator left",
-      "removed_from_idea": "Removed from idea",
+      "removed_from_project": "Removed from project",
       "ownership_transferred": "Ownership transferred",
       "review_state_changed": "Review state changed",
       "review_comment": "Review comment",
       "chat_mention": "@mention in chat",
-      "idea_submitted": "Idea submitted",
-      "idea_assigned": "Idea assigned",
-      "idea_resubmitted": "Idea resubmitted",
+      "project_submitted": "Project submitted",
+      "project_assigned": "Project assigned",
+      "project_resubmitted": "Project resubmitted",
       "monitoring_alert": "Monitoring alert"
     }
   },
@@ -301,7 +301,7 @@
     "loadingMonitoring": "Loading monitoring data...",
     "failedLoadMonitoring": "Failed to load monitoring data.",
     "activeConnections": "Active Connections",
-    "ideasByState": "Ideas by State",
+    "projectsByState": "Projects by State",
     "activeUsers": "Active Users",
     "aiRequests": "AI Requests",
     "serviceHealth": "Service Health",
@@ -317,13 +317,13 @@
     "noUsersFound": "No users found.",
     "failedLoadUsers": "Failed to load users",
     "failedSearchUsers": "Failed to search users",
-    "userStats": "{{ideas}} ideas | {{reviews}} reviews | {{contributions}} contributions",
-    "ideas": {
-      "tab": "Ideas",
-      "searchPlaceholder": "Search ideas by title...",
+    "userStats": "{{projects}} projects | {{reviews}} reviews | {{contributions}} contributions",
+    "projects": {
+      "tab": "Projects",
+      "searchPlaceholder": "Search projects by title...",
       "allStates": "All states",
-      "totalCount": "{{count}} ideas",
-      "failedLoad": "Failed to load ideas",
+      "totalCount": "{{count}} projects",
+      "failedLoad": "Failed to load projects",
       "next": "Next"
     }
   },
@@ -341,13 +341,13 @@
     "send": "Send",
     "rateLimited": "Chat input is locked. Please wait for AI to complete processing.",
     "messageList": "Chat messages",
-    "emptyState": "Start brainstorming...",
+    "emptyState": "Start defining your requirements...",
     "quickReplies": {
     }
   },
   "submit": {
-    "success": "Idea submitted",
-    "error": "Failed to submit idea",
+    "success": "Project submitted",
+    "error": "Failed to submit project",
     "messageLabel": "Message for reviewers (optional)",
     "messagePlaceholder": "Add a message for the reviewers...",
     "reviewerLabel": "Assign reviewers (optional)",

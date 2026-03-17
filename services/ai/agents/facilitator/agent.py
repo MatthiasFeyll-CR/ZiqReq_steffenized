@@ -1,4 +1,4 @@
-"""FacilitatorAgent — the primary AI agent for brainstorming facilitation.
+"""FacilitatorAgent — the primary AI agent for requirements structuring.
 
 Extends BaseAgent with SK function-calling loop, system prompt rendering,
 and the FacilitatorPlugin (5 tools).
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class FacilitatorAgent(BaseAgent):
-    """Facilitator agent — guides brainstorming via 5 tools.
+    """Facilitator agent — guides requirements structuring via 5 tools.
 
     Uses SK's automatic function-calling loop with max_auto_invoke_attempts=3.
     """
@@ -127,7 +127,7 @@ def _build_prompt_context(input_data: dict[str, Any]) -> dict[str, Any]:
     return {
         "agent_mode": ctx.get("agent_mode", "interactive"),
         "project_title": ctx.get("title", ""),
-        "project_state": ctx.get("state", "brainstorming"),
+        "project_state": ctx.get("state", "open"),
         "title_manually_edited": ctx.get("title_manually_edited", False),
         "facilitator_bucket_content": input_data.get("facilitator_bucket_content", ""),
         "recent_messages_formatted": _format_messages(input_data.get("recent_messages", [])),

@@ -14,7 +14,7 @@ const COLLAB_ID = "00000000-0000-0000-0000-000000000002";
 const {
   mockFetchChatMessages,
   mockFetchCollaborators,
-  mockLeaveIdea,
+  mockLeaveProject,
   mockToastSuccess,
   mockToastError,
   mockSearchUsers,
@@ -26,7 +26,7 @@ const {
 } = vi.hoisted(() => ({
   mockFetchChatMessages: vi.fn(),
   mockFetchCollaborators: vi.fn(),
-  mockLeaveIdea: vi.fn(),
+  mockLeaveProject: vi.fn(),
   mockToastSuccess: vi.fn(),
   mockToastError: vi.fn(),
   mockSearchUsers: vi.fn(),
@@ -48,7 +48,7 @@ vi.mock("@/api/collaboration", () => ({
   fetchCollaborators: mockFetchCollaborators,
   removeCollaborator: mockRemoveCollaborator,
   transferOwnership: mockTransferOwnership,
-  leaveIdea: mockLeaveIdea,
+  leaveProject: mockLeaveProject,
   fetchPendingInvitations: mockFetchPendingInvitations,
   revokeInvitation: mockRevokeInvitation,
 }));

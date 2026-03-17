@@ -117,7 +117,7 @@ describe("T-9.2.01: Create idea from landing page", () => {
     renderLandingPage();
     const user = userEvent.setup();
 
-    const textarea = screen.getByPlaceholderText("Describe your idea...");
+    const textarea = screen.getByPlaceholderText("Describe your project...");
     await user.type(textarea, "My brilliant idea");
     expect(textarea).toHaveValue("My brilliant idea");
   });
@@ -130,7 +130,7 @@ describe("T-9.2.01: Create idea from landing page", () => {
     await user.click(submitBtn);
 
     expect(
-      screen.getByText("Please describe your idea before submitting."),
+      screen.getByText("Please describe your project before submitting."),
     ).toBeInTheDocument();
   });
 
@@ -140,14 +140,14 @@ describe("T-9.2.01: Create idea from landing page", () => {
 
     await user.click(screen.getByText("Begin"));
     expect(
-      screen.getByText("Please describe your idea before submitting."),
+      screen.getByText("Please describe your project before submitting."),
     ).toBeInTheDocument();
 
-    const textarea = screen.getByPlaceholderText("Describe your idea...");
+    const textarea = screen.getByPlaceholderText("Describe your project...");
     await user.type(textarea, "a");
 
     expect(
-      screen.queryByText("Please describe your idea before submitting."),
+      screen.queryByText("Please describe your project before submitting."),
     ).not.toBeInTheDocument();
   });
 
@@ -170,7 +170,7 @@ describe("T-9.2.01: Create idea from landing page", () => {
     renderLandingPage();
     const user = userEvent.setup();
 
-    const textarea = screen.getByPlaceholderText("Describe your idea...");
+    const textarea = screen.getByPlaceholderText("Describe your project...");
     await user.type(textarea, "My idea");
     await user.click(screen.getByText("Begin"));
 
@@ -198,13 +198,13 @@ describe("T-9.2.01: Create idea from landing page", () => {
     renderLandingPage();
     const user = userEvent.setup();
 
-    const textarea = screen.getByPlaceholderText("Describe your idea...");
+    const textarea = screen.getByPlaceholderText("Describe your project...");
     await user.type(textarea, "My idea");
     await user.click(screen.getByText("Begin"));
 
     await waitFor(() => {
       expect(
-        screen.getByText("Failed to create idea. Please try again."),
+        screen.getByText("Failed to create project. Please try again."),
       ).toBeInTheDocument();
     });
 
@@ -223,7 +223,7 @@ describe("T-9.2.01: Create idea from landing page", () => {
     renderLandingPage();
     const user = userEvent.setup();
 
-    const textarea = screen.getByPlaceholderText("Describe your idea...");
+    const textarea = screen.getByPlaceholderText("Describe your project...");
     await user.type(textarea, "My idea");
     await user.click(screen.getByText("Begin"));
 

@@ -440,7 +440,7 @@ function CollaboratorsTab({
   const leaveMutation = useMutation({
     mutationFn: () => leaveProject(projectId),
     onSuccess: () => {
-      toast.success(t("collaboration.leftIdea"));
+      toast.success(t("collaboration.leftProject"));
       queryClient.invalidateQueries({ queryKey: ["collaborators", projectId] });
       onCloseModal();
     },
