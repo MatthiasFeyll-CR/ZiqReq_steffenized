@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchContextWindow, type ContextWindowData } from "@/api/ideas";
+import { fetchContextWindow, type ContextWindowData } from "@/api/projects";
 import {
   Tooltip,
   TooltipContent,
@@ -14,31 +14,31 @@ const RADIUS = (SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 interface ContextWindowIndicatorProps {
-  ideaId: string;
-  ideaState: string;
+  projectId: string;
+  projectState: string;
 }
 
-export function ContextWindowIndicator({ ideaId, ideaState }: ContextWindowIndicatorProps) {
+export function ContextWindowIndicator({ projectId, projectState }: ContextWindowIndicatorProps) {
   const [data, setData] = useState<ContextWindowData | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const result = await fetchContextWindow(ideaId);
+      const result = await fetchContextWindow(projectId);
       setData(result);
     } catch {
       // Silently fail — indicator just won't update
     }
-  }, [ideaId]);
+  }, [projectId]);
 
   useEffect(() => {
-    if (ideaState !== "open") return;
+    if (projectState !== "open") return;
 
     void load();
     const interval = setInterval(() => void load(), POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [ideaState, load]);
+  }, [projectState, load]);
 
-  if (ideaState !== "open") return null;
+  if (projectState !== "open") return null;
 
   const usage = data?.usage_percentage ?? 0;
   const isWarning = usage >= 80;

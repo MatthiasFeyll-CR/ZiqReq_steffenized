@@ -18,12 +18,12 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 function populatedDraft(): BrdDraft {
   return {
     id: "22222222-2222-2222-2222-222222222222",
-    idea_id: IDEA_ID,
+    project_id: PROJECT_ID,
     section_title: "Test BRD Title",
     section_short_description: "Short description",
     section_current_workflow: "Current workflow",
@@ -56,10 +56,10 @@ beforeEach(() => {
   });
 });
 
-function renderReviewTab(ideaId = IDEA_ID) {
+function renderReviewTab(projectId = PROJECT_ID) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReviewTab ideaId={ideaId} />
+      <ReviewTab projectId={projectId} />
     </QueryClientProvider>,
   );
 }
@@ -138,7 +138,7 @@ describe("T-4.4.04: Lock toggle updates section_locks", () => {
 
     await waitFor(() => {
       expect(patchBrdDraft).toHaveBeenCalledWith(
-        IDEA_ID,
+        PROJECT_ID,
         expect.objectContaining({
           section_locks: expect.objectContaining({ short_description: true }),
         }),
@@ -158,7 +158,7 @@ describe("T-4.4.05: Regenerate triggers section_regeneration", () => {
 
     await waitFor(() => {
       expect(triggerBrdGeneration).toHaveBeenCalledWith(
-        IDEA_ID,
+        PROJECT_ID,
         "section_regeneration",
         "short_description",
       );
@@ -187,7 +187,7 @@ describe("T-4.4.06: Auto-save on blur", () => {
 
     await waitFor(() => {
       expect(patchBrdDraft).toHaveBeenCalledWith(
-        IDEA_ID,
+        PROJECT_ID,
         expect.objectContaining({ section_title: "Updated Title" }),
       );
     });
@@ -229,7 +229,7 @@ describe("T-4.9.03: Gaps toggle works", () => {
 
     await waitFor(() => {
       expect(patchBrdDraft).toHaveBeenCalledWith(
-        IDEA_ID,
+        PROJECT_ID,
         expect.objectContaining({ allow_information_gaps: true }),
       );
     });

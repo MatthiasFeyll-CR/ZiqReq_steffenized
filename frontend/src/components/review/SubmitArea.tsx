@@ -4,16 +4,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
-import { submitIdea } from "@/api/ideas";
+import { submitProject } from "@/api/projects";
 import { fetchReviewerUsers, type ReviewerUser } from "@/api/review";
 
 interface SubmitAreaProps {
-  ideaId: string;
-  ideaState: string;
+  projectId: string;
+  projectState: string;
   onSubmitted?: () => void;
 }
 
-export function SubmitArea({ ideaId, ideaState, onSubmitted }: SubmitAreaProps) {
+export function SubmitArea({ projectId, projectState, onSubmitted }: SubmitAreaProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
@@ -26,15 +26,15 @@ export function SubmitArea({ ideaId, ideaState, onSubmitted }: SubmitAreaProps) 
 
   const submitMutation = useMutation({
     mutationFn: () =>
-      submitIdea(ideaId, {
+      submitProject(projectId, {
         message: message || undefined,
         reviewer_ids: selectedReviewerIds.length > 0 ? selectedReviewerIds : undefined,
       }),
     onSuccess: () => {
       toast.success(t("submit.success", "Idea submitted"));
-      queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
-      queryClient.invalidateQueries({ queryKey: ["idea", ideaId] });
-      queryClient.invalidateQueries({ queryKey: ["timeline", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["timeline", projectId] });
       setMessage("");
       setSelectedReviewerIds([]);
       onSubmitted?.();
@@ -55,7 +55,7 @@ export function SubmitArea({ ideaId, ideaState, onSubmitted }: SubmitAreaProps) 
   });
 
   // Only show for open or rejected states
-  if (ideaState !== "open" && ideaState !== "rejected") {
+  if (projectState !== "open" && projectState !== "rejected") {
     return null;
   }
 

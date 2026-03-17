@@ -1,7 +1,7 @@
 import { env } from "@/config/env";
 import { authFetch } from "@/lib/auth-token";
 
-export interface Idea {
+export interface Project {
   id: string;
   title: string;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted";
@@ -14,10 +14,10 @@ export interface Idea {
   read_only?: boolean;
 }
 
-export async function fetchIdea(id: string, token?: string): Promise<Idea> {
+export async function fetchProject(id: string, token?: string): Promise<Project> {
   const url = token
-    ? `${env.apiBaseUrl}/ideas/${id}/?token=${encodeURIComponent(token)}`
-    : `${env.apiBaseUrl}/ideas/${id}/`;
+    ? `${env.apiBaseUrl}/projects/${id}/?token=${encodeURIComponent(token)}`
+    : `${env.apiBaseUrl}/projects/${id}/`;
   const res = await authFetch(url);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -28,11 +28,11 @@ export async function fetchIdea(id: string, token?: string): Promise<Idea> {
   return res.json();
 }
 
-export async function patchIdea(
+export async function patchProject(
   id: string,
   data: { title?: string; agent_mode?: "interactive" | "silent" },
-): Promise<Idea> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/`, {
+): Promise<Project> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${id}/`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -47,7 +47,7 @@ export async function patchIdea(
   return res.json();
 }
 
-export interface CreateIdeaResponse {
+export interface CreateProjectResponse {
   id: string;
   title: string;
   state: string;
@@ -57,10 +57,10 @@ export interface CreateIdeaResponse {
   created_at: string;
 }
 
-export async function createIdea(
+export async function createProject(
   firstMessage: string,
-): Promise<CreateIdeaResponse> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/`, {
+): Promise<CreateProjectResponse> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -75,7 +75,7 @@ export async function createIdea(
   return res.json();
 }
 
-export interface IdeaListItem {
+export interface ProjectListItem {
   id: string;
   title: string;
   state: string;
@@ -87,17 +87,17 @@ export interface IdeaListItem {
   deleted_at: string | null;
 }
 
-export interface IdeasListResponse {
-  results: IdeaListItem[];
+export interface ProjectsListResponse {
+  results: ProjectListItem[];
   count: number;
   next: string | null;
   previous: string | null;
 }
 
-export async function fetchIdeas(
+export async function fetchProjects(
   filter?: string,
   params?: Record<string, string>,
-): Promise<IdeasListResponse> {
+): Promise<ProjectsListResponse> {
   const searchParams = new URLSearchParams();
   if (filter) searchParams.set("filter", filter);
   if (params) {
@@ -106,7 +106,7 @@ export async function fetchIdeas(
     }
   }
   const qs = searchParams.toString();
-  const url = `${env.apiBaseUrl}/ideas/${qs ? `?${qs}` : ""}`;
+  const url = `${env.apiBaseUrl}/projects/${qs ? `?${qs}` : ""}`;
 
   const res = await authFetch(url, { credentials: "include" });
   if (!res.ok) {
@@ -118,8 +118,8 @@ export async function fetchIdeas(
 
 export interface InvitationListItem {
   id: string;
-  idea_id: string;
-  idea_title: string;
+  project_id: string;
+  project_title: string;
   inviter: { id: string; display_name: string };
   created_at: string;
 }
@@ -139,8 +139,8 @@ export async function fetchInvitations(): Promise<InvitationsListResponse> {
   return res.json();
 }
 
-export async function deleteIdea(id: string): Promise<void> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/`, {
+export async function deleteProject(id: string): Promise<void> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${id}/`, {
     method: "DELETE",
     credentials: "include",
   });
@@ -150,8 +150,8 @@ export async function deleteIdea(id: string): Promise<void> {
   }
 }
 
-export async function restoreIdea(id: string): Promise<void> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${id}/restore`, {
+export async function restoreProject(id: string): Promise<void> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${id}/restore`, {
     method: "POST",
     credentials: "include",
   });
@@ -161,17 +161,17 @@ export async function restoreIdea(id: string): Promise<void> {
   }
 }
 
-export interface SubmitIdeaResponse {
+export interface SubmitProjectResponse {
   version_number: number;
   pdf_url: string;
   state: string;
 }
 
-export async function submitIdea(
-  ideaId: string,
+export async function submitProject(
+  projectId: string,
   data: { message?: string; reviewer_ids?: string[] },
-): Promise<SubmitIdeaResponse> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/submit`, {
+): Promise<SubmitProjectResponse> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -193,8 +193,8 @@ export interface ContextWindowData {
   recent_message_count: number;
 }
 
-export async function fetchContextWindow(ideaId: string): Promise<ContextWindowData> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/context-window`, {
+export async function fetchContextWindow(projectId: string): Promise<ContextWindowData> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/context-window`, {
     credentials: "include",
   });
   if (!res.ok) {

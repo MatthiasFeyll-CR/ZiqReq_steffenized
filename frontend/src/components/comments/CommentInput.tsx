@@ -6,7 +6,7 @@ import { searchIdeasForReference } from "@/api/comments";
 import { cn } from "@/lib/utils";
 
 interface CommentInputProps {
-  ideaId: string;
+  projectId: string;
   onSubmit: (content: string) => Promise<void>;
   placeholder?: string;
 }
@@ -55,7 +55,7 @@ export function CommentInput({
       if (autocomplete.type === "mention") {
         insertion = `@${item.display} `;
       } else {
-        insertion = `[#${item.display}](idea:${item.id}) `;
+        insertion = `[#${item.display}](project:${item.id}) `;
       }
 
       setValue(before + insertion + after);

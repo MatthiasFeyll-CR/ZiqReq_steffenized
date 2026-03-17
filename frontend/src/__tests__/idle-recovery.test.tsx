@@ -7,19 +7,19 @@ import {
   websocketReducer,
   setConnectionState,
 } from "@/store/websocket-slice";
-import { useIdeaSync } from "@/hooks/useIdeaSync";
-import type { Idea } from "@/api/ideas";
+import { useProjectSync } from "@/hooks/useProjectSync";
+import type { Project } from "@/api/projects";
 
 const mockReconnect = vi.fn();
-const mockFetchIdea = vi.fn<(id: string) => Promise<Idea>>();
+const mockFetchIdea = vi.fn<(id: string) => Promise<Project>>();
 
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => mockReconnect,
   useWsSend: () => vi.fn(),
 }));
 
-vi.mock("@/api/ideas", () => ({
-  fetchIdea: (...args: unknown[]) => mockFetchIdea(args[0] as string),
+vi.mock("@/api/projects", () => ({
+  fetchProject: (...args: unknown[]) => mockFetchIdea(args[0] as string),
 }));
 
 function createStore(overrides: {
@@ -53,7 +53,7 @@ function createWrapper(store: ReturnType<typeof createStore>) {
   };
 }
 
-const fakeIdea: Idea = {
+const fakeIdea: Project = {
   id: "test-idea",
   title: "Updated Title",
   state: "open",
@@ -81,10 +81,10 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       connectionState: "offline",
       isIdleDisconnected: true,
     });
-    const onIdeaUpdate = vi.fn();
+    const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useIdeaSync({ ideaId: "test-idea", onIdeaUpdate }),
+      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -103,10 +103,10 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       connectionState: "offline",
       isIdleDisconnected: false,
     });
-    const onIdeaUpdate = vi.fn();
+    const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useIdeaSync({ ideaId: "test-idea", onIdeaUpdate }),
+      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -122,10 +122,10 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       connectionState: "offline",
       isIdleDisconnected: true,
     });
-    const onIdeaUpdate = vi.fn();
+    const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useIdeaSync({ ideaId: "test-idea", onIdeaUpdate }),
+      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -140,7 +140,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     });
 
     expect(mockFetchIdea).toHaveBeenCalledWith("test-idea");
-    expect(onIdeaUpdate).toHaveBeenCalledWith(fakeIdea);
+    expect(onProjectUpdate).toHaveBeenCalledWith(fakeIdea);
   });
 
   it("does not refetch on reconnect if not returning from idle disconnect", async () => {
@@ -148,10 +148,10 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       connectionState: "offline",
       isIdleDisconnected: false,
     });
-    const onIdeaUpdate = vi.fn();
+    const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useIdeaSync({ ideaId: "test-idea", onIdeaUpdate }),
+      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -161,7 +161,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     });
 
     expect(mockFetchIdea).not.toHaveBeenCalled();
-    expect(onIdeaUpdate).not.toHaveBeenCalled();
+    expect(onProjectUpdate).not.toHaveBeenCalled();
   });
 
   it("handles fetch error gracefully during state sync", async () => {
@@ -171,10 +171,10 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       connectionState: "offline",
       isIdleDisconnected: true,
     });
-    const onIdeaUpdate = vi.fn();
+    const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useIdeaSync({ ideaId: "test-idea", onIdeaUpdate }),
+      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -189,6 +189,6 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     });
 
     expect(mockFetchIdea).toHaveBeenCalledWith("test-idea");
-    expect(onIdeaUpdate).not.toHaveBeenCalled();
+    expect(onProjectUpdate).not.toHaveBeenCalled();
   });
 });

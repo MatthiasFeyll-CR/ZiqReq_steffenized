@@ -6,14 +6,14 @@ import { ChevronDown, ChevronRight, ClipboardList, Inbox } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { ReviewCard } from "@/components/review/ReviewCard";
 import { fetchReviews } from "@/api/review";
-import type { ReviewIdea } from "@/api/review";
+import type { ReviewProject } from "@/api/review";
 
 interface CollapsibleCategoryProps {
   title: string;
   count: number;
   defaultOpen: boolean;
   categoryKey: "assigned" | "unassigned" | "accepted" | "rejected" | "dropped";
-  ideas: ReviewIdea[];
+  projects: ReviewProject[];
 }
 
 function CollapsibleCategory({
@@ -21,7 +21,7 @@ function CollapsibleCategory({
   count,
   defaultOpen,
   categoryKey,
-  ideas,
+  projects,
 }: CollapsibleCategoryProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -45,15 +45,15 @@ function CollapsibleCategory({
         </span>
       </button>
       {isOpen && (
-        ideas.length === 0 ? (
+        projects.length === 0 ? (
           <EmptyState
             icon={Inbox}
             message={t("review.noCategoryIdeas", { category: title.toLowerCase() })}
           />
         ) : (
           <div className="flex flex-col gap-2">
-            {ideas.map((idea) => (
-              <ReviewCard key={idea.id} idea={idea} category={categoryKey} />
+            {projects.map((item) => (
+              <ReviewCard key={item.id} project={item} category={categoryKey} />
             ))}
           </div>
         )
@@ -95,35 +95,35 @@ export default function ReviewPage() {
               count={data?.assigned_to_me.length ?? 0}
               defaultOpen={true}
               categoryKey="assigned"
-              ideas={data?.assigned_to_me ?? []}
+              projects={data?.assigned_to_me ?? []}
             />
             <CollapsibleCategory
               title={t("review.unassigned")}
               count={data?.unassigned.length ?? 0}
               defaultOpen={true}
               categoryKey="unassigned"
-              ideas={data?.unassigned ?? []}
+              projects={data?.unassigned ?? []}
             />
             <CollapsibleCategory
               title={t("review.accepted")}
               count={data?.accepted.length ?? 0}
               defaultOpen={false}
               categoryKey="accepted"
-              ideas={data?.accepted ?? []}
+              projects={data?.accepted ?? []}
             />
             <CollapsibleCategory
               title={t("review.rejected")}
               count={data?.rejected.length ?? 0}
               defaultOpen={false}
               categoryKey="rejected"
-              ideas={data?.rejected ?? []}
+              projects={data?.rejected ?? []}
             />
             <CollapsibleCategory
               title={t("review.dropped")}
               count={data?.dropped.length ?? 0}
               defaultOpen={false}
               categoryKey="dropped"
-              ideas={data?.dropped ?? []}
+              projects={data?.dropped ?? []}
             />
           </div>
         )}

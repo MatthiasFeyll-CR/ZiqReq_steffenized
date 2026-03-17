@@ -45,11 +45,11 @@ export async function searchUsers(query: string): Promise<UserSearchResult[]> {
 }
 
 export async function sendInvitation(
-  ideaId: string,
+  projectId: string,
   inviteeId: string,
 ): Promise<{ invitation_id: string; status: string }> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/invite`,
+    `${env.apiBaseUrl}/projects/${projectId}/collaborators/invite`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -61,21 +61,21 @@ export async function sendInvitation(
 }
 
 export async function fetchCollaborators(
-  ideaId: string,
+  projectId: string,
 ): Promise<CollaboratorsResponse> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators`,
+    `${env.apiBaseUrl}/projects/${projectId}/collaborators`,
     { credentials: "include" },
   );
   return handleResponse<CollaboratorsResponse>(res);
 }
 
 export async function removeCollaborator(
-  ideaId: string,
+  projectId: string,
   userId: string,
 ): Promise<void> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/${userId}`,
+    `${env.apiBaseUrl}/projects/${projectId}/collaborators/${userId}`,
     { method: "DELETE", credentials: "include" },
   );
   if (!res.ok) {
@@ -87,11 +87,11 @@ export async function removeCollaborator(
 }
 
 export async function transferOwnership(
-  ideaId: string,
+  projectId: string,
   newOwnerId: string,
 ): Promise<{ message: string }> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/transfer-ownership`,
+    `${env.apiBaseUrl}/projects/${projectId}/transfer-ownership`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -103,10 +103,10 @@ export async function transferOwnership(
 }
 
 export async function fetchPendingInvitations(
-  ideaId: string,
+  projectId: string,
 ): Promise<{ invitations: PendingInvitation[] }> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/invitations`,
+    `${env.apiBaseUrl}/projects/${projectId}/invitations`,
     { credentials: "include" },
   );
   return handleResponse(res);
@@ -142,11 +142,11 @@ export async function acceptInvitation(
   return handleResponse(res);
 }
 
-export async function leaveIdea(
-  ideaId: string,
+export async function leaveProject(
+  projectId: string,
 ): Promise<{ message: string }> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/leave`,
+    `${env.apiBaseUrl}/projects/${projectId}/leave`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -180,11 +180,11 @@ export interface BulkInviteResult {
 }
 
 export async function sendBulkInvitations(
-  ideaId: string,
+  projectId: string,
   inviteeIds: string[],
 ): Promise<{ results: BulkInviteResult[] }> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/collaborators/invite`,
+    `${env.apiBaseUrl}/projects/${projectId}/collaborators/invite`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -196,10 +196,10 @@ export async function sendBulkInvitations(
 }
 
 export async function generateShareLink(
-  ideaId: string,
+  projectId: string,
 ): Promise<{ share_link_token: string; share_url: string }> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/${ideaId}/share-link`,
+    `${env.apiBaseUrl}/projects/${projectId}/share-link`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -8,7 +8,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "bg-muted text-foreground",
-        // Idea state badges
+        // Project state badges
         open: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
         in_review:
           "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",

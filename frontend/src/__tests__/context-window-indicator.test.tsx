@@ -3,18 +3,18 @@ import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import i18n from "@/i18n/config";
 
-vi.mock("@/api/ideas", async () => {
-  const actual = await vi.importActual("@/api/ideas");
+vi.mock("@/api/projects", async () => {
+  const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
     fetchContextWindow: vi.fn(),
   };
 });
 
-import { fetchContextWindow } from "@/api/ideas";
+import { fetchContextWindow } from "@/api/projects";
 import { ContextWindowIndicator } from "@/components/chat/ContextWindowIndicator";
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
@@ -39,11 +39,11 @@ describe("T-2.14.01: Context window indicator renders with usage percentage", ()
     });
 
     await act(async () => {
-      render(<ContextWindowIndicator ideaId={IDEA_ID} ideaState="open" />);
+      render(<ContextWindowIndicator projectId={PROJECT_ID} projectState="open" />);
     });
 
     await waitFor(() => {
-      expect(fetchContextWindow).toHaveBeenCalledWith(IDEA_ID);
+      expect(fetchContextWindow).toHaveBeenCalledWith(PROJECT_ID);
     });
 
     const indicator = screen.getByTestId("context-window-indicator");
@@ -64,7 +64,7 @@ describe("T-2.14.01: Context window indicator renders with usage percentage", ()
     });
 
     await act(async () => {
-      render(<ContextWindowIndicator ideaId={IDEA_ID} ideaState="open" />);
+      render(<ContextWindowIndicator projectId={PROJECT_ID} projectState="open" />);
     });
 
     await waitFor(() => {
@@ -76,7 +76,7 @@ describe("T-2.14.01: Context window indicator renders with usage percentage", ()
   });
 
   it("is hidden when idea state is not open", () => {
-    render(<ContextWindowIndicator ideaId={IDEA_ID} ideaState="in_review" />);
+    render(<ContextWindowIndicator projectId={PROJECT_ID} projectState="in_review" />);
     expect(screen.queryByTestId("context-window-indicator")).not.toBeInTheDocument();
     expect(fetchContextWindow).not.toHaveBeenCalled();
   });
@@ -90,7 +90,7 @@ describe("T-2.14.01: Context window indicator renders with usage percentage", ()
     });
 
     await act(async () => {
-      render(<ContextWindowIndicator ideaId={IDEA_ID} ideaState="open" />);
+      render(<ContextWindowIndicator projectId={PROJECT_ID} projectState="open" />);
     });
 
     await waitFor(() => {
@@ -119,7 +119,7 @@ describe("T-2.14.02: Hover shows context window details", () => {
     });
 
     await act(async () => {
-      render(<ContextWindowIndicator ideaId={IDEA_ID} ideaState="open" />);
+      render(<ContextWindowIndicator projectId={PROJECT_ID} projectState="open" />);
     });
 
     await waitFor(() => {
@@ -145,7 +145,7 @@ describe("T-2.14.02: Hover shows context window details", () => {
     });
 
     await act(async () => {
-      render(<ContextWindowIndicator ideaId={IDEA_ID} ideaState="open" />);
+      render(<ContextWindowIndicator projectId={PROJECT_ID} projectState="open" />);
     });
 
     await waitFor(() => {

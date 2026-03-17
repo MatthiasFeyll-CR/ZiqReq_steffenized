@@ -3,16 +3,16 @@ import { toast } from "react-toastify";
 import i18n from "@/i18n/config";
 
 /**
- * Tracks rate limit state for a specific idea's chat.
+ * Tracks rate limit state for a specific project's chat.
  * Listens for WebSocket events: rate_limit (locks) and ai_processing completed (unlocks).
  */
-export function useRateLimit(ideaId: string) {
+export function useRateLimit(projectId: string) {
   const [isLimited, setIsLimited] = useState(false);
 
   useEffect(() => {
     const handleRateLimit = (e: Event) => {
-      const detail = (e as CustomEvent<{ idea_id: string }>).detail;
-      if (detail?.idea_id !== ideaId) return;
+      const detail = (e as CustomEvent<{ project_id: string }>).detail;
+      if (detail?.project_id !== projectId) return;
       setIsLimited(true);
       toast.warning(i18n.t("chat.rateLimited"));
 
@@ -28,8 +28,8 @@ export function useRateLimit(ideaId: string) {
     };
 
     const handleAiProcessing = (e: Event) => {
-      const detail = (e as CustomEvent<{ idea_id: string; state: string }>).detail;
-      if (detail?.idea_id !== ideaId) return;
+      const detail = (e as CustomEvent<{ project_id: string; state: string }>).detail;
+      if (detail?.project_id !== projectId) return;
       if (detail.state === "completed" || detail.state === "failed") {
         setIsLimited(false);
       }
@@ -41,7 +41,7 @@ export function useRateLimit(ideaId: string) {
       window.removeEventListener("ws:rate_limit", handleRateLimit);
       window.removeEventListener("ws:ai_processing", handleAiProcessing);
     };
-  }, [ideaId]);
+  }, [projectId]);
 
   const reset = useCallback(() => setIsLimited(false), []);
 

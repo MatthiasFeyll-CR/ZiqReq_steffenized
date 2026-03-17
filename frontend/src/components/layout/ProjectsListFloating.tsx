@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { IdeaCardCompact } from "@/components/landing/IdeaCardCompact";
-import { useIdeasByState } from "@/hooks/use-ideas-by-state";
-import type { IdeaState } from "@/components/landing/IdeaCard";
+import { ProjectCardCompact } from "@/components/landing/ProjectCardCompact";
+import { useProjectsByState } from "@/hooks/use-projects-by-state";
+import type { ProjectState } from "@/components/landing/ProjectCard";
 
 interface Tab {
   value: string;
@@ -18,11 +18,11 @@ const TABS: Tab[] = [
   { value: "closed", labelKey: "ideasFloat.tabs.closed", state: "dropped" },
 ];
 
-interface IdeasListFloatingProps {
+interface ProjectsListFloatingProps {
   onClose: () => void;
 }
 
-export function IdeasListFloating({ onClose }: IdeasListFloatingProps) {
+export function ProjectsListFloating({ onClose }: ProjectsListFloatingProps) {
   const { t } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -71,8 +71,8 @@ export function IdeasListFloating({ onClose }: IdeasListFloatingProps) {
 
 function TabPanel({ state, onItemClick }: { state: string; onItemClick: () => void }) {
   const { t } = useTranslation();
-  const { data, isLoading } = useIdeasByState(state);
-  const ideas = data?.results ?? [];
+  const { data, isLoading } = useProjectsByState(state);
+  const projects = data?.results ?? [];
 
   if (isLoading) {
     return (
@@ -82,7 +82,7 @@ function TabPanel({ state, onItemClick }: { state: string; onItemClick: () => vo
     );
   }
 
-  if (ideas.length === 0) {
+  if (projects.length === 0) {
     return (
       <div className="px-3 py-4 text-center text-sm text-text-secondary">
         {t("ideasFloat.empty", { state: t(`ideasFloat.stateLabels.${state}`) })}
@@ -92,12 +92,12 @@ function TabPanel({ state, onItemClick }: { state: string; onItemClick: () => vo
 
   return (
     <div className="max-h-64 overflow-y-auto py-1">
-      {ideas.map((idea) => (
-        <IdeaCardCompact
-          key={idea.id}
-          id={idea.id}
-          title={idea.title}
-          state={idea.state as IdeaState}
+      {projects.map((project) => (
+        <ProjectCardCompact
+          key={project.id}
+          id={project.id}
+          title={project.title}
+          state={project.state as ProjectState}
           onClick={onItemClick}
         />
       ))}

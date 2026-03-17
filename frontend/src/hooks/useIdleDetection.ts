@@ -5,7 +5,7 @@ const THROTTLE_MS = 500;
 const DEFAULT_IDLE_TIMEOUT = 300; // seconds
 
 interface UseIdleDetectionOptions {
-  ideaId: string;
+  projectId: string;
   idleTimeout?: number; // seconds
 }
 
@@ -14,7 +14,7 @@ interface UseIdleDetectionOptions {
  * Sends presence_update WebSocket messages when idle state changes.
  */
 export function useIdleDetection({
-  ideaId,
+  projectId,
   idleTimeout = DEFAULT_IDLE_TIMEOUT,
 }: UseIdleDetectionOptions) {
   const sendMessage = useWsSend();
@@ -27,12 +27,12 @@ export function useIdleDetection({
       sendMessage({
         type: "presence_update",
         payload: {
-          idea_id: ideaId,
+          project_id: projectId,
           state,
         },
       });
     },
-    [sendMessage, ideaId],
+    [sendMessage, projectId],
   );
 
   const setIdle = useCallback(() => {

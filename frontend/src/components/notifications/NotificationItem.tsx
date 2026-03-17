@@ -9,7 +9,7 @@ import {
 import type { Notification } from "@/api/notifications";
 
 function getIcon(eventType: string) {
-  if (eventType.startsWith("collaboration") || eventType === "collaborator_joined" || eventType === "collaborator_left" || eventType === "removed_from_idea" || eventType === "ownership_transferred") {
+  if (eventType.startsWith("collaboration") || eventType === "collaborator_joined" || eventType === "collaborator_left" || eventType === "removed_from_project" || eventType === "ownership_transferred") {
     return <UserPlus className="h-4 w-4 shrink-0 text-blue-500" />;
   }
   if (eventType === "review_state_changed" || eventType === "idea_submitted" || eventType === "idea_assigned" || eventType === "idea_resubmitted") {

@@ -10,14 +10,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatRelativeTime } from "@/lib/utils";
 
-export type IdeaState =
+export type ProjectState =
   | "open"
   | "in_review"
   | "accepted"
   | "dropped"
   | "rejected";
 
-const STATE_DOT_COLORS: Record<IdeaState, string> = {
+const STATE_DOT_COLORS: Record<ProjectState, string> = {
   open: "#0284C7",
   in_review: "#F59E0B",
   accepted: "#16A34A",
@@ -25,7 +25,7 @@ const STATE_DOT_COLORS: Record<IdeaState, string> = {
   rejected: "#F97316",
 };
 
-const STATE_LABELS: Record<IdeaState, string> = {
+const STATE_LABELS: Record<ProjectState, string> = {
   open: "Open",
   in_review: "In Review",
   accepted: "Accepted",
@@ -33,17 +33,17 @@ const STATE_LABELS: Record<IdeaState, string> = {
   rejected: "Rejected",
 };
 
-export interface IdeaCardProps {
+export interface ProjectCardProps {
   id: string;
   title: string;
-  state: IdeaState;
+  state: ProjectState;
   updatedAt: string;
   deletedAt?: string | null;
   onDelete?: (id: string) => void;
   onRestore?: (id: string) => void;
 }
 
-export function IdeaCard({
+export function ProjectCard({
   id,
   title,
   state,
@@ -51,7 +51,7 @@ export function IdeaCard({
   deletedAt,
   onDelete,
   onRestore,
-}: IdeaCardProps) {
+}: ProjectCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isTrash = !!deletedAt;
@@ -60,7 +60,7 @@ export function IdeaCard({
     <button
       type="button"
       className="flex w-full cursor-pointer items-center gap-3 rounded-md border border-border bg-background p-3 text-left transition-colors hover:bg-muted dark:bg-muted/40 dark:hover:bg-muted"
-      onClick={() => navigate(`/idea/${id}`)}
+      onClick={() => navigate(`/project/${id}`)}
     >
       <span
         className="shrink-0 rounded-full"

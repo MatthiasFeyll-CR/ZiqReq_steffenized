@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { NavbarLink } from "./NavbarLink"
 import { UserDropdown } from "./UserDropdown"
 import { ConnectionIndicator } from "./ConnectionIndicator"
-import { IdeasListFloating } from "./IdeasListFloating"
+import { ProjectsListFloating } from "./ProjectsListFloating"
 import { NotificationBell } from "./NotificationBell"
 import { NotificationPanel } from "@/components/notifications/NotificationPanel"
 
@@ -50,7 +50,7 @@ export function Navbar() {
             <Lightbulb className="h-5 w-5" />
             <span className="hidden sm:inline">{t("nav.ideas")}</span>
           </button>
-          {ideasOpen && <IdeasListFloating onClose={closeIdeas} />}
+          {ideasOpen && <ProjectsListFloating onClose={closeIdeas} />}
         </div>
         <div className="relative">
           <NotificationBell onTogglePanel={toggleNotifPanel} />

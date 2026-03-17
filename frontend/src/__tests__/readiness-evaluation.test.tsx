@@ -18,12 +18,12 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 function makeDraft(overrides: Partial<BrdDraft> = {}): BrdDraft {
   return {
     id: "22222222-2222-2222-2222-222222222222",
-    idea_id: IDEA_ID,
+    project_id: PROJECT_ID,
     section_title: "Test Title",
     section_short_description: "Short desc",
     section_current_workflow: "Current workflow",
@@ -59,7 +59,7 @@ beforeEach(() => {
 function renderReviewTab() {
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReviewTab ideaId={IDEA_ID} />
+      <ReviewTab projectId={PROJECT_ID} />
     </QueryClientProvider>,
   );
 }

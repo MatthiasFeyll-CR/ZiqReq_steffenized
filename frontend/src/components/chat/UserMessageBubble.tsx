@@ -6,7 +6,7 @@ interface UserMessageBubbleProps {
   message: ChatMessage;
   senderName?: string;
   showSenderName: boolean;
-  ideaId: string;
+  projectId: string;
   isOwnMessage: boolean;
 }
 
@@ -14,7 +14,7 @@ export function UserMessageBubble({
   message,
   senderName,
   showSenderName,
-  ideaId,
+  projectId,
   isOwnMessage,
 }: UserMessageBubbleProps) {
   const timestamp = new Date(message.created_at).toLocaleTimeString([], {
@@ -51,7 +51,7 @@ export function UserMessageBubble({
         </span>
       )}
       {!isOwnMessage && (
-        <ReactionChips ideaId={ideaId} messageId={message.id} />
+        <ReactionChips projectId={projectId} messageId={message.id} />
       )}
     </div>
   );

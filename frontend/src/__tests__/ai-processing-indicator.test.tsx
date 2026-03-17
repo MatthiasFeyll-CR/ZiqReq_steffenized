@@ -7,27 +7,27 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
-function dispatchAiProcessing(ideaId: string, state: string) {
+function dispatchAiProcessing(projectId: string, state: string) {
   window.dispatchEvent(
     new CustomEvent("ws:ai_processing", {
-      detail: { idea_id: ideaId, state },
+      detail: { project_id: projectId, state },
     }),
   );
 }
 
 describe("T-2.12.01: AI processing indicator shows", () => {
   it("is hidden by default", () => {
-    render(<AIProcessingIndicator ideaId={IDEA_ID} />);
+    render(<AIProcessingIndicator projectId={PROJECT_ID} />);
     expect(screen.queryByTestId("ai-processing-indicator")).not.toBeInTheDocument();
   });
 
   it("becomes visible on ai_processing {state: started}", () => {
-    render(<AIProcessingIndicator ideaId={IDEA_ID} />);
+    render(<AIProcessingIndicator projectId={PROJECT_ID} />);
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "started");
+      dispatchAiProcessing(PROJECT_ID, "started");
     });
 
     const indicator = screen.getByTestId("ai-processing-indicator");
@@ -36,10 +36,10 @@ describe("T-2.12.01: AI processing indicator shows", () => {
   });
 
   it("shows animated dots with typing-dot class", () => {
-    render(<AIProcessingIndicator ideaId={IDEA_ID} />);
+    render(<AIProcessingIndicator projectId={PROJECT_ID} />);
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "started");
+      dispatchAiProcessing(PROJECT_ID, "started");
     });
 
     const indicator = screen.getByTestId("ai-processing-indicator");
@@ -51,8 +51,8 @@ describe("T-2.12.01: AI processing indicator shows", () => {
     });
   });
 
-  it("ignores events for different idea_id", () => {
-    render(<AIProcessingIndicator ideaId={IDEA_ID} />);
+  it("ignores events for different project_id", () => {
+    render(<AIProcessingIndicator projectId={PROJECT_ID} />);
 
     act(() => {
       dispatchAiProcessing("other-idea-id", "started");
@@ -64,29 +64,29 @@ describe("T-2.12.01: AI processing indicator shows", () => {
 
 describe("T-2.12.02: AI processing indicator hides", () => {
   it("hides on ai_processing {state: completed}", () => {
-    render(<AIProcessingIndicator ideaId={IDEA_ID} />);
+    render(<AIProcessingIndicator projectId={PROJECT_ID} />);
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "started");
+      dispatchAiProcessing(PROJECT_ID, "started");
     });
     expect(screen.getByTestId("ai-processing-indicator")).toBeInTheDocument();
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "completed");
+      dispatchAiProcessing(PROJECT_ID, "completed");
     });
     expect(screen.queryByTestId("ai-processing-indicator")).not.toBeInTheDocument();
   });
 
   it("hides on ai_processing {state: failed}", () => {
-    render(<AIProcessingIndicator ideaId={IDEA_ID} />);
+    render(<AIProcessingIndicator projectId={PROJECT_ID} />);
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "started");
+      dispatchAiProcessing(PROJECT_ID, "started");
     });
     expect(screen.getByTestId("ai-processing-indicator")).toBeInTheDocument();
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "failed");
+      dispatchAiProcessing(PROJECT_ID, "failed");
     });
     expect(screen.queryByTestId("ai-processing-indicator")).not.toBeInTheDocument();
   });

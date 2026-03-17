@@ -7,19 +7,19 @@ import {
   setIdleDisconnected,
 } from "@/store/websocket-slice";
 import { useWsReconnect } from "@/app/providers";
-import { fetchIdea, type Idea } from "@/api/ideas";
+import { fetchProject, type Project } from "@/api/projects";
 
-interface UseIdeaSyncOptions {
-  ideaId: string;
-  onIdeaUpdate: (idea: Idea) => void;
+interface UseProjectSyncOptions {
+  projectId: string;
+  onProjectUpdate: (project: Project) => void;
 }
 
 /**
  * Handles return-from-idle reconnection and state sync.
  * - Listens for mouse movement when idle-disconnected → triggers reconnect
- * - On successful reconnect after idle disconnect → refetches idea state and invalidates queries
+ * - On successful reconnect after idle disconnect → refetches project state and invalidates queries
  */
-export function useIdeaSync({ ideaId, onIdeaUpdate }: UseIdeaSyncOptions) {
+export function useProjectSync({ projectId, onProjectUpdate }: UseProjectSyncOptions) {
   const connectionState = useSelector(selectConnectionState);
   const isIdleDisconnected = useSelector(selectIsIdleDisconnected);
   const reconnectNow = useWsReconnect();
@@ -27,10 +27,10 @@ export function useIdeaSync({ ideaId, onIdeaUpdate }: UseIdeaSyncOptions) {
   const queryClient = useQueryClient();
 
   const wasIdleDisconnectedRef = useRef(false);
-  const onIdeaUpdateRef = useRef(onIdeaUpdate);
-  onIdeaUpdateRef.current = onIdeaUpdate;
-  const ideaIdRef = useRef(ideaId);
-  ideaIdRef.current = ideaId;
+  const onProjectUpdateRef = useRef(onProjectUpdate);
+  onProjectUpdateRef.current = onProjectUpdate;
+  const projectIdRef = useRef(projectId);
+  projectIdRef.current = projectId;
 
   // Track when we were idle-disconnected so we know to sync on reconnect
   useEffect(() => {
@@ -57,8 +57,8 @@ export function useIdeaSync({ ideaId, onIdeaUpdate }: UseIdeaSyncOptions) {
   // State sync: when connection comes back online after idle disconnect
   const syncState = useCallback(async () => {
     try {
-      const updatedIdea = await fetchIdea(ideaIdRef.current);
-      onIdeaUpdateRef.current(updatedIdea);
+      const updatedIdea = await fetchProject(projectIdRef.current);
+      onProjectUpdateRef.current(updatedIdea);
     } catch {
       // Silently ignore sync errors — data will refresh on next interaction
     }

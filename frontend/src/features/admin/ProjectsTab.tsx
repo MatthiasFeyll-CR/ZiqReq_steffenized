@@ -12,14 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchAdminIdeas, type AdminIdea } from "@/api/admin";
+import { fetchAdminProjects, type AdminProject } from "@/api/admin";
 
 const IDEA_STATES = ["open", "in_review", "accepted", "dropped", "rejected"] as const;
 const PAGE_SIZE = 15;
 
-export function IdeasTab() {
+export function ProjectsTab() {
   const { t } = useTranslation();
-  const [ideas, setIdeas] = useState<AdminIdea[]>([]);
+  const [projects, setProjects] = useState<AdminProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -36,13 +36,13 @@ export function IdeasTab() {
   const loadIdeas = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAdminIdeas({
+      const data = await fetchAdminProjects({
         page,
         page_size: PAGE_SIZE,
         state: stateFilter || undefined,
         search: debouncedSearch || undefined,
       });
-      setIdeas(data.results);
+      setProjects(data.results);
       setTotalCount(data.count);
     } catch (err) {
       toast.error(`${t("admin.ideas.failedLoad")}: ${(err as Error).message}`);
@@ -73,7 +73,7 @@ export function IdeasTab() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("admin.ideas.searchPlaceholder")}
             className="pl-9 pr-8"
-            data-testid="admin-ideas-search"
+            data-testid="admin-projects-search"
           />
           {searchQuery && (
             <button
@@ -89,7 +89,7 @@ export function IdeasTab() {
           value={stateFilter}
           onValueChange={(val) => setStateFilter(val === "all" ? "" : val)}
         >
-          <SelectTrigger className="w-full sm:w-44" data-testid="admin-ideas-state-filter">
+          <SelectTrigger className="w-full sm:w-44" data-testid="admin-projects-state-filter">
             <SelectValue placeholder={t("admin.ideas.allStates")} />
           </SelectTrigger>
           <SelectContent>
@@ -111,14 +111,14 @@ export function IdeasTab() {
         <p className="text-sm text-muted-foreground py-8 text-center">
           {t("common.loading")}
         </p>
-      ) : ideas.length === 0 ? (
+      ) : projects.length === 0 ? (
         <p className="text-sm text-muted-foreground py-8 text-center">
           {t("common.noResults")}
         </p>
       ) : (
         <div className="space-y-2">
-          {ideas.map((idea) => (
-            <IdeaRow key={idea.id} idea={idea} />
+          {projects.map((p) => (
+            <ProjectRow key={p.id} project={p} />
           ))}
         </div>
       )}
@@ -153,40 +153,40 @@ export function IdeasTab() {
   );
 }
 
-function IdeaRow({ idea }: { idea: AdminIdea }) {
+function ProjectRow({ project }: { project: AdminProject }) {
   const { t } = useTranslation();
 
-  const stateVariant = idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected";
+  const stateVariant = project.state as "open" | "in_review" | "accepted" | "dropped" | "rejected";
 
   return (
     <div
       className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30"
-      data-testid={`admin-idea-row-${idea.id}`}
+      data-testid={`admin-project-row-${project.id}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h4 className="text-sm font-medium truncate">
-              {idea.title || t("landing.untitled")}
+              {project.title || t("landing.untitled")}
             </h4>
             <Badge variant={stateVariant} className="flex-shrink-0">
-              {t(`review.stateLabels.${idea.state}`)}
+              {t(`review.stateLabels.${project.state}`)}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {idea.owner.display_name}
+            {project.owner.display_name}
             <span className="mx-1.5">&middot;</span>
-            {new Date(idea.updated_at).toLocaleDateString()}
+            {new Date(project.updated_at).toLocaleDateString()}
           </p>
         </div>
         <code className="text-[10px] text-muted-foreground font-mono hidden sm:block flex-shrink-0">
-          {idea.id.slice(0, 8)}
+          {project.id.slice(0, 8)}
         </code>
       </div>
 
-      {idea.keywords.length > 0 && (
+      {project.keywords.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {idea.keywords.map((kw) => (
+          {project.keywords.map((kw) => (
             <span
               key={kw}
               className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"

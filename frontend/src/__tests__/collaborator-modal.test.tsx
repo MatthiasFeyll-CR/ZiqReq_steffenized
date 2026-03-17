@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 const OWNER_ID = "00000000-0000-0000-0000-000000000001";
 const COLLAB_ID = "00000000-0000-0000-0000-000000000002";
 const INVITE_ID = "22222222-2222-2222-2222-222222222222";
@@ -99,7 +99,7 @@ function renderModal(props?: { ownerId?: string }) {
     ...render(
       <QueryClientProvider client={qc}>
         <CollaboratorModal
-          ideaId={IDEA_ID}
+          projectId={PROJECT_ID}
           ownerId={props?.ownerId ?? OWNER_ID}
           open={true}
           onOpenChange={onOpenChange}
@@ -200,7 +200,7 @@ describe("UI-COLLAB.02: Invite tab search and invite", () => {
     await user.click(screen.getByTestId("invite-selected-button"));
 
     await waitFor(() => {
-      expect(mockSendBulkInvitations).toHaveBeenCalledWith(IDEA_ID, ["user-1"]);
+      expect(mockSendBulkInvitations).toHaveBeenCalledWith(PROJECT_ID, ["user-1"]);
     });
   });
 });
@@ -243,7 +243,7 @@ describe("UI-COLLAB.03: Collaborators tab — remove and transfer", () => {
     await user.click(screen.getByTestId("confirm-remove-button"));
 
     await waitFor(() => {
-      expect(mockRemoveCollaborator).toHaveBeenCalledWith(IDEA_ID, COLLAB_ID);
+      expect(mockRemoveCollaborator).toHaveBeenCalledWith(PROJECT_ID, COLLAB_ID);
     });
     expect(mockToastSuccess).toHaveBeenCalledWith("Collaborator removed");
   });
@@ -269,7 +269,7 @@ describe("UI-COLLAB.03: Collaborators tab — remove and transfer", () => {
     await user.click(screen.getByTestId("confirm-transfer-button"));
 
     await waitFor(() => {
-      expect(mockTransferOwnership).toHaveBeenCalledWith(IDEA_ID, COLLAB_ID);
+      expect(mockTransferOwnership).toHaveBeenCalledWith(PROJECT_ID, COLLAB_ID);
     });
     expect(mockToastSuccess).toHaveBeenCalledWith("Ownership transferred");
   });

@@ -3,7 +3,7 @@ import { authFetch } from "@/lib/auth-token";
 
 export interface ChatMessage {
   id: string;
-  idea_id: string;
+  project_id: string;
   sender_type: "user" | "ai";
   sender_id: string | null;
   ai_agent: string | null;
@@ -20,10 +20,10 @@ export interface ChatMessagesResponse {
 }
 
 export async function sendChatMessage(
-  ideaId: string,
+  projectId: string,
   content: string,
 ): Promise<ChatMessage> {
-  const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/`;
+  const url = `${env.apiBaseUrl}/projects/${projectId}/chat/`;
   const res = await authFetch(url, {
     method: "POST",
     credentials: "include",
@@ -38,14 +38,14 @@ export async function sendChatMessage(
 }
 
 export async function fetchChatMessages(
-  ideaId: string,
+  projectId: string,
   params?: { limit?: number; offset?: number },
 ): Promise<ChatMessagesResponse> {
   const searchParams = new URLSearchParams();
   if (params?.limit != null) searchParams.set("limit", String(params.limit));
   if (params?.offset != null) searchParams.set("offset", String(params.offset));
   const qs = searchParams.toString();
-  const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/${qs ? `?${qs}` : ""}`;
+  const url = `${env.apiBaseUrl}/projects/${projectId}/chat/${qs ? `?${qs}` : ""}`;
 
   const res = await authFetch(url, { credentials: "include" });
   if (!res.ok) {

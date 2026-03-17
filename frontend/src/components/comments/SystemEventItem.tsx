@@ -1,4 +1,4 @@
-import type { IdeaComment } from "@/api/comments";
+import type { ProjectComment } from "@/api/comments";
 import { CommentContent } from "./CommentContent";
 import {
   ArrowRightLeft,
@@ -17,7 +17,7 @@ const EVENT_ICONS: Record<string, typeof ArrowRightLeft> = {
 };
 
 interface SystemEventItemProps {
-  comment: IdeaComment;
+  comment: ProjectComment;
 }
 
 export function SystemEventItem({ comment }: SystemEventItemProps) {

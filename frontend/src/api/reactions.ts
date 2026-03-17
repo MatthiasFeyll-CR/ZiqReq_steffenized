@@ -12,11 +12,11 @@ export interface Reaction {
 }
 
 export async function addReaction(
-  ideaId: string,
+  projectId: string,
   messageId: string,
   reactionType: ReactionType,
 ): Promise<Reaction> {
-  const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/${messageId}/reactions`;
+  const url = `${env.apiBaseUrl}/projects/${projectId}/chat/${messageId}/reactions`;
   const res = await authFetch(url, {
     method: "POST",
     credentials: "include",
@@ -31,10 +31,10 @@ export async function addReaction(
 }
 
 export async function removeReaction(
-  ideaId: string,
+  projectId: string,
   messageId: string,
 ): Promise<void> {
-  const url = `${env.apiBaseUrl}/ideas/${ideaId}/chat/${messageId}/reactions`;
+  const url = `${env.apiBaseUrl}/projects/${projectId}/chat/${messageId}/reactions`;
   const res = await authFetch(url, {
     method: "DELETE",
     credentials: "include",

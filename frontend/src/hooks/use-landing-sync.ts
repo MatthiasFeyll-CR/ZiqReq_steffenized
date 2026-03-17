@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Listens to WebSocket custom events and invalidates landing page
- * query caches so idea lists and invitations update in real time.
+ * query caches so project lists and invitations update in real time.
  */
 export function useLandingSync() {
   const queryClient = useQueryClient();
@@ -18,19 +18,19 @@ export function useLandingSync() {
         eventType === "collaboration_accepted" ||
         eventType === "collaborator_joined" ||
         eventType === "collaborator_left" ||
-        eventType === "removed_from_idea" ||
+        eventType === "removed_from_project" ||
         eventType === "ownership_transferred"
       ) {
         queryClient.invalidateQueries({ queryKey: ["invitations"] });
-        queryClient.invalidateQueries({ queryKey: ["ideas"] });
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
       } else {
-        // Any other notification may affect idea state
-        queryClient.invalidateQueries({ queryKey: ["ideas"] });
+        // Any other notification may affect project state
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
       }
     };
 
     const onTitleUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ["ideas"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     };
 
     window.addEventListener("ws:notification", onNotification);

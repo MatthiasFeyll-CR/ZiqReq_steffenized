@@ -28,7 +28,7 @@ vi.mock("react-toastify", () => ({
   ToastContainer: () => null,
 }));
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 function makeEntry(overrides: Partial<TimelineEntry> & { id: string }): TimelineEntry {
   return {
@@ -45,13 +45,13 @@ function makeEntry(overrides: Partial<TimelineEntry> & { id: string }): Timeline
   };
 }
 
-function renderTimeline(entries: TimelineEntry[], ideaId?: string) {
+function renderTimeline(entries: TimelineEntry[], projectId?: string) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReviewTimeline entries={entries} ideaId={ideaId} />
+      <ReviewTimeline entries={entries} projectId={projectId} />
     </QueryClientProvider>,
   );
 }
@@ -128,8 +128,8 @@ describe("UI-TIMELINE.01: Timeline renders entries", () => {
     expect(screen.getByText("No timeline entries yet")).toBeInTheDocument();
   });
 
-  it("shows comment input at bottom when ideaId is provided", () => {
-    renderTimeline([], IDEA_ID);
+  it("shows comment input at bottom when projectId is provided", () => {
+    renderTimeline([], PROJECT_ID);
 
     expect(screen.getByTestId("top-level-comment-input")).toBeInTheDocument();
     expect(screen.getByTestId("comment-textarea")).toBeInTheDocument();
@@ -187,7 +187,7 @@ describe("UI-TIMELINE.03: Post comment", () => {
     const newEntry = makeEntry({ id: "new-1", content: "Hello world" });
     mockPostComment.mockResolvedValue(newEntry);
 
-    renderTimeline([], IDEA_ID);
+    renderTimeline([], PROJECT_ID);
 
     const textarea = screen.getByTestId("comment-textarea");
     await user.type(textarea, "Hello world");
@@ -196,12 +196,12 @@ describe("UI-TIMELINE.03: Post comment", () => {
     await user.click(sendButton);
 
     await waitFor(() => {
-      expect(mockPostComment).toHaveBeenCalledWith(IDEA_ID, { content: "Hello world" });
+      expect(mockPostComment).toHaveBeenCalledWith(PROJECT_ID, { content: "Hello world" });
     });
   });
 
   it("disables send button when textarea is empty", () => {
-    renderTimeline([], IDEA_ID);
+    renderTimeline([], PROJECT_ID);
 
     const sendButton = screen.getByTestId("comment-send-button");
     expect(sendButton).toBeDisabled();
@@ -211,7 +211,7 @@ describe("UI-TIMELINE.03: Post comment", () => {
     const user = userEvent.setup();
     mockPostComment.mockResolvedValue(makeEntry({ id: "new-1" }));
 
-    renderTimeline([], IDEA_ID);
+    renderTimeline([], PROJECT_ID);
 
     const textarea = screen.getByTestId("comment-textarea");
     await user.type(textarea, "Test message");
@@ -228,7 +228,7 @@ describe("UI-TIMELINE.04: Reply to comment", () => {
     const user = userEvent.setup();
     const entries = [makeEntry({ id: "e1", content: "Original comment" })];
 
-    renderTimeline(entries, IDEA_ID);
+    renderTimeline(entries, PROJECT_ID);
 
     const replyButton = screen.getByTestId("reply-button-e1");
     await user.click(replyButton);
@@ -244,7 +244,7 @@ describe("UI-TIMELINE.04: Reply to comment", () => {
     const replyEntry = makeEntry({ id: "reply-1", parent_entry_id: "e1", content: "My reply" });
     mockPostComment.mockResolvedValue(replyEntry);
 
-    renderTimeline(entries, IDEA_ID);
+    renderTimeline(entries, PROJECT_ID);
 
     // Click reply button
     await user.click(screen.getByTestId("reply-button-e1"));
@@ -259,7 +259,7 @@ describe("UI-TIMELINE.04: Reply to comment", () => {
     await user.click(sendButton);
 
     await waitFor(() => {
-      expect(mockPostComment).toHaveBeenCalledWith(IDEA_ID, {
+      expect(mockPostComment).toHaveBeenCalledWith(PROJECT_ID, {
         content: "My reply",
         parent_entry_id: "e1",
       });
@@ -270,7 +270,7 @@ describe("UI-TIMELINE.04: Reply to comment", () => {
     const user = userEvent.setup();
     const entries = [makeEntry({ id: "e1", content: "Original comment" })];
 
-    renderTimeline(entries, IDEA_ID);
+    renderTimeline(entries, PROJECT_ID);
 
     await user.click(screen.getByTestId("reply-button-e1"));
 
@@ -289,7 +289,7 @@ describe("UI-TIMELINE.04: Reply to comment", () => {
   it("reply button shows 'Reply' text", () => {
     const entries = [makeEntry({ id: "e1", content: "Comment" })];
 
-    renderTimeline(entries, IDEA_ID);
+    renderTimeline(entries, PROJECT_ID);
 
     expect(screen.getByTestId("reply-button-e1")).toHaveTextContent("Reply");
   });

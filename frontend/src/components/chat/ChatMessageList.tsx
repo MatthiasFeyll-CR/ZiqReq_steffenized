@@ -3,18 +3,18 @@ import { useTranslation } from "react-i18next";
 import { Lightbulb } from "lucide-react";
 import { fetchChatMessages, type ChatMessage } from "@/api/chat";
 import { useAuth } from "@/hooks/use-auth";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 import { EmptyState } from "@/components/common/EmptyState";
 import { UserMessageBubble } from "./UserMessageBubble";
 import { AIMessageBubble } from "./AIMessageBubble";
 import { DelegationMessage } from "./DelegationMessage";
 
 interface ChatMessageListProps {
-  idea: Idea;
+  project: Project;
   appendedMessages?: ChatMessage[];
 }
 
-export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageListProps) {
+export function ChatMessageList({ project, appendedMessages = [] }: ChatMessageListProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [fetchedMessages, setFetchedMessages] = useState<ChatMessage[]>([]);
@@ -22,7 +22,7 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
 
-  const isMultiUser = idea.collaborators.length > 0;
+  const isMultiUser = project.collaborators.length > 0;
 
   const allMessages = useMemo(() => {
     const fetchedIds = new Set(fetchedMessages.map((m) => m.id));
@@ -33,7 +33,7 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
   useEffect(() => {
     let cancelled = false;
 
-    fetchChatMessages(idea.id)
+    fetchChatMessages(project.id)
       .then((data) => {
         if (!cancelled) {
           setFetchedMessages(data.messages);
@@ -49,7 +49,7 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
     return () => {
       cancelled = true;
     };
-  }, [idea.id]);
+  }, [project.id]);
 
   useEffect(() => {
     if (allMessages.length > 0 && allMessages.length !== prevMessageCountRef.current) {
@@ -61,7 +61,7 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
   const getSenderName = (senderId: string | null): string | undefined => {
     if (!senderId) return undefined;
     if (senderId === user?.id) return user.display_name;
-    const collab = idea.collaborators.find((c) => c.user_id === senderId);
+    const collab = project.collaborators.find((c) => c.user_id === senderId);
     if (collab) return collab.display_name;
     return undefined;
   };
@@ -105,7 +105,7 @@ export function ChatMessageList({ idea, appendedMessages = [] }: ChatMessageList
             message={msg}
             senderName={getSenderName(msg.sender_id)}
             showSenderName={isMultiUser}
-            ideaId={idea.id}
+            projectId={project.id}
             isOwnMessage={msg.sender_id === user?.id}
           />
         );

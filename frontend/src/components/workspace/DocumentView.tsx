@@ -69,16 +69,16 @@ function hasTodoMarkers(draft: BrdDraft): boolean {
 }
 
 interface DocumentViewProps {
-  ideaId: string;
-  ideaState?: string;
+  projectId: string;
+  projectState?: string;
   disabled?: boolean;
   onStepChange: (step: ProcessStep) => void;
   onSubmitted?: () => void;
 }
 
 export function DocumentView({
-  ideaId,
-  ideaState,
+  projectId,
+  projectState,
   disabled,
   onStepChange,
   onSubmitted,
@@ -96,8 +96,8 @@ export function DocumentView({
     data: brdDraft,
     isLoading: isDraftLoading,
   } = useQuery({
-    queryKey: ["brd", ideaId],
-    queryFn: () => fetchBrdDraft(ideaId),
+    queryKey: ["brd", projectId],
+    queryFn: () => fetchBrdDraft(projectId),
   });
 
   // Sync local sections when brdDraft changes
@@ -129,10 +129,10 @@ export function DocumentView({
   }, [isDraftLoading, brdDraft, disabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const generateMutation = useMutation({
-    mutationFn: () => triggerBrdGeneration(ideaId, "full_generation"),
+    mutationFn: () => triggerBrdGeneration(projectId, "full_generation"),
     onSuccess: () => {
       setIsGenerating(true);
-      queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
     },
     onError: (error: Error) => {
       toast.error(
@@ -151,9 +151,9 @@ export function DocumentView({
 
   const patchMutation = useMutation({
     mutationFn: (data: Parameters<typeof patchBrdDraft>[1]) =>
-      patchBrdDraft(ideaId, data),
+      patchBrdDraft(projectId, data),
     onSuccess: (updated) => {
-      queryClient.setQueryData(["brd", ideaId], updated);
+      queryClient.setQueryData(["brd", projectId], updated);
     },
     onError: (error: Error) => {
       toast.error(error.message || t("brd.saveError", "Failed to save changes"));
@@ -164,23 +164,23 @@ export function DocumentView({
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.idea_id === ideaId) {
+      if (detail?.project_id === projectId) {
         setIsGenerating(true);
       }
     };
     window.addEventListener("ws:brd_generating", handler);
     return () => window.removeEventListener("ws:brd_generating", handler);
-  }, [ideaId]);
+  }, [projectId]);
 
   // Listen for brd_ready WebSocket events
   useEffect(() => {
     const handler = async (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail?.idea_id === ideaId) {
+      if (detail?.project_id === projectId) {
         setIsGenerating(false);
-        queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
+        queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
         try {
-          const blob = await fetchBrdPreviewPdf(ideaId);
+          const blob = await fetchBrdPreviewPdf(projectId);
           setPdfBlob(blob);
         } catch (error) {
           console.warn("PDF preview fetch failed", error);
@@ -189,7 +189,7 @@ export function DocumentView({
     };
     window.addEventListener("ws:brd_ready", handler);
     return () => window.removeEventListener("ws:brd_ready", handler);
-  }, [ideaId, queryClient]);
+  }, [projectId, queryClient]);
 
   // Cleanup debounce timers on unmount
   useEffect(() => {
@@ -214,7 +214,7 @@ export function DocumentView({
 
       if (brdDraft && !brdDraft.section_locks[sectionKey]) {
         const newLocks = { ...brdDraft.section_locks, [sectionKey]: true };
-        queryClient.setQueryData(["brd", ideaId], {
+        queryClient.setQueryData(["brd", projectId], {
           ...brdDraft,
           section_locks: newLocks,
         });
@@ -228,7 +228,7 @@ export function DocumentView({
         patchMutation.mutate({ [fieldKey]: value });
       }, 300);
     },
-    [brdDraft, ideaId, queryClient, patchMutation],
+    [brdDraft, projectId, queryClient, patchMutation],
   );
 
   const handleBlur = useCallback(
@@ -256,8 +256,8 @@ export function DocumentView({
     async (sectionKey: string) => {
       try {
         setRegeneratingSection(sectionKey);
-        await triggerBrdGeneration(ideaId, "section_regeneration", sectionKey);
-        queryClient.invalidateQueries({ queryKey: ["brd", ideaId] });
+        await triggerBrdGeneration(projectId, "section_regeneration", sectionKey);
+        queryClient.invalidateQueries({ queryKey: ["brd", projectId] });
       } catch (error) {
         toast.error(
           (error as Error).message ||
@@ -267,7 +267,7 @@ export function DocumentView({
         setRegeneratingSection(null);
       }
     },
-    [ideaId, queryClient, t],
+    [projectId, queryClient, t],
   );
 
   const handleGapsToggle = useCallback(
@@ -279,12 +279,12 @@ export function DocumentView({
 
   const doDownload = useCallback(async () => {
     try {
-      const blob = await fetchBrdPdf(ideaId);
+      const blob = await fetchBrdPdf(projectId);
       setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `brd-${ideaId}.pdf`;
+      a.download = `brd-${projectId}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -294,7 +294,7 @@ export function DocumentView({
         (error as Error).message || t("review.downloadError", "Failed to download PDF"),
       );
     }
-  }, [ideaId, t]);
+  }, [projectId, t]);
 
   const handleDownload = useCallback(() => {
     if (brdDraft && hasTodoMarkers(brdDraft)) {
@@ -431,7 +431,7 @@ export function DocumentView({
         )}
 
         {/* Submit Area — prominent placement */}
-        {ideaState && (ideaState === "open" || ideaState === "rejected") && hasBrdContent && (
+        {projectState && (projectState === "open" || projectState === "rejected") && hasBrdContent && (
           <div className="mt-6 p-5 rounded-lg border-2 border-dashed border-secondary/40 dark:border-primary/30 bg-secondary/5 dark:bg-primary/5">
             <div className="flex items-start gap-3 mb-3">
               <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-secondary/10 dark:bg-primary/10">
@@ -446,11 +446,11 @@ export function DocumentView({
                 </p>
               </div>
             </div>
-            <SubmitArea ideaId={ideaId} ideaState={ideaState} onSubmitted={handleSubmitted} />
+            <SubmitArea projectId={projectId} projectState={projectState} onSubmitted={handleSubmitted} />
           </div>
         )}
-        {ideaState && ideaState !== "open" && ideaState !== "rejected" && (
-          <SubmitArea ideaId={ideaId} ideaState={ideaState} onSubmitted={handleSubmitted} />
+        {projectState && projectState !== "open" && projectState !== "rejected" && (
+          <SubmitArea projectId={projectId} projectState={projectState} onSubmitted={handleSubmitted} />
         )}
       </div>
 

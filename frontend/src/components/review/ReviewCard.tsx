@@ -14,7 +14,7 @@ import {
 import { formatRelativeTime } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { assignReview, unassignReview } from "@/api/review";
-import type { ReviewIdea } from "@/api/review";
+import type { ReviewProject } from "@/api/review";
 
 const STATE_DOT_COLORS: Record<string, string> = {
   open: "#0284C7",
@@ -26,11 +26,11 @@ const STATE_DOT_COLORS: Record<string, string> = {
 
 
 export interface ReviewCardProps {
-  idea: ReviewIdea;
+  project: ReviewProject;
   category: "assigned" | "unassigned" | "accepted" | "rejected" | "dropped";
 }
 
-export function ReviewCard({ idea, category }: ReviewCardProps) {
+export function ReviewCard({ project, category }: ReviewCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -38,10 +38,10 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
 
   const isConflictOfInterest =
     !!user &&
-    (user.id === idea.owner_id);
+    (user.id === project.owner_id);
 
   const assignMutation = useMutation({
-    mutationFn: () => assignReview(idea.id),
+    mutationFn: () => assignReview(project.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reviews"] });
     },
@@ -61,7 +61,7 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
   });
 
   const unassignMutation = useMutation({
-    mutationFn: () => unassignReview(idea.id),
+    mutationFn: () => unassignReview(project.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reviews"] });
     },
@@ -97,30 +97,30 @@ export function ReviewCard({ idea, category }: ReviewCardProps) {
       role="button"
       tabIndex={0}
       className="flex w-full cursor-pointer items-center gap-3 rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:bg-muted"
-      onClick={() => navigate(`/idea/${idea.id}`)}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/idea/${idea.id}`); }}
+      onClick={() => navigate(`/project/${project.id}`)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/project/${project.id}`); }}
     >
       <span
         className="shrink-0 rounded-full"
         style={{
           width: 8,
           height: 8,
-          backgroundColor: STATE_DOT_COLORS[idea.state] ?? "#9CA3AF",
+          backgroundColor: STATE_DOT_COLORS[project.state] ?? "#9CA3AF",
         }}
-        aria-label={t(`review.stateLabels.${idea.state}`, idea.state)}
+        aria-label={t(`review.stateLabels.${project.state}`, project.state)}
       />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-base font-medium text-foreground">
-          {idea.title || t("review.untitledIdea")}
+          {project.title || t("review.untitledIdea")}
         </p>
         <p className="text-sm text-text-secondary">
-          {t("review.byOwner", { owner: idea.owner_name, time: formatRelativeTime(idea.submitted_at) })}
+          {t("review.byOwner", { owner: project.owner_name, time: formatRelativeTime(project.submitted_at) })}
         </p>
       </div>
 
-      <Badge variant={idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected"} className="shrink-0">
-        {t(`review.stateLabels.${idea.state}`, idea.state)}
+      <Badge variant={project.state as "open" | "in_review" | "accepted" | "dropped" | "rejected"} className="shrink-0">
+        {t(`review.stateLabels.${project.state}`, project.state)}
       </Badge>
 
       {showActionButton && (

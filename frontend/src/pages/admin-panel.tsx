@@ -9,7 +9,7 @@ import { AIContextTab } from "@/features/admin/AIContextTab";
 import { ParametersTab } from "@/features/admin/ParametersTab";
 import { MonitoringTab } from "@/features/admin/MonitoringTab";
 import { UsersTab } from "@/features/admin/UsersTab";
-import { IdeasTab } from "@/features/admin/IdeasTab";
+import { ProjectsTab } from "@/features/admin/ProjectsTab";
 
 const VALID_TABS = ["ai-context", "parameters", "monitoring", "users", "ideas"];
 
@@ -84,7 +84,7 @@ export default function AdminPanel() {
             <UsersTab />
           </TabsContent>
           <TabsContent value="ideas">
-            <IdeasTab />
+            <ProjectsTab />
           </TabsContent>
         </Tabs>
       </div>

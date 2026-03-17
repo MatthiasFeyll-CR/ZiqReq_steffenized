@@ -5,7 +5,7 @@ import {
   deleteComment,
   addReaction,
   removeReaction,
-  type IdeaComment,
+  type ProjectComment,
 } from "@/api/comments";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,19 +23,19 @@ import { cn } from "@/lib/utils";
 const QUICK_EMOJIS = ["\u{1F44D}", "\u{1F44E}", "\u{2764}\u{FE0F}", "\u{1F389}", "\u{1F440}", "\u{1F4AF}"];
 
 interface CommentItemProps {
-  comment: IdeaComment;
-  ideaId: string;
+  comment: ProjectComment;
+  projectId: string;
   currentUserId?: string;
   isOwnerOrCollaborator?: boolean;
   onReply: () => void;
-  onUpdated: (comment: IdeaComment) => void;
+  onUpdated: (comment: ProjectComment) => void;
   isReply?: boolean;
   shareToken?: string | null;
 }
 
 export function CommentItem({
   comment,
-  ideaId,
+  projectId,
   currentUserId,
   isOwnerOrCollaborator = false,
   onReply,
@@ -59,7 +59,7 @@ export function CommentItem({
       return;
     }
     try {
-      const updated = await updateComment(ideaId, comment.id, {
+      const updated = await updateComment(projectId, comment.id, {
         content: trimmed,
       }, shareToken);
       onUpdated(updated);
@@ -67,15 +67,15 @@ export function CommentItem({
     } catch {
       // stay in edit mode
     }
-  }, [editContent, comment, ideaId, onUpdated]);
+  }, [editContent, comment, projectId, onUpdated]);
 
   const handleDelete = useCallback(async () => {
     try {
-      await deleteComment(ideaId, comment.id, shareToken);
+      await deleteComment(projectId, comment.id, shareToken);
     } catch {
       // silently fail
     }
-  }, [ideaId, comment.id, shareToken]);
+  }, [projectId, comment.id, shareToken]);
 
   const handleToggleReaction = useCallback(
     async (emoji: string) => {
@@ -84,16 +84,16 @@ export function CommentItem({
       const hasReacted = existing?.users.includes(currentUserId);
       try {
         if (hasReacted) {
-          await removeReaction(ideaId, comment.id, emoji, shareToken);
+          await removeReaction(projectId, comment.id, emoji, shareToken);
         } else {
-          await addReaction(ideaId, comment.id, emoji, shareToken);
+          await addReaction(projectId, comment.id, emoji, shareToken);
         }
       } catch {
         // silently fail
       }
       setShowEmojis(false);
     },
-    [ideaId, comment, currentUserId, shareToken]
+    [projectId, comment, currentUserId, shareToken]
   );
 
   const timeAgo = formatTimeAgo(comment.created_at);

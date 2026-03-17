@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import i18n from "@/i18n/config";
 import { ChatInput } from "@/components/chat/ChatInput";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
 // Mock sendChatMessage
 vi.mock("@/api/chat", async () => {
@@ -18,7 +18,7 @@ beforeAll(async () => {
   Element.prototype.scrollIntoView = () => {};
 });
 
-const MOCK_IDEA: Idea = {
+const MOCK_PROJECT: Project = {
   id: "11111111-1111-1111-1111-111111111111",
   title: "Test Brainstorm",
   state: "open",
@@ -33,15 +33,15 @@ const MOCK_IDEA: Idea = {
   ],
 };
 
-function renderChatInput(ideaOverride?: Partial<Idea>) {
-  const idea = { ...MOCK_IDEA, ...ideaOverride };
+function renderChatInput(ideaOverride?: Partial<Project>) {
+  const idea = { ...MOCK_PROJECT, ...ideaOverride };
   const onMessageSent = vi.fn();
   return {
     onMessageSent,
     ...render(
       <ChatInput
-        ideaId={idea.id}
-        idea={idea}
+        projectId={idea.id}
+        project={idea}
         onMessageSent={onMessageSent}
       />,
     ),

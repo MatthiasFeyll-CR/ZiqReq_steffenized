@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { IdeaState } from "./IdeaCard";
+import type { ProjectState } from "./ProjectCard";
 
-const STATE_DOT_COLORS: Record<IdeaState, string> = {
+const STATE_DOT_COLORS: Record<ProjectState, string> = {
   open: "#0284C7",
   in_review: "#F59E0B",
   accepted: "#16A34A",
@@ -10,19 +10,19 @@ const STATE_DOT_COLORS: Record<IdeaState, string> = {
   rejected: "#F97316",
 };
 
-export interface IdeaCardCompactProps {
+export interface ProjectCardCompactProps {
   id: string;
   title: string;
-  state: IdeaState;
+  state: ProjectState;
   onClick?: () => void;
 }
 
-export function IdeaCardCompact({
+export function ProjectCardCompact({
   id,
   title,
   state,
   onClick,
-}: IdeaCardCompactProps) {
+}: ProjectCardCompactProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -31,7 +31,7 @@ export function IdeaCardCompact({
       type="button"
       className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left transition-colors hover:bg-muted"
       onClick={() => {
-        navigate(`/idea/${id}`);
+        navigate(`/project/${id}`);
         onClick?.();
       }}
     >

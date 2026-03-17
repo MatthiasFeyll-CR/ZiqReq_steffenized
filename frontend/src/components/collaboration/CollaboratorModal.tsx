@@ -29,7 +29,7 @@ import {
   fetchCollaborators,
   removeCollaborator,
   transferOwnership,
-  leaveIdea,
+  leaveProject,
   fetchPendingInvitations,
   revokeInvitation,
   type UserSearchResult,
@@ -38,14 +38,14 @@ import {
 import { formatRelativeTime } from "@/lib/utils";
 
 interface CollaboratorModalProps {
-  ideaId: string;
+  projectId: string;
   ownerId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CollaboratorModal({
-  ideaId,
+  projectId,
   ownerId,
   open,
   onOpenChange,
@@ -81,12 +81,12 @@ export function CollaboratorModal({
           </TabsList>
 
           <TabsContent value="invite" className="overflow-visible">
-            <InviteTab ideaId={ideaId} onClose={() => onOpenChange(false)} />
+            <InviteTab projectId={projectId} onClose={() => onOpenChange(false)} />
           </TabsContent>
 
           <TabsContent value="collaborators" className="overflow-y-auto">
             <CollaboratorsTab
-              ideaId={ideaId}
+              projectId={projectId}
               ownerId={ownerId}
               isOwner={isOwner}
               queryClient={queryClient}
@@ -95,7 +95,7 @@ export function CollaboratorModal({
           </TabsContent>
 
           <TabsContent value="pending" className="overflow-y-auto">
-            <PendingTab ideaId={ideaId} isOwner={isOwner} onClose={() => onOpenChange(false)} />
+            <PendingTab projectId={projectId} isOwner={isOwner} onClose={() => onOpenChange(false)} />
           </TabsContent>
         </Tabs>
       </DialogContent>
@@ -105,7 +105,7 @@ export function CollaboratorModal({
 
 /* ---------- Invite Tab ---------- */
 
-function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void }) {
+function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -191,14 +191,14 @@ function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void })
 
   const bulkInviteMutation = useMutation({
     mutationFn: (inviteeIds: string[]) =>
-      sendBulkInvitations(ideaId, inviteeIds),
+      sendBulkInvitations(projectId, inviteeIds),
     onSuccess: (data) => {
       const sentCount = data.results.filter((r) => r.status === "pending").length;
       toast.success(t("collaboration.invitationsSent", { count: sentCount }));
       setSelectedUsers([]);
       setSearchQuery("");
       setDebouncedQuery("");
-      queryClient.invalidateQueries({ queryKey: ["invitations", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["invitations", projectId] });
       onClose();
     },
     onError: (error: Error) => {
@@ -206,7 +206,7 @@ function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void })
     },
   });
 
-  const ideaUrl = `${window.location.origin}/idea/${ideaId}`;
+  const ideaUrl = `${window.location.origin}/project/${projectId}`;
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -384,7 +384,7 @@ function InviteTab({ ideaId, onClose }: { ideaId: string; onClose: () => void })
 /* ---------- Collaborators Tab ---------- */
 
 interface CollaboratorsTabProps {
-  ideaId: string;
+  projectId: string;
   ownerId: string;
   isOwner: boolean;
   queryClient: ReturnType<typeof useQueryClient>;
@@ -392,7 +392,7 @@ interface CollaboratorsTabProps {
 }
 
 function CollaboratorsTab({
-  ideaId,
+  projectId,
   isOwner,
   queryClient,
   onCloseModal,
@@ -406,16 +406,16 @@ function CollaboratorsTab({
   const isSingleOwner = isOwner;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["collaborators", ideaId],
-    queryFn: () => fetchCollaborators(ideaId),
+    queryKey: ["collaborators", projectId],
+    queryFn: () => fetchCollaborators(projectId),
   });
 
   const removeMutation = useMutation({
-    mutationFn: (userId: string) => removeCollaborator(ideaId, userId),
+    mutationFn: (userId: string) => removeCollaborator(projectId, userId),
     onSuccess: () => {
       toast.success(t("collaboration.collaboratorRemoved"));
       setRemoveTarget(null);
-      queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["collaborators", projectId] });
       onCloseModal();
     },
     onError: (error: Error) => {
@@ -424,12 +424,12 @@ function CollaboratorsTab({
   });
 
   const transferMutation = useMutation({
-    mutationFn: (newOwnerId: string) => transferOwnership(ideaId, newOwnerId),
+    mutationFn: (newOwnerId: string) => transferOwnership(projectId, newOwnerId),
     onSuccess: () => {
       toast.success(t("collaboration.ownershipTransferred"));
       setTransferDialogOpen(false);
       setTransferTarget(null);
-      queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["collaborators", projectId] });
       onCloseModal();
     },
     onError: (error: Error) => {
@@ -438,10 +438,10 @@ function CollaboratorsTab({
   });
 
   const leaveMutation = useMutation({
-    mutationFn: () => leaveIdea(ideaId),
+    mutationFn: () => leaveProject(projectId),
     onSuccess: () => {
       toast.success(t("collaboration.leftIdea"));
-      queryClient.invalidateQueries({ queryKey: ["collaborators", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["collaborators", projectId] });
       onCloseModal();
     },
     onError: (error: Error) => {
@@ -523,7 +523,7 @@ function CollaboratorsTab({
                     disabled
                     data-testid="leave-button"
                   >
-                    {t("collaboration.leaveIdea")}
+                    {t("collaboration.leaveProject")}
                   </Button>
                 </span>
               </TooltipTrigger>
@@ -540,7 +540,7 @@ function CollaboratorsTab({
             disabled={leaveMutation.isPending}
             data-testid="leave-button"
           >
-            {t("collaboration.leaveIdea")}
+            {t("collaboration.leaveProject")}
           </Button>
         )}
       </div>
@@ -648,13 +648,13 @@ function CollaboratorRow({ user, badge }: { user: CollaboratorUser; badge: strin
 
 /* ---------- Pending Invitations Tab ---------- */
 
-function PendingTab({ ideaId, isOwner, onClose }: { ideaId: string; isOwner: boolean; onClose: () => void }) {
+function PendingTab({ projectId, isOwner, onClose }: { projectId: string; isOwner: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["invitations", ideaId],
-    queryFn: () => fetchPendingInvitations(ideaId),
+    queryKey: ["invitations", projectId],
+    queryFn: () => fetchPendingInvitations(projectId),
     enabled: isOwner,
   });
 
@@ -662,7 +662,7 @@ function PendingTab({ ideaId, isOwner, onClose }: { ideaId: string; isOwner: boo
     mutationFn: (invitationId: string) => revokeInvitation(invitationId),
     onSuccess: () => {
       toast.success(t("collaboration.invitationRevoked"));
-      queryClient.invalidateQueries({ queryKey: ["invitations", ideaId] });
+      queryClient.invalidateQueries({ queryKey: ["invitations", projectId] });
       onClose();
     },
     onError: (error: Error) => {

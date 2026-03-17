@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import {
-  selectIdeaPresence,
+  selectProjectPresence,
   type PresenceUser,
 } from "@/store/presence-slice";
 import {
@@ -77,11 +77,11 @@ function PresenceAvatar({
 }
 
 interface PresenceIndicatorsProps {
-  ideaId: string;
+  projectId: string;
 }
 
-export function PresenceIndicators({ ideaId }: PresenceIndicatorsProps) {
-  const presence = useSelector(selectIdeaPresence(ideaId));
+export function PresenceIndicators({ projectId }: PresenceIndicatorsProps) {
+  const presence = useSelector(selectProjectPresence(projectId));
 
   if (presence.length === 0) return null;
 

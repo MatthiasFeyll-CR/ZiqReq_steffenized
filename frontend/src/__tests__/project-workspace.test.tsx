@@ -12,8 +12,8 @@ vi.mock("@/components/workspace/WorkspaceLayout", () => ({
   WorkspaceLayout: () => <div data-testid="workspace-layout">WorkspaceLayout</div>,
 }));
 vi.mock("@/components/workspace/WorkspaceHeader", () => ({
-  WorkspaceHeader: ({ idea }: { idea: { title: string } }) => (
-    <div data-testid="workspace-header">{idea.title}</div>
+  WorkspaceHeader: ({ project }: { project: { title: string } }) => (
+    <div data-testid="workspace-header">{project.title}</div>
   ),
 }));
 vi.mock("@/components/workspace/DocumentView", () => ({
@@ -33,12 +33,12 @@ vi.mock("@/app/providers", () => ({
   useWsSend: () => vi.fn(),
 }));
 
-// Mock fetchIdea
-vi.mock("@/api/ideas", async () => {
-  const actual = await vi.importActual("@/api/ideas");
+// Mock fetchProject
+vi.mock("@/api/projects", async () => {
+  const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
-    fetchIdea: vi.fn(),
+    fetchProject: vi.fn(),
   };
 });
 
@@ -47,15 +47,15 @@ vi.mock("@/api/chat", () => ({
   sendChatMessage: vi.fn(),
 }));
 
-import { fetchIdea } from "@/api/ideas";
-import type { Idea } from "@/api/ideas";
-import IdeaWorkspacePage from "@/pages/IdeaWorkspace/index";
+import { fetchProject } from "@/api/projects";
+import type { Project } from "@/api/projects";
+import ProjectWorkspacePage from "@/pages/ProjectWorkspace/index";
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const MOCK_IDEA: Idea = {
+const MOCK_PROJECT: Project = {
   id: "11111111-1111-1111-1111-111111111111",
   title: "Test Brainstorm",
   state: "open",
@@ -78,9 +78,9 @@ function renderWorkspacePage(uuid: string) {
   return render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[`/idea/${uuid}`]}>
+        <MemoryRouter initialEntries={[`/project/${uuid}`]}>
           <Routes>
-            <Route path="/idea/:id" element={<IdeaWorkspacePage />} />
+            <Route path="/project/:id" element={<ProjectWorkspacePage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -89,33 +89,33 @@ function renderWorkspacePage(uuid: string) {
 }
 
 beforeEach(() => {
-  vi.mocked(fetchIdea).mockReset();
+  vi.mocked(fetchProject).mockReset();
   document.title = "ZiqReq";
 });
 
-describe("T-1.7.01: /idea/:uuid renders workspace", () => {
+describe("T-1.7.01: /project/:uuid renders workspace", () => {
   it("shows loading skeleton then renders workspace with idea data", async () => {
-    vi.mocked(fetchIdea).mockResolvedValue(MOCK_IDEA);
+    vi.mocked(fetchProject).mockResolvedValue(MOCK_PROJECT);
 
-    renderWorkspacePage(MOCK_IDEA.id);
+    renderWorkspacePage(MOCK_PROJECT.id);
 
     // Loading skeleton should appear first
     expect(screen.getByTestId("workspace-loading")).toBeInTheDocument();
 
     // After fetch resolves, workspace should render
     await waitFor(() => {
-      expect(screen.getByTestId("idea-workspace")).toBeInTheDocument();
+      expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("workspace-header")).toBeInTheDocument();
     expect(screen.getByText("Test Brainstorm")).toBeInTheDocument();
-    expect(fetchIdea).toHaveBeenCalledWith(MOCK_IDEA.id);
+    expect(fetchProject).toHaveBeenCalledWith(MOCK_PROJECT.id);
   });
 
   it("updates document.title with idea title", async () => {
-    vi.mocked(fetchIdea).mockResolvedValue(MOCK_IDEA);
+    vi.mocked(fetchProject).mockResolvedValue(MOCK_PROJECT);
 
-    renderWorkspacePage(MOCK_IDEA.id);
+    renderWorkspacePage(MOCK_PROJECT.id);
 
     await waitFor(() => {
       expect(document.title).toBe("Test Brainstorm");
@@ -127,7 +127,7 @@ describe("T-1.7.02: invalid UUID → 404 error state", () => {
   it("shows error state when API returns 404", async () => {
     const err = new Error("Not found");
     (err as Error & { status: number }).status = 404;
-    vi.mocked(fetchIdea).mockRejectedValue(err);
+    vi.mocked(fetchProject).mockRejectedValue(err);
 
     renderWorkspacePage("bad-uuid");
 
@@ -141,7 +141,7 @@ describe("T-1.7.02: invalid UUID → 404 error state", () => {
   it("shows error state when API returns 403", async () => {
     const err = new Error("Forbidden");
     (err as Error & { status: number }).status = 403;
-    vi.mocked(fetchIdea).mockRejectedValue(err);
+    vi.mocked(fetchProject).mockRejectedValue(err);
 
     renderWorkspacePage("no-access-uuid");
 

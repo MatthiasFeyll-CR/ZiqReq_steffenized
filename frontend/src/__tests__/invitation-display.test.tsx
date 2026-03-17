@@ -6,7 +6,7 @@ import i18n from "@/i18n/config";
 import { InvitationCard } from "@/components/landing/InvitationCard";
 import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 const INVITE_ID = "22222222-2222-2222-2222-222222222222";
 const INVITER_NAME = "Alice Inviter";
 const USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -28,7 +28,7 @@ vi.mock("@/api/collaboration", () => ({
   declineInvitation: mockDeclineInvitation,
 }));
 
-vi.mock("@/api/ideas", () => ({
+vi.mock("@/api/projects", () => ({
   fetchInvitations: mockFetchInvitations,
 }));
 
@@ -79,8 +79,8 @@ beforeEach(() => {
     invitations: [
       {
         id: INVITE_ID,
-        idea_id: IDEA_ID,
-        idea_title: "Test Idea",
+        project_id: PROJECT_ID,
+        project_title: "Test Idea",
         inviter: { id: "inviter-1", display_name: INVITER_NAME },
         created_at: "2024-01-01T00:00:00Z",
       },
@@ -97,8 +97,8 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
       <QueryClientProvider client={qc}>
         <InvitationCard
           id={INVITE_ID}
-          ideaId={IDEA_ID}
-          ideaTitle="Test Idea"
+          projectId={PROJECT_ID}
+          projectTitle="Test Idea"
           inviterName={INVITER_NAME}
           createdAt="2024-01-01T00:00:00Z"
         />
@@ -119,8 +119,8 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
       <QueryClientProvider client={qc}>
         <InvitationCard
           id={INVITE_ID}
-          ideaId={IDEA_ID}
-          ideaTitle="Test Idea"
+          projectId={PROJECT_ID}
+          projectTitle="Test Idea"
           inviterName={INVITER_NAME}
           createdAt="2024-01-01T00:00:00Z"
           onAccept={onAccept}
@@ -129,7 +129,7 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
     );
 
     await user.click(screen.getByRole("button", { name: /accept/i }));
-    expect(onAccept).toHaveBeenCalledWith(INVITE_ID, IDEA_ID);
+    expect(onAccept).toHaveBeenCalledWith(INVITE_ID, PROJECT_ID);
   });
 
   it("calls onDecline when Decline button is clicked", async () => {
@@ -140,8 +140,8 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
       <QueryClientProvider client={qc}>
         <InvitationCard
           id={INVITE_ID}
-          ideaId={IDEA_ID}
-          ideaTitle="Test Idea"
+          projectId={PROJECT_ID}
+          projectTitle="Test Idea"
           inviterName={INVITER_NAME}
           createdAt="2024-01-01T00:00:00Z"
           onDecline={onDecline}
@@ -159,7 +159,7 @@ describe("UI-INVITE.02: InvitationBanner renders in workspace", () => {
     const qc = createQueryClient();
     render(
       <QueryClientProvider client={qc}>
-        <InvitationBanner ideaId={IDEA_ID} />
+        <InvitationBanner projectId={PROJECT_ID} />
       </QueryClientProvider>,
     );
 
@@ -179,7 +179,7 @@ describe("UI-INVITE.02: InvitationBanner renders in workspace", () => {
     const qc = createQueryClient();
     render(
       <QueryClientProvider client={qc}>
-        <InvitationBanner ideaId={IDEA_ID} />
+        <InvitationBanner projectId={PROJECT_ID} />
       </QueryClientProvider>,
     );
 
@@ -197,7 +197,7 @@ describe("UI-INVITE.03: Accept/decline from banner calls API and shows toast", (
     const qc = createQueryClient();
     render(
       <QueryClientProvider client={qc}>
-        <InvitationBanner ideaId={IDEA_ID} />
+        <InvitationBanner projectId={PROJECT_ID} />
       </QueryClientProvider>,
     );
 
@@ -219,7 +219,7 @@ describe("UI-INVITE.03: Accept/decline from banner calls API and shows toast", (
     const qc = createQueryClient();
     render(
       <QueryClientProvider client={qc}>
-        <InvitationBanner ideaId={IDEA_ID} />
+        <InvitationBanner projectId={PROJECT_ID} />
       </QueryClientProvider>,
     );
 

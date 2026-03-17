@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
-export interface IdeasFilters {
+export interface ProjectsFilters {
   search: string;
   state: string;
   ownership: string;
@@ -9,7 +9,7 @@ export interface IdeasFilters {
 
 const DEBOUNCE_MS = 300;
 
-export function useIdeasFilters() {
+export function useProjectsFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
   const searchParamsRef = useRef(searchParams);
   searchParamsRef.current = searchParams;
@@ -37,7 +37,7 @@ export function useIdeasFilters() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const filters: IdeasFilters = useMemo(
+  const filters: ProjectsFilters = useMemo(
     () => ({
       search: debouncedSearch,
       state: urlState,

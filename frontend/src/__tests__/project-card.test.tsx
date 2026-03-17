@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { IdeaCard } from "@/components/landing/IdeaCard";
-import type { IdeaCardProps, IdeaState } from "@/components/landing/IdeaCard";
+import { ProjectCard } from "@/components/landing/ProjectCard";
+import type { ProjectCardProps, ProjectState } from "@/components/landing/ProjectCard";
 import i18n from "@/i18n/config";
 
 beforeAll(async () => {
@@ -16,8 +16,8 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-function renderIdeaCard(props: Partial<IdeaCardProps> = {}) {
-  const defaultProps: IdeaCardProps = {
+function renderProjectCard(props: Partial<ProjectCardProps> = {}) {
+  const defaultProps: ProjectCardProps = {
     id: "test-uuid-123",
     title: "My Test Idea",
     state: "open",
@@ -26,18 +26,18 @@ function renderIdeaCard(props: Partial<IdeaCardProps> = {}) {
   };
   return render(
     <MemoryRouter>
-      <IdeaCard {...defaultProps} />
+      <ProjectCard {...defaultProps} />
     </MemoryRouter>,
   );
 }
 
-describe("IdeaCard component", () => {
+describe("ProjectCard component", () => {
   beforeEach(() => {
     mockNavigate.mockClear();
   });
 
   it("renders state dot with correct color for open state", () => {
-    renderIdeaCard({ state: "open" });
+    renderProjectCard({ state: "open" });
     const dot = screen.getByLabelText("Open");
     expect(dot).toBeInTheDocument();
     expect(dot.style.backgroundColor).toBe("rgb(2, 132, 199)");
@@ -46,7 +46,7 @@ describe("IdeaCard component", () => {
   });
 
   it("renders state dot with correct color for each state", () => {
-    const states: { state: IdeaState; label: string; color: string }[] = [
+    const states: { state: ProjectState; label: string; color: string }[] = [
       { state: "open", label: "Open", color: "rgb(2, 132, 199)" },
       { state: "in_review", label: "In Review", color: "rgb(245, 158, 11)" },
       { state: "accepted", label: "Accepted", color: "rgb(22, 163, 74)" },
@@ -55,7 +55,7 @@ describe("IdeaCard component", () => {
     ];
 
     for (const { state, label, color } of states) {
-      const { unmount } = renderIdeaCard({ state });
+      const { unmount } = renderProjectCard({ state });
       const dot = screen.getByLabelText(label);
       expect(dot.style.backgroundColor).toBe(color);
       unmount();
@@ -63,33 +63,33 @@ describe("IdeaCard component", () => {
   });
 
   it("renders title with ellipsis truncation class", () => {
-    renderIdeaCard({ title: "My Test Idea" });
+    renderProjectCard({ title: "My Test Idea" });
     const title = screen.getByText("My Test Idea");
     expect(title).toBeInTheDocument();
     expect(title.className).toContain("truncate");
   });
 
   it("renders 'Untitled idea' when title is empty", () => {
-    renderIdeaCard({ title: "" });
+    renderProjectCard({ title: "" });
     expect(screen.getByText("Untitled idea")).toBeInTheDocument();
   });
 
   it("renders relative timestamp", () => {
-    renderIdeaCard({
+    renderProjectCard({
       updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     });
     expect(screen.getByText("Last updated 30 minutes ago")).toBeInTheDocument();
   });
 
   it("renders state badge with correct text", () => {
-    renderIdeaCard({ state: "in_review" });
+    renderProjectCard({ state: "in_review" });
     expect(screen.getByText("In Review")).toBeInTheDocument();
   });
 
   it("renders Delete option in menu for active ideas", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
-    renderIdeaCard({ onDelete, deletedAt: null });
+    renderProjectCard({ onDelete, deletedAt: null });
 
     const triggers = screen.getAllByRole("button");
     await user.click(triggers[triggers.length - 1]!);
@@ -100,7 +100,7 @@ describe("IdeaCard component", () => {
   it("renders Restore option in menu for trashed ideas", async () => {
     const user = userEvent.setup();
     const onRestore = vi.fn();
-    renderIdeaCard({
+    renderProjectCard({
       deletedAt: "2024-01-01T00:00:00Z",
       onRestore,
     });
@@ -111,20 +111,20 @@ describe("IdeaCard component", () => {
     expect(screen.getByText("Restore")).toBeInTheDocument();
   });
 
-  it("clicking card navigates to /idea/:uuid", async () => {
+  it("clicking card navigates to /project/:uuid", async () => {
     const user = userEvent.setup();
-    renderIdeaCard({ id: "abc-123" });
+    renderProjectCard({ id: "abc-123" });
 
     const card = screen.getByText("My Test Idea").closest("button");
     expect(card).not.toBeNull();
     await user.click(card!);
-    expect(mockNavigate).toHaveBeenCalledWith("/idea/abc-123");
+    expect(mockNavigate).toHaveBeenCalledWith("/project/abc-123");
   });
 
   it("clicking three-dot menu does not trigger navigation", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
-    renderIdeaCard({ onDelete });
+    renderProjectCard({ onDelete });
 
     const triggers = screen.getAllByRole("button");
     await user.click(triggers[triggers.length - 1]!);

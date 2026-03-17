@@ -26,11 +26,11 @@ vi.mock("react-router-dom", async () => {
 const mockDeleteMutate = vi.fn();
 const mockRestoreMutate = vi.fn();
 
-vi.mock("@/hooks/use-my-ideas", () => ({
-  useMyIdeas: vi.fn(() => ({ data: null, isLoading: false })),
+vi.mock("@/hooks/use-my-projects", () => ({
+  useMyProjects: vi.fn(() => ({ data: null, isLoading: false })),
 }));
-vi.mock("@/hooks/use-collaborating-ideas", () => ({
-  useCollaboratingIdeas: vi.fn(() => ({ data: null, isLoading: false })),
+vi.mock("@/hooks/use-collaborating-projects", () => ({
+  useCollaboratingProjects: vi.fn(() => ({ data: null, isLoading: false })),
 }));
 vi.mock("@/hooks/use-invitations", () => ({
   useInvitations: vi.fn(() => ({ data: null, isLoading: false })),
@@ -38,11 +38,11 @@ vi.mock("@/hooks/use-invitations", () => ({
 vi.mock("@/hooks/use-trash", () => ({
   useTrash: vi.fn(() => ({ data: null, isLoading: false })),
 }));
-vi.mock("@/hooks/use-delete-idea", () => ({
-  useDeleteIdea: vi.fn(() => ({ mutate: mockDeleteMutate })),
+vi.mock("@/hooks/use-delete-project", () => ({
+  useDeleteProject: vi.fn(() => ({ mutate: mockDeleteMutate })),
 }));
-vi.mock("@/hooks/use-restore-idea", () => ({
-  useRestoreIdea: vi.fn(() => ({ mutate: mockRestoreMutate })),
+vi.mock("@/hooks/use-restore-project", () => ({
+  useRestoreProject: vi.fn(() => ({ mutate: mockRestoreMutate })),
 }));
 
 vi.mock("react-toastify", () => ({
@@ -55,12 +55,12 @@ vi.mock("@/api/notifications", () => ({
   markNotificationActioned: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("@/hooks/use-ideas-by-state", () => ({
-  useIdeasByState: vi.fn(() => ({ data: null, isLoading: false })),
+vi.mock("@/hooks/use-projects-by-state", () => ({
+  useProjectsByState: vi.fn(() => ({ data: null, isLoading: false })),
 }));
 
-import { useMyIdeas } from "@/hooks/use-my-ideas";
-import { useCollaboratingIdeas } from "@/hooks/use-collaborating-ideas";
+import { useMyProjects } from "@/hooks/use-my-projects";
+import { useCollaboratingProjects } from "@/hooks/use-collaborating-projects";
 import { useInvitations } from "@/hooks/use-invitations";
 import { useTrash } from "@/hooks/use-trash";
 
@@ -115,8 +115,8 @@ const emptyIdeasResponse = { results: [], count: 0, next: null, previous: null }
 const emptyInvitationsResponse = { invitations: [] };
 
 beforeEach(() => {
-  vi.mocked(useMyIdeas).mockReturnValue(mockHook(emptyIdeasResponse));
-  vi.mocked(useCollaboratingIdeas).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useMyProjects).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useCollaboratingProjects).mockReturnValue(mockHook(emptyIdeasResponse));
   vi.mocked(useInvitations).mockReturnValue(mockHook(emptyInvitationsResponse));
   vi.mocked(useTrash).mockReturnValue(mockHook(emptyIdeasResponse));
   mockNavigate.mockClear();
@@ -161,7 +161,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   });
 
   it("renders ideas in My Ideas list with correct count", () => {
-    vi.mocked(useMyIdeas).mockReturnValue(
+    vi.mocked(useMyProjects).mockReturnValue(
       mockHook({
         results: [
           { id: "1", title: "First idea", state: "open", updated_at: "2024-01-01", deleted_at: null },
@@ -186,8 +186,8 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
         invitations: [
           {
             id: "inv-1",
-            idea_id: "idea-1",
-            idea_title: "Collab idea",
+            project_id: "idea-1",
+            project_title: "Collab idea",
             inviter: { id: "u2", display_name: "Bob" },
             created_at: "2024-01-01",
           },
@@ -201,9 +201,9 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     expect(screen.getByText("From Bob")).toBeInTheDocument();
   });
 
-  it("clicking an idea card navigates to /idea/:uuid", async () => {
+  it("clicking an idea card navigates to /project/:uuid", async () => {
     const user = userEvent.setup();
-    vi.mocked(useMyIdeas).mockReturnValue(
+    vi.mocked(useMyProjects).mockReturnValue(
       mockHook({
         results: [
           { id: "abc-123", title: "Navigate me", state: "open", updated_at: "2024-01-01", deleted_at: null },
@@ -217,7 +217,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     renderLandingPage();
 
     await user.click(screen.getByText("Navigate me"));
-    expect(mockNavigate).toHaveBeenCalledWith("/idea/abc-123");
+    expect(mockNavigate).toHaveBeenCalledWith("/project/abc-123");
   });
 
   it("renders page content (Navbar is provided by AuthenticatedLayout)", () => {
@@ -229,8 +229,8 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
   });
 
   it("shows skeleton loaders when data is loading", () => {
-    vi.mocked(useMyIdeas).mockReturnValue(mockHook(undefined, true));
-    vi.mocked(useCollaboratingIdeas).mockReturnValue(mockHook(undefined, true));
+    vi.mocked(useMyProjects).mockReturnValue(mockHook(undefined, true));
+    vi.mocked(useCollaboratingProjects).mockReturnValue(mockHook(undefined, true));
     vi.mocked(useInvitations).mockReturnValue(mockHook(undefined, true));
     vi.mocked(useTrash).mockReturnValue(mockHook(undefined, true));
 
@@ -240,9 +240,9 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
-  it("calls delete mutation when IdeaCard delete is clicked", async () => {
+  it("calls delete mutation when ProjectCard delete is clicked", async () => {
     const user = userEvent.setup();
-    vi.mocked(useMyIdeas).mockReturnValue(
+    vi.mocked(useMyProjects).mockReturnValue(
       mockHook({
         results: [
           { id: "del-1", title: "Delete me", state: "open", updated_at: "2024-01-01", deleted_at: null },

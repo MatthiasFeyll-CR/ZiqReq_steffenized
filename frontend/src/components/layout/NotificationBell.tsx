@@ -20,7 +20,7 @@ function getToastType(eventType: string): "info" | "success" | "warning" {
   )
     return "success";
   if (
-    eventType === "removed_from_idea" ||
+    eventType === "removed_from_project" ||
     eventType === "monitoring_alert" ||
     eventType === "rate_limit"
   )

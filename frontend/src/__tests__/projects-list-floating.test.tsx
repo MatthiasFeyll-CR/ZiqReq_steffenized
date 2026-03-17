@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { IdeasListFloating } from "@/components/layout/IdeasListFloating";
-import { useIdeasByState } from "@/hooks/use-ideas-by-state";
+import { ProjectsListFloating } from "@/components/layout/ProjectsListFloating";
+import { useProjectsByState } from "@/hooks/use-projects-by-state";
 import i18n from "@/i18n/config";
 
 beforeAll(async () => {
@@ -17,7 +17,7 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock("@/hooks/use-ideas-by-state");
+vi.mock("@/hooks/use-projects-by-state");
 
 function createQueryClient() {
   return new QueryClient({
@@ -39,17 +39,17 @@ function renderFloating(onClose = vi.fn()) {
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <IdeasListFloating onClose={onClose} />
+        <ProjectsListFloating onClose={onClose} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
   return onClose;
 }
 
-describe("IdeasListFloating", () => {
+describe("ProjectsListFloating", () => {
   beforeEach(() => {
     mockNavigate.mockClear();
-    vi.mocked(useIdeasByState).mockReturnValue(mockHookReturn());
+    vi.mocked(useProjectsByState).mockReturnValue(mockHookReturn());
   });
 
   it("renders all 4 tabs", () => {
@@ -67,13 +67,13 @@ describe("IdeasListFloating", () => {
   });
 
   it("shows empty message when no ideas", () => {
-    vi.mocked(useIdeasByState).mockReturnValue(mockHookReturn([]));
+    vi.mocked(useProjectsByState).mockReturnValue(mockHookReturn([]));
     renderFloating();
     expect(screen.getByText(/No active ideas/)).toBeInTheDocument();
   });
 
   it("shows loading state", () => {
-    vi.mocked(useIdeasByState).mockReturnValue(mockHookReturn([], true));
+    vi.mocked(useProjectsByState).mockReturnValue(mockHookReturn([], true));
     renderFloating();
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
@@ -82,7 +82,7 @@ describe("IdeasListFloating", () => {
     const user = userEvent.setup();
     const onClose = renderFloating();
     await user.click(screen.getByText("First Idea"));
-    expect(mockNavigate).toHaveBeenCalledWith("/idea/id-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/project/id-1");
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -102,6 +102,6 @@ describe("IdeasListFloating", () => {
     const user = userEvent.setup();
     renderFloating();
     await user.click(screen.getByRole("tab", { name: "Closed" }));
-    expect(useIdeasByState).toHaveBeenCalledWith("dropped");
+    expect(useProjectsByState).toHaveBeenCalledWith("dropped");
   });
 });

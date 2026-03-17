@@ -7,19 +7,19 @@ import { toast } from "react-toastify";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FilterBar } from "@/components/landing/FilterBar";
 import { EmptyState } from "@/components/common/EmptyState";
-import { IdeaCard } from "@/components/landing/IdeaCard";
-import type { IdeaState } from "@/components/landing/IdeaCard";
+import { ProjectCard } from "@/components/landing/ProjectCard";
+import type { ProjectState } from "@/components/landing/ProjectCard";
 import { InvitationCard } from "@/components/landing/InvitationCard";
-import { IdeaCardSkeleton } from "@/components/landing/IdeaCardSkeleton";
+import { ProjectCardSkeleton } from "@/components/landing/ProjectCardSkeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { acceptInvitation, declineInvitation } from "@/api/collaboration";
-import { useMyIdeas } from "@/hooks/use-my-ideas";
-import { useCollaboratingIdeas } from "@/hooks/use-collaborating-ideas";
+import { useMyProjects } from "@/hooks/use-my-projects";
+import { useCollaboratingProjects } from "@/hooks/use-collaborating-projects";
 import { useInvitations } from "@/hooks/use-invitations";
 import { useTrash } from "@/hooks/use-trash";
-import { useDeleteIdea } from "@/hooks/use-delete-idea";
-import { useRestoreIdea } from "@/hooks/use-restore-idea";
-import { useIdeasFilters } from "@/hooks/use-ideas-filters";
+import { useDeleteProject } from "@/hooks/use-delete-project";
+import { useRestoreProject } from "@/hooks/use-restore-project";
+import { useProjectsFilters } from "@/hooks/use-projects-filters";
 import { useLandingSync } from "@/hooks/use-landing-sync";
 
 interface SectionProps {
@@ -45,9 +45,9 @@ function Section({ title, count, children }: SectionProps) {
 function SkeletonList() {
   return (
     <div className="flex flex-col gap-2">
-      <IdeaCardSkeleton />
-      <IdeaCardSkeleton />
-      <IdeaCardSkeleton />
+      <ProjectCardSkeleton />
+      <ProjectCardSkeleton />
+      <ProjectCardSkeleton />
     </div>
   );
 }
@@ -62,33 +62,33 @@ export default function LandingPage() {
     setOwnershipFilter,
     clearFilters,
     hasActiveFilters,
-  } = useIdeasFilters();
+  } = useProjectsFilters();
 
   useLandingSync();
 
-  const showMyIdeas = !filters.ownership || filters.ownership === "my_ideas";
+  const showMyProjects = !filters.ownership || filters.ownership === "my_ideas";
   const showCollaborating =
     !filters.ownership || filters.ownership === "collaborating";
 
-  const myIdeas = useMyIdeas(showMyIdeas ? filters : undefined);
-  const collaborating = useCollaboratingIdeas(
+  const myProjects = useMyProjects(showMyProjects ? filters : undefined);
+  const collaborating = useCollaboratingProjects(
     showCollaborating ? filters : undefined,
   );
   const invitations = useInvitations();
   const trash = useTrash();
-  const deleteMutation = useDeleteIdea();
-  const restoreMutation = useRestoreIdea();
+  const deleteMutation = useDeleteProject();
+  const restoreMutation = useRestoreProject();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const acceptMutation = useMutation({
-    mutationFn: ({ invitationId }: { invitationId: string; ideaId: string }) =>
+    mutationFn: ({ invitationId }: { invitationId: string; projectId: string }) =>
       acceptInvitation(invitationId),
-    onSuccess: (_data, { ideaId }) => {
+    onSuccess: (_data, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
-      queryClient.invalidateQueries({ queryKey: ["collaboratingIdeas"] });
+      queryClient.invalidateQueries({ queryKey: ["collaboratingProjects"] });
       toast.success(t("landing.invitations.accepted", "Invitation accepted"));
-      navigate(`/idea/${ideaId}`);
+      navigate(`/project/${projectId}`);
     },
   });
 
@@ -101,8 +101,8 @@ export default function LandingPage() {
   });
 
   const handleAccept = useCallback(
-    (id: string, ideaId: string) =>
-      acceptMutation.mutate({ invitationId: id, ideaId }),
+    (id: string, projectId: string) =>
+      acceptMutation.mutate({ invitationId: id, projectId }),
     [acceptMutation],
   );
 
@@ -111,7 +111,7 @@ export default function LandingPage() {
     [declineMutation],
   );
 
-  const myIdeasData = showMyIdeas ? (myIdeas.data?.results ?? []) : [];
+  const myProjectsData = showMyProjects ? (myProjects.data?.results ?? []) : [];
   const collaboratingData = showCollaborating
     ? (collaborating.data?.results ?? [])
     : [];
@@ -171,25 +171,25 @@ export default function LandingPage() {
         <div className="mt-8 grid gap-8 md:grid-cols-2">
           <Section
             title={t("landing.lists.myIdeas")}
-            count={myIdeasData.length}
+            count={myProjectsData.length}
           >
-            {myIdeas.isLoading ? (
+            {myProjects.isLoading ? (
               <SkeletonList />
-            ) : myIdeasData.length === 0 ? (
+            ) : myProjectsData.length === 0 ? (
               <EmptyState
                 icon={Lightbulb}
                 message={t("landing.empty.myIdeas")}
               />
             ) : (
               <div className="flex flex-col gap-2">
-                {myIdeasData.map((idea) => (
-                  <IdeaCard
-                    key={idea.id}
-                    id={idea.id}
-                    title={idea.title}
-                    state={idea.state as IdeaState}
-                    updatedAt={idea.updated_at}
-                    deletedAt={idea.deleted_at}
+                {myProjectsData.map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    id={p.id}
+                    title={p.title}
+                    state={p.state as ProjectState}
+                    updatedAt={p.updated_at}
+                    deletedAt={p.deleted_at}
                     onDelete={handleDelete}
                   />
                 ))}
@@ -210,14 +210,14 @@ export default function LandingPage() {
               />
             ) : (
               <div className="flex flex-col gap-2">
-                {collaboratingData.map((idea) => (
-                  <IdeaCard
-                    key={idea.id}
-                    id={idea.id}
-                    title={idea.title}
-                    state={idea.state as IdeaState}
-                    updatedAt={idea.updated_at}
-                    deletedAt={idea.deleted_at}
+                {collaboratingData.map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    id={p.id}
+                    title={p.title}
+                    state={p.state as ProjectState}
+                    updatedAt={p.updated_at}
+                    deletedAt={p.deleted_at}
                     onDelete={handleDelete}
                   />
                 ))}
@@ -242,8 +242,8 @@ export default function LandingPage() {
                   <InvitationCard
                     key={inv.id}
                     id={inv.id}
-                    ideaId={inv.idea_id}
-                    ideaTitle={inv.idea_title}
+                    projectId={inv.project_id}
+                    projectTitle={inv.project_title}
                     inviterName={inv.inviter.display_name}
                     createdAt={inv.created_at}
                     onAccept={handleAccept}
@@ -264,14 +264,14 @@ export default function LandingPage() {
               />
             ) : (
               <div className="flex flex-col gap-2">
-                {trashData.map((idea) => (
-                  <IdeaCard
-                    key={idea.id}
-                    id={idea.id}
-                    title={idea.title}
-                    state={idea.state as IdeaState}
-                    updatedAt={idea.updated_at}
-                    deletedAt={idea.deleted_at}
+                {trashData.map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    id={p.id}
+                    title={p.title}
+                    state={p.state as ProjectState}
+                    updatedAt={p.updated_at}
+                    deletedAt={p.deleted_at}
                     onRestore={handleRestore}
                   />
                 ))}

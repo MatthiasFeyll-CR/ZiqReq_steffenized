@@ -34,8 +34,8 @@ vi.mock("@/api/notifications", () => ({
   markNotificationActioned: vi.fn().mockResolvedValue({}),
 }));
 
-vi.mock("@/hooks/use-ideas-by-state", () => ({
-  useIdeasByState: vi.fn(() => ({ data: null, isLoading: false })),
+vi.mock("@/hooks/use-projects-by-state", () => ({
+  useProjectsByState: vi.fn(() => ({ data: null, isLoading: false })),
 }));
 
 const { mockFetchReviews } = vi.hoisted(() => {

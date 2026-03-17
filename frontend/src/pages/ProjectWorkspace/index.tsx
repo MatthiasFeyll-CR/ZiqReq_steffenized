@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { fetchIdea, restoreIdea, type Idea } from "@/api/ideas";
+import { fetchProject, restoreProject, type Project } from "@/api/projects";
 import { fetchChatMessages } from "@/api/chat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, ArrowRight, RotateCcw } from "lucide-react";
@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { patchIdea } from "@/api/ideas";
+import { patchProject } from "@/api/projects";
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
@@ -23,7 +23,7 @@ import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
-import { useIdeaSync } from "@/hooks/useIdeaSync";
+import { useProjectSync } from "@/hooks/useProjectSync";
 import { useSelector } from "react-redux";
 import { selectIsOnline, selectConnectionState } from "@/store/websocket-slice";
 import { useWsSend } from "@/app/providers";
@@ -38,14 +38,14 @@ function parseStep(value: string | null): ProcessStep {
   return "brainstorm";
 }
 
-export default function IdeaWorkspacePage() {
+export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get("token");
 
-  const [idea, setIdea] = useState<Idea | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; status?: number } | null>(null);
 
@@ -56,10 +56,10 @@ export default function IdeaWorkspacePage() {
     setLoading(true);
     setError(null);
 
-    (shareToken ? fetchIdea(id, shareToken) : fetchIdea(id))
+    (shareToken ? fetchProject(id, shareToken) : fetchProject(id))
       .then((data) => {
         if (!cancelled) {
-          setIdea(data);
+          setProject(data);
           setLoading(false);
         }
       })
@@ -78,18 +78,18 @@ export default function IdeaWorkspacePage() {
     };
   }, [id, shareToken, t]);
 
-  const handleIdeaUpdate = useCallback((updated: Idea) => {
-    setIdea(updated);
+  const handleProjectUpdate = useCallback((updated: Project) => {
+    setProject(updated);
   }, []);
 
   useEffect(() => {
-    if (idea?.title) {
-      document.title = idea.title;
+    if (project?.title) {
+      document.title = project.title;
     }
     return () => {
       document.title = "ZiqReq";
     };
-  }, [idea?.title]);
+  }, [project?.title]);
 
   if (loading) {
     return (
@@ -165,27 +165,27 @@ export default function IdeaWorkspacePage() {
     );
   }
 
-  if (!idea) return null;
+  if (!project) return null;
 
   return (
-    <IdeaWorkspaceContent idea={idea} onIdeaUpdate={handleIdeaUpdate} readOnly={!!shareToken || !!idea.read_only} shareToken={shareToken} />
+    <ProjectWorkspaceContent project={project} onProjectUpdate={handleProjectUpdate} readOnly={!!shareToken || !!project.read_only} shareToken={shareToken} />
   );
 }
 
-function IdeaWorkspaceContent({
-  idea,
-  onIdeaUpdate,
+function ProjectWorkspaceContent({
+  project,
+  onProjectUpdate,
   readOnly = false,
   shareToken,
 }: {
-  idea: Idea;
-  onIdeaUpdate: (idea: Idea) => void;
+  project: Project;
+  onProjectUpdate: (project: Project) => void;
   readOnly?: boolean;
   shareToken?: string | null;
 }) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { chatLocked, allReadOnly, lockReason } = useSectionVisibility(idea);
+  const { chatLocked, allReadOnly, lockReason } = useSectionVisibility(project);
   const isOnline = useSelector(selectIsOnline);
   const connectionState = useSelector(selectConnectionState);
   const sendWs = useWsSend();
@@ -195,8 +195,8 @@ function IdeaWorkspaceContent({
     const urlStep = parseStep(searchParams.get("step"));
     // If no explicit step in URL, derive from idea state
     if (!searchParams.get("step")) {
-      if (idea.state === "rejected" || idea.state === "deleted") return "brainstorm";
-      if (["in_review", "accepted", "dropped"].includes(idea.state)) return "review";
+      if (project.state === "rejected" || project.state === "deleted") return "brainstorm";
+      if (["in_review", "accepted", "dropped"].includes(project.state)) return "review";
     }
     return urlStep;
   });
@@ -206,7 +206,7 @@ function IdeaWorkspaceContent({
 
   useEffect(() => {
     let cancelled = false;
-    fetchChatMessages(idea.id, { limit: 1 }).then((data) => {
+    fetchChatMessages(project.id, { limit: 1 }).then((data) => {
       if (!cancelled) {
         setHasMessages(data.total > 0);
       }
@@ -214,19 +214,19 @@ function IdeaWorkspaceContent({
       if (!cancelled) setHasMessages(false);
     });
     return () => { cancelled = true; };
-  }, [idea.id]);
+  }, [project.id]);
 
   // Listen for new chat messages to update hasMessages
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail.idea_id === idea.id) {
+      if (detail.project_id === project.id) {
         setHasMessages(true);
       }
     };
     window.addEventListener("ws:chat_message", handler);
     return () => window.removeEventListener("ws:chat_message", handler);
-  }, [idea.id]);
+  }, [project.id]);
 
   const handleStepChange = useCallback(
     (step: ProcessStep) => {
@@ -245,7 +245,7 @@ function IdeaWorkspaceContent({
   );
 
   // has_been_submitted heuristic — deleted doesn't count
-  const hasBeenSubmitted = idea.state !== "open" && idea.state !== "deleted";
+  const hasBeenSubmitted = project.state !== "open" && project.state !== "deleted";
 
   // Access gates
   const canAccessDocument = hasMessages === true;
@@ -261,17 +261,17 @@ function IdeaWorkspaceContent({
   );
 
   // Auto-navigate on state transitions
-  const prevStateRef = useRef(idea.state);
+  const prevStateRef = useRef(project.state);
   useEffect(() => {
-    if (prevStateRef.current === idea.state) return;
-    prevStateRef.current = idea.state;
+    if (prevStateRef.current === project.state) return;
+    prevStateRef.current = project.state;
 
-    if (idea.state === "rejected" || idea.state === "deleted") {
+    if (project.state === "rejected" || project.state === "deleted") {
       handleStepChange("brainstorm");
-    } else if (["in_review", "accepted", "dropped"].includes(idea.state)) {
+    } else if (["in_review", "accepted", "dropped"].includes(project.state)) {
       handleStepChange("review");
     }
-  }, [idea.state, handleStepChange]);
+  }, [project.state, handleStepChange]);
 
   // If landed on a gated step, redirect to brainstorm
   useEffect(() => {
@@ -286,32 +286,32 @@ function IdeaWorkspaceContent({
   // Subscribe to idea's WebSocket group when connected
   useEffect(() => {
     if (connectionState === "online") {
-      sendWs({ type: "subscribe_idea", idea_id: idea.id });
+      sendWs({ type: "subscribe_project", project_id: project.id });
     }
     return () => {
       if (connectionState === "online") {
-        sendWs({ type: "unsubscribe_idea", idea_id: idea.id });
+        sendWs({ type: "unsubscribe_project", project_id: project.id });
       }
     };
-  }, [idea.id, connectionState, sendWs]);
+  }, [project.id, connectionState, sendWs]);
 
   // Return-from-idle sync
-  useIdeaSync({ ideaId: idea.id, onIdeaUpdate });
-  const ideaRef = useRef(idea);
-  ideaRef.current = idea;
-  const onIdeaUpdateRef = useRef(onIdeaUpdate);
-  onIdeaUpdateRef.current = onIdeaUpdate;
+  useProjectSync({ projectId: project.id, onProjectUpdate });
+  const projectRef = useRef(project);
+  projectRef.current = project;
+  const onProjectUpdateRef = useRef(onProjectUpdate);
+  onProjectUpdateRef.current = onProjectUpdate;
 
-  const isDeleted = idea.state === "deleted";
-  const isInReview = idea.state === "in_review";
+  const isDeleted = project.state === "deleted";
+  const isInReview = project.state === "in_review";
   const isInReviewReadOnly = isInReview && activeStep !== "review";
 
   // Listen for WebSocket title_update events
   useEffect(() => {
     const handler = (e: Event) => {
-      const { idea_id, title } = (e as CustomEvent).detail;
-      if (idea_id === ideaRef.current.id) {
-        onIdeaUpdateRef.current({ ...ideaRef.current, title });
+      const { project_id, title } = (e as CustomEvent).detail;
+      if (project_id === projectRef.current.id) {
+        onProjectUpdateRef.current({ ...projectRef.current, title });
       }
     };
     window.addEventListener("ws:title_update", handler);
@@ -322,16 +322,16 @@ function IdeaWorkspaceContent({
   const handleRestore = useCallback(async () => {
     setIsRestoring(true);
     try {
-      await restoreIdea(idea.id);
-      const updated = await fetchIdea(idea.id);
-      onIdeaUpdate(updated);
+      await restoreProject(project.id);
+      const updated = await fetchProject(project.id);
+      onProjectUpdate(updated);
     } catch {
       // If refetch fails, optimistically set state back to open
-      onIdeaUpdate({ ...idea, state: "open" });
+      onProjectUpdate({ ...project, state: "open" });
     } finally {
       setIsRestoring(false);
     }
-  }, [idea, onIdeaUpdate]);
+  }, [project, onProjectUpdate]);
 
   const effectiveChatLocked = chatLocked || !isOnline || readOnly || isDeleted || isInReviewReadOnly;
   const effectiveLockReason = readOnly
@@ -348,23 +348,23 @@ function IdeaWorkspaceContent({
   const handleAgentModeChange = useCallback(
     async (value: string) => {
       const mode = value as "interactive" | "silent";
-      const previousMode = idea.agent_mode;
-      onIdeaUpdate({ ...idea, agent_mode: mode });
+      const previousMode = project.agent_mode;
+      onProjectUpdate({ ...project, agent_mode: mode });
       try {
-        const updated = await patchIdea(idea.id, { agent_mode: mode });
-        onIdeaUpdate(updated);
+        const updated = await patchProject(project.id, { agent_mode: mode });
+        onProjectUpdate(updated);
       } catch {
-        onIdeaUpdate({ ...idea, agent_mode: previousMode });
+        onProjectUpdate({ ...project, agent_mode: previousMode });
       }
     },
-    [idea, onIdeaUpdate],
+    [project, onProjectUpdate],
   );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" data-testid="idea-workspace">
+    <div className="flex flex-col h-full overflow-hidden" data-testid="project-workspace">
       <WorkspaceHeader
-        idea={idea}
-        onIdeaUpdate={onIdeaUpdate}
+        project={project}
+        onProjectUpdate={onProjectUpdate}
         readOnly={effectiveReadOnly}
         activeStep={activeStep}
         onStepChange={handleStepChange}
@@ -377,7 +377,7 @@ function IdeaWorkspaceContent({
 
       {/* Banners */}
       {readOnly && <ReadOnlyBanner />}
-      {!readOnly && !isDeleted && <InvitationBanner ideaId={idea.id} />}
+      {!readOnly && !isDeleted && <InvitationBanner projectId={project.id} />}
       {isDeleted && (
         <div
           className="shrink-0 flex items-center gap-3 px-6 py-3 bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-900/30"
@@ -391,7 +391,7 @@ function IdeaWorkspaceContent({
             size="sm"
             onClick={handleRestore}
             disabled={isRestoring}
-            data-testid="restore-idea-button"
+            data-testid="restore-project-button"
             className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
           >
             {isRestoring ? (
@@ -399,7 +399,7 @@ function IdeaWorkspaceContent({
             ) : (
               <RotateCcw className="mr-1 h-4 w-4" />
             )}
-            {t("workspace.restoreIdea", "Restore")}
+            {t("workspace.restoreProject", "Restore")}
           </Button>
         </div>
       )}
@@ -433,7 +433,7 @@ function IdeaWorkspaceContent({
             <span className="text-sm text-muted-foreground">
               {t("workspace.agentMode", "AI Mode")}
             </span>
-            <Select value={idea.agent_mode} onValueChange={handleAgentModeChange} disabled={effectiveReadOnly}>
+            <Select value={project.agent_mode} onValueChange={handleAgentModeChange} disabled={effectiveReadOnly}>
               <SelectTrigger className="w-36 h-8 text-sm" data-testid="agent-mode-trigger">
                 <SelectValue />
               </SelectTrigger>
@@ -450,7 +450,7 @@ function IdeaWorkspaceContent({
 
           <WorkspaceLayout
             chatPanel={
-              <ChatPanel idea={idea} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly || isInReviewReadOnly} />
+              <ChatPanel project={project} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly || isInReviewReadOnly} />
             }
           />
 
@@ -489,13 +489,13 @@ function IdeaWorkspaceContent({
 
           <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
             <DocumentView
-              ideaId={idea.id}
-              ideaState={idea.state}
+              projectId={project.id}
+              projectState={project.state}
               disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
               onStepChange={handleStepChange}
               onSubmitted={() => {
-                fetchIdea(idea.id).then((updated) => {
-                  onIdeaUpdate(updated);
+                fetchProject(project.id).then((updated) => {
+                  onProjectUpdate(updated);
                 }).catch(() => {});
               }}
             />
@@ -505,8 +505,8 @@ function IdeaWorkspaceContent({
 
       {activeStep === "review" && (
         <div className="relative flex-1 min-h-0 flex flex-col overflow-y-auto px-6 py-6">
-          <ReviewSection ideaId={idea.id} idea={idea} />
-          {idea.state === "rejected" && (
+          <ReviewSection projectId={project.id} project={project} />
+          {project.state === "rejected" && (
             <div className="px-6 py-4 mt-4 rounded-lg border-t border-border bg-orange-50 dark:bg-orange-950/20">
               <p className="text-sm text-orange-700 dark:text-orange-400 mb-2">
                 {t("review.rejectedHint", "Your idea was rejected. You can go back to brainstorming to refine it.")}

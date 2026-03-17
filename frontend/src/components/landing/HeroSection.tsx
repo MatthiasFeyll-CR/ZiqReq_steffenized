@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useCreateIdea } from "@/hooks/use-create-idea";
+import { useCreateProject } from "@/hooks/use-create-project";
 
 export function HeroSection() {
   const { t } = useTranslation();
   const [value, setValue] = useState("");
   const [validationError, setValidationError] = useState("");
-  const mutation = useCreateIdea();
+  const mutation = useCreateProject();
 
   const handleSubmit = () => {
     const trimmed = value.trim();

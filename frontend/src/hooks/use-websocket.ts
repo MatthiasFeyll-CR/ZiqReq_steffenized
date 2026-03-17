@@ -106,30 +106,30 @@ export function useWebSocket() {
       ws.onmessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "presence_update" && data.idea_id && data.payload) {
+          if (data.type === "presence_update" && data.project_id && data.payload) {
             dispatch(
               updatePresence({
-                idea_id: data.idea_id,
+                project_id: data.project_id,
                 user: data.payload.user,
                 state: data.payload.state,
               }),
             );
-          } else if (data.type === "title_update" && data.idea_id && data.payload) {
+          } else if (data.type === "title_update" && data.project_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:title_update", {
-                detail: { idea_id: data.idea_id, title: data.payload.title },
+                detail: { project_id: data.project_id, title: data.payload.title },
               }),
             );
-          } else if (data.type === "ai_processing" && data.idea_id && data.payload) {
+          } else if (data.type === "ai_processing" && data.project_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:ai_processing", {
-                detail: { idea_id: data.idea_id, state: data.payload.state },
+                detail: { project_id: data.project_id, state: data.payload.state },
               }),
             );
-          } else if (data.type === "rate_limit" && data.idea_id) {
+          } else if (data.type === "rate_limit" && data.project_id) {
             window.dispatchEvent(
               new CustomEvent("ws:rate_limit", {
-                detail: { idea_id: data.idea_id },
+                detail: { project_id: data.project_id },
               }),
             );
           } else if (data.type === "notification" && data.payload) {
@@ -138,28 +138,28 @@ export function useWebSocket() {
                 detail: data.payload,
               }),
             );
-          } else if (data.type === "chat_message" && data.idea_id && data.payload) {
+          } else if (data.type === "chat_message" && data.project_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:chat_message", {
-                detail: { idea_id: data.idea_id, message: data.payload },
+                detail: { project_id: data.project_id, message: data.payload },
               }),
             );
-          } else if (data.type === "ai_reaction" && data.idea_id && data.payload) {
+          } else if (data.type === "ai_reaction" && data.project_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:ai_reaction", {
-                detail: { idea_id: data.idea_id, ...data.payload },
+                detail: { project_id: data.project_id, ...data.payload },
               }),
             );
-          } else if (data.type === "brd_generating" && data.idea_id && data.payload) {
+          } else if (data.type === "brd_generating" && data.project_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:brd_generating", {
-                detail: { idea_id: data.idea_id, ...data.payload },
+                detail: { project_id: data.project_id, ...data.payload },
               }),
             );
-          } else if (data.type === "brd_ready" && data.idea_id && data.payload) {
+          } else if (data.type === "brd_ready" && data.project_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:brd_ready", {
-                detail: { idea_id: data.idea_id, ...data.payload },
+                detail: { project_id: data.project_id, ...data.payload },
               }),
             );
           } else if (data.type === "comment_created" && data.payload) {

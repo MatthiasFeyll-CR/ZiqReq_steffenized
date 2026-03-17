@@ -3,18 +3,18 @@ import { Button } from "@/components/ui/button";
 
 export interface InvitationCardProps {
   id: string;
-  ideaId: string;
-  ideaTitle: string;
+  projectId: string;
+  projectTitle: string;
   inviterName: string;
   createdAt: string;
-  onAccept?: (id: string, ideaId: string) => void;
+  onAccept?: (id: string, projectId: string) => void;
   onDecline?: (id: string) => void;
 }
 
 export function InvitationCard({
   id,
-  ideaId,
-  ideaTitle,
+  projectId,
+  projectTitle,
   inviterName,
   onAccept,
   onDecline,
@@ -24,7 +24,7 @@ export function InvitationCard({
   return (
     <div className="flex items-center justify-between rounded-md border border-border bg-background p-3 border-l-4 border-l-primary dark:bg-muted/40">
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-foreground">{ideaTitle}</p>
+        <p className="truncate font-medium text-foreground">{projectTitle}</p>
         <p className="text-sm text-text-secondary">
           {t("landing.invitations.from", { name: inviterName })}
         </p>
@@ -33,7 +33,7 @@ export function InvitationCard({
         <Button
           variant="primary"
           size="sm"
-          onClick={() => onAccept?.(id, ideaId)}
+          onClick={() => onAccept?.(id, projectId)}
         >
           {t("landing.invitations.accept")}
         </Button>

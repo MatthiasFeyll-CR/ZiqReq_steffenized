@@ -19,14 +19,14 @@ interface ReactionState {
 }
 
 interface ReactionChipsProps {
-  ideaId: string;
+  projectId: string;
   messageId: string;
   initialActive?: ReactionType | null;
   initialCounts?: Record<ReactionType, number>;
 }
 
 export function ReactionChips({
-  ideaId,
+  projectId,
   messageId,
   initialActive = null,
   initialCounts = { thumbs_up: 0, thumbs_down: 0, heart: 0 },
@@ -61,13 +61,13 @@ export function ReactionChips({
     setPending(true);
     try {
       if (wasActive) {
-        await removeReaction(ideaId, messageId);
+        await removeReaction(projectId, messageId);
       } else {
         // If switching, remove old first
         if (prevState.active) {
-          await removeReaction(ideaId, messageId);
+          await removeReaction(projectId, messageId);
         }
-        await addReaction(ideaId, messageId, type);
+        await addReaction(projectId, messageId, type);
       }
     } catch (err) {
       // Rollback

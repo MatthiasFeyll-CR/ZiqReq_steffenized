@@ -11,7 +11,7 @@ import {
   fetchComments,
   createComment,
   markCommentsRead,
-  type IdeaComment,
+  type ProjectComment,
 } from "@/api/comments";
 import { CommentItem } from "./CommentItem";
 import { CommentInput } from "./CommentInput";
@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquareOff } from "lucide-react";
 
 interface CommentsPanelProps {
-  ideaId: string;
+  projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   disabled?: boolean;
@@ -30,7 +30,7 @@ interface CommentsPanelProps {
 }
 
 export function CommentsPanel({
-  ideaId,
+  projectId,
   open,
   onOpenChange,
   disabled = false,
@@ -39,7 +39,7 @@ export function CommentsPanel({
   shareToken,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
-  const [comments, setComments] = useState<IdeaComment[]>([]);
+  const [comments, setComments] = useState<ProjectComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,21 +47,21 @@ export function CommentsPanel({
   const loadComments = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await fetchComments(ideaId, { page_size: 200, token: shareToken });
+      const data = await fetchComments(projectId, { page_size: 200, token: shareToken });
       setComments(data.results);
     } catch {
       // silently fail
     } finally {
       setLoading(false);
     }
-  }, [ideaId, shareToken]);
+  }, [projectId, shareToken]);
 
   useEffect(() => {
     if (open) {
       loadComments();
-      markCommentsRead(ideaId, shareToken).catch(() => {});
+      markCommentsRead(projectId, shareToken).catch(() => {});
     }
-  }, [open, ideaId, shareToken, loadComments]);
+  }, [open, projectId, shareToken, loadComments]);
 
   // Scroll to bottom when comments change
   useEffect(() => {
@@ -73,21 +73,21 @@ export function CommentsPanel({
   // WebSocket listeners
   useEffect(() => {
     const onCreated = (e: Event) => {
-      const comment = (e as CustomEvent).detail as IdeaComment;
-      if (comment.idea_id === ideaId) {
+      const comment = (e as CustomEvent).detail as ProjectComment;
+      if (comment.project_id === projectId) {
         setComments((prev) => {
           if (prev.some((c) => c.id === comment.id)) return prev;
           return [...prev, comment];
         });
         if (open) {
-          markCommentsRead(ideaId, shareToken).catch(() => {});
+          markCommentsRead(projectId, shareToken).catch(() => {});
         }
       }
     };
 
     const onUpdated = (e: Event) => {
-      const comment = (e as CustomEvent).detail as IdeaComment;
-      if (comment.idea_id === ideaId) {
+      const comment = (e as CustomEvent).detail as ProjectComment;
+      if (comment.project_id === projectId) {
         setComments((prev) =>
           prev.map((c) => (c.id === comment.id ? comment : c))
         );
@@ -95,8 +95,8 @@ export function CommentsPanel({
     };
 
     const onDeleted = (e: Event) => {
-      const { id, idea_id } = (e as CustomEvent).detail;
-      if (idea_id === ideaId) {
+      const { id, project_id } = (e as CustomEvent).detail;
+      if (project_id === projectId) {
         setComments((prev) =>
           prev.map((c) =>
             c.id === id
@@ -108,10 +108,10 @@ export function CommentsPanel({
     };
 
     const onReaction = (e: Event) => {
-      const { comment_id, idea_id, emoji, user_id, action } = (
+      const { comment_id, project_id, emoji, user_id, action } = (
         e as CustomEvent
       ).detail;
-      if (idea_id === ideaId) {
+      if (project_id === projectId) {
         setComments((prev) =>
           prev.map((c) => {
             if (c.id !== comment_id) return c;
@@ -150,20 +150,20 @@ export function CommentsPanel({
       window.removeEventListener("ws:comment_deleted", onDeleted);
       window.removeEventListener("ws:comment_reaction", onReaction);
     };
-  }, [ideaId, open]);
+  }, [projectId, open]);
 
   const handleSubmit = useCallback(
     async (content: string) => {
-      await createComment(ideaId, {
+      await createComment(projectId, {
         content,
         parent_id: replyTo,
       }, shareToken);
       setReplyTo(null);
     },
-    [ideaId, replyTo, shareToken]
+    [projectId, replyTo, shareToken]
   );
 
-  const handleCommentUpdated = useCallback((updated: IdeaComment) => {
+  const handleCommentUpdated = useCallback((updated: ProjectComment) => {
     setComments((prev) =>
       prev.map((c) => (c.id === updated.id ? updated : c))
     );
@@ -171,7 +171,7 @@ export function CommentsPanel({
 
   // Build thread structure
   const topLevel = comments.filter((c) => !c.parent_id);
-  const repliesMap = new Map<string, IdeaComment[]>();
+  const repliesMap = new Map<string, ProjectComment[]>();
   for (const c of comments) {
     if (c.parent_id) {
       const existing = repliesMap.get(c.parent_id) || [];
@@ -231,7 +231,7 @@ export function CommentsPanel({
                 ) : (
                   <CommentItem
                     comment={comment}
-                    ideaId={ideaId}
+                    projectId={projectId}
                     currentUserId={currentUserId}
                     isOwnerOrCollaborator={isOwnerOrCollaborator}
                     onReply={() => setReplyTo(comment.id)}
@@ -247,7 +247,7 @@ export function CommentsPanel({
                     ) : (
                       <CommentItem
                         comment={reply}
-                        ideaId={ideaId}
+                        projectId={projectId}
                         currentUserId={currentUserId}
                         isOwnerOrCollaborator={isOwnerOrCollaborator}
                         onReply={() => setReplyTo(reply.id)}
@@ -282,7 +282,7 @@ export function CommentsPanel({
               </div>
             )}
             <CommentInput
-              ideaId={ideaId}
+              projectId={projectId}
               onSubmit={handleSubmit}
               placeholder={
                 replyTo

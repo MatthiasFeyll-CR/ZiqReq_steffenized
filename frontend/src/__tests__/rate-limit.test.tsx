@@ -14,20 +14,20 @@ vi.mock("react-toastify", () => ({
 
 import { toast } from "react-toastify";
 
-const IDEA_ID = "22222222-2222-2222-2222-222222222222";
+const PROJECT_ID = "22222222-2222-2222-2222-222222222222";
 
-function dispatchRateLimit(ideaId: string) {
+function dispatchRateLimit(projectId: string) {
   window.dispatchEvent(
     new CustomEvent("ws:rate_limit", {
-      detail: { idea_id: ideaId },
+      detail: { project_id: projectId },
     }),
   );
 }
 
-function dispatchAiProcessing(ideaId: string, state: string) {
+function dispatchAiProcessing(projectId: string, state: string) {
   window.dispatchEvent(
     new CustomEvent("ws:ai_processing", {
-      detail: { idea_id: ideaId, state },
+      detail: { project_id: projectId, state },
     }),
   );
 }
@@ -38,10 +38,10 @@ describe("T-2.11.03: Rate limit warning toast", () => {
   });
 
   it("shows toast on rate_limit WebSocket event", () => {
-    renderHook(() => useRateLimit(IDEA_ID));
+    renderHook(() => useRateLimit(PROJECT_ID));
 
     act(() => {
-      dispatchRateLimit(IDEA_ID);
+      dispatchRateLimit(PROJECT_ID);
     });
 
     expect(toast.warning).toHaveBeenCalledWith(
@@ -50,19 +50,19 @@ describe("T-2.11.03: Rate limit warning toast", () => {
   });
 
   it("sets isLimited to true on rate_limit event", () => {
-    const { result } = renderHook(() => useRateLimit(IDEA_ID));
+    const { result } = renderHook(() => useRateLimit(PROJECT_ID));
 
     expect(result.current.isLimited).toBe(false);
 
     act(() => {
-      dispatchRateLimit(IDEA_ID);
+      dispatchRateLimit(PROJECT_ID);
     });
 
     expect(result.current.isLimited).toBe(true);
   });
 
-  it("ignores rate_limit events for different idea_id", () => {
-    const { result } = renderHook(() => useRateLimit(IDEA_ID));
+  it("ignores rate_limit events for different project_id", () => {
+    const { result } = renderHook(() => useRateLimit(PROJECT_ID));
 
     act(() => {
       dispatchRateLimit("other-idea-id");
@@ -73,43 +73,43 @@ describe("T-2.11.03: Rate limit warning toast", () => {
   });
 
   it("unlocks on ai_processing completed event", () => {
-    const { result } = renderHook(() => useRateLimit(IDEA_ID));
+    const { result } = renderHook(() => useRateLimit(PROJECT_ID));
 
     act(() => {
-      dispatchRateLimit(IDEA_ID);
+      dispatchRateLimit(PROJECT_ID);
     });
     expect(result.current.isLimited).toBe(true);
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "completed");
+      dispatchAiProcessing(PROJECT_ID, "completed");
     });
     expect(result.current.isLimited).toBe(false);
   });
 
   it("unlocks on ai_processing failed event", () => {
-    const { result } = renderHook(() => useRateLimit(IDEA_ID));
+    const { result } = renderHook(() => useRateLimit(PROJECT_ID));
 
     act(() => {
-      dispatchRateLimit(IDEA_ID);
+      dispatchRateLimit(PROJECT_ID);
     });
     expect(result.current.isLimited).toBe(true);
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "failed");
+      dispatchAiProcessing(PROJECT_ID, "failed");
     });
     expect(result.current.isLimited).toBe(false);
   });
 
   it("does not unlock on ai_processing started event", () => {
-    const { result } = renderHook(() => useRateLimit(IDEA_ID));
+    const { result } = renderHook(() => useRateLimit(PROJECT_ID));
 
     act(() => {
-      dispatchRateLimit(IDEA_ID);
+      dispatchRateLimit(PROJECT_ID);
     });
     expect(result.current.isLimited).toBe(true);
 
     act(() => {
-      dispatchAiProcessing(IDEA_ID, "started");
+      dispatchAiProcessing(PROJECT_ID, "started");
     });
     expect(result.current.isLimited).toBe(true);
   });

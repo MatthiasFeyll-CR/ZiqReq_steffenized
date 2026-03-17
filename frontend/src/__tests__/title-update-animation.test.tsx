@@ -7,11 +7,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { presenceReducer } from "@/store/presence-slice";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
-vi.mock("@/api/ideas", async () => {
-  const actual = await vi.importActual("@/api/ideas");
-  return { ...actual, patchIdea: vi.fn() };
+vi.mock("@/api/projects", async () => {
+  const actual = await vi.importActual("@/api/projects");
+  return { ...actual, patchProject: vi.fn() };
 });
 
 vi.mock("@/api/collaboration", () => ({
@@ -55,7 +55,7 @@ beforeAll(async () => {
   Element.prototype.scrollIntoView = () => {};
 });
 
-const MOCK_IDEA: Idea = {
+const MOCK_PROJECT: Project = {
   id: "11111111-1111-1111-1111-111111111111",
   title: "Original Title",
   state: "open",
@@ -67,8 +67,8 @@ const MOCK_IDEA: Idea = {
   collaborators: [],
 };
 
-function renderHeader(idea: Idea = MOCK_IDEA) {
-  const onIdeaUpdate = vi.fn();
+function renderHeader(idea: Project = MOCK_PROJECT) {
+  const onProjectUpdate = vi.fn();
   const store = configureStore({ reducer: { presence: presenceReducer } });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const result = render(
@@ -76,8 +76,8 @@ function renderHeader(idea: Idea = MOCK_IDEA) {
       <Provider store={store}>
         <MemoryRouter>
           <WorkspaceHeader
-              idea={idea}
-              onIdeaUpdate={onIdeaUpdate}
+              project={idea}
+              onProjectUpdate={onProjectUpdate}
               activeStep="brainstorm"
               onStepChange={() => {}}
               canAccessDocument={true}
@@ -87,7 +87,7 @@ function renderHeader(idea: Idea = MOCK_IDEA) {
       </Provider>
     </QueryClientProvider>,
   );
-  return { ...result, onIdeaUpdate, store, qc };
+  return { ...result, onProjectUpdate, store, qc };
 }
 
 describe("T-2.3.03: Title update animates", () => {
@@ -104,12 +104,12 @@ describe("T-2.3.03: Title update animates", () => {
   });
 
   it("re-renders with new animated span when title changes", () => {
-    const { rerender, onIdeaUpdate, store, qc } = renderHeader();
+    const { rerender, onProjectUpdate, store, qc } = renderHeader();
 
     // Verify original title in the title-display container
     expect(screen.getByTestId("title-display")).toHaveTextContent("Original Title");
 
-    const updatedIdea = { ...MOCK_IDEA, title: "AI-Generated Title" };
+    const updatedIdea = { ...MOCK_PROJECT, title: "AI-Generated Title" };
 
     // Re-render with new title (simulating WebSocket title_update)
     rerender(
@@ -117,8 +117,8 @@ describe("T-2.3.03: Title update animates", () => {
         <Provider store={store}>
           <MemoryRouter>
             <WorkspaceHeader
-                idea={updatedIdea}
-                onIdeaUpdate={onIdeaUpdate}
+                project={updatedIdea}
+                onProjectUpdate={onProjectUpdate}
                 activeStep="brainstorm"
                 onStepChange={() => {}}
                 canAccessDocument={true}

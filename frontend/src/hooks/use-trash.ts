@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchIdeas } from "@/api/ideas";
+import { fetchProjects } from "@/api/projects";
 
 export function useTrash() {
   return useQuery({
-    queryKey: ["ideas", "trash"],
-    queryFn: () => fetchIdeas("trash"),
+    queryKey: ["projects", "trash"],
+    queryFn: () => fetchProjects("trash"),
   });
 }

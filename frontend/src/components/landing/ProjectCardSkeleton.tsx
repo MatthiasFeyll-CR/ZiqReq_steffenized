@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function IdeaCardSkeleton() {
+export function ProjectCardSkeleton() {
   return (
     <div className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface p-4">
       <Skeleton className="h-2 w-2 shrink-0 rounded-full" />

@@ -20,7 +20,7 @@ describe("T-15.1.01: Idle after timeout", () => {
 
   it("marks user idle after no mouse movement for idle_timeout seconds", () => {
     renderHook(() =>
-      useIdleDetection({ ideaId: "test-idea", idleTimeout: 5 }),
+      useIdleDetection({ projectId: "test-idea", idleTimeout: 5 }),
     );
 
     // Advance past idle timeout (5 seconds)
@@ -31,7 +31,7 @@ describe("T-15.1.01: Idle after timeout", () => {
     expect(mockSendMessage).toHaveBeenCalledWith({
       type: "presence_update",
       payload: {
-        idea_id: "test-idea",
+        project_id: "test-idea",
         state: "idle",
       },
     });
@@ -39,7 +39,7 @@ describe("T-15.1.01: Idle after timeout", () => {
 
   it("does not mark idle before timeout", () => {
     renderHook(() =>
-      useIdleDetection({ ideaId: "test-idea", idleTimeout: 5 }),
+      useIdleDetection({ projectId: "test-idea", idleTimeout: 5 }),
     );
 
     act(() => {
@@ -51,7 +51,7 @@ describe("T-15.1.01: Idle after timeout", () => {
 
   it("resets timer on mouse movement", () => {
     renderHook(() =>
-      useIdleDetection({ ideaId: "test-idea", idleTimeout: 5 }),
+      useIdleDetection({ projectId: "test-idea", idleTimeout: 5 }),
     );
 
     // Advance 4 seconds, then move mouse
@@ -82,7 +82,7 @@ describe("T-15.1.01: Idle after timeout", () => {
     expect(mockSendMessage).toHaveBeenCalledWith({
       type: "presence_update",
       payload: {
-        idea_id: "test-idea",
+        project_id: "test-idea",
         state: "idle",
       },
     });
@@ -90,7 +90,7 @@ describe("T-15.1.01: Idle after timeout", () => {
 
   it("sends active state when mouse moves after idle", () => {
     renderHook(() =>
-      useIdleDetection({ ideaId: "test-idea", idleTimeout: 5 }),
+      useIdleDetection({ projectId: "test-idea", idleTimeout: 5 }),
     );
 
     // Go idle
@@ -108,14 +108,14 @@ describe("T-15.1.01: Idle after timeout", () => {
     expect(mockSendMessage).toHaveBeenCalledWith({
       type: "presence_update",
       payload: {
-        idea_id: "test-idea",
+        project_id: "test-idea",
         state: "active",
       },
     });
   });
 
   it("uses default idle timeout of 300 seconds", () => {
-    renderHook(() => useIdleDetection({ ideaId: "test-idea" }));
+    renderHook(() => useIdleDetection({ projectId: "test-idea" }));
 
     // Not idle at 299s
     act(() => {
@@ -147,7 +147,7 @@ describe("T-15.1.02: Tab blur triggers idle", () => {
 
   it("sets idle immediately when tab becomes hidden", () => {
     renderHook(() =>
-      useIdleDetection({ ideaId: "test-idea", idleTimeout: 300 }),
+      useIdleDetection({ projectId: "test-idea", idleTimeout: 300 }),
     );
 
     // Simulate tab blur
@@ -163,7 +163,7 @@ describe("T-15.1.02: Tab blur triggers idle", () => {
     expect(mockSendMessage).toHaveBeenCalledWith({
       type: "presence_update",
       payload: {
-        idea_id: "test-idea",
+        project_id: "test-idea",
         state: "idle",
       },
     });
@@ -171,7 +171,7 @@ describe("T-15.1.02: Tab blur triggers idle", () => {
 
   it("clears idle when tab becomes visible again", () => {
     renderHook(() =>
-      useIdleDetection({ ideaId: "test-idea", idleTimeout: 300 }),
+      useIdleDetection({ projectId: "test-idea", idleTimeout: 300 }),
     );
 
     // Tab blur
@@ -199,7 +199,7 @@ describe("T-15.1.02: Tab blur triggers idle", () => {
     expect(mockSendMessage).toHaveBeenCalledWith({
       type: "presence_update",
       payload: {
-        idea_id: "test-idea",
+        project_id: "test-idea",
         state: "active",
       },
     });

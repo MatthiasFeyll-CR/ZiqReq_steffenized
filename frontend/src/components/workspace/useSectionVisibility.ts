@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
 export interface SectionVisibility {
   /** Whether the chat panel is locked (read-only overlay) */
@@ -11,11 +11,11 @@ export interface SectionVisibility {
 }
 
 /**
- * Derives section visibility and locking from idea.state.
+ * Derives section visibility and locking from project.state.
  */
-export function useSectionVisibility(idea: Idea): SectionVisibility {
+export function useSectionVisibility(project: Project): SectionVisibility {
   return useMemo(() => {
-    const { state } = idea;
+    const { state } = project;
 
     switch (state) {
       case "open":
@@ -61,5 +61,5 @@ export function useSectionVisibility(idea: Idea): SectionVisibility {
           lockReason: null,
         };
     }
-  }, [idea]);
+  }, [project]);
 }

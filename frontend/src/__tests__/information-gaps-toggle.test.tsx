@@ -23,12 +23,12 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const IDEA_ID = "11111111-1111-1111-1111-111111111111";
+const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 function baseDraft(overrides?: Partial<BrdDraft>): BrdDraft {
   return {
     id: "22222222-2222-2222-2222-222222222222",
-    idea_id: IDEA_ID,
+    project_id: PROJECT_ID,
     section_title: "Test BRD Title",
     section_short_description: "Short description",
     section_current_workflow: "Current workflow",
@@ -64,7 +64,7 @@ beforeEach(() => {
 function renderReviewTab() {
   return render(
     <QueryClientProvider client={queryClient}>
-      <ReviewTab ideaId={IDEA_ID} />
+      <ReviewTab projectId={PROJECT_ID} />
     </QueryClientProvider>,
   );
 }
@@ -167,7 +167,7 @@ describe("T-4.9.06: PDF download shows warning dialog if /TODO markers present",
     fireEvent.click(screen.getByTestId("download-pdf-button"));
 
     await waitFor(() => {
-      expect(fetchBrdPdf).toHaveBeenCalledWith(IDEA_ID);
+      expect(fetchBrdPdf).toHaveBeenCalledWith(PROJECT_ID);
     });
 
     expect(screen.queryByTestId("todo-warning-dialog")).not.toBeInTheDocument();
@@ -240,7 +240,7 @@ describe("UI-4.07: Gaps toggle visible in editor", () => {
 
     await waitFor(() => {
       expect(patchBrdDraft).toHaveBeenCalledWith(
-        IDEA_ID,
+        PROJECT_ID,
         expect.objectContaining({ allow_information_gaps: true }),
       );
     });

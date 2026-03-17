@@ -37,3 +37,15 @@ Started: 2026-03-16T23:46:08+0100
   - The project_type column has CHECK constraint enforced at DB level with default='software' for existing rows
   - The prd.json mentions "requirements_document_drafts" and "requirements_document_versions" but actual table names are "brd_drafts" and "brd_versions" — the migration correctly uses the actual table names
 ---
+
+## US-002: [Backend] Rename API routes from /api/ideas to /api/projects
+- Status: PASS
+- Attempts: 1
+- Changes: tasks/prd-m18.json (marked passes: true)
+- Tests: ruff clean, tsc clean — no code changes needed
+- Learnings for future iterations:
+  - All API route renames (urls.py, views.py, serializers, WebSocket routing, tests) were already completed as part of US-001's comprehensive rename
+  - The US-001 implementation was thorough enough to cover US-002's scope — all URL patterns use project_id, all paths use /api/projects/, all error messages say "Project not found"
+  - prd.json is a symlink to tasks/prd-m18.json — commit via `git add tasks/prd-m18.json`
+  - Verification grep `grep -r "ideas/\|idea_id" services/gateway/apps/ --include="*.py" --exclude-dir=migrations --exclude-dir=tests` returns zero hits
+---

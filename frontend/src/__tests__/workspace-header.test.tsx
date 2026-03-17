@@ -7,14 +7,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { presenceReducer } from "@/store/presence-slice";
-import type { Idea } from "@/api/ideas";
+import type { Project } from "@/api/projects";
 
-// Mock patchIdea
-vi.mock("@/api/ideas", async () => {
-  const actual = await vi.importActual("@/api/ideas");
+// Mock patchProject
+vi.mock("@/api/projects", async () => {
+  const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
-    patchIdea: vi.fn(),
+    patchProject: vi.fn(),
   };
 });
 
@@ -43,7 +43,7 @@ vi.mock("@/hooks/use-auth", () => ({
   AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));
 
-import { patchIdea } from "@/api/ideas";
+import { patchProject } from "@/api/projects";
 
 // Radix Select uses pointer events; stub for jsdom
 beforeAll(async () => {
@@ -64,7 +64,7 @@ beforeAll(async () => {
   Element.prototype.scrollIntoView = () => {};
 });
 
-const MOCK_IDEA: Idea = {
+const MOCK_PROJECT: Project = {
   id: "11111111-1111-1111-1111-111111111111",
   title: "Test Brainstorm",
   state: "open",
@@ -77,24 +77,24 @@ const MOCK_IDEA: Idea = {
 };
 
 function renderHeader(props: Partial<{
-  idea: Idea;
-  onIdeaUpdate: (idea: Idea) => void;
+  project: Project;
+  onProjectUpdate: (project: Project) => void;
   readOnly: boolean;
 }> = {}) {
-  const onIdeaUpdate = props.onIdeaUpdate ?? vi.fn();
+  const onProjectUpdate = props.onProjectUpdate ?? vi.fn();
   const onStepChange = vi.fn();
   const store = configureStore({ reducer: { presence: presenceReducer } });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return {
-    onIdeaUpdate,
+    onProjectUpdate,
     onStepChange,
     ...render(
       <QueryClientProvider client={qc}>
         <Provider store={store}>
           <MemoryRouter>
             <WorkspaceHeader
-              idea={props.idea ?? MOCK_IDEA}
-              onIdeaUpdate={onIdeaUpdate}
+              project={props.project ?? MOCK_PROJECT}
+              onProjectUpdate={onProjectUpdate}
               readOnly={props.readOnly ?? false}
               activeStep="brainstorm"
               onStepChange={onStepChange}
@@ -109,7 +109,7 @@ function renderHeader(props: Partial<{
 }
 
 beforeEach(() => {
-  vi.mocked(patchIdea).mockReset();
+  vi.mocked(patchProject).mockReset();
 });
 
 describe("T-1.6.01: title editable", () => {
@@ -133,10 +133,10 @@ describe("T-1.6.01: title editable", () => {
   });
 
   it("saves title on Enter key", async () => {
-    const updatedIdea = { ...MOCK_IDEA, title: "New Title" };
-    vi.mocked(patchIdea).mockResolvedValue(updatedIdea);
-    const onIdeaUpdate = vi.fn();
-    renderHeader({ onIdeaUpdate });
+    const updatedIdea = { ...MOCK_PROJECT, title: "New Title" };
+    vi.mocked(patchProject).mockResolvedValue(updatedIdea);
+    const onProjectUpdate = vi.fn();
+    renderHeader({ onProjectUpdate });
 
     fireEvent.click(screen.getByTestId("title-display"));
 
@@ -144,12 +144,12 @@ describe("T-1.6.01: title editable", () => {
     fireEvent.change(input, { target: { value: "New Title" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(onIdeaUpdate).toHaveBeenCalledWith(
+    expect(onProjectUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ title: "New Title" }),
     );
 
     await waitFor(() => {
-      expect(patchIdea).toHaveBeenCalledWith(MOCK_IDEA.id, { title: "New Title" });
+      expect(patchProject).toHaveBeenCalledWith(MOCK_PROJECT.id, { title: "New Title" });
     });
   });
 
@@ -176,10 +176,10 @@ describe("T-1.6.01: title editable", () => {
 
 describe("T-1.6.02: sets title_manually_edited", () => {
   it("sends PATCH with title field which triggers title_manually_edited=true on backend", async () => {
-    const updatedIdea = { ...MOCK_IDEA, title: "Edited Title" };
-    vi.mocked(patchIdea).mockResolvedValue(updatedIdea);
-    const onIdeaUpdate = vi.fn();
-    renderHeader({ onIdeaUpdate });
+    const updatedIdea = { ...MOCK_PROJECT, title: "Edited Title" };
+    vi.mocked(patchProject).mockResolvedValue(updatedIdea);
+    const onProjectUpdate = vi.fn();
+    renderHeader({ onProjectUpdate });
 
     fireEvent.click(screen.getByTestId("title-display"));
     const input = screen.getByTestId("title-input");
@@ -187,30 +187,30 @@ describe("T-1.6.02: sets title_manually_edited", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
-      expect(patchIdea).toHaveBeenCalledWith(MOCK_IDEA.id, { title: "Edited Title" });
+      expect(patchProject).toHaveBeenCalledWith(MOCK_PROJECT.id, { title: "Edited Title" });
     });
 
     await waitFor(() => {
-      expect(onIdeaUpdate).toHaveBeenCalledWith(updatedIdea);
+      expect(onProjectUpdate).toHaveBeenCalledWith(updatedIdea);
     });
   });
 
   it("reverts title on PATCH failure", async () => {
-    vi.mocked(patchIdea).mockRejectedValue(new Error("Server error"));
-    const onIdeaUpdate = vi.fn();
-    renderHeader({ onIdeaUpdate });
+    vi.mocked(patchProject).mockRejectedValue(new Error("Server error"));
+    const onProjectUpdate = vi.fn();
+    renderHeader({ onProjectUpdate });
 
     fireEvent.click(screen.getByTestId("title-display"));
     const input = screen.getByTestId("title-input");
     fireEvent.change(input, { target: { value: "Will Fail" } });
     fireEvent.keyDown(input, { key: "Enter" });
 
-    expect(onIdeaUpdate).toHaveBeenCalledWith(
+    expect(onProjectUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Will Fail" }),
     );
 
     await waitFor(() => {
-      expect(onIdeaUpdate).toHaveBeenCalledWith(
+      expect(onProjectUpdate).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Test Brainstorm" }),
       );
     });
@@ -219,10 +219,10 @@ describe("T-1.6.02: sets title_manually_edited", () => {
 
 describe("T-1.6.03: updates document.title", () => {
   it("title change via optimistic update flows to parent which sets document.title", async () => {
-    const updatedIdea = { ...MOCK_IDEA, title: "Updated Doc Title" };
-    vi.mocked(patchIdea).mockResolvedValue(updatedIdea);
-    const onIdeaUpdate = vi.fn();
-    renderHeader({ onIdeaUpdate });
+    const updatedIdea = { ...MOCK_PROJECT, title: "Updated Doc Title" };
+    vi.mocked(patchProject).mockResolvedValue(updatedIdea);
+    const onProjectUpdate = vi.fn();
+    renderHeader({ onProjectUpdate });
 
     fireEvent.click(screen.getByTestId("title-display"));
     const input = screen.getByTestId("title-input");
@@ -230,7 +230,7 @@ describe("T-1.6.03: updates document.title", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
-      expect(onIdeaUpdate).toHaveBeenCalledWith(updatedIdea);
+      expect(onProjectUpdate).toHaveBeenCalledWith(updatedIdea);
     });
   });
 });

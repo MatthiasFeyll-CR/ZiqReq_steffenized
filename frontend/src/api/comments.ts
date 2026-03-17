@@ -12,9 +12,9 @@ export interface CommentReaction {
   count: number;
 }
 
-export interface IdeaComment {
+export interface ProjectComment {
   id: string;
-  idea_id: string;
+  project_id: string;
   author: CommentAuthor | null;
   parent_id: string | null;
   content: string;
@@ -28,7 +28,7 @@ export interface IdeaComment {
 }
 
 export interface CommentsListResponse {
-  results: IdeaComment[];
+  results: ProjectComment[];
   count: number;
   next: number | null;
   previous: number | null;
@@ -41,7 +41,7 @@ function appendToken(url: string, token?: string | null): string {
 }
 
 export async function fetchComments(
-  ideaId: string,
+  projectId: string,
   params?: { page?: number; page_size?: number; token?: string | null },
 ): Promise<CommentsListResponse> {
   const sp = new URLSearchParams();
@@ -49,7 +49,7 @@ export async function fetchComments(
   if (params?.page_size) sp.set("page_size", String(params.page_size));
   if (params?.token) sp.set("token", params.token);
   const qs = sp.toString();
-  const url = `${env.apiBaseUrl}/ideas/${ideaId}/comments/${qs ? `?${qs}` : ""}`;
+  const url = `${env.apiBaseUrl}/projects/${projectId}/comments/${qs ? `?${qs}` : ""}`;
 
   const res = await authFetch(url);
   if (!res.ok) {
@@ -60,11 +60,11 @@ export async function fetchComments(
 }
 
 export async function createComment(
-  ideaId: string,
+  projectId: string,
   data: { content: string; parent_id?: string | null },
   token?: string | null,
-): Promise<IdeaComment> {
-  const url = appendToken(`${env.apiBaseUrl}/ideas/${ideaId}/comments/`, token);
+): Promise<ProjectComment> {
+  const url = appendToken(`${env.apiBaseUrl}/projects/${projectId}/comments/`, token);
   const res = await authFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -78,12 +78,12 @@ export async function createComment(
 }
 
 export async function updateComment(
-  ideaId: string,
+  projectId: string,
   commentId: string,
   data: { content: string },
   token?: string | null,
-): Promise<IdeaComment> {
-  const url = appendToken(`${env.apiBaseUrl}/ideas/${ideaId}/comments/${commentId}/`, token);
+): Promise<ProjectComment> {
+  const url = appendToken(`${env.apiBaseUrl}/projects/${projectId}/comments/${commentId}/`, token);
   const res = await authFetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -97,11 +97,11 @@ export async function updateComment(
 }
 
 export async function deleteComment(
-  ideaId: string,
+  projectId: string,
   commentId: string,
   token?: string | null,
 ): Promise<void> {
-  const url = appendToken(`${env.apiBaseUrl}/ideas/${ideaId}/comments/${commentId}/`, token);
+  const url = appendToken(`${env.apiBaseUrl}/projects/${projectId}/comments/${commentId}/`, token);
   const res = await authFetch(url, {
     method: "DELETE",
   });
@@ -112,12 +112,12 @@ export async function deleteComment(
 }
 
 export async function addReaction(
-  ideaId: string,
+  projectId: string,
   commentId: string,
   emoji: string,
   token?: string | null,
 ): Promise<void> {
-  const url = appendToken(`${env.apiBaseUrl}/ideas/${ideaId}/comments/${commentId}/react`, token);
+  const url = appendToken(`${env.apiBaseUrl}/projects/${projectId}/comments/${commentId}/react`, token);
   const res = await authFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -130,12 +130,12 @@ export async function addReaction(
 }
 
 export async function removeReaction(
-  ideaId: string,
+  projectId: string,
   commentId: string,
   emoji: string,
   token?: string | null,
 ): Promise<void> {
-  const url = appendToken(`${env.apiBaseUrl}/ideas/${ideaId}/comments/${commentId}/react`, token);
+  const url = appendToken(`${env.apiBaseUrl}/projects/${projectId}/comments/${commentId}/react`, token);
   const res = await authFetch(url, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
@@ -148,10 +148,10 @@ export async function removeReaction(
 }
 
 export async function markCommentsRead(
-  ideaId: string,
+  projectId: string,
   token?: string | null,
 ): Promise<void> {
-  const url = appendToken(`${env.apiBaseUrl}/ideas/${ideaId}/comments/mark-read`, token);
+  const url = appendToken(`${env.apiBaseUrl}/projects/${projectId}/comments/mark-read`, token);
   const res = await authFetch(url, {
     method: "POST",
   });
@@ -162,10 +162,10 @@ export async function markCommentsRead(
 }
 
 export async function fetchUnreadCommentCount(
-  ideaId: string,
+  projectId: string,
   token?: string | null,
 ): Promise<number> {
-  const url = appendToken(`${env.apiBaseUrl}/ideas/${ideaId}/comments/unread-count`, token);
+  const url = appendToken(`${env.apiBaseUrl}/projects/${projectId}/comments/unread-count`, token);
   const res = await authFetch(url);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -182,7 +182,7 @@ export interface IdeaSearchResult {
 
 export async function searchIdeasForReference(query: string): Promise<IdeaSearchResult[]> {
   const res = await authFetch(
-    `${env.apiBaseUrl}/ideas/search-ref?q=${encodeURIComponent(query)}`,
+    `${env.apiBaseUrl}/projects/search-ref?q=${encodeURIComponent(query)}`,
   );
   if (!res.ok) {
     return [];

@@ -3,7 +3,7 @@ import { authFetch } from "@/lib/auth-token";
 
 export interface BrdDraft {
   id: string;
-  idea_id: string;
+  project_id: string;
   section_title: string | null;
   section_short_description: string | null;
   section_current_workflow: string | null;
@@ -21,8 +21,8 @@ export type GenerationMode =
   | "selective_regeneration"
   | "section_regeneration";
 
-export async function fetchBrdDraft(ideaId: string): Promise<BrdDraft> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/`, {
+export async function fetchBrdDraft(projectId: string): Promise<BrdDraft> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -35,14 +35,14 @@ export async function fetchBrdDraft(ideaId: string): Promise<BrdDraft> {
 }
 
 export async function triggerBrdGeneration(
-  ideaId: string,
+  projectId: string,
   mode: GenerationMode,
   sectionName?: string,
 ): Promise<void> {
   const body: Record<string, string> = { mode };
   if (sectionName) body.section_name = sectionName;
 
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/generate`, {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/generate`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -57,10 +57,10 @@ export async function triggerBrdGeneration(
 }
 
 export async function patchBrdDraft(
-  ideaId: string,
+  projectId: string,
   data: Partial<Pick<BrdDraft, "section_title" | "section_short_description" | "section_current_workflow" | "section_affected_department" | "section_core_capabilities" | "section_success_criteria" | "section_locks" | "allow_information_gaps">>,
 ): Promise<BrdDraft> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/`, {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/`, {
     method: "PATCH",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
@@ -75,8 +75,8 @@ export async function patchBrdDraft(
   return res.json();
 }
 
-export async function fetchBrdPreviewPdf(ideaId: string): Promise<Blob> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/preview-pdf`, {
+export async function fetchBrdPreviewPdf(projectId: string): Promise<Blob> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/preview-pdf`, {
     credentials: "include",
   });
   if (!res.ok) {
@@ -88,8 +88,8 @@ export async function fetchBrdPreviewPdf(ideaId: string): Promise<Blob> {
   return res.blob();
 }
 
-export async function fetchBrdPdf(ideaId: string): Promise<Blob> {
-  const res = await authFetch(`${env.apiBaseUrl}/ideas/${ideaId}/brd/versions/latest/pdf`, {
+export async function fetchBrdPdf(projectId: string): Promise<Blob> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/versions/latest/pdf`, {
     credentials: "include",
   });
   if (!res.ok) {

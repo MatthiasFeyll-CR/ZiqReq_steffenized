@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchInvitations } from "@/api/ideas";
+import { fetchInvitations } from "@/api/projects";
 
 export function useInvitations() {
   return useQuery({

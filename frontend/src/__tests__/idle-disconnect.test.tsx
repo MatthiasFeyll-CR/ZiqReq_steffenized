@@ -68,7 +68,7 @@ describe("T-15.2.01: Disconnect after prolonged idle", () => {
 
   it("chat inputs are locked when offline (isOnline=false)", () => {
     // When connectionState is "offline", selectIsOnline returns false.
-    // IdeaWorkspaceContent uses: effectiveChatLocked = chatLocked || !isOnline
+    // ProjectWorkspaceContent uses: effectiveChatLocked = chatLocked || !isOnline
     // and disabled={!isOnline} for WorkspaceLayout.
     // This test verifies the store state is correct.
     const store = createStore({

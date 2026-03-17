@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { patchIdea, deleteIdea, type Idea } from "@/api/ideas";
+import { patchProject, deleteProject, type Project } from "@/api/projects";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
 import { PresenceIndicators } from "./PresenceIndicators";
 import { ProcessStepper, type ProcessStep } from "./ProcessStepper";
@@ -29,8 +29,8 @@ const STATE_LABELS: Record<string, string> = {
 };
 
 interface WorkspaceHeaderProps {
-  idea: Idea;
-  onIdeaUpdate: (idea: Idea) => void;
+  project: Project;
+  onProjectUpdate: (project: Project) => void;
   readOnly?: boolean;
   activeStep: ProcessStep;
   onStepChange: (step: ProcessStep) => void;
@@ -42,8 +42,8 @@ interface WorkspaceHeaderProps {
 }
 
 export function WorkspaceHeader({
-  idea,
-  onIdeaUpdate,
+  project,
+  onProjectUpdate,
   readOnly = false,
   activeStep,
   onStepChange,
@@ -59,7 +59,7 @@ export function WorkspaceHeader({
   const { user } = useAuth();
   const prefersReducedMotion = useReducedMotion();
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(idea.title);
+  const [editValue, setEditValue] = useState(project.title);
   const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
   const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
   const [unreadComments, setUnreadComments] = useState(0);
@@ -67,14 +67,14 @@ export function WorkspaceHeader({
 
   // Fetch unread comment count
   useEffect(() => {
-    fetchUnreadCommentCount(idea.id, shareToken).then(setUnreadComments).catch(() => {});
-  }, [idea.id, shareToken]);
+    fetchUnreadCommentCount(project.id, shareToken).then(setUnreadComments).catch(() => {});
+  }, [project.id, shareToken]);
 
   // Listen for new comments via WebSocket to update badge
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail.idea_id === idea.id && !detail.is_system_event) {
+      if (detail.project_id === project.id && !detail.is_system_event) {
         if (!commentsPanelOpen && detail.author?.id !== user?.id) {
           setUnreadComments((prev) => prev + 1);
         }
@@ -82,7 +82,7 @@ export function WorkspaceHeader({
     };
     window.addEventListener("ws:comment_created", handler);
     return () => window.removeEventListener("ws:comment_created", handler);
-  }, [idea.id, commentsPanelOpen, user?.id]);
+  }, [project.id, commentsPanelOpen, user?.id]);
 
   // Reset unread when panel opens
   useEffect(() => {
@@ -93,26 +93,26 @@ export function WorkspaceHeader({
 
   const handleTitleClick = useCallback(() => {
     if (readOnly) return;
-    setEditValue(idea.title);
+    setEditValue(project.title);
     setIsEditing(true);
     setTimeout(() => inputRef.current?.select(), 0);
-  }, [idea.title, readOnly]);
+  }, [project.title, readOnly]);
 
   const handleTitleSave = useCallback(async () => {
     const trimmed = editValue.trim();
     setIsEditing(false);
-    if (!trimmed || trimmed === idea.title) return;
+    if (!trimmed || trimmed === project.title) return;
 
-    const previousTitle = idea.title;
-    onIdeaUpdate({ ...idea, title: trimmed });
+    const previousTitle = project.title;
+    onProjectUpdate({ ...project, title: trimmed });
 
     try {
-      const updated = await patchIdea(idea.id, { title: trimmed });
-      onIdeaUpdate(updated);
+      const updated = await patchProject(project.id, { title: trimmed });
+      onProjectUpdate(updated);
     } catch {
-      onIdeaUpdate({ ...idea, title: previousTitle });
+      onProjectUpdate({ ...project, title: previousTitle });
     }
-  }, [editValue, idea, onIdeaUpdate]);
+  }, [editValue, project, onProjectUpdate]);
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -121,20 +121,20 @@ export function WorkspaceHeader({
         handleTitleSave();
       } else if (e.key === "Escape") {
         setIsEditing(false);
-        setEditValue(idea.title);
+        setEditValue(project.title);
       }
     },
-    [handleTitleSave, idea.title],
+    [handleTitleSave, project.title],
   );
 
   const handleDelete = useCallback(async () => {
     try {
-      await deleteIdea(idea.id);
-      onIdeaUpdate({ ...idea, state: "deleted" });
+      await deleteProject(project.id);
+      onProjectUpdate({ ...project, state: "deleted" });
     } catch {
       // Error handled silently — user stays on page
     }
-  }, [idea, onIdeaUpdate]);
+  }, [project, onProjectUpdate]);
 
   return (
     <div
@@ -174,14 +174,14 @@ export function WorkspaceHeader({
           >
             <AnimatePresence>
               <motion.span
-                key={idea.title}
+                key={project.title}
                 initial={prefersReducedMotion ? false : { opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 4 }}
                 transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
                 data-testid="title-animated"
               >
-                {idea.title || t("landing.untitled", "Untitled")}
+                {project.title || t("landing.untitled", "Untitled")}
               </motion.span>
             </AnimatePresence>
           </button>
@@ -189,10 +189,10 @@ export function WorkspaceHeader({
 
         {/* State badge */}
         <Badge
-          variant={idea.state as "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted"}
+          variant={project.state as "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted"}
           className="shrink-0"
         >
-          {STATE_LABELS[idea.state] || idea.state}
+          {STATE_LABELS[project.state] || project.state}
         </Badge>
 
         <div className="flex-1" />
@@ -228,10 +228,10 @@ export function WorkspaceHeader({
         </Button>
 
         {/* Presence indicators */}
-        <PresenceIndicators ideaId={idea.id} />
+        <PresenceIndicators projectId={project.id} />
 
         {/* Options dropdown — hidden when deleted */}
-        {idea.state !== "deleted" && (
+        {project.state !== "deleted" && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -250,7 +250,7 @@ export function WorkspaceHeader({
                 data-testid="delete-idea-option"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                {t("workspace.deleteIdea", "Delete Idea")}
+                {t("workspace.deleteProject", "Delete Idea")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -270,17 +270,17 @@ export function WorkspaceHeader({
       </div>
 
       <CollaboratorModal
-        ideaId={idea.id}
-        ownerId={idea.owner_id}
+        projectId={project.id}
+        ownerId={project.owner_id}
         open={collaboratorModalOpen}
         onOpenChange={setCollaboratorModalOpen}
       />
 
       <CommentsPanel
-        ideaId={idea.id}
+        projectId={project.id}
         open={commentsPanelOpen}
         onOpenChange={setCommentsPanelOpen}
-        disabled={idea.state === "deleted"}
+        disabled={project.state === "deleted"}
         currentUserId={user?.id}
         isOwnerOrCollaborator={!readOnly}
         shareToken={shareToken}

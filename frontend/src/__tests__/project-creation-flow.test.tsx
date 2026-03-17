@@ -23,14 +23,14 @@ vi.mock("react-router-dom", async () => {
 });
 
 // Mock list hooks so LandingPage renders without real fetches
-vi.mock("@/hooks/use-my-ideas", () => ({
-  useMyIdeas: vi.fn(() => ({
+vi.mock("@/hooks/use-my-projects", () => ({
+  useMyProjects: vi.fn(() => ({
     data: { results: [], count: 0, next: null, previous: null },
     isLoading: false,
   })),
 }));
-vi.mock("@/hooks/use-collaborating-ideas", () => ({
-  useCollaboratingIdeas: vi.fn(() => ({
+vi.mock("@/hooks/use-collaborating-projects", () => ({
+  useCollaboratingProjects: vi.fn(() => ({
     data: { results: [], count: 0, next: null, previous: null },
     isLoading: false,
   })),
@@ -47,11 +47,11 @@ vi.mock("@/hooks/use-trash", () => ({
     isLoading: false,
   })),
 }));
-vi.mock("@/hooks/use-delete-idea", () => ({
-  useDeleteIdea: vi.fn(() => ({ mutate: vi.fn() })),
+vi.mock("@/hooks/use-delete-project", () => ({
+  useDeleteProject: vi.fn(() => ({ mutate: vi.fn() })),
 }));
-vi.mock("@/hooks/use-restore-idea", () => ({
-  useRestoreIdea: vi.fn(() => ({ mutate: vi.fn() })),
+vi.mock("@/hooks/use-restore-project", () => ({
+  useRestoreProject: vi.fn(() => ({ mutate: vi.fn() })),
 }));
 
 vi.mock("react-toastify", () => ({
@@ -151,7 +151,7 @@ describe("T-9.2.01: Create idea from landing page", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("submits and redirects to /idea/:uuid on success", async () => {
+  it("submits and redirects to /project/:uuid on success", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () =>
@@ -175,11 +175,11 @@ describe("T-9.2.01: Create idea from landing page", () => {
     await user.click(screen.getByText("Begin"));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/idea/new-idea-uuid");
+      expect(mockNavigate).toHaveBeenCalledWith("/project/new-idea-uuid");
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/ideas/"),
+      expect.stringContaining("/projects/"),
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ first_message: "My idea" }),
