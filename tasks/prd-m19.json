@@ -17,7 +17,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.1.01", "T-3.1.02", "T-3.1.03"],
       "notes": "Architecture: docs/02-architecture/data-model.md § projects — project_type already exists (M18)\nDesign: docs/03-design/component-specs.md § Modal / Dialog\nTesting: docs/04-test-architecture/test-matrix.md § [T-3.1.01, T-3.1.02, T-3.1.03]\nFiles: frontend/src/components/landing/HeroSection.tsx, NewProjectModal.tsx (new), use-create-project.ts, services/gateway/apps/projects/views.py, serializers.py\nGotchas: project_type field exists — no migration needed. first_message optional for backwards compat.",
       "context": {
