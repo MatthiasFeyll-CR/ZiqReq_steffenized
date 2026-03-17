@@ -1,0 +1,39 @@
+# Ralph Progress Log — M20 (ai-rework)
+Started: 2026-03-17T03:40:30+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: New Facilitator system prompt with update_requirements_structure tool
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/agents/facilitator/prompt.py, services/ai/agents/facilitator/plugins.py, services/ai/agents/facilitator/agent.py, services/ai/processing/context_assembler.py, services/ai/tests/test_facilitator.py
+- Tests: 689 Python tests passed, 365 Node tests passed (all green)
+- Learnings for future iterations:
+  - The system prompt uses Python str.format() with {variable} syntax — new template variables must be added to both the template string and the .format() call
+  - FacilitatorPlugin stores mutations in self.requirements_mutations for pipeline Step 4 to process (US-003)
+  - context_assembler already had project_type extraction and bucket combining logic — only needed to add requirements_structure parsing
+  - The update_requirements_structure tool receives mutations as a JSON string (SK serialization), so it must json.loads() the input
+  - _build_prompt_context in agent.py maps input_data keys to prompt template variable names — must add new mappings when adding new prompt variables
+  - No board references existed in the current code — no removal was needed
+  - The context_assembler reads requirements_state from project_context_response.get("requirements_state", {}) — pipeline (US-003) must provide this key
+---
