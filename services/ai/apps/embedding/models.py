@@ -12,6 +12,7 @@ class ContextChunk(models.Model):
     token_count = models.IntegerField()
     embedding = VectorField(dimensions=1536)
     source_section = models.CharField(max_length=100, null=True, blank=True)
+    context_type = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -26,4 +27,5 @@ class ContextChunk(models.Model):
                 ef_construction=64,
             ),
             models.Index(fields=["bucket_id"], name="idx_chunks_bucket"),
+            models.Index(fields=["context_type"], name="idx_chunks_context_type"),
         ]

@@ -1,6 +1,7 @@
-"""Tests for Admin AI Context endpoints — US-001, US-005.
+"""Tests for Admin AI Context endpoints — US-001, US-005, US-004.
 
-Test IDs: T-11.2.01, T-11.2.02, API-ADMIN.03, API-ADMIN.04, API-ADMIN.05, API-ADMIN.06
+Test IDs: T-11.2.01, T-11.2.02, API-ADMIN.03, API-ADMIN.04, API-ADMIN.05, API-ADMIN.06,
+           T-3.4.01, T-3.4.02
 """
 
 import json
@@ -238,3 +239,126 @@ class TestCompanyContextReindexing(TestCase):
         response = self.client.get("/api/admin/ai-context/company")
         assert response.status_code == 200
         mock_get_client.assert_not_called()
+
+
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+class TestFacilitatorContextType(TestCase):
+    """US-004: Facilitator context endpoints support ?type= query param.
+
+    Test IDs: T-3.4.01, T-3.4.02
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = _create_user(ADMIN_ID, "admin@test.local", "Admin User", ["user", "admin"])
+        self._login_as(self.admin)
+
+    def _login_as(self, user: User):
+        self.client.post("/api/auth/dev-login", {"user_id": str(user.id)}, format="json")
+
+    def test_get_facilitator_global_type(self):
+        """GET with ?type=global returns bucket with context_type=global."""
+        response = self.client.get("/api/admin/ai-context/facilitator?type=global")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["context_type"] == "global"
+
+    def test_get_facilitator_software_type(self):
+        """GET with ?type=software returns bucket with context_type=software."""
+        response = self.client.get("/api/admin/ai-context/facilitator?type=software")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["context_type"] == "software"
+
+    def test_get_facilitator_non_software_type(self):
+        """GET with ?type=non_software returns bucket with context_type=non_software."""
+        response = self.client.get("/api/admin/ai-context/facilitator?type=non_software")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["context_type"] == "non_software"
+
+    def test_get_facilitator_default_is_global(self):
+        """GET without ?type defaults to global."""
+        response = self.client.get("/api/admin/ai-context/facilitator")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["context_type"] == "global"
+
+    def test_patch_facilitator_software_type(self):
+        """PATCH with ?type=software updates the software bucket."""
+        response = self.client.patch(
+            "/api/admin/ai-context/facilitator?type=software",
+            {"content": "Software-specific guidance"},
+            format="json",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["content"] == "Software-specific guidance"
+        assert data["context_type"] == "software"
+
+        # Verify global bucket is NOT changed
+        global_resp = self.client.get("/api/admin/ai-context/facilitator?type=global")
+        assert global_resp.json()["content"] != "Software-specific guidance"
+
+    def test_three_independent_facilitator_buckets(self):
+        """T-3.4.02: Three independent buckets can be updated separately."""
+        for ct in ("global", "software", "non_software"):
+            self.client.patch(
+                f"/api/admin/ai-context/facilitator?type={ct}",
+                {"content": f"Content for {ct}"},
+                format="json",
+            )
+
+        for ct in ("global", "software", "non_software"):
+            resp = self.client.get(f"/api/admin/ai-context/facilitator?type={ct}")
+            assert resp.json()["content"] == f"Content for {ct}"
+
+    def test_unique_constraint_prevents_duplicate(self):
+        """T-3.4.01: UNIQUE constraint on context_type prevents duplicates."""
+        from django.db import IntegrityError
+
+        from apps.admin_ai_context.models import FacilitatorContextBucket
+
+        # Ensure global bucket exists
+        self.client.get("/api/admin/ai-context/facilitator?type=global")
+
+        # Try to create a duplicate — should raise IntegrityError
+        try:
+            FacilitatorContextBucket.objects.create(context_type="global", content="dup")
+            assert False, "Expected IntegrityError"
+        except IntegrityError:
+            pass  # Expected
+
+
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+class TestCompanyContextType(TestCase):
+    """US-004: Company context endpoints support ?type= query param."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = _create_user(ADMIN_ID, "admin@test.local", "Admin User", ["user", "admin"])
+        self._login_as(self.admin)
+
+    def _login_as(self, user: User):
+        self.client.post("/api/auth/dev-login", {"user_id": str(user.id)}, format="json")
+
+    def test_get_company_software_type(self):
+        """GET with ?type=software returns software company bucket."""
+        response = self.client.get("/api/admin/ai-context/company?type=software")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["context_type"] == "software"
+
+    @patch("apps.admin_ai_context.views._get_ai_client")
+    def test_patch_company_non_software_type(self, mock_get_client):
+        """PATCH with ?type=non_software updates the non_software bucket."""
+        mock_get_client.return_value = MagicMock()
+        response = self.client.patch(
+            "/api/admin/ai-context/company?type=non_software",
+            {"sections": {"domain": "construction"}, "free_text": "site info"},
+            format="json",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["context_type"] == "non_software"
+        assert data["sections"] == {"domain": "construction"}

@@ -104,7 +104,7 @@ function renderLandingPage() {
   );
 }
 
-describe("T-9.2.01: Create idea from landing page", () => {
+describe("Project creation flow (M19 — type selection)", () => {
   beforeEach(() => {
     mockNavigate.mockClear();
   });
@@ -113,56 +113,35 @@ describe("T-9.2.01: Create idea from landing page", () => {
     vi.restoreAllMocks();
   });
 
-  it("captures first message text in hero input", async () => {
+  it("shows New Project button in hero section", () => {
+    renderLandingPage();
+    expect(screen.getByTestId("new-project-button")).toBeInTheDocument();
+  });
+
+  it("opens modal when New Project button is clicked", async () => {
     renderLandingPage();
     const user = userEvent.setup();
 
-    const textarea = screen.getByPlaceholderText("Describe your project...");
-    await user.type(textarea, "My brilliant idea");
-    expect(textarea).toHaveValue("My brilliant idea");
+    await user.click(screen.getByTestId("new-project-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("new-project-modal")).toBeInTheDocument();
+    });
   });
 
-  it("shows validation error when submitting empty input", async () => {
-    renderLandingPage();
-    const user = userEvent.setup();
-
-    const submitBtn = screen.getByText("Begin");
-    await user.click(submitBtn);
-
-    expect(
-      screen.getByText("Please describe your project before submitting."),
-    ).toBeInTheDocument();
-  });
-
-  it("clears validation error when user starts typing", async () => {
-    renderLandingPage();
-    const user = userEvent.setup();
-
-    await user.click(screen.getByText("Begin"));
-    expect(
-      screen.getByText("Please describe your project before submitting."),
-    ).toBeInTheDocument();
-
-    const textarea = screen.getByPlaceholderText("Describe your project...");
-    await user.type(textarea, "a");
-
-    expect(
-      screen.queryByText("Please describe your project before submitting."),
-    ).not.toBeInTheDocument();
-  });
-
-  it("submits and redirects to /project/:uuid on success", async () => {
+  it("submits with project_type and redirects to /project/:id", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () =>
         Promise.resolve({
-          id: "new-idea-uuid",
+          id: "new-project-uuid",
           title: "",
+          project_type: "software",
           state: "open",
           visibility: "private",
           agent_mode: "interactive",
           owner: null,
-          created_at: "2024-01-01T00:00:00Z",
+          created_at: "2026-03-17T00:00:00Z",
         }),
     });
     vi.stubGlobal("fetch", mockFetch);
@@ -170,73 +149,27 @@ describe("T-9.2.01: Create idea from landing page", () => {
     renderLandingPage();
     const user = userEvent.setup();
 
-    const textarea = screen.getByPlaceholderText("Describe your project...");
-    await user.type(textarea, "My idea");
-    await user.click(screen.getByText("Begin"));
+    await user.click(screen.getByTestId("new-project-button"));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/project/new-idea-uuid");
+      expect(screen.getByTestId("new-project-modal")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId("project-type-software"));
+    await user.click(screen.getByTestId("create-project-button"));
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/project/new-project-uuid");
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/projects/"),
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ first_message: "My idea" }),
+        body: JSON.stringify({ project_type: "software" }),
       }),
     );
-  });
 
-  it("shows error toast with retry button on API failure", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-      json: () => Promise.resolve({ message: "Internal server error" }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
-    renderLandingPage();
-    const user = userEvent.setup();
-
-    const textarea = screen.getByPlaceholderText("Describe your project...");
-    await user.type(textarea, "My idea");
-    await user.click(screen.getByText("Begin"));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText("Failed to create project. Please try again."),
-      ).toBeInTheDocument();
-    });
-
-    // Retry button is present
-    expect(screen.getByText("Retry")).toBeInTheDocument();
-  });
-
-  it("disables submit button during API call", async () => {
-    let resolveFetch: (value: unknown) => void;
-    const fetchPromise = new Promise((resolve) => {
-      resolveFetch = resolve;
-    });
-    const mockFetch = vi.fn().mockReturnValue(fetchPromise);
-    vi.stubGlobal("fetch", mockFetch);
-
-    renderLandingPage();
-    const user = userEvent.setup();
-
-    const textarea = screen.getByPlaceholderText("Describe your project...");
-    await user.type(textarea, "My idea");
-    await user.click(screen.getByText("Begin"));
-
-    await waitFor(() => {
-      const submitBtn = screen.getByText("Begin").closest("button");
-      expect(submitBtn).toBeDisabled();
-    });
-
-    // Resolve the fetch to cleanup
-    resolveFetch!({
-      ok: true,
-      json: () =>
-        Promise.resolve({ id: "test-id", title: "", state: "open" }),
-    });
+    vi.unstubAllGlobals();
   });
 });

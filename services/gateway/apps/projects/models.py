@@ -96,6 +96,54 @@ class ChatContextSummary(models.Model):
         db_table = "chat_context_summaries"
 
 
+class RequirementsDocumentDraft(models.Model):
+    """Unmanaged mirror — reads Core service's requirements_document_drafts table."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.OneToOneField(
+        Project, on_delete=models.CASCADE, related_name="requirements_draft"
+    )
+    title = models.TextField(null=True, blank=True)
+    short_description = models.TextField(null=True, blank=True)
+    structure = models.JSONField(default=list)
+    item_locks = models.JSONField(default=dict)
+    allow_information_gaps = models.BooleanField(default=False)
+    readiness_evaluation = models.JSONField(default=dict)
+    last_evaluated_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "requirements_document_drafts"
+
+    def __str__(self) -> str:
+        return f"RequirementsDocumentDraft for project {self.project_id}"
+
+
+class RequirementsDocumentVersion(models.Model):
+    """Unmanaged mirror — reads Core service's requirements_document_versions table."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name="requirements_versions"
+    )
+    version_number = models.IntegerField()
+    title = models.TextField(null=True, blank=True)
+    short_description = models.TextField(null=True, blank=True)
+    structure = models.JSONField(default=list)
+    pdf_file_path = models.CharField(max_length=500, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = False
+        db_table = "requirements_document_versions"
+        unique_together = [("project", "version_number")]
+
+    def __str__(self) -> str:
+        return f"RequirementsDocumentVersion {self.version_number} for project {self.project_id}"
+
+
 class UserReaction(models.Model):
     REACTION_TYPE_CHOICES = [
         ("thumbs_up", "Thumbs Up"),

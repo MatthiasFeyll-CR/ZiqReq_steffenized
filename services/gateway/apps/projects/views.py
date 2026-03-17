@@ -108,27 +108,32 @@ def _create_project(request: Request) -> Response:
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    first_message = serializer.validated_data["first_message"]
+    project_type = serializer.validated_data["project_type"]
+    first_message = serializer.validated_data.get("first_message")
 
-    project = Project.objects.create(owner_id=user.id)
-
-    message = ChatMessage.objects.create(
-        project_id=project.id,
-        sender_type="user",
-        sender_id=user.id,
-        content=first_message,
+    project = Project.objects.create(
+        owner_id=user.id,
+        project_type=project_type,
     )
 
-    # Trigger AI processing for the first message
-    try:
-        from apps.chat.views import _trigger_ai_processing
-
-        _trigger_ai_processing(str(project.id), str(message.id))
-    except Exception:
-        logger.exception(
-            "AI processing trigger failed for first message project=%s message=%s",
-            project.id, message.id,
+    if first_message:
+        message = ChatMessage.objects.create(
+            project_id=project.id,
+            sender_type="user",
+            sender_id=user.id,
+            content=first_message,
         )
+
+        # Trigger AI processing for the first message
+        try:
+            from apps.chat.views import _trigger_ai_processing
+
+            _trigger_ai_processing(str(project.id), str(message.id))
+        except Exception:
+            logger.exception(
+                "AI processing trigger failed for first message project=%s message=%s",
+                project.id, message.id,
+            )
 
     user_map = {user.id: user}
     detail_serializer = ProjectDetailSerializer(project, context={"user_map": user_map})

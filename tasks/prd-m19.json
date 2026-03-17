@@ -1,133 +1,136 @@
 {
   "project": "ZiqReq",
   "branchName": "ralph/m19-structured-requirements",
-  "description": "Add project type distinction (Software vs Non-Software), replace BRD with hierarchical requirements documents, build structured requirements panel UI, and add per-type admin context buckets.",
+  "description": "Bugfix cycle 1 for Milestone 19 \u2014 Structured Requirements. Fixes 3 defects found in QA review: 2 broken pre-existing tests (project_type now required) and 1 broken context agent test (new project_type parameter).",
   "userStories": [
     {
-      "id": "US-001",
-      "title": "Project type selection at creation",
-      "description": "As a user, I want to select a project type (Software or Non-Software) when creating a new project so that the system structures my requirements appropriately",
+      "id": "BF-001",
+      "title": "Fix: Pre-existing tests broken by required project_type field",
+      "description": "Fix defect DEF-001 from QA report qa-m19-structured-requirements.md. Two pre-existing tests send POST /api/projects/ without the now-required project_type field.",
       "acceptanceCriteria": [
-        "HeroSection shows heading, subtext, and 'New Project' button (no textarea)",
-        "NewProjectModal shows two selectable cards: Software and Non-Software",
-        "Create button disabled until type selected",
-        "POST /api/projects/ includes project_type field (required)",
-        "createProject endpoint no longer requires first_message",
-        "Navigates to /project/:id after creation",
+        "test_new_project_defaults_to_private passes (sends project_type in POST payload)",
+        "test_create_project_with_first_message passes (sends project_type in POST payload)",
+        "All other existing tests still pass",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "testIds": ["T-3.1.01", "T-3.1.02", "T-3.1.03"],
-      "notes": "Architecture: docs/02-architecture/data-model.md § projects — project_type already exists (M18)\nDesign: docs/03-design/component-specs.md § Modal / Dialog\nTesting: docs/04-test-architecture/test-matrix.md § [T-3.1.01, T-3.1.02, T-3.1.03]\nFiles: frontend/src/components/landing/HeroSection.tsx, NewProjectModal.tsx (new), use-create-project.ts, services/gateway/apps/projects/views.py, serializers.py\nGotchas: project_type field exists — no migration needed. first_message optional for backwards compat.",
-      "context": {
-        "data_model": ["projects: project_type varchar(20) CHECK, default='software'"],
-        "api_endpoints": ["POST /api/projects/ — {project_type} → 201 {id, project_type, ...}"],
-        "components": ["NewProjectModal — two cards, disabled create button", "HeroSection — button only"],
-        "test_cases": ["T-3.1.01 | Unit | Modal shows two cards", "T-3.1.03 | Integration | API receives project_type"]
+      "passes": true,
+      "notes": "Defect: DEF-001. Files: services/gateway/apps/collaboration/tests/test_visibility.py:40-49, services/gateway/apps/projects/tests/test_views.py:49-67. Expected: Tests pass. Actual: Tests fail with 400 because project_type is missing from POST payload. Suggested fix: In test_visibility.py line 42-43, change payload from {\"first_message\": \"Hello world\"} to {\"project_type\": \"software\"}. In test_views.py line 52-53, change payload from {\"first_message\": \"My project\"} to {\"first_message\": \"My project\", \"project_type\": \"software\"}.",
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n\u2500\u2500 PREVIOUS CYCLE ANALYSIS \u2500\u2500\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=666, failed=3, errors=0)\n  Evidence: AssertionError\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-17T03:16:13+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "AssertionError",
+            "test_results": {
+              "passed": 666,
+              "failed": 3,
+              "errors": 0,
+              "total": 669
+            },
+            "error_patterns": [
+              {
+                "exception_class": "AssertionError",
+                "message": "expected call not found.",
+                "count": 1,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 19 \u2014 Structured Requirements\n**Date:** 2026-03-17\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m19.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed M19 (4 user stories: project type selection, structured requirements data model, requirements panel UI, admin context buckets). All stories marked as PASS by Ralph, but 3 pre-existing tests were broken by M19 changes and never fixed. 3 new ESLint errors introduced in a"
+          }
+        ]
       }
     },
     {
-      "id": "US-002",
-      "title": "Structured requirements data model",
-      "description": "As a developer, I want hierarchical JSON requirements models supporting Software (Epics/Stories) and Non-Software (Milestones/Packages) structures",
+      "id": "BF-002",
+      "title": "Fix: Context agent test assertion missing project_type parameter",
+      "description": "Fix defect DEF-002 from QA report qa-m19-structured-requirements.md. The context agent test asserts retrieve() was called without project_type, but the code now passes project_type=None.",
       "acceptanceCriteria": [
-        "RequirementsDocumentDraft model created (id, project_id UNIQUE, title, short_description, structure JSONB, item_locks JSONB, allow_information_gaps, readiness_evaluation JSONB)",
-        "RequirementsDocumentVersion model created (id, project_id, version_number, title, short_description, structure JSONB, pdf_file_path, UNIQUE(project_id, version_number))",
-        "Migration creates tables, migrates brd_drafts/brd_versions, drops old tables",
-        "Structure validation enforces correct schema per project_type",
-        "API endpoints: GET/PATCH /requirements/, POST/PATCH/DELETE items and children, POST reorder, POST generate",
-        "WebSocket events: requirements_updated, requirements_generating, requirements_ready",
-        "gRPC RPCs: GetRequirementsState, UpdateRequirementsStructure",
+        "test_chunks_passed_to_sk_and_ids_returned passes",
+        "All other existing tests still pass",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "testIds": ["T-3.2.01", "T-3.2.02", "T-3.2.03", "API-3.01", "API-3.02"],
-      "notes": "Architecture: docs/02-architecture/data-model.md § requirements_document_drafts, requirements_document_versions\nArchitecture: docs/02-architecture/api-design.md § Requirements Management\nTesting: docs/04-test-architecture/test-matrix.md § [T-3.2.01, T-3.2.02, T-3.2.03, API-3.01, API-3.02]\nFiles: services/core/apps/projects/models.py, migrations/0005_requirements_documents.py (new), services/gateway/apps/projects/serializers.py, views.py, websocket/consumers.py, proto/core.proto, grpc_clients/\nGotchas: Migration maps old BRD 6-section model to new structure. Structure JSONB validated against project_type. WebSocket group project_{id} exists.",
-      "context": {
-        "data_model": [
-          "requirements_document_drafts: id, project_id UNIQUE, structure jsonb (epics/milestones), item_locks jsonb",
-          "requirements_document_versions: id, project_id, version_number, structure jsonb, UNIQUE(project_id, version_number)"
-        ],
-        "api_endpoints": [
-          "GET /api/projects/:id/requirements/ — → {structure, item_locks, readiness_evaluation}",
-          "POST /api/projects/:id/requirements/items — {type: epic|milestone} → 201",
-          "POST /api/projects/:id/requirements/reorder — {item_ids} → 200"
-        ],
-        "test_cases": [
-          "T-3.2.01 | Unit | Software structure validation passes",
-          "API-3.01 | Integration | Add epic broadcasts ws:requirements_updated"
+      "passes": true,
+      "notes": "Defect: DEF-002. File: services/ai/tests/test_context_agent.py:159-161. Expected: Test passes. Actual: AssertionError because assert_called_once_with expects retrieve(query_embedding=...) but actual call is retrieve(query_embedding=..., project_type=None). Suggested fix: Change the assertion at line 159-161 to include project_type=None in the expected call.",
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n\u2500\u2500 PREVIOUS CYCLE ANALYSIS \u2500\u2500\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=666, failed=3, errors=0)\n  Evidence: AssertionError\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-17T03:16:13+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "AssertionError",
+            "test_results": {
+              "passed": 666,
+              "failed": 3,
+              "errors": 0,
+              "total": 669
+            },
+            "error_patterns": [
+              {
+                "exception_class": "AssertionError",
+                "message": "expected call not found.",
+                "count": 1,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 19 \u2014 Structured Requirements\n**Date:** 2026-03-17\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m19.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed M19 (4 user stories: project type selection, structured requirements data model, requirements panel UI, admin context buckets). All stories marked as PASS by Ralph, but 3 pre-existing tests were broken by M19 changes and never fixed. 3 new ESLint errors introduced in a"
+          }
         ]
       }
     },
     {
-      "id": "US-003",
-      "title": "Structured requirements panel UI",
-      "description": "As a user, I want a visual panel showing hierarchical requirements (Epics/Stories or Milestones/Packages) alongside chat",
+      "id": "BF-003",
+      "title": "Fix: Unused imports in ai-context-tab test",
+      "description": "Fix defect DEF-003 from QA report qa-m19-structured-requirements.md. Three unused imports cause ESLint errors.",
       "acceptanceCriteria": [
-        "RequirementsPanel shows title, description, contributors, items list",
-        "EpicCard/MilestoneCard: collapsible accordion, inline edit, delete, drag handle",
-        "UserStoryCard/WorkPackageCard: compact card, criteria/deliverables, drag handle",
-        "Drag-and-drop using @dnd-kit (stories move between epics, packages between milestones)",
-        "WebSocket real-time sync on requirements_updated event",
-        "WorkspaceLayout: 40/60 split (chat/requirements) with draggable divider",
-        "Optimistic updates with server reconciliation",
-        "Last-write-wins conflict resolution with toast",
+        "No new ESLint errors in frontend/src/__tests__/ai-context-tab.test.tsx",
+        "All existing tests still pass",
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "testIds": ["T-3.3.01", "T-3.3.02", "T-3.3.03", "E2E-3.01"],
-      "notes": "Design: docs/03-design/component-specs.md § Requirements Panel Components\nDesign: docs/03-design/page-layouts.md § Project Workspace — 40/60 split\nArchitecture: docs/02-architecture/api-design.md § WebSocket Events\nTesting: docs/04-test-architecture/test-matrix.md § [T-3.3.01, T-3.3.02, T-3.3.03, E2E-3.01]\nFiles: frontend/src/components/workspace/RequirementsPanel.tsx (new), EpicCard.tsx, MilestoneCard.tsx, UserStoryCard.tsx, WorkPackageCard.tsx, RequirementsItemEditor.tsx, WorkspaceLayout.tsx, use-websocket.ts, api/projects.ts, package.json (add @dnd-kit)\nGotchas: @dnd-kit needed. Multi-user conflict uses last-write-wins. WebSocket payload includes full structure.",
-      "context": {
-        "components": [
-          "RequirementsPanel — title, desc, contributors, items with 'Add' button",
-          "EpicCard/MilestoneCard — accordion, drag handle, edit/delete",
-          "UserStoryCard/WorkPackageCard — compact card, criteria chips, priority",
-          "WorkspaceLayout — split panel, draggable divider (40/60 default)"
-        ],
-        "test_cases": [
-          "T-3.3.01 | Unit | Software project shows EpicCard",
-          "T-3.3.02 | Unit | Drag story between epics calls reorder",
-          "E2E-3.01 | E2E | Last write wins, toast on conflict"
+      "passes": true,
+      "notes": "Defect: DEF-003. File: frontend/src/__tests__/ai-context-tab.test.tsx:2-7. Expected: No new ESLint errors. Actual: screen, userEvent, and vi are imported but never used. Suggested fix: Remove unused imports \u2014 keep only {describe, it, expect, beforeEach} from vitest and {render, waitFor} from @testing-library/react. Remove the userEvent import entirely.",
+      "bugfixHistory": {
+        "failureCategory": "APPLICATION",
+        "categoryDetail": "TEST_ASSERTION",
+        "guidanceNote": "Application-level test failures detected. The test infrastructure appears healthy.\n\nFocus on fixing the application code to satisfy test assertions. Check the error messages for expected vs actual values.\n\n\u2500\u2500 PREVIOUS CYCLE ANALYSIS \u2500\u2500\n\nThis is bugfix attempt #2. 1 previous attempt(s) FAILED.\n\nCycle 0: APPLICATION/TEST_ASSERTION (passed=666, failed=3, errors=0)\n  Evidence: AssertionError\n\nDO NOT repeat approaches from previous cycles. If a strategy was tried and failed, try something different.",
+        "testDigest": "",
+        "previousCycles": [
+          {
+            "cycle": 0,
+            "timestamp": "2026-03-17T03:16:13+0100",
+            "failure_category": "APPLICATION",
+            "category_detail": "TEST_ASSERTION",
+            "category_evidence": "AssertionError",
+            "test_results": {
+              "passed": 666,
+              "failed": 3,
+              "errors": 0,
+              "total": 669
+            },
+            "error_patterns": [
+              {
+                "exception_class": "AssertionError",
+                "message": "expected call not found.",
+                "count": 1,
+                "affected_files": []
+              }
+            ],
+            "qa_summary_excerpt": "# QA Report: Milestone 19 \u2014 Structured Requirements\n**Date:** 2026-03-17\n**Reviewer:** QA Engineer (Claude)\n**Bugfix Cycle:** N/A (first review)\n**PRD:** tasks/prd-m19.json\n**Progress:** .ralph/progress.txt\n---\n## Summary\nReviewed M19 (4 user stories: project type selection, structured requirements data model, requirements panel UI, admin context buckets). All stories marked as PASS by Ralph, but 3 pre-existing tests were broken by M19 changes and never fixed. 3 new ESLint errors introduced in a"
+          }
         ]
-      }
-    },
-    {
-      "id": "US-004",
-      "title": "Admin context buckets per project type",
-      "description": "As an admin, I want to manage AI context separately for global, software, and non-software projects",
-      "acceptanceCriteria": [
-        "facilitator_context_bucket has context_type column CHECK (global|software|non_software), UNIQUE on context_type",
-        "context_agent_bucket has same context_type column and constraints",
-        "Migration adds context_type, seeds 3 rows per bucket (global, software, non_software)",
-        "API endpoints: GET/PATCH /admin/ai-context/facilitator?type=, /company?type=",
-        "AIContextTab: segmented control (Global/Software/Non-Software), shows facilitator + company editors per type",
-        "Embedding pipeline tags chunks with context_type",
-        "Context retrieval combines global + type-specific chunks based on project.project_type",
-        "Facilitator context assembly combines global + type-specific buckets",
-        "Typecheck passes"
-      ],
-      "priority": 4,
-      "passes": false,
-      "testIds": ["T-3.4.01", "T-3.4.02", "API-3.03"],
-      "notes": "Architecture: docs/02-architecture/data-model.md § facilitator_context_bucket, context_agent_bucket\nArchitecture: docs/02-architecture/api-design.md § Admin AI Context\nDesign: docs/03-design/component-specs.md § Tabs\nAI: docs/03-ai/agent-architecture.md § Context Bucket Structure\nTesting: docs/04-test-architecture/test-matrix.md § [T-3.4.01, T-3.4.02, API-3.03]\nFiles: services/ai/apps/ai/models.py, migrations/0002_add_context_type.py (new), services/gateway/apps/admin/views.py, serializers.py, frontend/src/features/admin/AIContextTab.tsx, services/ai/processing/context_assembler.py, embedding/chunker.py, reindexer.py\nGotchas: AI models may be in services/ai/apps/ai/models.py. Migration seeds 3 rows per bucket. RAG query filters context_type IN (global, project_type).",
-      "context": {
-        "data_model": [
-          "facilitator_context_bucket: context_type varchar(20) CHECK UNIQUE — 3 rows",
-          "context_chunks: add context_type varchar(20) for tagging"
-        ],
-        "api_endpoints": [
-          "GET /api/admin/ai-context/facilitator?type=global — → {content, updated_at}",
-          "PATCH /api/admin/ai-context/company?type=software — {...} → 200"
-        ],
-        "components": ["AIContextTab — segmented control, type-specific editors"],
-        "test_cases": [
-          "T-3.4.01 | Unit | UNIQUE constraint on context_type",
-          "API-3.03 | Integration | Retrieval combines global + project_type chunks"
-        ],
-        "ai_specs": ["Context assembly — combine global + type-specific", "RAG — filter by context_type IN (global, project_type)"]
       }
     }
   ]

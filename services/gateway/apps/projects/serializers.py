@@ -2,7 +2,8 @@ from rest_framework import serializers
 
 
 class ProjectCreateSerializer(serializers.Serializer):
-    first_message = serializers.CharField(min_length=1)
+    project_type = serializers.ChoiceField(choices=["software", "non_software"])
+    first_message = serializers.CharField(min_length=1, required=False)
 
 
 class ProjectPatchSerializer(serializers.Serializer):
@@ -20,6 +21,7 @@ class ProjectPatchSerializer(serializers.Serializer):
 class ProjectDetailSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()
+    project_type = serializers.CharField()
     state = serializers.CharField()
     visibility = serializers.CharField()
     agent_mode = serializers.CharField()

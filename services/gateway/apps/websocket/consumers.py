@@ -307,6 +307,30 @@ class ProjectConsumer(AsyncJsonWebsocketConsumer):
             "payload": event["payload"],
         })
 
+    async def requirements_updated(self, event: dict) -> None:
+        """Forward requirements_updated group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "requirements_updated",
+            "project_id": event["project_id"],
+            "payload": event["payload"],
+        })
+
+    async def requirements_generating(self, event: dict) -> None:
+        """Forward requirements_generating group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "requirements_generating",
+            "project_id": event["project_id"],
+            "payload": event["payload"],
+        })
+
+    async def requirements_ready(self, event: dict) -> None:
+        """Forward requirements_ready group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "requirements_ready",
+            "project_id": event["project_id"],
+            "payload": event["payload"],
+        })
+
     async def comment_created(self, event: dict) -> None:
         """Forward comment_created group_send to the WebSocket client."""
         await self.send_json({

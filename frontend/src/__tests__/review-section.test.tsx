@@ -70,6 +70,7 @@ function makeProject(state: Project["state"]): Project {
   return {
     id: PROJECT_ID,
     title: "Test Idea",
+    project_type: "software",
     state,
     agent_mode: "interactive",
     visibility: "private",

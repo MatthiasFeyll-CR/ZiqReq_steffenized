@@ -15,6 +15,8 @@ from .serializers import ContextAgentBucketSerializer, FacilitatorContextSeriali
 
 logger = logging.getLogger(__name__)
 
+VALID_CONTEXT_TYPES = {"global", "software", "non_software"}
+
 
 def _get_ai_client():
     """Create an AiClient instance (lazy import to avoid namespace collisions)."""
@@ -41,15 +43,26 @@ def _require_admin(request: Request) -> Response | None:
     return None
 
 
+def _get_context_type(request: Request) -> str:
+    """Extract and validate context_type from ?type= query param. Defaults to 'global'."""
+    context_type = request.query_params.get("type", "global")
+    if context_type not in VALID_CONTEXT_TYPES:
+        return "global"
+    return context_type
+
+
 @api_view(["GET", "PATCH"])
 @authentication_classes([MiddlewareAuthentication])
 def facilitator_context(request: Request) -> Response:
-    """GET/PATCH /api/admin/ai-context/facilitator"""
+    """GET/PATCH /api/admin/ai-context/facilitator?type={global|software|non_software}"""
     denied = _require_admin(request)
     if denied:
         return denied
 
+    context_type = _get_context_type(request)
+
     bucket, _created = FacilitatorContextBucket.objects.get_or_create(
+        context_type=context_type,
         defaults={"content": "", "updated_by": None},
     )
 
@@ -68,12 +81,15 @@ def facilitator_context(request: Request) -> Response:
 @api_view(["GET", "PATCH"])
 @authentication_classes([MiddlewareAuthentication])
 def company_context(request: Request) -> Response:
-    """GET/PATCH /api/admin/ai-context/company"""
+    """GET/PATCH /api/admin/ai-context/company?type={global|software|non_software}"""
     denied = _require_admin(request)
     if denied:
         return denied
 
+    context_type = _get_context_type(request)
+
     bucket, _created = ContextAgentBucket.objects.get_or_create(
+        context_type=context_type,
         defaults={"sections": {}, "free_text": "", "updated_by": None},
     )
 
@@ -87,7 +103,7 @@ def company_context(request: Request) -> Response:
         bucket.updated_at = timezone.now()
         bucket.save(update_fields=["sections", "free_text", "updated_by", "updated_at"])
 
-        # Trigger AI gRPC re-indexing (US-005)
+        # Trigger AI gRPC re-indexing
         try:
             ai_client = _get_ai_client()
             ai_client.update_context_agent_bucket(

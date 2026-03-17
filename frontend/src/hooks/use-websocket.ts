@@ -150,6 +150,24 @@ export function useWebSocket() {
                 detail: { project_id: data.project_id, ...data.payload },
               }),
             );
+          } else if (data.type === "requirements_updated" && data.project_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:requirements_updated", {
+                detail: { project_id: data.project_id, payload: data.payload },
+              }),
+            );
+          } else if (data.type === "requirements_generating" && data.project_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:requirements_generating", {
+                detail: { project_id: data.project_id, payload: data.payload },
+              }),
+            );
+          } else if (data.type === "requirements_ready" && data.project_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:requirements_ready", {
+                detail: { project_id: data.project_id, payload: data.payload },
+              }),
+            );
           } else if (data.type === "brd_generating" && data.project_id && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:brd_generating", {

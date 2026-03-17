@@ -77,6 +77,7 @@ beforeAll(async () => {
 const MOCK_PROJECT: Project = {
   id: "11111111-1111-1111-1111-111111111111",
   title: "Test Brainstorm",
+  project_type: "software",
   state: "open",
   agent_mode: "interactive",
   visibility: "private",

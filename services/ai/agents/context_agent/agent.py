@@ -46,11 +46,16 @@ class ContextAgent(BaseAgent):
         query: str = input_data["query"]
         project_id: str = input_data["project_id"]
         query_embedding: list[float] = input_data.get("query_embedding", [])
+        project_type: str | None = input_data.get("project_type")
 
         # Retrieve relevant chunks via pgvector cosine similarity
+        # Filter by context_type IN (global, project_type) when project_type is set
         chunks: list[dict[str, Any]] = []
         if query_embedding:
-            chunks = await self._retriever.retrieve(query_embedding=query_embedding)
+            chunks = await self._retriever.retrieve(
+                query_embedding=query_embedding,
+                project_type=project_type,
+            )
 
         chunk_ids = [c["id"] for c in chunks]
 

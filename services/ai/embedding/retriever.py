@@ -56,12 +56,15 @@ class Retriever:
         self,
         query_embedding: list[float],
         bucket_id: str | None = None,
+        project_type: str | None = None,
     ) -> list[dict[str, Any]]:
         """Retrieve top_k chunks by cosine similarity to query_embedding.
 
         Args:
             query_embedding: The embedding vector for the query (1536 dims).
             bucket_id: Optional filter to a specific bucket.
+            project_type: Optional project type to filter chunks.
+                When provided, returns chunks with context_type IN ('global', project_type).
 
         Returns:
             List of chunk dicts with keys: id, chunk_text, source_section, similarity.
@@ -80,6 +83,9 @@ class Retriever:
 
         if bucket_id:
             queryset = queryset.filter(bucket_id=bucket_id)
+
+        if project_type:
+            queryset = queryset.filter(context_type__in=["global", project_type])
 
         # Cosine distance = 1 - cosine_similarity, so filter distance < (1 - min_similarity)
         max_distance = 1.0 - min_similarity

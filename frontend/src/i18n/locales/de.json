@@ -37,11 +37,18 @@
   "landing": {
     "hero": {
       "heading": "Neues Projekt erstellen",
-      "subtext": "Beschreiben Sie Ihr Projekt und lassen Sie KI Ihnen bei der Strukturierung der Anforderungen helfen.",
-      "placeholder": "Beschreiben Sie Ihr Projekt...",
-      "submit": "Starten",
-      "validationEmpty": "Bitte beschreiben Sie Ihr Projekt vor dem Absenden.",
+      "subtext": "Starten Sie ein neues Anforderungsprojekt und lassen Sie KI Ihnen bei der Strukturierung helfen.",
+      "newProject": "Neues Projekt",
       "errorCreating": "Projekt konnte nicht erstellt werden. Bitte versuchen Sie es erneut."
+    },
+    "newProject": {
+      "title": "Neues Projekt erstellen",
+      "description": "Wählen Sie den Projekttyp aus, den Sie erstellen möchten.",
+      "software": "Software-Projekt",
+      "softwareSubtitle": "Epics & User Stories",
+      "nonSoftware": "Nicht-Software-Projekt",
+      "nonSoftwareSubtitle": "Meilensteine & Arbeitspakete",
+      "create": "Erstellen"
     },
     "lists": {
       "myProjects": "Meine Projekte",

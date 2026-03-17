@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -67,3 +68,109 @@ class ProjectCollaborator(models.Model):
 
     def __str__(self) -> str:
         return f"Collaborator {self.user_id} on {self.project_id}"
+
+
+# --- Structure validation helpers ---
+
+VALID_SOFTWARE_PARENT_TYPE = "epic"
+VALID_SOFTWARE_CHILD_TYPE = "user_story"
+VALID_NON_SOFTWARE_PARENT_TYPE = "milestone"
+VALID_NON_SOFTWARE_CHILD_TYPE = "work_package"
+
+
+def validate_structure(structure: list, project_type: str) -> None:
+    """Validate hierarchical requirements structure against project_type."""
+    if not isinstance(structure, list):
+        raise ValidationError("Structure must be a list.")
+
+    if project_type == "software":
+        parent_type = VALID_SOFTWARE_PARENT_TYPE
+        child_type = VALID_SOFTWARE_CHILD_TYPE
+    elif project_type == "non_software":
+        parent_type = VALID_NON_SOFTWARE_PARENT_TYPE
+        child_type = VALID_NON_SOFTWARE_CHILD_TYPE
+    else:
+        raise ValidationError(f"Invalid project_type: {project_type}")
+
+    for item in structure:
+        if not isinstance(item, dict):
+            raise ValidationError("Each top-level item must be a dict.")
+        if item.get("type") != parent_type:
+            raise ValidationError(
+                f"Top-level items must have type='{parent_type}' "
+                f"for {project_type} projects, got '{item.get('type')}'."
+            )
+        if "id" not in item:
+            raise ValidationError("Each item must have an 'id' field.")
+        children = item.get("children", [])
+        if not isinstance(children, list):
+            raise ValidationError("'children' must be a list.")
+        for child in children:
+            if not isinstance(child, dict):
+                raise ValidationError("Each child must be a dict.")
+            if child.get("type") != child_type:
+                raise ValidationError(
+                    f"Children must have type='{child_type}' "
+                    f"for {project_type} projects, got '{child.get('type')}'."
+                )
+            if "id" not in child:
+                raise ValidationError("Each child must have an 'id' field.")
+
+
+class RequirementsDocumentDraft(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.OneToOneField(
+        Project, on_delete=models.CASCADE, related_name="requirements_draft"
+    )
+    title = models.TextField(null=True, blank=True)
+    short_description = models.TextField(null=True, blank=True)
+    structure = models.JSONField(default=list)
+    item_locks = models.JSONField(default=dict)
+    allow_information_gaps = models.BooleanField(default=False)
+    readiness_evaluation = models.JSONField(default=dict)
+    last_evaluated_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "requirements_document_drafts"
+
+    def clean(self) -> None:
+        if self.structure:
+            validate_structure(self.structure, self.project.project_type)
+
+    def __str__(self) -> str:
+        return f"RequirementsDocumentDraft for project {self.project_id}"
+
+
+class RequirementsDocumentVersion(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, related_name="requirements_versions"
+    )
+    version_number = models.IntegerField()
+    title = models.TextField(null=True, blank=True)
+    short_description = models.TextField(null=True, blank=True)
+    structure = models.JSONField(default=list)
+    pdf_file_path = models.CharField(max_length=500, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "requirements_document_versions"
+        unique_together = [("project", "version_number")]
+        indexes = [
+            models.Index(
+                fields=["project", "version_number"],
+                name="idx_req_ver_project",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):  # type: ignore[override]
+        if not self._state.adding:
+            raise ValidationError(
+                "RequirementsDocumentVersion is immutable and cannot be updated."
+            )
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"RequirementsDocumentVersion {self.version_number} for project {self.project_id}"
