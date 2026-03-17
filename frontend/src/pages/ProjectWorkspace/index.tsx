@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { patchProject } from "@/api/projects";
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
+import { RequirementsPanel } from "@/components/workspace/RequirementsPanel";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
 import { DocumentView } from "@/components/workspace/DocumentView";
@@ -451,6 +452,14 @@ function ProjectWorkspaceContent({
           <WorkspaceLayout
             chatPanel={
               <ChatPanel project={project} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly || isInReviewReadOnly} />
+            }
+            requirementsPanel={
+              <RequirementsPanel
+                projectId={project.id}
+                projectType={project.project_type}
+                readOnly={effectiveReadOnly}
+                collaborators={project.collaborators}
+              />
             }
           />
 
