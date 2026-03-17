@@ -22,6 +22,19 @@ Started: 2026-03-17T02:02:16+0100
   - Tests are all in `frontend/src/__tests__/` (flat), not in `__tests__` subdirectories of component folders. NewProjectModal test was placed in `components/landing/__tests__/` per the PRD spec.
 ---
 
+## US-002: Structured requirements data model
+- Status: PASS
+- Attempts: 1
+- Changes: services/core/apps/projects/models.py (RequirementsDocumentDraft, RequirementsDocumentVersion, validate_structure), services/core/apps/projects/migrations/0005_requirements_documents.py (new), services/core/apps/projects/tests/test_requirements_models.py (new), services/gateway/apps/projects/models.py (mirror models), services/gateway/apps/projects/migrations/0004_requirements_documents.py (new), services/gateway/apps/projects/requirements_serializers.py (new), services/gateway/apps/projects/requirements_views.py (new), services/gateway/apps/projects/urls.py, services/gateway/apps/projects/tests/test_requirements_views.py (new), services/gateway/apps/websocket/consumers.py (3 new handlers), services/gateway/grpc_clients/core_client.py (2 new methods), services/ai/grpc_clients/core_client.py (2 new methods), proto/core.proto (2 new RPCs), frontend/src/api/projects.ts (types + API functions)
+- Tests: 644 passed (27 new), 2 failed (pre-existing from US-001: test_create_project_with_first_message and test_new_project_defaults_to_private still send first_message without project_type). 344 node tests passed. Typecheck clean. Ruff clean. ESLint clean.
+- Learnings for future iterations:
+  - Gateway mirror models are `managed = False` — they need their own RunSQL migration for table creation (see services/gateway/apps/projects/migrations/0004_requirements_documents.py pattern).
+  - PYTHONPATH in test container puts gateway first, so `apps.projects.models` always resolves to gateway's models. Core's `validate_structure` can't be imported directly in tests — must define inline or import from a shared module.
+  - The `--reuse-db` pytest option means migrations must use `CREATE TABLE IF NOT EXISTS` to avoid errors on repeated runs.
+  - Structure JSONB is a list of dicts. Mutations require `list(draft.structure)` to create a mutable copy before modifying, then reassigning back to `draft.structure` for Django to detect the change.
+  - Two pre-existing test failures (from US-001) send `first_message` without required `project_type`. Future iterations should fix: services/gateway/apps/projects/tests/test_views.py::test_create_project_with_first_message and services/gateway/apps/collaboration/tests/test_visibility.py::test_new_project_defaults_to_private.
+---
+
 ---
 
 ## Codebase Patterns
