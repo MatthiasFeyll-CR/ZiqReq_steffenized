@@ -190,6 +190,64 @@ class CoreClient:
             logger.warning("Project %s not found for title update", project_id)
         return {"success": bool(updated)}
 
+    def get_requirements_state(self, project_id: str) -> dict[str, Any]:
+        """Fetch the current requirements draft for a project."""
+        from apps.projects.models import RequirementsDocumentDraft
+
+        try:
+            draft = RequirementsDocumentDraft.objects.get(project_id=project_id)
+            return {
+                "project_id": project_id,
+                "title": draft.title or "",
+                "short_description": draft.short_description or "",
+                "structure": draft.structure or [],
+                "item_locks": draft.item_locks or {},
+                "allow_information_gaps": draft.allow_information_gaps,
+                "readiness_evaluation": draft.readiness_evaluation or {},
+                "updated_at": draft.updated_at.isoformat() if draft.updated_at else "",
+            }
+        except RequirementsDocumentDraft.DoesNotExist:
+            return {
+                "project_id": project_id,
+                "title": "",
+                "short_description": "",
+                "structure": [],
+                "item_locks": {},
+                "allow_information_gaps": False,
+                "readiness_evaluation": {},
+                "updated_at": "",
+            }
+
+    def update_requirements_structure(
+        self,
+        project_id: str,
+        structure: list,
+        readiness_evaluation: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Update the requirements draft structure for a project."""
+        from apps.projects.models import RequirementsDocumentDraft
+
+        draft, _created = RequirementsDocumentDraft.objects.get_or_create(
+            project_id=project_id,
+            defaults={
+                "structure": [],
+                "item_locks": {},
+                "allow_information_gaps": False,
+                "readiness_evaluation": {},
+            },
+        )
+
+        update_fields = ["structure", "updated_at"]
+        draft.structure = structure
+
+        if readiness_evaluation is not None:
+            draft.readiness_evaluation = readiness_evaluation
+            update_fields.append("readiness_evaluation")
+
+        draft.save(update_fields=update_fields)
+        logger.info("Updated requirements structure for project %s", project_id)
+        return {"success": True}
+
     def update_brd_draft(
         self,
         project_id: str,

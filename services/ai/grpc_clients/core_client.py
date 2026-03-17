@@ -153,6 +153,95 @@ class CoreClient:
             "is_locked": current_count >= cap,
         }
 
+    # ── Requirements operations ──
+
+    def get_requirements_state(self, project_id: str) -> dict[str, Any]:
+        """Fetch the current requirements draft for a project."""
+        import json
+
+        from django.db import connection as db_conn
+
+        with db_conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT title, short_description, structure, item_locks, "
+                "allow_information_gaps, readiness_evaluation, updated_at "
+                "FROM requirements_document_drafts WHERE project_id = %s",
+                [project_id],
+            )
+            row = cursor.fetchone()
+            if row:
+                structure = row[2] or []
+                if isinstance(structure, str):
+                    structure = json.loads(structure)
+                item_locks = row[3] or {}
+                if isinstance(item_locks, str):
+                    item_locks = json.loads(item_locks)
+                readiness = row[5] or {}
+                if isinstance(readiness, str):
+                    readiness = json.loads(readiness)
+                return {
+                    "project_id": project_id,
+                    "title": row[0] or "",
+                    "short_description": row[1] or "",
+                    "structure": structure,
+                    "item_locks": item_locks,
+                    "allow_information_gaps": row[4],
+                    "readiness_evaluation": readiness,
+                    "updated_at": row[6].isoformat() if row[6] else "",
+                }
+        return {
+            "project_id": project_id,
+            "title": "",
+            "short_description": "",
+            "structure": [],
+            "item_locks": {},
+            "allow_information_gaps": False,
+            "readiness_evaluation": {},
+            "updated_at": "",
+        }
+
+    def update_requirements_structure(
+        self,
+        project_id: str,
+        structure: list,
+        readiness_evaluation: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Create or update requirements draft structure for a project."""
+        import json
+
+        from django.db import connection as db_conn
+
+        structure_json = json.dumps(structure)
+        readiness_json = json.dumps(readiness_evaluation) if readiness_evaluation else None
+
+        try:
+            with db_conn.cursor() as cursor:
+                set_parts = ["structure = %s", "updated_at = NOW()"]
+                values: list[Any] = [structure_json]
+
+                if readiness_json is not None:
+                    set_parts.append("readiness_evaluation = %s")
+                    values.append(readiness_json)
+
+                cursor.execute(
+                    f"UPDATE requirements_document_drafts SET {', '.join(set_parts)} WHERE project_id = %s",
+                    values + [project_id],
+                )
+                if cursor.rowcount == 0:
+                    # Insert new draft
+                    cursor.execute(
+                        "INSERT INTO requirements_document_drafts "
+                        "(id, project_id, title, short_description, structure, item_locks, "
+                        "allow_information_gaps, readiness_evaluation, created_at, updated_at) "
+                        "VALUES (gen_random_uuid(), %s, '', '', %s, '{}', false, %s, NOW(), NOW())",
+                        [project_id, structure_json, readiness_json or "{}"],
+                    )
+            logger.info("Updated requirements structure for project %s", project_id)
+            return {"success": True}
+        except Exception:
+            logger.exception("Failed to update requirements structure for project %s", project_id)
+            return {"success": False}
+
     # ── BRD operations ──
 
     def get_brd_draft(self, project_id: str) -> dict[str, Any]:

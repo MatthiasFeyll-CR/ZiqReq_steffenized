@@ -11,6 +11,8 @@ service CoreService {
   rpc PersistAiReaction(AiReactionRequest) returns (AiReactionResponse);
   rpc UpdateProjectTitle(UpdateTitleRequest) returns (UpdateTitleResponse);
   rpc UpdateBrdDraft(UpdateBrdDraftRequest) returns (UpdateBrdDraftResponse);
+  rpc GetRequirementsState(GetRequirementsStateRequest) returns (GetRequirementsStateResponse);
+  rpc UpdateRequirementsStructure(UpdateRequirementsStructureRequest) returns (UpdateRequirementsStructureResponse);
 
   rpc GetProjectsByState(ProjectsByStateRequest) returns (ProjectsByStateResponse);
   rpc GetUserStats(GetUserStatsRequest) returns (UserStatsResponse);
@@ -111,6 +113,31 @@ message UpdateBrdDraftRequest {
 }
 
 message UpdateBrdDraftResponse {
+  bool success = 1;
+}
+
+message GetRequirementsStateRequest {
+  string project_id = 1;
+}
+
+message GetRequirementsStateResponse {
+  string project_id = 1;
+  string title = 2;
+  string short_description = 3;
+  string structure_json = 4;
+  string item_locks_json = 5;
+  bool allow_information_gaps = 6;
+  string readiness_evaluation_json = 7;
+  string updated_at = 8;
+}
+
+message UpdateRequirementsStructureRequest {
+  string project_id = 1;
+  string structure_json = 2;
+  string readiness_evaluation_json = 3;
+}
+
+message UpdateRequirementsStructureResponse {
   bool success = 1;
 }
 

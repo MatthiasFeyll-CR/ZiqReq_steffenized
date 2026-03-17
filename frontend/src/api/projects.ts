@@ -208,3 +208,240 @@ export async function fetchContextWindow(projectId: string): Promise<ContextWind
   return res.json();
 }
 
+// --- Requirements API (US-002) ---
+
+export interface RequirementsChild {
+  id: string;
+  type: "user_story" | "work_package";
+  title: string;
+  description: string;
+  acceptance_criteria?: string[];
+  deliverables?: string[];
+  dependencies?: string[];
+  priority?: "high" | "medium" | "low";
+  metadata?: Record<string, unknown>;
+}
+
+export interface RequirementsItem {
+  id: string;
+  type: "epic" | "milestone";
+  title: string;
+  description: string;
+  children: RequirementsChild[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface RequirementsDraft {
+  title: string | null;
+  short_description: string | null;
+  structure: RequirementsItem[];
+  item_locks: Record<string, boolean>;
+  allow_information_gaps: boolean;
+  readiness_evaluation: Record<string, unknown>;
+}
+
+export async function fetchRequirements(projectId: string): Promise<RequirementsDraft> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/`,
+    { credentials: "include" },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function patchRequirements(
+  projectId: string,
+  data: { title?: string; short_description?: string },
+): Promise<RequirementsDraft> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function addRequirementsItem(
+  projectId: string,
+  data: { title: string; description?: string; type: "epic" | "milestone" },
+): Promise<RequirementsItem> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/items`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function patchRequirementsItem(
+  projectId: string,
+  itemId: string,
+  data: { title?: string; description?: string },
+): Promise<RequirementsItem> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/items/${itemId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteRequirementsItem(
+  projectId: string,
+  itemId: string,
+): Promise<void> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/items/${itemId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+}
+
+export async function addRequirementsChild(
+  projectId: string,
+  itemId: string,
+  data: {
+    title: string;
+    description?: string;
+    acceptance_criteria?: string[];
+    deliverables?: string[];
+    dependencies?: string[];
+    priority?: "high" | "medium" | "low";
+  },
+): Promise<RequirementsChild> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/items/${itemId}/children`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function patchRequirementsChild(
+  projectId: string,
+  itemId: string,
+  childId: string,
+  data: {
+    title?: string;
+    description?: string;
+    acceptance_criteria?: string[];
+    deliverables?: string[];
+    dependencies?: string[];
+    priority?: "high" | "medium" | "low";
+  },
+): Promise<RequirementsChild> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/items/${itemId}/children/${childId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteRequirementsChild(
+  projectId: string,
+  itemId: string,
+  childId: string,
+): Promise<void> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/items/${itemId}/children/${childId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+}
+
+export async function reorderRequirements(
+  projectId: string,
+  itemIds: string[],
+): Promise<RequirementsDraft> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/reorder`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ item_ids: itemIds }),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function generateRequirements(
+  projectId: string,
+  data: { mode: "full" | "selective" | "item"; locked_item_ids?: string[] },
+): Promise<{ status: string; generation_id: string }> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/projects/${projectId}/requirements/generate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
