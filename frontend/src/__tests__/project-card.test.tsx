@@ -19,7 +19,7 @@ vi.mock("react-router-dom", async () => {
 function renderProjectCard(props: Partial<ProjectCardProps> = {}) {
   const defaultProps: ProjectCardProps = {
     id: "test-uuid-123",
-    title: "My Test Idea",
+    title: "My Test Project",
     state: "open",
     updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     ...props,
@@ -63,8 +63,8 @@ describe("ProjectCard component", () => {
   });
 
   it("renders title with ellipsis truncation class", () => {
-    renderProjectCard({ title: "My Test Idea" });
-    const title = screen.getByText("My Test Idea");
+    renderProjectCard({ title: "My Test Project" });
+    const title = screen.getByText("My Test Project");
     expect(title).toBeInTheDocument();
     expect(title.className).toContain("truncate");
   });
@@ -86,7 +86,7 @@ describe("ProjectCard component", () => {
     expect(screen.getByText("In Review")).toBeInTheDocument();
   });
 
-  it("renders Delete option in menu for active ideas", async () => {
+  it("renders Delete option in menu for active projects", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     renderProjectCard({ onDelete, deletedAt: null });
@@ -97,7 +97,7 @@ describe("ProjectCard component", () => {
     expect(screen.getByText("Delete")).toBeInTheDocument();
   });
 
-  it("renders Restore option in menu for trashed ideas", async () => {
+  it("renders Restore option in menu for trashed projects", async () => {
     const user = userEvent.setup();
     const onRestore = vi.fn();
     renderProjectCard({
@@ -115,7 +115,7 @@ describe("ProjectCard component", () => {
     const user = userEvent.setup();
     renderProjectCard({ id: "abc-123" });
 
-    const card = screen.getByText("My Test Idea").closest("button");
+    const card = screen.getByText("My Test Project").closest("button");
     expect(card).not.toBeNull();
     await user.click(card!);
     expect(mockNavigate).toHaveBeenCalledWith("/project/abc-123");

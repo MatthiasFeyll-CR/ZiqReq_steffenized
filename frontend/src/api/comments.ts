@@ -175,12 +175,12 @@ export async function fetchUnreadCommentCount(
   return data.unread_count;
 }
 
-export interface IdeaSearchResult {
+export interface ProjectSearchResult {
   id: string;
   title: string;
 }
 
-export async function searchIdeasForReference(query: string): Promise<IdeaSearchResult[]> {
+export async function searchProjectsForReference(query: string): Promise<ProjectSearchResult[]> {
   const res = await authFetch(
     `${env.apiBaseUrl}/projects/search-ref?q=${encodeURIComponent(query)}`,
   );

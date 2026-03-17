@@ -11,7 +11,7 @@ import { MonitoringTab } from "@/features/admin/MonitoringTab";
 import { UsersTab } from "@/features/admin/UsersTab";
 import { ProjectsTab } from "@/features/admin/ProjectsTab";
 
-const VALID_TABS = ["ai-context", "parameters", "monitoring", "users", "ideas"];
+const VALID_TABS = ["ai-context", "parameters", "monitoring", "users", "projects"];
 
 export default function AdminPanel() {
   const { t } = useTranslation();
@@ -63,7 +63,7 @@ export default function AdminPanel() {
               {t("admin.users")}
             </TabsTrigger>
             <TabsTrigger
-              value="ideas"
+              value="projects"
               className="inline-flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:bg-muted/50 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
             >
               <Lightbulb className="h-4 w-4" />
@@ -83,7 +83,7 @@ export default function AdminPanel() {
           <TabsContent value="users">
             <UsersTab />
           </TabsContent>
-          <TabsContent value="ideas">
+          <TabsContent value="projects">
             <ProjectsTab />
           </TabsContent>
         </Tabs>

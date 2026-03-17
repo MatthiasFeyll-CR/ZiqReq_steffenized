@@ -138,7 +138,7 @@ export interface ServiceHealth {
 
 export interface MonitoringData {
   active_connections: number;
-  ideas_by_state: {
+  projects_by_state: {
     open: number;
     in_review: number;
     accepted: number;
@@ -205,12 +205,12 @@ export interface AdminUser {
   last_name: string;
   display_name: string;
   roles: string[];
-  idea_count: number;
+  project_count: number;
   review_count: number;
   contribution_count: number;
 }
 
-// ---------- Ideas (Admin) ----------
+// ---------- Projects (Admin) ----------
 
 export interface AdminProject {
   id: string;
@@ -242,7 +242,7 @@ export async function fetchAdminProjects(params?: {
   if (params?.search) searchParams.set("search", params.search);
 
   const qs = searchParams.toString();
-  const res = await authFetch(`${env.apiBaseUrl}/admin/ideas${qs ? `?${qs}` : ""}`, {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/projects${qs ? `?${qs}` : ""}`, {
     credentials: "include",
   });
   if (!res.ok) {

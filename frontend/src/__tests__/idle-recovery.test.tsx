@@ -11,7 +11,7 @@ import { useProjectSync } from "@/hooks/useProjectSync";
 import type { Project } from "@/api/projects";
 
 const mockReconnect = vi.fn();
-const mockFetchIdea = vi.fn<(id: string) => Promise<Project>>();
+const mockFetchProject = vi.fn<(id: string) => Promise<Project>>();
 
 vi.mock("@/app/providers", () => ({
   useWsReconnect: () => mockReconnect,
@@ -19,7 +19,7 @@ vi.mock("@/app/providers", () => ({
 }));
 
 vi.mock("@/api/projects", () => ({
-  fetchProject: (...args: unknown[]) => mockFetchIdea(args[0] as string),
+  fetchProject: (...args: unknown[]) => mockFetchProject(args[0] as string),
 }));
 
 function createStore(overrides: {
@@ -53,8 +53,8 @@ function createWrapper(store: ReturnType<typeof createStore>) {
   };
 }
 
-const fakeIdea: Project = {
-  id: "test-idea",
+const fakeProject: Project = {
+  id: "test-project",
   title: "Updated Title",
   project_type: "software",
   state: "open",
@@ -69,8 +69,8 @@ const fakeIdea: Project = {
 describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () => {
   beforeEach(() => {
     mockReconnect.mockClear();
-    mockFetchIdea.mockClear();
-    mockFetchIdea.mockResolvedValue(fakeIdea);
+    mockFetchProject.mockClear();
+    mockFetchProject.mockResolvedValue(fakeProject);
   });
 
   afterEach(() => {
@@ -85,7 +85,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
+      () => useProjectSync({ projectId: "test-project", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -107,7 +107,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
+      () => useProjectSync({ projectId: "test-project", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -118,7 +118,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     expect(mockReconnect).not.toHaveBeenCalled();
   });
 
-  it("refetches idea state on reconnect after idle disconnect", async () => {
+  it("refetches project state on reconnect after idle disconnect", async () => {
     const store = createStore({
       connectionState: "offline",
       isIdleDisconnected: true,
@@ -126,7 +126,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
+      () => useProjectSync({ projectId: "test-project", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -140,8 +140,8 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       store.dispatch(setConnectionState("online"));
     });
 
-    expect(mockFetchIdea).toHaveBeenCalledWith("test-idea");
-    expect(onProjectUpdate).toHaveBeenCalledWith(fakeIdea);
+    expect(mockFetchProject).toHaveBeenCalledWith("test-project");
+    expect(onProjectUpdate).toHaveBeenCalledWith(fakeProject);
   });
 
   it("does not refetch on reconnect if not returning from idle disconnect", async () => {
@@ -152,7 +152,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
+      () => useProjectSync({ projectId: "test-project", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -161,12 +161,12 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       store.dispatch(setConnectionState("online"));
     });
 
-    expect(mockFetchIdea).not.toHaveBeenCalled();
+    expect(mockFetchProject).not.toHaveBeenCalled();
     expect(onProjectUpdate).not.toHaveBeenCalled();
   });
 
   it("handles fetch error gracefully during state sync", async () => {
-    mockFetchIdea.mockRejectedValue(new Error("Network error"));
+    mockFetchProject.mockRejectedValue(new Error("Network error"));
 
     const store = createStore({
       connectionState: "offline",
@@ -175,7 +175,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
     const onProjectUpdate = vi.fn();
 
     renderHook(
-      () => useProjectSync({ projectId: "test-idea", onProjectUpdate }),
+      () => useProjectSync({ projectId: "test-project", onProjectUpdate }),
       { wrapper: createWrapper(store) },
     );
 
@@ -189,7 +189,7 @@ describe("T-15.3.01: Mouse movement clears idle and triggers reconnection", () =
       store.dispatch(setConnectionState("online"));
     });
 
-    expect(mockFetchIdea).toHaveBeenCalledWith("test-idea");
+    expect(mockFetchProject).toHaveBeenCalledWith("test-project");
     expect(onProjectUpdate).not.toHaveBeenCalled();
   });
 });

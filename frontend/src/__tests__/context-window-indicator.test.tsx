@@ -75,7 +75,7 @@ describe("T-2.14.01: Context window indicator renders with usage percentage", ()
     expect(progressRing).toHaveClass("text-amber-500");
   });
 
-  it("is hidden when idea state is not open", () => {
+  it("is hidden when project state is not open", () => {
     render(<ContextWindowIndicator projectId={PROJECT_ID} projectState="in_review" />);
     expect(screen.queryByTestId("context-window-indicator")).not.toBeInTheDocument();
     expect(fetchContextWindow).not.toHaveBeenCalled();

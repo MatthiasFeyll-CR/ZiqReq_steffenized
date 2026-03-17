@@ -59,7 +59,7 @@ function mockHook(data: unknown, isLoading = false) {
   return { data, isLoading } as never;
 }
 
-const emptyIdeasResponse = {
+const emptyProjectsResponse = {
   results: [],
   count: 0,
   next: null,
@@ -113,14 +113,14 @@ function renderLandingPage() {
 }
 
 beforeEach(() => {
-  vi.mocked(useMyProjects).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useMyProjects).mockReturnValue(mockHook(emptyProjectsResponse));
   vi.mocked(useCollaboratingProjects).mockReturnValue(
-    mockHook(emptyIdeasResponse),
+    mockHook(emptyProjectsResponse),
   );
   vi.mocked(useInvitations).mockReturnValue(
     mockHook(emptyInvitationsResponse),
   );
-  vi.mocked(useTrash).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useTrash).mockReturnValue(mockHook(emptyProjectsResponse));
   mockNavigate.mockClear();
   mockDeleteMutate.mockClear();
   mockRestoreMutate.mockClear();

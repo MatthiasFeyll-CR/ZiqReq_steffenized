@@ -28,7 +28,7 @@ describe("T-6.3.02: PresenceIndicators component", () => {
     const store = makeStore();
     const { container } = render(
       <Provider store={store}>
-        <PresenceIndicators projectId="idea-1" />
+        <PresenceIndicators projectId="proj-1" />
       </Provider>,
     );
     expect(container.innerHTML).toBe("");
@@ -38,14 +38,14 @@ describe("T-6.3.02: PresenceIndicators component", () => {
     const store = makeStore();
     store.dispatch(
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice Smith" },
         state: "online",
       }),
     );
     store.dispatch(
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u2", display_name: "Bob Jones" },
         state: "online",
       }),
@@ -53,7 +53,7 @@ describe("T-6.3.02: PresenceIndicators component", () => {
 
     render(
       <Provider store={store}>
-        <PresenceIndicators projectId="idea-1" />
+        <PresenceIndicators projectId="proj-1" />
       </Provider>,
     );
 
@@ -66,7 +66,7 @@ describe("T-6.3.02: PresenceIndicators component", () => {
     const store = makeStore();
     store.dispatch(
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice Smith" },
         state: "idle",
       }),
@@ -74,7 +74,7 @@ describe("T-6.3.02: PresenceIndicators component", () => {
 
     render(
       <Provider store={store}>
-        <PresenceIndicators projectId="idea-1" />
+        <PresenceIndicators projectId="proj-1" />
       </Provider>,
     );
 
@@ -91,7 +91,7 @@ describe("T-6.3.02: PresenceIndicators component", () => {
     for (let i = 1; i <= 6; i++) {
       store.dispatch(
         updatePresence({
-          project_id: "idea-1",
+          project_id: "proj-1",
           user: { id: `u${i}`, display_name: `User ${i}` },
           state: "online",
         }),
@@ -100,7 +100,7 @@ describe("T-6.3.02: PresenceIndicators component", () => {
 
     render(
       <Provider store={store}>
-        <PresenceIndicators projectId="idea-1" />
+        <PresenceIndicators projectId="proj-1" />
       </Provider>,
     );
 

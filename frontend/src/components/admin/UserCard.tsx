@@ -35,7 +35,7 @@ export function UserCard({ user }: UserCardProps) {
             ))}
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t("admin.userStats", { ideas: user.idea_count, reviews: user.review_count, contributions: user.contribution_count })}
+            {t("admin.userStats", { projects: user.project_count, reviews: user.review_count, contributions: user.contribution_count })}
           </p>
         </div>
       </div>

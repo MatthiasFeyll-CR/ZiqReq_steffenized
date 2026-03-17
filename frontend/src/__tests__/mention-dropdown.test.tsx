@@ -34,15 +34,15 @@ const MOCK_PROJECT: Project = {
   ],
 };
 
-function renderChatInput(ideaOverride?: Partial<Project>) {
-  const idea = { ...MOCK_PROJECT, ...ideaOverride };
+function renderChatInput(projectOverride?: Partial<Project>) {
+  const project = { ...MOCK_PROJECT, ...projectOverride };
   const onMessageSent = vi.fn();
   return {
     onMessageSent,
     ...render(
       <ChatInput
-        projectId={idea.id}
-        project={idea}
+        projectId={project.id}
+        project={project}
         onMessageSent={onMessageSent}
       />,
     ),

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { fetchAdminProjects, type AdminProject } from "@/api/admin";
 
-const IDEA_STATES = ["open", "in_review", "accepted", "dropped", "rejected"] as const;
+const PROJECT_STATES = ["open", "in_review", "accepted", "dropped", "rejected"] as const;
 const PAGE_SIZE = 15;
 
 export function ProjectsTab() {
@@ -33,7 +33,7 @@ export function ProjectsTab() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const loadIdeas = useCallback(async () => {
+  const loadProjects = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchAdminProjects({
@@ -52,8 +52,8 @@ export function ProjectsTab() {
   }, [page, stateFilter, debouncedSearch, t]);
 
   useEffect(() => {
-    void loadIdeas();
-  }, [loadIdeas]);
+    void loadProjects();
+  }, [loadProjects]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -94,7 +94,7 @@ export function ProjectsTab() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("admin.projects.allStates")}</SelectItem>
-            {IDEA_STATES.map((state) => (
+            {PROJECT_STATES.map((state) => (
               <SelectItem key={state} value={state}>
                 {t(`review.stateLabels.${state}`)}
               </SelectItem>
@@ -106,7 +106,7 @@ export function ProjectsTab() {
         </span>
       </div>
 
-      {/* Ideas list */}
+      {/* Projects list */}
       {loading ? (
         <p className="text-sm text-muted-foreground py-8 text-center">
           {t("common.loading")}

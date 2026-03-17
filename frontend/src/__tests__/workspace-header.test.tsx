@@ -134,8 +134,8 @@ describe("T-1.6.01: title editable", () => {
   });
 
   it("saves title on Enter key", async () => {
-    const updatedIdea = { ...MOCK_PROJECT, title: "New Title" };
-    vi.mocked(patchProject).mockResolvedValue(updatedIdea);
+    const updatedProject = { ...MOCK_PROJECT, title: "New Title" };
+    vi.mocked(patchProject).mockResolvedValue(updatedProject);
     const onProjectUpdate = vi.fn();
     renderHeader({ onProjectUpdate });
 
@@ -177,8 +177,8 @@ describe("T-1.6.01: title editable", () => {
 
 describe("T-1.6.02: sets title_manually_edited", () => {
   it("sends PATCH with title field which triggers title_manually_edited=true on backend", async () => {
-    const updatedIdea = { ...MOCK_PROJECT, title: "Edited Title" };
-    vi.mocked(patchProject).mockResolvedValue(updatedIdea);
+    const updatedProject = { ...MOCK_PROJECT, title: "Edited Title" };
+    vi.mocked(patchProject).mockResolvedValue(updatedProject);
     const onProjectUpdate = vi.fn();
     renderHeader({ onProjectUpdate });
 
@@ -192,7 +192,7 @@ describe("T-1.6.02: sets title_manually_edited", () => {
     });
 
     await waitFor(() => {
-      expect(onProjectUpdate).toHaveBeenCalledWith(updatedIdea);
+      expect(onProjectUpdate).toHaveBeenCalledWith(updatedProject);
     });
   });
 
@@ -220,8 +220,8 @@ describe("T-1.6.02: sets title_manually_edited", () => {
 
 describe("T-1.6.03: updates document.title", () => {
   it("title change via optimistic update flows to parent which sets document.title", async () => {
-    const updatedIdea = { ...MOCK_PROJECT, title: "Updated Doc Title" };
-    vi.mocked(patchProject).mockResolvedValue(updatedIdea);
+    const updatedProject = { ...MOCK_PROJECT, title: "Updated Doc Title" };
+    vi.mocked(patchProject).mockResolvedValue(updatedProject);
     const onProjectUpdate = vi.fn();
     renderHeader({ onProjectUpdate });
 
@@ -231,7 +231,7 @@ describe("T-1.6.03: updates document.title", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() => {
-      expect(onProjectUpdate).toHaveBeenCalledWith(updatedIdea);
+      expect(onProjectUpdate).toHaveBeenCalledWith(updatedProject);
     });
   });
 });

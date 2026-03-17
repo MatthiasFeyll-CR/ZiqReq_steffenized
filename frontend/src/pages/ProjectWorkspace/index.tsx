@@ -202,6 +202,15 @@ function ProjectWorkspaceContent({
     return urlStep;
   });
 
+  // Track which steps have been explicitly completed (via CTA buttons, not manual tab clicks)
+  const [completedSteps, setCompletedSteps] = useState<Set<ProcessStep>>(() => {
+    // If project was already submitted, both define and structure are completed
+    if (["in_review", "accepted", "dropped"].includes(project.state)) {
+      return new Set<ProcessStep>(["define", "structure"]);
+    }
+    return new Set<ProcessStep>();
+  });
+
   // Track whether the project has at least one chat message
   const [hasMessages, setHasMessages] = useState<boolean | null>(null);
 
@@ -270,6 +279,7 @@ function ProjectWorkspaceContent({
     if (project.state === "rejected" || project.state === "deleted") {
       handleStepChange("define");
     } else if (["in_review", "accepted", "dropped"].includes(project.state)) {
+      setCompletedSteps((prev) => new Set(prev).add("define").add("structure"));
       handleStepChange("review");
     }
   }, [project.state, handleStepChange]);
@@ -334,6 +344,9 @@ function ProjectWorkspaceContent({
     }
   }, [project, onProjectUpdate]);
 
+  // Structure step is read-only when user navigated there manually (without completing define via CTA)
+  const structureNotCompleted = activeStep === "structure" && !completedSteps.has("define");
+
   const effectiveChatLocked = chatLocked || !isOnline || readOnly || isDeleted || isInReviewReadOnly;
   const effectiveLockReason = readOnly
     ? "Viewing shared project — chat is read-only"
@@ -374,6 +387,7 @@ function ProjectWorkspaceContent({
         structureGateMessage={structureGateMessage}
         reviewGateMessage={reviewGateMessage}
         shareToken={shareToken}
+        completedSteps={completedSteps}
       />
 
       {/* Banners */}
@@ -473,7 +487,10 @@ function ProjectWorkspaceContent({
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => handleStepChange("structure")}
+                  onClick={() => {
+                    setCompletedSteps((prev) => new Set(prev).add("define"));
+                    handleStepChange("structure");
+                  }}
                   className="shrink-0 gap-1.5"
                   data-testid="continue-to-structure"
                 >
@@ -491,11 +508,12 @@ function ProjectWorkspaceContent({
           projectId={project.id}
           projectType={project.project_type}
           projectState={project.state}
-          disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
-          readOnly={effectiveReadOnly}
+          disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly || structureNotCompleted}
+          readOnly={effectiveReadOnly || structureNotCompleted}
           collaborators={project.collaborators}
           onStepChange={handleStepChange}
           onSubmitted={() => {
+            setCompletedSteps((prev) => new Set(prev).add("define").add("structure"));
             fetchProject(project.id).then((updated) => {
               onProjectUpdate(updated);
             }).catch(() => {});

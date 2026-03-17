@@ -20,6 +20,7 @@ interface ProcessStepperProps {
   canAccessReview: boolean;
   structureGateMessage?: string;
   reviewGateMessage?: string;
+  completedSteps?: Set<ProcessStep>;
 }
 
 export function ProcessStepper({
@@ -29,6 +30,7 @@ export function ProcessStepper({
   canAccessReview,
   structureGateMessage,
   reviewGateMessage,
+  completedSteps,
 }: ProcessStepperProps) {
   const { t } = useTranslation();
 
@@ -59,7 +61,7 @@ export function ProcessStepper({
         {STEPS.map((step, index) => {
           const config = stepConfig[step];
           const isActive = step === activeStep;
-          const isCompleted = index < activeIndex;
+          const isCompleted = completedSteps ? completedSteps.has(step) : index < activeIndex;
           const isGated =
             (step === "structure" && !canAccessStructure) ||
             (step === "review" && !canAccessReview);

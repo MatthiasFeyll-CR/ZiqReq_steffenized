@@ -111,14 +111,14 @@ function renderLandingPage() {
   );
 }
 
-const emptyIdeasResponse = { results: [], count: 0, next: null, previous: null };
+const emptyProjectsResponse = { results: [], count: 0, next: null, previous: null };
 const emptyInvitationsResponse = { invitations: [] };
 
 beforeEach(() => {
-  vi.mocked(useMyProjects).mockReturnValue(mockHook(emptyIdeasResponse));
-  vi.mocked(useCollaboratingProjects).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useMyProjects).mockReturnValue(mockHook(emptyProjectsResponse));
+  vi.mocked(useCollaboratingProjects).mockReturnValue(mockHook(emptyProjectsResponse));
   vi.mocked(useInvitations).mockReturnValue(mockHook(emptyInvitationsResponse));
-  vi.mocked(useTrash).mockReturnValue(mockHook(emptyIdeasResponse));
+  vi.mocked(useTrash).mockReturnValue(mockHook(emptyProjectsResponse));
   mockNavigate.mockClear();
   mockDeleteMutate.mockClear();
   mockRestoreMutate.mockClear();
@@ -161,8 +161,8 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     vi.mocked(useMyProjects).mockReturnValue(
       mockHook({
         results: [
-          { id: "1", title: "First idea", state: "open", updated_at: "2024-01-01", deleted_at: null },
-          { id: "2", title: "Second idea", state: "open", updated_at: "2024-01-02", deleted_at: null },
+          { id: "1", title: "First project", state: "open", updated_at: "2024-01-01", deleted_at: null },
+          { id: "2", title: "Second project", state: "open", updated_at: "2024-01-02", deleted_at: null },
         ],
         count: 2,
         next: null,
@@ -172,8 +172,8 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
 
     renderLandingPage();
 
-    expect(screen.getByText("First idea")).toBeInTheDocument();
-    expect(screen.getByText("Second idea")).toBeInTheDocument();
+    expect(screen.getByText("First project")).toBeInTheDocument();
+    expect(screen.getByText("Second project")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
@@ -183,8 +183,8 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
         invitations: [
           {
             id: "inv-1",
-            project_id: "idea-1",
-            project_title: "Collab idea",
+            project_id: "proj-1",
+            project_title: "Collab project",
             inviter: { id: "u2", display_name: "Bob" },
             created_at: "2024-01-01",
           },
@@ -194,11 +194,11 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
 
     renderLandingPage();
 
-    expect(screen.getByText("Collab idea")).toBeInTheDocument();
+    expect(screen.getByText("Collab project")).toBeInTheDocument();
     expect(screen.getByText("From Bob")).toBeInTheDocument();
   });
 
-  it("clicking an idea card navigates to /project/:uuid", async () => {
+  it("clicking a project card navigates to /project/:uuid", async () => {
     const user = userEvent.setup();
     vi.mocked(useMyProjects).mockReturnValue(
       mockHook({

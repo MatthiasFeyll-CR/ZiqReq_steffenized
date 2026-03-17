@@ -92,7 +92,7 @@ beforeEach(() => {
 });
 
 describe("T-1.7.01: /project/:uuid renders workspace", () => {
-  it("shows loading skeleton then renders workspace with idea data", async () => {
+  it("shows loading skeleton then renders workspace with project data", async () => {
     vi.mocked(fetchProject).mockResolvedValue(MOCK_PROJECT);
 
     renderWorkspacePage(MOCK_PROJECT.id);
@@ -110,7 +110,7 @@ describe("T-1.7.01: /project/:uuid renders workspace", () => {
     expect(fetchProject).toHaveBeenCalledWith(MOCK_PROJECT.id);
   });
 
-  it("updates document.title with idea title", async () => {
+  it("updates document.title with project title", async () => {
     vi.mocked(fetchProject).mockResolvedValue(MOCK_PROJECT);
 
     renderWorkspacePage(MOCK_PROJECT.id);

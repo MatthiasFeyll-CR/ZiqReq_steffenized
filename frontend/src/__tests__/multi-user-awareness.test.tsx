@@ -110,7 +110,7 @@ function createQueryClient() {
 function makeProject(overrides: Partial<Project> = {}): Project {
   return {
     id: PROJECT_ID,
-    title: "Test Idea",
+    title: "Test Project",
     project_type: "software",
     state: "open",
     agent_mode: "interactive",
@@ -181,7 +181,7 @@ describe("UI-CHAT.05 / T-2.5.01: Sender names in multi-user chat", () => {
     expect(screen.getByText("Owner User")).toBeInTheDocument();
   });
 
-  it("does NOT show sender names for single-user ideas", async () => {
+  it("does NOT show sender names for single-user projects", async () => {
     const project = makeProject({ collaborators: [] });
     mockFetchChatMessages.mockResolvedValue({
       messages: [

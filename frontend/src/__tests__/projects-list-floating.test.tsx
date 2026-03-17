@@ -25,13 +25,13 @@ function createQueryClient() {
   });
 }
 
-const mockIdeas = [
-  { id: "id-1", title: "First Idea", state: "open", visibility: "private", role: "owner", owner: null, collaborator_count: 0, updated_at: new Date().toISOString(), deleted_at: null },
-  { id: "id-2", title: "Second Idea", state: "open", visibility: "private", role: "owner", owner: null, collaborator_count: 0, updated_at: new Date().toISOString(), deleted_at: null },
+const mockProjects = [
+  { id: "id-1", title: "First Project", state: "open", visibility: "private", role: "owner", owner: null, collaborator_count: 0, updated_at: new Date().toISOString(), deleted_at: null },
+  { id: "id-2", title: "Second Project", state: "open", visibility: "private", role: "owner", owner: null, collaborator_count: 0, updated_at: new Date().toISOString(), deleted_at: null },
 ];
 
-function mockHookReturn(ideas = mockIdeas, isLoading = false) {
-  return { data: { results: ideas, count: ideas.length, next: null, previous: null }, isLoading, isError: false, error: null } as never;
+function mockHookReturn(projects = mockProjects, isLoading = false) {
+  return { data: { results: projects, count: projects.length, next: null, previous: null }, isLoading, isError: false, error: null } as never;
 }
 
 function renderFloating(onClose = vi.fn()) {
@@ -60,10 +60,10 @@ describe("ProjectsListFloating", () => {
     expect(screen.getByRole("tab", { name: "Closed" })).toBeInTheDocument();
   });
 
-  it("renders ideas in the active tab by default", () => {
+  it("renders projects in the active tab by default", () => {
     renderFloating();
-    expect(screen.getByText("First Idea")).toBeInTheDocument();
-    expect(screen.getByText("Second Idea")).toBeInTheDocument();
+    expect(screen.getByText("First Project")).toBeInTheDocument();
+    expect(screen.getByText("Second Project")).toBeInTheDocument();
   });
 
   it("shows empty message when no projects", () => {
@@ -78,10 +78,10 @@ describe("ProjectsListFloating", () => {
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
-  it("navigates to idea and closes on click", async () => {
+  it("navigates to project and closes on click", async () => {
     const user = userEvent.setup();
     const onClose = renderFloating();
-    await user.click(screen.getByText("First Idea"));
+    await user.click(screen.getByText("First Project"));
     expect(mockNavigate).toHaveBeenCalledWith("/project/id-1");
     expect(onClose).toHaveBeenCalled();
   });

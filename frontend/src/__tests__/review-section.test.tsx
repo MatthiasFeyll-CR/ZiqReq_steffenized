@@ -27,17 +27,17 @@ vi.mock("@/app/providers", () => ({
   useWsSend: () => vi.fn(),
 }));
 
-const { mockFetchIdea, mockFetchTimeline, mockFetchIdeaReviewers } = vi.hoisted(() => ({
-  mockFetchIdea: vi.fn(),
+const { mockFetchProject, mockFetchTimeline, mockFetchProjectReviewers } = vi.hoisted(() => ({
+  mockFetchProject: vi.fn(),
   mockFetchTimeline: vi.fn(),
-  mockFetchIdeaReviewers: vi.fn(),
+  mockFetchProjectReviewers: vi.fn(),
 }));
 
 vi.mock("@/api/projects", async () => {
   const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
-    fetchProject: mockFetchIdea,
+    fetchProject: mockFetchProject,
   };
 });
 
@@ -51,7 +51,7 @@ vi.mock("@/api/review", async () => {
   return {
     ...actual,
     fetchTimeline: mockFetchTimeline,
-    fetchProjectReviewers: mockFetchIdeaReviewers,
+    fetchProjectReviewers: mockFetchProjectReviewers,
   };
 });
 
@@ -79,7 +79,7 @@ function makeProject(state: Project["state"]): Project {
 }
 
 function renderWorkspace(project: Project, step?: string) {
-  mockFetchIdea.mockResolvedValue(project);
+  mockFetchProject.mockResolvedValue(project);
 
   const store = configureStore({
     reducer: { websocket: websocketReducer },
@@ -109,11 +109,11 @@ function renderWorkspace(project: Project, step?: string) {
 }
 
 beforeEach(() => {
-  mockFetchIdea.mockReset();
+  mockFetchProject.mockReset();
   mockFetchTimeline.mockReset();
-  mockFetchIdeaReviewers.mockReset();
+  mockFetchProjectReviewers.mockReset();
   mockFetchTimeline.mockResolvedValue([]);
-  mockFetchIdeaReviewers.mockResolvedValue({ reviewers: [] });
+  mockFetchProjectReviewers.mockResolvedValue({ reviewers: [] });
   Element.prototype.scrollIntoView = vi.fn();
 });
 
@@ -189,7 +189,7 @@ describe("UI-REVIEW.03: Review section rendering with timeline", () => {
         created_at: "2026-03-01T10:00:00Z",
       },
     ]);
-    mockFetchIdeaReviewers.mockResolvedValue({
+    mockFetchProjectReviewers.mockResolvedValue({
       reviewers: [{ id: "r1", display_name: "Bob Reviewer" }],
     });
 
@@ -231,7 +231,7 @@ describe("UI-REVIEW.03: Review section rendering with timeline", () => {
   });
 
   it("shows 'No reviewers assigned' when no reviewers", async () => {
-    mockFetchIdeaReviewers.mockResolvedValue({ reviewers: [] });
+    mockFetchProjectReviewers.mockResolvedValue({ reviewers: [] });
 
     renderWorkspace(makeProject("in_review"));
 

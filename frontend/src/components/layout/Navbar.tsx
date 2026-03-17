@@ -13,11 +13,11 @@ import { NotificationPanel } from "@/components/notifications/NotificationPanel"
 export function Navbar() {
   const { user, hasRole } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [ideasOpen, setIdeasOpen] = useState(false)
+  const [projectsOpen, setProjectsOpen] = useState(false)
   const [notifPanelOpen, setNotifPanelOpen] = useState(false)
   const { t } = useTranslation()
 
-  const closeIdeas = useCallback(() => setIdeasOpen(false), [])
+  const closeProjects = useCallback(() => setProjectsOpen(false), [])
   const toggleNotifPanel = useCallback(() => setNotifPanelOpen((prev) => !prev), [])
   const closeNotifPanel = useCallback(() => setNotifPanelOpen(false), [])
 
@@ -44,13 +44,13 @@ export function Navbar() {
         <div className="relative">
           <button
             className="flex items-center gap-1 rounded-full px-2 py-1.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-            onClick={() => setIdeasOpen((o) => !o)}
+            onClick={() => setProjectsOpen((o) => !o)}
             aria-label={t("projectsFloat.title")}
           >
             <Lightbulb className="h-5 w-5" />
             <span className="hidden sm:inline">{t("nav.projects")}</span>
           </button>
-          {ideasOpen && <ProjectsListFloating onClose={closeIdeas} />}
+          {projectsOpen && <ProjectsListFloating onClose={closeProjects} />}
         </div>
         <div className="relative">
           <NotificationBell onTogglePanel={toggleNotifPanel} />

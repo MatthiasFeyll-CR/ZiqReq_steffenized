@@ -68,7 +68,7 @@ const MOCK_PROJECT: Project = {
   collaborators: [],
 };
 
-function renderHeader(idea: Project = MOCK_PROJECT) {
+function renderHeader(project: Project = MOCK_PROJECT) {
   const onProjectUpdate = vi.fn();
   const store = configureStore({ reducer: { presence: presenceReducer } });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -77,7 +77,7 @@ function renderHeader(idea: Project = MOCK_PROJECT) {
       <Provider store={store}>
         <MemoryRouter>
           <WorkspaceHeader
-              project={idea}
+              project={project}
               onProjectUpdate={onProjectUpdate}
               activeStep="define"
               onStepChange={() => {}}
@@ -110,7 +110,7 @@ describe("T-2.3.03: Title update animates", () => {
     // Verify original title in the title-display container
     expect(screen.getByTestId("title-display")).toHaveTextContent("Original Title");
 
-    const updatedIdea = { ...MOCK_PROJECT, title: "AI-Generated Title" };
+    const updatedProject = { ...MOCK_PROJECT, title: "AI-Generated Title" };
 
     // Re-render with new title (simulating WebSocket title_update)
     rerender(
@@ -118,7 +118,7 @@ describe("T-2.3.03: Title update animates", () => {
         <Provider store={store}>
           <MemoryRouter>
             <WorkspaceHeader
-                project={updatedIdea}
+                project={updatedProject}
                 onProjectUpdate={onProjectUpdate}
                 activeStep="define"
                 onStepChange={() => {}}

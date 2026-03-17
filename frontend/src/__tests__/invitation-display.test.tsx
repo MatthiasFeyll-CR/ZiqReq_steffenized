@@ -80,7 +80,7 @@ beforeEach(() => {
       {
         id: INVITE_ID,
         project_id: PROJECT_ID,
-        project_title: "Test Idea",
+        project_title: "Test Project",
         inviter: { id: "inviter-1", display_name: INVITER_NAME },
         created_at: "2024-01-01T00:00:00Z",
       },
@@ -90,22 +90,22 @@ beforeEach(() => {
   mockDeclineInvitation.mockResolvedValue({ message: "Invitation declined" });
 });
 
-describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/decline", () => {
-  it("renders invitation card with inviter name, idea title, and action buttons", () => {
+describe("UI-INVITE.01: InvitationCard renders with inviter, project, accept/decline", () => {
+  it("renders invitation card with inviter name, project title, and action buttons", () => {
     const qc = createQueryClient();
     render(
       <QueryClientProvider client={qc}>
         <InvitationCard
           id={INVITE_ID}
           projectId={PROJECT_ID}
-          projectTitle="Test Idea"
+          projectTitle="Test Project"
           inviterName={INVITER_NAME}
           createdAt="2024-01-01T00:00:00Z"
         />
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText("Test Idea")).toBeInTheDocument();
+    expect(screen.getByText("Test Project")).toBeInTheDocument();
     expect(screen.getByText(/Alice Inviter/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /accept/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /decline/i })).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
         <InvitationCard
           id={INVITE_ID}
           projectId={PROJECT_ID}
-          projectTitle="Test Idea"
+          projectTitle="Test Project"
           inviterName={INVITER_NAME}
           createdAt="2024-01-01T00:00:00Z"
           onAccept={onAccept}
@@ -141,7 +141,7 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
         <InvitationCard
           id={INVITE_ID}
           projectId={PROJECT_ID}
-          projectTitle="Test Idea"
+          projectTitle="Test Project"
           inviterName={INVITER_NAME}
           createdAt="2024-01-01T00:00:00Z"
           onDecline={onDecline}
@@ -155,7 +155,7 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, idea, accept/declin
 });
 
 describe("UI-INVITE.02: InvitationBanner renders in workspace", () => {
-  it("shows banner when pending invitation exists for current idea", async () => {
+  it("shows banner when pending invitation exists for current project", async () => {
     const qc = createQueryClient();
     render(
       <QueryClientProvider client={qc}>
@@ -173,7 +173,7 @@ describe("UI-INVITE.02: InvitationBanner renders in workspace", () => {
     expect(screen.getByTestId("banner-decline-button")).toBeInTheDocument();
   });
 
-  it("does not show banner when no pending invitation for this idea", async () => {
+  it("does not show banner when no pending invitation for this project", async () => {
     mockFetchInvitations.mockResolvedValue({ invitations: [] });
 
     const qc = createQueryClient();

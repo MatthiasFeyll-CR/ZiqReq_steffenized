@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
-import { searchIdeasForReference } from "@/api/comments";
+import { searchProjectsForReference } from "@/api/comments";
 import { cn } from "@/lib/utils";
 
 interface CommentInputProps {
@@ -21,7 +21,7 @@ export function CommentInput({
 
   // Autocomplete state
   const [autocomplete, setAutocomplete] = useState<{
-    type: "mention" | "idea_ref";
+    type: "mention" | "project_ref";
     query: string;
     startPos: number;
     results: Array<{ id: string; display: string }>;
@@ -127,9 +127,9 @@ export function CommentInput({
       if (hashMatch && hashMatch[1]) {
         const query = hashMatch[1];
         const startPos = cursorPos - query.length - 1;
-        searchIdeasForReference(query.trim()).then((results) => {
+        searchProjectsForReference(query.trim()).then((results) => {
           setAutocomplete({
-            type: "idea_ref",
+            type: "project_ref",
             query,
             startPos,
             results: results.map((r) => ({ id: r.id, display: r.title })),
@@ -161,7 +161,7 @@ export function CommentInput({
                 applyAutocomplete(item);
               }}
             >
-              {autocomplete.type === "idea_ref" ? "#" : "@"}
+              {autocomplete.type === "project_ref" ? "#" : "@"}
               {item.display}
             </button>
           ))}

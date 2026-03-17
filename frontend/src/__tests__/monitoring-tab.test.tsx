@@ -5,7 +5,7 @@ import type { MonitoringData, AlertConfig } from "@/api/admin";
 
 const mockMonitoringData: MonitoringData = {
   active_connections: 42,
-  ideas_by_state: {
+  projects_by_state: {
     open: 10,
     in_review: 5,
     accepted: 20,
@@ -84,7 +84,7 @@ describe("MonitoringTab — UI-ADMIN.03: Monitoring dashboard renders stats", ()
     expect(pdfDot).toHaveClass("bg-red-500");
   });
 
-  it("renders ideas by state breakdown", async () => {
+  it("renders projects by state breakdown", async () => {
     vi.mocked(fetchMonitoringData).mockResolvedValue(mockMonitoringData);
     vi.mocked(fetchAlertConfig).mockResolvedValue(mockAlertConfig);
     render(<MonitoringTab />);

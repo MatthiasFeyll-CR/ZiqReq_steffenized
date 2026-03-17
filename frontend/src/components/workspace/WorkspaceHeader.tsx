@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { patchProject, deleteProject, type Project } from "@/api/projects";
+import { patchProject, deleteProject, fetchProject, type Project } from "@/api/projects";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
 import { PresenceIndicators } from "./PresenceIndicators";
 import { ProcessStepper, type ProcessStep } from "./ProcessStepper";
@@ -39,6 +39,7 @@ interface WorkspaceHeaderProps {
   structureGateMessage?: string;
   reviewGateMessage?: string;
   shareToken?: string | null;
+  completedSteps?: Set<ProcessStep>;
 }
 
 export function WorkspaceHeader({
@@ -52,6 +53,7 @@ export function WorkspaceHeader({
   structureGateMessage,
   reviewGateMessage,
   shareToken,
+  completedSteps,
 }: WorkspaceHeaderProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -126,6 +128,16 @@ export function WorkspaceHeader({
     },
     [handleTitleSave, project.title],
   );
+
+  const handleLeave = useCallback(async () => {
+    try {
+      const updated = await fetchProject(project.id);
+      onProjectUpdate(updated);
+    } catch {
+      // If refetch fails, optimistically mark as read-only
+      onProjectUpdate({ ...project, read_only: true });
+    }
+  }, [project, onProjectUpdate]);
 
   const handleDelete = useCallback(async () => {
     try {
@@ -266,6 +278,7 @@ export function WorkspaceHeader({
           canAccessReview={canAccessReview}
           structureGateMessage={structureGateMessage}
           reviewGateMessage={reviewGateMessage}
+          completedSteps={completedSteps}
         />
       </div>
 
@@ -274,6 +287,7 @@ export function WorkspaceHeader({
         ownerId={project.owner_id}
         open={collaboratorModalOpen}
         onOpenChange={setCollaboratorModalOpen}
+        onLeave={handleLeave}
       />
 
       <CommentsPanel

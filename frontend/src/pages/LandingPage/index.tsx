@@ -66,7 +66,7 @@ export default function LandingPage() {
 
   useLandingSync();
 
-  const showMyProjects = !filters.ownership || filters.ownership === "my_ideas";
+  const showMyProjects = !filters.ownership || filters.ownership === "my_projects";
   const showCollaborating =
     !filters.ownership || filters.ownership === "collaborating";
 

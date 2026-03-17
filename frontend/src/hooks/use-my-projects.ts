@@ -8,7 +8,7 @@ export function useMyProjects(filters?: ProjectsFilters) {
   if (filters?.state) params.state = filters.state;
 
   return useQuery({
-    queryKey: ["projects", "my_ideas", params],
-    queryFn: () => fetchProjects("my_ideas", params),
+    queryKey: ["projects", "my_projects", params],
+    queryFn: () => fetchProjects("my_projects", params),
   });
 }

@@ -9,9 +9,9 @@ beforeAll(async () => {
   await i18n.changeLanguage("en");
 });
 
-const { mockSubmitIdea, mockFetchReviewerUsers, mockToastSuccess, mockToastError } = vi.hoisted(() => {
+const { mockSubmitProject, mockFetchReviewerUsers, mockToastSuccess, mockToastError } = vi.hoisted(() => {
   return {
-    mockSubmitIdea: vi.fn(),
+    mockSubmitProject: vi.fn(),
     mockFetchReviewerUsers: vi.fn(),
     mockToastSuccess: vi.fn(),
     mockToastError: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/api/projects", async () => {
   const actual = await vi.importActual("@/api/projects");
   return {
     ...actual,
-    submitProject: mockSubmitIdea,
+    submitProject: mockSubmitProject,
   };
 });
 
@@ -94,7 +94,7 @@ describe("SubmitArea visibility", () => {
 describe("UI-SUBMIT.01: Submit with message and reviewers", () => {
   it("submits with message and selected reviewers", async () => {
     const user = userEvent.setup();
-    mockSubmitIdea.mockResolvedValue({
+    mockSubmitProject.mockResolvedValue({
       version_number: 1,
       pdf_url: "/api/projects/1/brd/versions/1/pdf",
       state: "in_review",
@@ -109,7 +109,7 @@ describe("UI-SUBMIT.01: Submit with message and reviewers", () => {
 
     // Fill message
     const textarea = screen.getByTestId("submit-message");
-    await user.type(textarea, "Please review this idea");
+    await user.type(textarea, "Please review this project");
 
     // Select reviewers
     const checkboxes = screen.getAllByRole("checkbox");
@@ -120,8 +120,8 @@ describe("UI-SUBMIT.01: Submit with message and reviewers", () => {
     await user.click(screen.getByTestId("submit-button"));
 
     await waitFor(() => {
-      expect(mockSubmitIdea).toHaveBeenCalledWith(PROJECT_ID, {
-        message: "Please review this idea",
+      expect(mockSubmitProject).toHaveBeenCalledWith(PROJECT_ID, {
+        message: "Please review this project",
         reviewer_ids: ["rev-1", "rev-2"],
       });
     });
@@ -133,7 +133,7 @@ describe("UI-SUBMIT.01: Submit with message and reviewers", () => {
 describe("UI-SUBMIT.02: Submit without optional fields", () => {
   it("submits with no message and no reviewers", async () => {
     const user = userEvent.setup();
-    mockSubmitIdea.mockResolvedValue({
+    mockSubmitProject.mockResolvedValue({
       version_number: 1,
       pdf_url: "/api/projects/1/brd/versions/1/pdf",
       state: "in_review",
@@ -144,7 +144,7 @@ describe("UI-SUBMIT.02: Submit without optional fields", () => {
     await user.click(screen.getByTestId("submit-button"));
 
     await waitFor(() => {
-      expect(mockSubmitIdea).toHaveBeenCalledWith(PROJECT_ID, {
+      expect(mockSubmitProject).toHaveBeenCalledWith(PROJECT_ID, {
         message: undefined,
         reviewer_ids: undefined,
       });
@@ -157,7 +157,7 @@ describe("UI-SUBMIT.02: Submit without optional fields", () => {
 describe("UI-SUBMIT.03: Submit error handling", () => {
   it("shows error toast on API failure", async () => {
     const user = userEvent.setup();
-    mockSubmitIdea.mockRejectedValue(new Error("Invalid state"));
+    mockSubmitProject.mockRejectedValue(new Error("Invalid state"));
 
     renderSubmitArea("open");
 
@@ -173,7 +173,7 @@ describe("SubmitArea callbacks", () => {
   it("calls onSubmitted callback on success", async () => {
     const user = userEvent.setup();
     const onSubmitted = vi.fn();
-    mockSubmitIdea.mockResolvedValue({
+    mockSubmitProject.mockResolvedValue({
       version_number: 1,
       pdf_url: "/url",
       state: "in_review",

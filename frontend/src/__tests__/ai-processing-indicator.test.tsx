@@ -55,7 +55,7 @@ describe("T-2.12.01: AI processing indicator shows", () => {
     render(<AIProcessingIndicator projectId={PROJECT_ID} />);
 
     act(() => {
-      dispatchAiProcessing("other-idea-id", "started");
+      dispatchAiProcessing("other-project-id", "started");
     });
 
     expect(screen.queryByTestId("ai-processing-indicator")).not.toBeInTheDocument();

@@ -129,11 +129,11 @@ describe("T-10.2.02: Categories render with counts", () => {
   it("renders counts for categories with data", async () => {
     const data: ReviewListResponse = {
       assigned_to_me: [
-        { id: "1", title: "Idea A", state: "in_review", owner_id: "o1", owner_name: "Alice", submitted_at: "2026-01-01T00:00:00Z", reviewers: [] },
-        { id: "2", title: "Idea B", state: "in_review", owner_id: "o2", owner_name: "Bob", submitted_at: "2026-01-02T00:00:00Z", reviewers: [] },
+        { id: "1", title: "Project A", state: "in_review", owner_id: "o1", owner_name: "Alice", submitted_at: "2026-01-01T00:00:00Z", reviewers: [] },
+        { id: "2", title: "Project B", state: "in_review", owner_id: "o2", owner_name: "Bob", submitted_at: "2026-01-02T00:00:00Z", reviewers: [] },
       ],
       unassigned: [
-        { id: "3", title: "Idea C", state: "in_review", owner_id: "o3", owner_name: "Charlie", submitted_at: "2026-01-03T00:00:00Z", reviewers: [] },
+        { id: "3", title: "Project C", state: "in_review", owner_id: "o3", owner_name: "Charlie", submitted_at: "2026-01-03T00:00:00Z", reviewers: [] },
       ],
       accepted: [],
       rejected: [],
@@ -143,14 +143,14 @@ describe("T-10.2.02: Categories render with counts", () => {
     renderReviewPage(data);
 
     // Wait for data to load
-    expect(await screen.findByText("Idea A")).toBeInTheDocument();
+    expect(await screen.findByText("Project A")).toBeInTheDocument();
 
     // Check counts
     expect(screen.getByText("2")).toBeInTheDocument(); // assigned_to_me
     expect(screen.getByText("1")).toBeInTheDocument(); // unassigned
   });
 
-  it("renders ReviewCard for each idea in a category", async () => {
+  it("renders ReviewCard for each project in a category", async () => {
     const data: ReviewListResponse = {
       ...emptyResponse,
       assigned_to_me: [

@@ -69,8 +69,8 @@ function createAuthValue(userId = REVIEWER_ID): AuthContextValue {
 
 function makeProject(overrides: Partial<ReviewProject> = {}): ReviewProject {
   return {
-    id: "idea-1",
-    title: "Test Idea",
+    id: "proj-1",
+    title: "Test Project",
     state: "in_review",
     owner_id: OWNER_ID,
     owner_name: "Alice Owner",
@@ -121,7 +121,7 @@ beforeEach(() => {
 });
 
 describe("UI-ASSIGN.01: Assign button works", () => {
-  it("shows Assign button on unassigned idea", () => {
+  it("shows Assign button on unassigned project", () => {
     renderCard(makeProject(), "unassigned");
     expect(screen.getByTestId("assign-button")).toBeInTheDocument();
     expect(screen.getByTestId("assign-button")).toHaveTextContent("Assign");
@@ -134,7 +134,7 @@ describe("UI-ASSIGN.01: Assign button works", () => {
 
     await user.click(screen.getByTestId("assign-button"));
 
-    expect(mockAssignReview).toHaveBeenCalledWith("idea-1");
+    expect(mockAssignReview).toHaveBeenCalledWith("proj-1");
   });
 
   it("does not navigate when clicking Assign button", async () => {
@@ -168,7 +168,7 @@ describe("UI-ASSIGN.01: Assign button works", () => {
 });
 
 describe("UI-ASSIGN.02: Unassign button works", () => {
-  it("shows Unassign button on assigned idea", () => {
+  it("shows Unassign button on assigned project", () => {
     renderCard(makeProject(), "assigned");
     expect(screen.getByTestId("unassign-button")).toBeInTheDocument();
     expect(screen.getByTestId("unassign-button")).toHaveTextContent("Unassign");
@@ -181,7 +181,7 @@ describe("UI-ASSIGN.02: Unassign button works", () => {
 
     await user.click(screen.getByTestId("unassign-button"));
 
-    expect(mockUnassignReview).toHaveBeenCalledWith("idea-1");
+    expect(mockUnassignReview).toHaveBeenCalledWith("proj-1");
   });
 
   it("shows error toast on unassign failure", async () => {

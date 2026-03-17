@@ -96,12 +96,12 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
       dispatchNotification({
         event_type: "collaborator_joined",
         title: "Collaborator joined",
-        body: "Bob joined your idea",
+        body: "Bob joined your project",
       });
     });
 
     expect(toast.success).toHaveBeenCalledWith(
-      "Collaborator joined: Bob joined your idea",
+      "Collaborator joined: Bob joined your project",
       expect.objectContaining({ autoClose: 5000 }),
     );
   });
@@ -114,12 +114,12 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
       dispatchNotification({
         event_type: "review_state_changed",
         title: "Review updated",
-        body: "Your idea was rejected",
+        body: "Your project was rejected",
       });
     });
 
     expect(toast.warning).toHaveBeenCalledWith(
-      "Review updated: Your idea was rejected",
+      "Review updated: Your project was rejected",
       expect.objectContaining({ autoClose: 5000 }),
     );
   });
@@ -132,12 +132,12 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
       dispatchNotification({
         event_type: "removed_from_project",
         title: "Removed",
-        body: "You were removed from an idea",
+        body: "You were removed from a project",
       });
     });
 
     expect(toast.warning).toHaveBeenCalledWith(
-      "Removed: You were removed from an idea",
+      "Removed: You were removed from a project",
       expect.objectContaining({ autoClose: 5000 }),
     );
   });
@@ -217,9 +217,9 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
         notification_id: "n-123",
         event_type: "chat_mention",
         title: "You were mentioned",
-        body: "In idea X",
-        reference_id: "idea-1",
-        reference_type: "idea",
+        body: "In project X",
+        reference_id: "proj-1",
+        reference_type: "project",
       });
     });
 
@@ -248,7 +248,7 @@ describe("WebSocket Notification Delivery — Toast & Bell Update", () => {
         notification_id: "n-456",
         event_type: "chat_mention",
         title: "You were mentioned",
-        body: "In idea Y",
+        body: "In project Y",
       });
     });
 

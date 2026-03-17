@@ -65,7 +65,7 @@ describe("T-2.11.03: Rate limit warning toast", () => {
     const { result } = renderHook(() => useRateLimit(PROJECT_ID));
 
     act(() => {
-      dispatchRateLimit("other-idea-id");
+      dispatchRateLimit("other-project-id");
     });
 
     expect(result.current.isLimited).toBe(false);

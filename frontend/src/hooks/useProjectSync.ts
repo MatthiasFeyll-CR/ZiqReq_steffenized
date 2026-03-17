@@ -57,8 +57,8 @@ export function useProjectSync({ projectId, onProjectUpdate }: UseProjectSyncOpt
   // State sync: when connection comes back online after idle disconnect
   const syncState = useCallback(async () => {
     try {
-      const updatedIdea = await fetchProject(projectIdRef.current);
-      onProjectUpdateRef.current(updatedIdea);
+      const updatedProject = await fetchProject(projectIdRef.current);
+      onProjectUpdateRef.current(updatedProject);
     } catch {
       // Silently ignore sync errors — data will refresh on next interaction
     }

@@ -66,23 +66,23 @@ export function MonitoringTab() {
     );
   }
 
-  const totalIdeas = Object.values(data.ideas_by_state).reduce((a, b) => a + b, 0);
+  const totalProjects = Object.values(data.projects_by_state).reduce((a, b) => a + b, 0);
 
   return (
     <div className="space-y-6 py-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard label={t("admin.activeConnections")} value={data.active_connections} />
-        <KPICard label={t("admin.projectsByState")} value={totalIdeas} />
+        <KPICard label={t("admin.projectsByState")} value={totalProjects} />
         <KPICard label={t("admin.activeUsers")} value={data.active_users} />
         <KPICard label={t("admin.aiRequests")} value={data.ai_processing.request_count} />
       </div>
 
-      {/* Ideas by state breakdown */}
+      {/* Projects by state breakdown */}
       <div className="rounded-md border bg-card p-4">
         <h4 className="mb-3 text-sm font-medium">{t("admin.projectsByState")}</h4>
         <div className="flex flex-wrap gap-4 text-sm">
-          {Object.entries(data.ideas_by_state).map(([state, count]) => (
+          {Object.entries(data.projects_by_state).map(([state, count]) => (
             <span key={state} className="flex items-center gap-1.5">
               <span className="capitalize text-muted-foreground">{state.replace("_", " ")}:</span>
               <span className="font-medium">{count}</span>

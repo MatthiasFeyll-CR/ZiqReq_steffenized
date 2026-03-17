@@ -14,13 +14,13 @@ describe("T-6.3.01: Presence slice state management", () => {
     const state = presenceReducer(
       initialState,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice" },
         state: "online",
       }),
     );
-    expect(state.byProject["idea-1"]).toHaveLength(1);
-    expect(state.byProject["idea-1"]![0]).toEqual({
+    expect(state.byProject["proj-1"]).toHaveLength(1);
+    expect(state.byProject["proj-1"]![0]).toEqual({
       user_id: "u1",
       display_name: "Alice",
       state: "online",
@@ -31,7 +31,7 @@ describe("T-6.3.01: Presence slice state management", () => {
     let state = presenceReducer(
       initialState,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice" },
         state: "online",
       }),
@@ -39,19 +39,19 @@ describe("T-6.3.01: Presence slice state management", () => {
     state = presenceReducer(
       state,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice" },
         state: "offline",
       }),
     );
-    expect(state.byProject["idea-1"]).toHaveLength(0);
+    expect(state.byProject["proj-1"]).toHaveLength(0);
   });
 
   it("updates existing user state from online to idle", () => {
     let state = presenceReducer(
       initialState,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice" },
         state: "online",
       }),
@@ -59,20 +59,20 @@ describe("T-6.3.01: Presence slice state management", () => {
     state = presenceReducer(
       state,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice" },
         state: "idle",
       }),
     );
-    expect(state.byProject["idea-1"]).toHaveLength(1);
-    expect(state.byProject["idea-1"]![0]!.state).toBe("idle");
+    expect(state.byProject["proj-1"]).toHaveLength(1);
+    expect(state.byProject["proj-1"]![0]!.state).toBe("idle");
   });
 
-  it("handles multiple users on same idea", () => {
+  it("handles multiple users on same project", () => {
     let state = presenceReducer(
       initialState,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice" },
         state: "online",
       }),
@@ -80,43 +80,43 @@ describe("T-6.3.01: Presence slice state management", () => {
     state = presenceReducer(
       state,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u2", display_name: "Bob" },
         state: "online",
       }),
     );
-    expect(state.byProject["idea-1"]).toHaveLength(2);
+    expect(state.byProject["proj-1"]).toHaveLength(2);
   });
 
-  it("clearProjectPresence removes all users for an idea", () => {
+  it("clearProjectPresence removes all users for a project", () => {
     let state = presenceReducer(
       initialState,
       updatePresence({
-        project_id: "idea-1",
+        project_id: "proj-1",
         user: { id: "u1", display_name: "Alice" },
         state: "online",
       }),
     );
-    state = presenceReducer(state, clearProjectPresence("idea-1"));
-    expect(state.byProject["idea-1"]).toBeUndefined();
+    state = presenceReducer(state, clearProjectPresence("proj-1"));
+    expect(state.byProject["proj-1"]).toBeUndefined();
   });
 });
 
 describe("T-6.3.02: Presence selectors", () => {
-  it("selectProjectPresence returns users for given idea", () => {
+  it("selectProjectPresence returns users for given project", () => {
     const rootState = {
       presence: {
         byProject: {
-          "idea-1": [
+          "proj-1": [
             { user_id: "u1", display_name: "Alice", state: "online" as const },
           ],
         },
       },
     } as unknown as RootState;
-    expect(selectProjectPresence("idea-1")(rootState)).toHaveLength(1);
+    expect(selectProjectPresence("proj-1")(rootState)).toHaveLength(1);
   });
 
-  it("selectProjectPresence returns empty array for unknown idea", () => {
+  it("selectProjectPresence returns empty array for unknown project", () => {
     const rootState = {
       presence: { byProject: {} },
     } as unknown as RootState;

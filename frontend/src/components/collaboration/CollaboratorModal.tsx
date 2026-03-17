@@ -42,6 +42,7 @@ interface CollaboratorModalProps {
   ownerId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onLeave?: () => void;
 }
 
 export function CollaboratorModal({
@@ -49,6 +50,7 @@ export function CollaboratorModal({
   ownerId,
   open,
   onOpenChange,
+  onLeave,
 }: CollaboratorModalProps) {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -91,6 +93,7 @@ export function CollaboratorModal({
               isOwner={isOwner}
               queryClient={queryClient}
               onCloseModal={() => onOpenChange(false)}
+              onLeave={onLeave}
             />
           </TabsContent>
 
@@ -206,16 +209,16 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
     },
   });
 
-  const ideaUrl = `${window.location.origin}/project/${projectId}`;
+  const projectUrl = `${window.location.origin}/project/${projectId}`;
 
   const handleCopyLink = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(ideaUrl);
+      await navigator.clipboard.writeText(projectUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
       const textarea = document.createElement("textarea");
-      textarea.value = ideaUrl;
+      textarea.value = projectUrl;
       document.body.appendChild(textarea);
       textarea.select();
       document.execCommand("copy");
@@ -223,7 +226,7 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [ideaUrl]);
+  }, [projectUrl]);
 
   const handleInviteSelected = useCallback(() => {
     if (selectedUsers.length === 0) return;
@@ -285,7 +288,7 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
           }
         />
         {isSearching && debouncedQuery.length >= 2 && (
-          <p className="text-sm text-text-secondary mt-1">{t("common.searching")}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("common.searching")}</p>
         )}
 
         {/* Search results dropdown */}
@@ -318,14 +321,14 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate text-foreground">{u.display_name}</p>
-                  <p className="text-xs text-text-secondary truncate">{u.email}</p>
+                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                 </div>
               </li>
             ))}
           </ul>
         )}
         {filteredResults && filteredResults.length === 0 && debouncedQuery.length >= 2 && !isSearching && (
-          <p className="text-sm text-text-secondary mt-1" data-testid="no-results">
+          <p className="text-sm text-muted-foreground mt-1" data-testid="no-results">
             {t("collaboration.noUsersFound")}
           </p>
         )}
@@ -334,7 +337,7 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
       {/* Share link + copy */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link className="h-4 w-4 shrink-0" />
-        <span className="truncate select-all">{ideaUrl}</span>
+        <span className="truncate select-all">{projectUrl}</span>
         <TooltipProvider delayDuration={0}>
           <Tooltip open={copied}>
             <TooltipTrigger asChild>
@@ -389,6 +392,7 @@ interface CollaboratorsTabProps {
   isOwner: boolean;
   queryClient: ReturnType<typeof useQueryClient>;
   onCloseModal: () => void;
+  onLeave?: () => void;
 }
 
 function CollaboratorsTab({
@@ -396,6 +400,7 @@ function CollaboratorsTab({
   isOwner,
   queryClient,
   onCloseModal,
+  onLeave,
 }: CollaboratorsTabProps) {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -443,13 +448,14 @@ function CollaboratorsTab({
       toast.success(t("collaboration.leftProject"));
       queryClient.invalidateQueries({ queryKey: ["collaborators", projectId] });
       onCloseModal();
+      onLeave?.();
     },
     onError: (error: Error) => {
       toast.error(error.message || t("collaboration.failedToLeave"));
     },
   });
 
-  if (isLoading) return <p className="py-4 text-sm text-text-secondary">{t("common.loading")}</p>;
+  if (isLoading) return <p className="py-4 text-sm text-muted-foreground">{t("common.loading")}</p>;
 
   const owner = data?.owner;
   const collaborators = data?.collaborators ?? [];
@@ -470,10 +476,10 @@ function CollaboratorsTab({
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">{c.display_name}</p>
-              <p className="text-xs text-text-secondary">{c.email}</p>
+              <p className="text-sm font-medium text-foreground">{c.display_name}</p>
+              <p className="text-xs text-muted-foreground">{c.email}</p>
               {c.joined_at && (
-                <p className="text-xs text-text-secondary">
+                <p className="text-xs text-muted-foreground">
                   {t("collaboration.joined", { time: formatRelativeTime(c.joined_at) })}
                 </p>
               )}
@@ -505,7 +511,7 @@ function CollaboratorsTab({
         </div>
       ))}
       {collaborators.length === 0 && (
-        <p className="py-4 text-center text-sm text-text-secondary" data-testid="no-collaborators">
+        <p className="py-4 text-center text-sm text-muted-foreground" data-testid="no-collaborators">
           {t("collaboration.noCollaborators")}
         </p>
       )}
@@ -633,13 +639,13 @@ function CollaboratorRow({ user, badge }: { user: CollaboratorUser; badge: strin
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium text-foreground">
             {user.display_name}
             <Badge className="ml-2" data-testid={`badge-${badge.toLowerCase().replace(" ", "-")}`}>
               {badge}
             </Badge>
           </p>
-          <p className="text-xs text-text-secondary">{user.email}</p>
+          <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
       </div>
     </div>
@@ -672,20 +678,20 @@ function PendingTab({ projectId, isOwner, onClose }: { projectId: string; isOwne
 
   if (!isOwner) {
     return (
-      <p className="py-4 text-center text-sm text-text-secondary" data-testid="pending-tab">
+      <p className="py-4 text-center text-sm text-muted-foreground" data-testid="pending-tab">
         {t("collaboration.ownerOnly")}
       </p>
     );
   }
 
-  if (isLoading) return <p className="py-4 text-sm text-text-secondary">{t("common.loading")}</p>;
+  if (isLoading) return <p className="py-4 text-sm text-muted-foreground">{t("common.loading")}</p>;
 
   const invitations = data?.invitations ?? [];
 
   return (
     <div className="space-y-2 py-2" data-testid="pending-tab">
       {invitations.length === 0 && (
-        <p className="py-4 text-center text-sm text-text-secondary" data-testid="no-pending">
+        <p className="py-4 text-center text-sm text-muted-foreground" data-testid="no-pending">
           {t("collaboration.noPending")}
         </p>
       )}
@@ -702,9 +708,9 @@ function PendingTab({ projectId, isOwner, onClose }: { projectId: string; isOwne
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="text-sm font-medium">{inv.invitee.display_name}</p>
-              <p className="text-xs text-text-secondary">{inv.invitee.email}</p>
-              <p className="text-xs text-text-secondary">
+              <p className="text-sm font-medium text-foreground">{inv.invitee.display_name}</p>
+              <p className="text-xs text-muted-foreground">{inv.invitee.email}</p>
+              <p className="text-xs text-muted-foreground">
                 {t("collaboration.invited", { time: formatRelativeTime(inv.created_at) })}
               </p>
             </div>

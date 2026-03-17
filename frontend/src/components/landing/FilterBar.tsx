@@ -30,7 +30,7 @@ const STATE_OPTIONS = [
 ] as const;
 
 const OWNERSHIP_OPTIONS = [
-  { value: "my_ideas", labelKey: "landing.filter.ownershipMyProjects" },
+  { value: "my_projects", labelKey: "landing.filter.ownershipMyProjects" },
   { value: "collaborating", labelKey: "landing.filter.ownershipCollaborating" },
 ] as const;
 
