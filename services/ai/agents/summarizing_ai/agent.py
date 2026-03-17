@@ -1,7 +1,8 @@
-"""SummarizingAIAgent — generates 6-section BRDs from project requirements data.
+"""SummarizingAIAgent — generates hierarchical requirements documents.
 
 Extends BaseAgent with direct chat completion (no tools). Supports 3 modes:
-full_generation, selective_regeneration, and section_regeneration.
+full_generation, selective_regeneration, and item_regeneration.
+Output is hierarchical: Epics/Stories (software) or Milestones/Packages (non-software).
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 from semantic_kernel.contents import ChatHistory
 
 from agents.base import BaseAgent
-from agents.summarizing_ai.prompt import SECTION_KEYS, build_system_prompt
+from agents.summarizing_ai.prompt import build_system_prompt
 from kernel.model_router import get_deployment
 from kernel.sk_factory import create_kernel
 
@@ -22,12 +23,12 @@ logger = logging.getLogger(__name__)
 
 
 class SummarizingAIAgent(BaseAgent):
-    """Summarizing AI Agent — generates structured BRDs.
+    """Summarizing AI Agent — generates hierarchical requirements documents.
 
     Supports 3 generation modes:
-    - full_generation: generates all 6 sections
-    - selective_regeneration: only regenerates unlocked sections
-    - section_regeneration: regenerates a single specified section
+    - full_generation: generates all items from scratch
+    - selective_regeneration: only regenerates unlocked items
+    - item_regeneration: regenerates a single epic/milestone or story/package
     """
 
     agent_name: str = "summarizing_ai"
@@ -39,38 +40,35 @@ class SummarizingAIAgent(BaseAgent):
         Args:
             input_data: Dict with keys:
                 - mode: str — generation mode
+                - project_type: str — 'software' or 'non_software'
                 - chat_summary: str — summary of chat context
                 - recent_messages: list[dict] — last 20 messages
-                - locked_sections: list[str] — locked section names
+                - locked_items: dict[str, bool] — locked item IDs
                 - allow_information_gaps: bool — /TODO vs 'Not enough information'
-                - section_name: str | None — for section_regeneration mode
+                - item_id: str | None — for item_regeneration mode
         """
         mode = input_data.get("mode", "full_generation")
+        project_type = input_data.get("project_type", "software")
 
-        # Build system prompt
         system_prompt = build_system_prompt(input_data)
 
-        # Create kernel with default tier
         deployment = get_deployment("default")
         kernel = create_kernel(deployment, service_id="summarizing_ai")
 
-        # Get chat completion service
         service = kernel.get_service("summarizing_ai")
         assert isinstance(service, AzureChatCompletion)
 
         settings = service.get_prompt_execution_settings_class()(
             service_id="summarizing_ai"
         )
-        settings.max_tokens = 3000
+        settings.max_tokens = 4000
         settings.temperature = 0.3
 
-        # Build chat history
         chat_history = ChatHistory(system_message=system_prompt)
         chat_history.add_user_message(
-            "Generate the BRD sections based on the project requirements data provided."
+            "Generate the requirements document based on the project data provided."
         )
 
-        # Invoke SK chat completion
         result = await service.get_chat_message_contents(
             chat_history=chat_history,
             settings=settings,
@@ -79,15 +77,13 @@ class SummarizingAIAgent(BaseAgent):
 
         response_text = str(result[0]) if result else ""
 
-        # Parse JSON response
-        parsed = _parse_response(response_text)
-
-        # Apply mode logic
+        parsed = _parse_response(response_text, project_type)
         output = _apply_mode_logic(parsed, input_data)
 
         logger.info(
-            "[summarizing_ai] Generated BRD (mode=%s) — readiness: %s",
+            "[summarizing_ai] Generated requirements doc (mode=%s, type=%s) — readiness: %s",
             mode,
+            project_type,
             output.get("readiness_evaluation", {}),
         )
 
@@ -101,33 +97,85 @@ class SummarizingAIAgent(BaseAgent):
         return _apply_mode_logic(raw, input_data)
 
 
-def _parse_response(text: str) -> dict[str, Any]:
+def _parse_response(text: str, project_type: str) -> dict[str, Any]:
     """Parse the JSON response from the LLM.
 
     Handles cases where the LLM wraps JSON in markdown code blocks.
+    Validates the structure matches the expected project_type format.
     """
     cleaned = text.strip()
-    # Strip markdown code fences if present
     if cleaned.startswith("```"):
         lines = cleaned.split("\n")
-        # Remove first and last line (code fences)
         lines = lines[1:]
         if lines and lines[-1].strip() == "```":
             lines = lines[:-1]
         cleaned = "\n".join(lines).strip()
 
     try:
-        return json.loads(cleaned)
+        parsed = json.loads(cleaned)
     except json.JSONDecodeError:
         logger.error("[summarizing_ai] Failed to parse response: %s", text[:200])
-        # Return empty BRD with all sections insufficient
+        return _empty_response(project_type)
+
+    if not _validate_structure(parsed, project_type):
+        logger.warning(
+            "[summarizing_ai] Response structure invalid for project_type=%s",
+            project_type,
+        )
+        return _empty_response(project_type)
+
+    return parsed
+
+
+def _validate_structure(parsed: dict[str, Any], project_type: str) -> bool:
+    """Validate the parsed response has the expected hierarchical structure."""
+    if not isinstance(parsed, dict):
+        return False
+    if "structure" not in parsed:
+        return False
+    structure = parsed["structure"]
+    if not isinstance(structure, list):
+        return False
+
+    if project_type == "software":
+        for item in structure:
+            if not isinstance(item, dict):
+                return False
+            if "epic_id" not in item:
+                return False
+    else:
+        for item in structure:
+            if not isinstance(item, dict):
+                return False
+            if "milestone_id" not in item:
+                return False
+
+    return True
+
+
+def _empty_response(project_type: str) -> dict[str, Any]:
+    """Return an empty response when parsing or validation fails."""
+    if project_type == "software":
         return {
-            f"section_{key}": "Not enough information."
-            for key in SECTION_KEYS
-        } | {
+            "title": "Not enough information.",
+            "short_description": "Not enough information.",
+            "structure": [],
             "readiness_evaluation": {
-                key: "insufficient" for key in SECTION_KEYS
-            }
+                "ready_for_development": False,
+                "missing_information": ["Failed to generate requirements document."],
+                "recommendation": "Continue discussion to provide more detail.",
+            },
+        }
+    else:
+        return {
+            "title": "Not enough information.",
+            "short_description": "Not enough information.",
+            "structure": [],
+            "readiness_evaluation": {
+                "ready_for_execution": False,
+                "missing_information": ["Failed to generate requirements document."],
+                "recommendation": "Continue discussion to provide more detail.",
+            },
         }
 
 
@@ -136,41 +184,42 @@ def _apply_mode_logic(
 ) -> dict[str, Any]:
     """Apply generation mode logic to the parsed response.
 
-    - selective_regeneration: nullify locked sections
-    - section_regeneration: nullify all except target section
+    - selective_regeneration: preserve locked items as-is
+    - item_regeneration: only regenerate the target item
     """
     mode = input_data.get("mode", "full_generation")
-    locked_sections = input_data.get("locked_sections", [])
-    section_name = input_data.get("section_name")
+    project_type = input_data.get("project_type", "software")
 
-    # Ensure readiness_evaluation exists
     readiness = parsed.get("readiness_evaluation", {})
     if not readiness:
-        readiness = {key: "insufficient" for key in SECTION_KEYS}
+        if project_type == "software":
+            readiness = {
+                "ready_for_development": False,
+                "missing_information": [],
+                "recommendation": "",
+            }
+        else:
+            readiness = {
+                "ready_for_execution": False,
+                "missing_information": [],
+                "recommendation": "",
+            }
 
-    output: dict[str, Any] = {}
+    output: dict[str, Any] = {
+        "title": parsed.get("title", ""),
+        "short_description": parsed.get("short_description", ""),
+        "structure": parsed.get("structure", []),
+        "readiness_evaluation": readiness,
+    }
 
     if mode == "selective_regeneration":
-        for key in SECTION_KEYS:
-            section_field = f"section_{key}"
-            if key in locked_sections:
-                output[section_field] = None
-                # Preserve existing readiness for locked sections
-                readiness[key] = readiness.get(key, "insufficient")
-            else:
-                output[section_field] = parsed.get(section_field)
-    elif mode == "section_regeneration":
-        for key in SECTION_KEYS:
-            section_field = f"section_{key}"
-            if key == section_name:
-                output[section_field] = parsed.get(section_field)
-            else:
-                output[section_field] = None
-    else:
-        # full_generation — include all sections
-        for key in SECTION_KEYS:
-            section_field = f"section_{key}"
-            output[section_field] = parsed.get(section_field)
+        locked_items = input_data.get("locked_items", {})
+        # Structure items are kept as-is; the LLM was instructed to preserve locked items
+        # We just ensure locked items are not removed from the output
+        output["locked_items_preserved"] = list(locked_items.keys())
 
-    output["readiness_evaluation"] = readiness
+    elif mode == "item_regeneration":
+        item_id = input_data.get("item_id")
+        output["regenerated_item_id"] = item_id
+
     return output

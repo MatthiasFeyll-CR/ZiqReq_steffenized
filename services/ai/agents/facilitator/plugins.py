@@ -1,4 +1,4 @@
-"""Facilitator agent SK plugins (5 tools).
+"""Facilitator agent SK plugins (6 tools).
 
 Each method is decorated with @kernel_function so SK registers it as a
 callable tool for the Azure OpenAI function-calling loop.
@@ -6,6 +6,7 @@ callable tool for the Azure OpenAI function-calling loop.
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from typing import Any
@@ -15,6 +16,17 @@ from semantic_kernel.functions import kernel_function
 from events.publishers import publish_event
 
 logger = logging.getLogger(__name__)
+
+# Valid operations grouped by project type
+_SOFTWARE_OPERATIONS = frozenset({
+    "add_epic", "update_epic", "remove_epic", "reorder_epics",
+    "add_story", "update_story", "remove_story", "reorder_stories",
+})
+_NON_SOFTWARE_OPERATIONS = frozenset({
+    "add_milestone", "update_milestone", "remove_milestone", "reorder_milestones",
+    "add_package", "update_package", "remove_package", "reorder_packages",
+})
+_ALL_OPERATIONS = _SOFTWARE_OPERATIONS | _NON_SOFTWARE_OPERATIONS
 
 
 def _error_response(code: str, message: str) -> dict[str, Any]:
@@ -30,6 +42,7 @@ class FacilitatorPlugin:
         self.project_context = project_context or {}
         self.delegations: list[dict[str, Any]] = []
         self.chat_message_sent: bool = False
+        self.requirements_mutations: list[dict[str, Any]] = []
 
     @kernel_function(
         name="send_chat_message",
@@ -206,6 +219,97 @@ class FacilitatorPlugin:
 
         return {"delegation_id": delegation_id, "status": "queued"}
 
+    @kernel_function(
+        name="update_requirements_structure",
+        description=(
+            "Submit structured mutations to update the project's requirements. "
+            "Each mutation specifies an operation (add/update/remove/reorder) and "
+            "the data for that operation. Software projects use epic/story operations; "
+            "non-software projects use milestone/package operations."
+        ),
+    )
+    async def update_requirements_structure(
+        self,
+        mutations: str,
+    ) -> dict[str, Any]:
+        """Apply requirements structure mutations.
+
+        Args:
+            mutations: JSON string of array of {operation, data} objects.
+        """
+        # Parse mutations JSON
+        try:
+            mutations_list: list[dict[str, Any]] = json.loads(mutations)
+        except (json.JSONDecodeError, TypeError):
+            return _error_response("validation_error", "mutations must be a valid JSON array.")
+
+        if not isinstance(mutations_list, list) or len(mutations_list) == 0:
+            return _error_response("validation_error", "mutations must be a non-empty array.")
+
+        project_type = self.project_context.get("project_type", "software")
+        valid_ops = _SOFTWARE_OPERATIONS if project_type == "software" else _NON_SOFTWARE_OPERATIONS
+
+        results: list[dict[str, Any]] = []
+        for mutation in mutations_list:
+            operation = mutation.get("operation", "")
+            data = mutation.get("data", {})
+
+            # Validate operation is known
+            if operation not in _ALL_OPERATIONS:
+                results.append({
+                    "operation": operation,
+                    "status": "failed",
+                    "error": f"Unknown operation: {operation}",
+                })
+                continue
+
+            # Validate operation matches project type
+            if operation not in valid_ops:
+                results.append({
+                    "operation": operation,
+                    "status": "failed",
+                    "error": f"Operation '{operation}' is not valid for {project_type} projects.",
+                })
+                continue
+
+            # Validate required data fields
+            validation_error = _validate_mutation_data(operation, data)
+            if validation_error:
+                results.append({
+                    "operation": operation,
+                    "status": "failed",
+                    "error": validation_error,
+                })
+                continue
+
+            # Record successful mutation (actual persistence handled by pipeline Step 4)
+            results.append({
+                "operation": operation,
+                "status": "success",
+                "error": None,
+            })
+
+        # Store mutations for pipeline to process
+        self.requirements_mutations.extend(
+            m for m, r in zip(mutations_list, results) if r["status"] == "success"
+        )
+
+        # Publish event for each successful mutation
+        for mutation, result in zip(mutations_list, results):
+            if result["status"] == "success":
+                await publish_event("ai.requirements.updated", {
+                    "project_id": self.project_id,
+                    "operation": mutation.get("operation"),
+                    "data": mutation.get("data", {}),
+                })
+
+        accepted = any(r["status"] == "success" for r in results)
+        return {
+            "accepted": accepted,
+            "mutation_count": sum(1 for r in results if r["status"] == "success"),
+            "mutations_applied": results,
+        }
+
     def _has_compressed_context(self) -> bool:
         """Check if chat_context_summaries exist for this project."""
         try:
@@ -239,4 +343,37 @@ def _find_message(
     for msg in messages:
         if str(msg.get("id", "")) == message_id:
             return msg
+    return None
+
+
+# Required fields per mutation operation
+_REQUIRED_FIELDS: dict[str, list[str]] = {
+    "add_epic": ["title"],
+    "update_epic": ["epic_id"],
+    "remove_epic": ["epic_id"],
+    "reorder_epics": ["order"],
+    "add_story": ["epic_id", "title"],
+    "update_story": ["story_id"],
+    "remove_story": ["story_id"],
+    "reorder_stories": ["epic_id", "order"],
+    "add_milestone": ["title"],
+    "update_milestone": ["milestone_id"],
+    "remove_milestone": ["milestone_id"],
+    "reorder_milestones": ["order"],
+    "add_package": ["milestone_id", "title"],
+    "update_package": ["package_id"],
+    "remove_package": ["package_id"],
+    "reorder_packages": ["milestone_id", "order"],
+}
+
+
+def _validate_mutation_data(operation: str, data: dict[str, Any]) -> str | None:
+    """Validate that required fields are present for the given operation.
+
+    Returns an error message string if validation fails, or None if valid.
+    """
+    required = _REQUIRED_FIELDS.get(operation, [])
+    missing = [f for f in required if not data.get(f)]
+    if missing:
+        return f"Missing required fields for {operation}: {', '.join(missing)}"
     return None

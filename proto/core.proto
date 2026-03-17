@@ -131,14 +131,26 @@ message GetRequirementsStateResponse {
   string updated_at = 8;
 }
 
+message StructureMutation {
+  string operation = 1;  // add_epic, update_story, remove_milestone, reorder_packages, etc.
+  string data_json = 2;  // JSON-encoded operation-specific data
+}
+
 message UpdateRequirementsStructureRequest {
   string project_id = 1;
-  string structure_json = 2;
-  string readiness_evaluation_json = 3;
+  repeated StructureMutation mutations = 2;
+}
+
+message MutationResult {
+  string operation = 1;
+  string status = 2;  // "success" or "failed"
+  string error = 3;   // Error message if status is failed
 }
 
 message UpdateRequirementsStructureResponse {
-  bool success = 1;
+  bool accepted = 1;
+  int32 mutation_count = 2;
+  repeated MutationResult mutations_applied = 3;
 }
 
 message ProjectsByStateRequest {}

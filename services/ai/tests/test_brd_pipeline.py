@@ -25,6 +25,7 @@ from processing.fabrication_validator import (
 def _make_project_context(
     chat_summary: str = "Users discussed automating invoice processing for AP department.",
     recent_messages: list | None = None,
+    project_type: str = "software",
 ) -> dict:
     """Build a mock project context response."""
     if recent_messages is None:
@@ -39,42 +40,51 @@ def _make_project_context(
         chat_summary_data = {"summary_text": chat_summary, "compression_iteration": 1}
 
     return {
-        "project": {"title": "Invoice Automation", "state": "open"},
+        "project": {"title": "Invoice Automation", "state": "open", "project_type": project_type},
         "chat_summary": chat_summary_data,
         "recent_messages": recent_messages,
     }
 
 
 def _make_brd_draft(
-    section_locks: dict | None = None,
+    item_locks: dict | None = None,
     allow_information_gaps: bool = False,
 ) -> dict:
-    if section_locks is None:
-        section_locks = {}
+    if item_locks is None:
+        item_locks = {}
     return {
         "id": "draft-001",
         "project_id": "project-001",
-        "section_locks": section_locks,
+        "item_locks": item_locks,
         "allow_information_gaps": allow_information_gaps,
     }
 
 
 def _make_agent_result() -> dict:
-    """A realistic agent result."""
+    """A realistic hierarchical agent result."""
     return {
-        "section_title": "Automated Invoice Processing System",
-        "section_short_description": "A system to automate invoice processing at Commerz Real.",
-        "section_current_workflow": "Invoices are manually processed by AP clerks.",
-        "section_affected_department": "Accounts Payable, Finance.",
-        "section_core_capabilities": "OCR extraction, digital approval routing.",
-        "section_success_criteria": "Processing time under 2 days.",
+        "title": "Automated Invoice Processing System",
+        "short_description": "A system to automate invoice processing at Commerz Real.",
+        "structure": [
+            {
+                "epic_id": "epic-001",
+                "title": "Invoice Intake",
+                "description": "Automated capture of incoming invoices.",
+                "stories": [
+                    {
+                        "story_id": "story-001",
+                        "title": "As an AP clerk, I want to upload invoices",
+                        "description": "Upload interface for invoices.",
+                        "acceptance_criteria": "- Upload accepts PDF",
+                        "priority": "High",
+                    }
+                ],
+            },
+        ],
         "readiness_evaluation": {
-            "title": "ready",
-            "short_description": "ready",
-            "current_workflow": "ready",
-            "affected_department": "ready",
-            "core_capabilities": "ready",
-            "success_criteria": "ready",
+            "ready_for_development": True,
+            "missing_information": [],
+            "recommendation": "",
         },
     }
 
@@ -89,7 +99,7 @@ class TestFabricationValidator:
         """Content that matches source material should not be flagged."""
         sections = {
             "section_title": "Invoice Processing Automation",
-            "section_affected_department": "Accounts Payable department",
+            "section_short_description": "Accounts Payable department automation",
         }
         source = "We need to automate invoice processing for the Accounts Payable department."
         validator = FabricationValidator()
@@ -109,7 +119,7 @@ class TestFabricationValidator:
         assert len(flags[0]["ungrounded_keywords"]) > 0
 
     def test_skips_none_sections(self):
-        """None sections (from selective_regeneration) should be skipped."""
+        """None sections should be skipped."""
         sections = {
             "section_title": None,
             "section_short_description": "A valid description about invoice processing.",
@@ -117,7 +127,6 @@ class TestFabricationValidator:
         source = "invoice processing automation"
         validator = FabricationValidator()
         flags = validator.validate(sections, source)
-        # Should not flag the None section
         for flag in flags:
             assert flag["section"] != "section_title"
 
@@ -164,12 +173,10 @@ class TestKeywordExtraction:
     def test_extract_keywords_filters_short_words(self):
         """Keywords shorter than 4 characters are filtered out."""
         keywords = _extract_keywords("The big red fox is a pet.")
-        # "the", "big", "red", "fox", "is", "a", "pet" — only "pet" is 3 chars, skip
-        # Actually "big"=3, "red"=3, "fox"=3, "pet"=3 — all < 4
         assert all(len(k) >= 4 for k in keywords)
 
-    def test_extract_keywords_from_brd_section(self):
-        """Extracts meaningful keywords from typical BRD content."""
+    def test_extract_keywords_from_content(self):
+        """Extracts meaningful keywords from typical content."""
         text = "Automated invoice processing with OCR extraction and digital approval routing."
         keywords = _extract_keywords(text)
         assert "automated" in keywords
@@ -192,7 +199,6 @@ class TestKeywordExtraction:
         """Fuzzy match (high similarity) returns True."""
         source_lower = "invoice processing automation"
         source_words = {"invoice", "processing", "automation"}
-        # "invoices" is close to "invoice"
         assert _is_grounded("invoices", source_lower, source_words)
 
     def test_not_grounded(self):
@@ -225,26 +231,26 @@ class TestContextAssembly:
     """T-4.1.03: Context assembly includes all required fields."""
 
     def test_assembles_all_fields(self):
-        """Pipeline assembles chat_summary, recent_messages, locked_sections, allow_information_gaps."""
+        """Pipeline assembles project_type, chat_summary, recent_messages, locked_items."""
         pipeline = BrdGenerationPipeline()
 
         context_data = {
             "project_context": _make_project_context(),
             "brd_draft": _make_brd_draft(
-                section_locks={"title": True, "core_capabilities": False},
+                item_locks={"epic-001": True},
                 allow_information_gaps=True,
             ),
         }
 
         input_data = pipeline._step_assemble_context(
-            context_data, mode="full_generation", section_name=None,
+            context_data, mode="full_generation",
         )
 
         assert input_data["mode"] == "full_generation"
+        assert input_data["project_type"] == "software"
         assert "invoice processing" in input_data["chat_summary"].lower()
         assert len(input_data["recent_messages"]) == 3
-        assert "title" in input_data["locked_sections"]
-        assert "core_capabilities" not in input_data["locked_sections"]
+        assert input_data["locked_items"] == {"epic-001": True}
         assert input_data["allow_information_gaps"] is True
 
     def test_assembles_empty_context(self):
@@ -253,6 +259,7 @@ class TestContextAssembly:
 
         context_data = {
             "project_context": {
+                "project": {"project_type": "software"},
                 "chat_summary": None,
                 "recent_messages": [],
             },
@@ -260,16 +267,17 @@ class TestContextAssembly:
         }
 
         input_data = pipeline._step_assemble_context(
-            context_data, mode="full_generation", section_name=None,
+            context_data, mode="full_generation",
         )
 
         assert input_data["chat_summary"] == ""
         assert input_data["recent_messages"] == []
-        assert input_data["locked_sections"] == []
+        assert input_data["locked_items"] == {}
         assert input_data["allow_information_gaps"] is False
+        assert input_data["project_type"] == "software"
 
-    def test_assembles_section_regeneration(self):
-        """Section regeneration passes section_name."""
+    def test_assembles_item_regeneration(self):
+        """item_regeneration passes item_id."""
         pipeline = BrdGenerationPipeline()
 
         context_data = {
@@ -278,11 +286,11 @@ class TestContextAssembly:
         }
 
         input_data = pipeline._step_assemble_context(
-            context_data, mode="section_regeneration", section_name="current_workflow",
+            context_data, mode="item_regeneration", item_id="epic-001",
         )
 
-        assert input_data["mode"] == "section_regeneration"
-        assert input_data["section_name"] == "current_workflow"
+        assert input_data["mode"] == "item_regeneration"
+        assert input_data["item_id"] == "epic-001"
 
 
 # ── AI-4.05: Event Publishing Tests ──
@@ -299,7 +307,7 @@ class TestEventPublishing:
 
     @pytest.mark.asyncio
     async def test_publish_generated_event(self):
-        """ai.brd.generated event includes project_id, mode, sections, readiness_evaluation, fabrication_flags."""
+        """ai.brd.generated event includes project_id, mode, structure, readiness_evaluation."""
         pipeline = BrdGenerationPipeline()
         agent_result = _make_agent_result()
 
@@ -316,13 +324,9 @@ class TestEventPublishing:
         assert event["event_type"] == "ai.brd.generated"
         assert event["project_id"] == "project-123"
         assert event["mode"] == "full_generation"
-        assert "title" in event["sections"]
-        assert "short_description" in event["sections"]
-        assert "current_workflow" in event["sections"]
-        assert "affected_department" in event["sections"]
-        assert "core_capabilities" in event["sections"]
-        assert "success_criteria" in event["sections"]
-        assert "title" in event["readiness_evaluation"]
+        assert event["title"] == "Automated Invoice Processing System"
+        assert isinstance(event["structure"], list)
+        assert "ready_for_development" in event["readiness_evaluation"]
         assert isinstance(event["fabrication_flags"], list)
 
     @pytest.mark.asyncio
@@ -332,7 +336,7 @@ class TestEventPublishing:
 
         flags = [
             {
-                "section": "section_title",
+                "section": "section_epic-001",
                 "ungrounded_keywords": ["blockchain", "quantum"],
                 "keyword_count": 5,
                 "match_ratio": 0.2,
@@ -346,7 +350,6 @@ class TestEventPublishing:
         event = events[0]
         assert event["event_type"] == "ai.security.fabrication_flag"
         assert event["project_id"] == "project-123"
-        assert event["section"] == "section_title"
         assert "blockchain" in event["ungrounded_keywords"]
 
     @pytest.mark.asyncio
@@ -363,7 +366,7 @@ class TestEventPublishing:
         result = await pipeline.execute("project-123", mode="full_generation")
 
         assert result["status"] == "completed"
-        assert result["sections"] is not None
+        assert result["structure"] is not None
 
         events = get_published_events()
         event_types = [e["event_type"] for e in events]
@@ -389,7 +392,7 @@ class TestEventPublishing:
         event = brd_events[0]
         assert event["project_id"] == "project-456"
         assert event["mode"] == "full_generation"
-        assert "sections" in event
+        assert "structure" in event
         assert "readiness_evaluation" in event
         assert "fabrication_flags" in event
 
@@ -406,7 +409,7 @@ class TestBrdPipelineIntegration:
 
     @pytest.mark.asyncio
     async def test_mock_mode_full_pipeline(self, settings):
-        """Full pipeline in mock mode returns completed result with sections."""
+        """Full pipeline in mock mode returns completed result with structure."""
         settings.AI_MOCK_MODE = True
         settings.BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -418,8 +421,9 @@ class TestBrdPipelineIntegration:
         result = await pipeline.execute("project-001", mode="full_generation")
 
         assert result["status"] == "completed"
-        assert result["sections"] is not None
-        assert "title" in result["sections"]
+        assert result["structure"] is not None
+        assert isinstance(result["structure"], list)
+        assert result["title"] is not None
         assert result["readiness_evaluation"] is not None
         assert isinstance(result["fabrication_flags"], list)
 
@@ -433,7 +437,7 @@ class TestBrdPipelineIntegration:
         result = await pipeline.execute("project-002")
 
         assert result["status"] == "error"
-        assert result["sections"] is None
+        assert result["structure"] is None
 
 
 class TestBrdPipelineAbort:
@@ -450,7 +454,6 @@ class TestBrdPipelineAbort:
         """Version mismatch causes pipeline abort."""
         pipeline = BrdGenerationPipeline()
         pipeline._start_processing("project-001")
-        # Start a new version (simulating a new request arriving)
         pipeline._start_processing("project-001")
 
         with pytest.raises(BrdPipelineAborted):
@@ -464,19 +467,15 @@ class TestBrdPipelineAbort:
         mock_core_client.get_brd_draft.return_value = _make_brd_draft()
 
         pipeline = BrdGenerationPipeline(core_client=mock_core_client)
-        # Start a processing first then start another (version mismatch)
         pipeline._start_processing("project-003")
 
         result = await pipeline.execute("project-003", mode="full_generation")
-        # The execute() call increments the version again, but the old version=1
-        # is now stale. Actually execute() starts its own version, so it should work.
-        # Let's force abort instead:
         assert result["status"] in ("completed", "error", "aborted")
 
 
 class TestFabricationValidationStep:
     def test_validate_fabrication_step(self):
-        """Pipeline step runs fabrication validation."""
+        """Pipeline step runs fabrication validation on hierarchical output."""
         pipeline = BrdGenerationPipeline()
 
         agent_result = _make_agent_result()
@@ -485,5 +484,4 @@ class TestFabricationValidationStep:
         }
 
         flags = pipeline._step_validate_fabrication(agent_result, context_data)
-        # Agent result uses keywords from source, so should be mostly grounded
         assert isinstance(flags, list)

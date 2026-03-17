@@ -691,3 +691,344 @@ class TestSystemPromptRendering:
         })
         assert "Lisa, Max" in prompt
         assert "Multiple users" in prompt
+
+    def test_prompt_includes_project_type(self):
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+        })
+        assert "<project_type>software</project_type>" in prompt
+
+    def test_prompt_includes_requirements_structure_software(self):
+        structure = [
+            {
+                "id": "epic-1",
+                "type": "epic",
+                "title": "User Auth",
+                "children": [
+                    {"id": "story-1", "type": "user_story", "title": "Login", "priority": "High"},
+                ],
+            }
+        ]
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+            "requirements_structure": structure,
+        })
+        assert "Epics and User Stories:" in prompt
+        assert "Epic epic-1: User Auth" in prompt
+        assert "Story story-1: Login" in prompt
+        assert "Priority: High" in prompt
+
+    def test_prompt_includes_requirements_structure_non_software(self):
+        structure = [
+            {
+                "id": "ms-1",
+                "type": "milestone",
+                "title": "Phase 1",
+                "children": [
+                    {"id": "wp-1", "type": "work_package", "title": "Deliverable A"},
+                ],
+            }
+        ]
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "non_software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+            "requirements_structure": structure,
+        })
+        assert "Milestones and Work Packages:" in prompt
+        assert "Milestone ms-1: Phase 1" in prompt
+        assert "Package wp-1: Deliverable A" in prompt
+        assert "<project_type>non_software</project_type>" in prompt
+
+    def test_prompt_empty_requirements_structure(self):
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+        })
+        assert "No requirements structure yet" in prompt
+
+    def test_prompt_software_structuring_guidance(self):
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+        })
+        assert "SOFTWARE PROJECT GUIDANCE" in prompt
+        assert "Epic" in prompt
+
+    def test_prompt_non_software_structuring_guidance(self):
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "non_software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+        })
+        assert "NON-SOFTWARE PROJECT GUIDANCE" in prompt
+        assert "Milestone" in prompt
+
+    def test_prompt_no_board_references(self):
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+        })
+        assert "board" not in prompt.lower()
+        assert "[[" not in prompt
+
+    def test_prompt_identity_mentions_requirements_assembly(self):
+        prompt = build_system_prompt({
+            "agent_mode": "interactive",
+            "project_title": "Test",
+            "project_state": "open",
+            "project_type": "software",
+            "title_manually_edited": False,
+            "recent_messages_formatted": "",
+        })
+        assert "requirements assembly platform" in prompt
+        assert "Requirements Assistant" in prompt
+
+
+# ── US-001 (M20): update_requirements_structure tool ──
+
+
+class TestUpdateRequirementsStructure:
+    """Tests for the update_requirements_structure Facilitator tool."""
+
+    @pytest.mark.asyncio
+    async def test_add_epic_software_project(self):
+        """add_epic succeeds for software projects."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        mutations = json.dumps([{"operation": "add_epic", "data": {"title": "User Auth"}}])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is True
+        assert result["mutation_count"] == 1
+        assert result["mutations_applied"][0]["status"] == "success"
+        assert len(plugin.requirements_mutations) == 1
+
+        events = get_published_events()
+        assert len(events) == 1
+        assert events[0]["event_type"] == "ai.requirements.updated"
+        assert events[0]["operation"] == "add_epic"
+
+    @pytest.mark.asyncio
+    async def test_add_epic_rejected_for_non_software(self):
+        """add_epic fails for non_software projects."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "non_software"},
+        )
+        mutations = json.dumps([{"operation": "add_epic", "data": {"title": "Epic"}}])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is False
+        assert result["mutation_count"] == 0
+        assert result["mutations_applied"][0]["status"] == "failed"
+        assert "not valid for non_software" in result["mutations_applied"][0]["error"]
+        assert len(get_published_events()) == 0
+
+    @pytest.mark.asyncio
+    async def test_add_milestone_non_software_project(self):
+        """add_milestone succeeds for non_software projects."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "non_software"},
+        )
+        mutations = json.dumps([{"operation": "add_milestone", "data": {"title": "Phase 1"}}])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is True
+        assert result["mutation_count"] == 1
+        assert result["mutations_applied"][0]["status"] == "success"
+
+    @pytest.mark.asyncio
+    async def test_add_milestone_rejected_for_software(self):
+        """add_milestone fails for software projects."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        mutations = json.dumps([{"operation": "add_milestone", "data": {"title": "Phase 1"}}])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is False
+        assert result["mutations_applied"][0]["status"] == "failed"
+
+    @pytest.mark.asyncio
+    async def test_unknown_operation_rejected(self):
+        """Unknown operation name returns failed."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        mutations = json.dumps([{"operation": "delete_all", "data": {}}])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is False
+        assert "Unknown operation" in result["mutations_applied"][0]["error"]
+
+    @pytest.mark.asyncio
+    async def test_missing_required_fields(self):
+        """Missing required fields returns validation error."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        mutations = json.dumps([{"operation": "add_story", "data": {"title": "Story"}}])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is False
+        assert "epic_id" in result["mutations_applied"][0]["error"]
+
+    @pytest.mark.asyncio
+    async def test_invalid_json_mutations(self):
+        """Invalid JSON returns validation error."""
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        result = await plugin.update_requirements_structure(mutations="not json")
+        assert "error" in result
+        assert result["error"]["code"] == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_empty_mutations_array(self):
+        """Empty mutations array returns validation error."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        result = await plugin.update_requirements_structure(mutations=json.dumps([]))
+        assert "error" in result
+        assert result["error"]["code"] == "validation_error"
+
+    @pytest.mark.asyncio
+    async def test_multiple_mutations_mixed_results(self):
+        """Multiple mutations with partial success."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        mutations = json.dumps([
+            {"operation": "add_epic", "data": {"title": "Epic 1"}},
+            {"operation": "add_milestone", "data": {"title": "Phase 1"}},  # wrong type
+            {"operation": "add_epic", "data": {"title": "Epic 2"}},
+        ])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is True
+        assert result["mutation_count"] == 2
+        assert result["mutations_applied"][0]["status"] == "success"
+        assert result["mutations_applied"][1]["status"] == "failed"
+        assert result["mutations_applied"][2]["status"] == "success"
+        assert len(plugin.requirements_mutations) == 2
+
+        events = get_published_events()
+        assert len(events) == 2
+        assert all(e["event_type"] == "ai.requirements.updated" for e in events)
+
+    @pytest.mark.asyncio
+    async def test_add_story_with_all_fields(self):
+        """add_story with complete data succeeds."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "software"},
+        )
+        mutations = json.dumps([{
+            "operation": "add_story",
+            "data": {
+                "epic_id": "epic-1",
+                "title": "As a user, I want to log in so that I can access the system",
+                "description": "Login story",
+                "acceptance_criteria": "- Can enter credentials\n- Gets error on invalid",
+                "priority": "High",
+            },
+        }])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is True
+        assert result["mutation_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_add_package_with_all_fields(self):
+        """add_package with complete data succeeds for non_software."""
+        import json
+
+        plugin = FacilitatorPlugin(
+            project_id="project-1",
+            project_context={"project_type": "non_software"},
+        )
+        mutations = json.dumps([{
+            "operation": "add_package",
+            "data": {
+                "milestone_id": "ms-1",
+                "title": "Setup infrastructure",
+                "description": "Deploy servers",
+                "deliverables": "- Server setup\n- Network config",
+                "dependencies": "Procurement approval",
+            },
+        }])
+        result = await plugin.update_requirements_structure(mutations=mutations)
+        assert result["accepted"] is True
+        assert result["mutation_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_all_16_operations_valid(self):
+        """All 16 operations are recognized (not unknown)."""
+        import json
+
+        all_ops = [
+            "add_epic", "update_epic", "remove_epic", "reorder_epics",
+            "add_story", "update_story", "remove_story", "reorder_stories",
+            "add_milestone", "update_milestone", "remove_milestone", "reorder_milestones",
+            "add_package", "update_package", "remove_package", "reorder_packages",
+        ]
+        for op in all_ops:
+            plugin = FacilitatorPlugin(
+                project_id="project-1",
+                project_context={"project_type": "software"},
+            )
+            clear_published_events()
+            mutations = json.dumps([{"operation": op, "data": {"title": "t", "epic_id": "e", "story_id": "s", "milestone_id": "m", "package_id": "p", "order": ["a"]}}])
+            result = await plugin.update_requirements_structure(mutations=mutations)
+            # Should not have "Unknown operation" error
+            applied = result["mutations_applied"][0]
+            assert "Unknown operation" not in (applied.get("error") or ""), f"Op {op} was unknown"

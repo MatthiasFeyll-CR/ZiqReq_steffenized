@@ -1,7 +1,7 @@
 """FacilitatorAgent — the primary AI agent for requirements structuring.
 
 Extends BaseAgent with SK function-calling loop, system prompt rendering,
-and the FacilitatorPlugin (5 tools).
+and the FacilitatorPlugin (6 tools).
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class FacilitatorAgent(BaseAgent):
-    """Facilitator agent — guides requirements structuring via 5 tools.
+    """Facilitator agent — guides requirements structuring via 6 tools.
 
     Uses SK's automatic function-calling loop with max_auto_invoke_attempts=3.
     """
@@ -113,6 +113,7 @@ class FacilitatorAgent(BaseAgent):
         return {
             "delegations": plugin.delegations,
             "chat_message_sent": plugin.chat_message_sent,
+            "requirements_mutations": plugin.requirements_mutations,
             "response": result[-1].content if result else None,
             "token_usage": {
                 "input": self.token_tracker.total_input,
@@ -128,6 +129,7 @@ def _build_prompt_context(input_data: dict[str, Any]) -> dict[str, Any]:
         "agent_mode": ctx.get("agent_mode", "interactive"),
         "project_title": ctx.get("title", ""),
         "project_state": ctx.get("state", "open"),
+        "project_type": ctx.get("project_type", "software"),
         "title_manually_edited": ctx.get("title_manually_edited", False),
         "facilitator_bucket_content": input_data.get("facilitator_bucket_content", ""),
         "recent_messages_formatted": _format_messages(input_data.get("recent_messages", [])),
@@ -138,6 +140,7 @@ def _build_prompt_context(input_data: dict[str, Any]) -> dict[str, Any]:
         "user_names_list": ctx.get("user_names_list", ""),
         "creator_language": ctx.get("creator_language", "English"),
         "no_messages_yet": len(input_data.get("recent_messages", [])) == 0,
+        "requirements_structure": input_data.get("requirements_structure"),
     }
 
 

@@ -22,7 +22,7 @@
         "All existing Facilitator tests pass (or are updated to reflect new tool)"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § projects table (project_type column), requirements_document_drafts table (structure column) — requirements structure is JSONB with hierarchical items\nDesign: N/A (backend-only)\nAI: docs/03-ai/system-prompts.md § 1. Facilitator (Requirements Assistant) — full new prompt with project_type awareness, requirements structuring guidance, update_requirements_structure tool examples; docs/03-ai/tools-and-functions.md § 6. update_requirements_structure — complete mutation operation schemas for all 16 operations (epic/story/milestone/package CRUD + reorder)\nFiles: services/ai/agents/facilitator/prompt.py, services/ai/agents/facilitator/plugins.py, services/ai/processing/context_assembler.py, services/ai/agents/facilitator/agent.py (if SK kernel needs update), services/ai/tests/test_facilitator.py\nGotchas: The update_requirements_structure tool returns mutation results (success/failure per mutation) — must handle partial failures (some mutations succeed, others fail). The facilitator_bucket now has 3 context_type values (global, software, non_software) — context_assembler must combine global + type-specific. Requirements structure JSON format is defined in data-model.md line 169-184 (different for software vs non-software). All board-related code (request_board_changes tool, board state in context, board reference syntax) must be removed.",
       "context": {
@@ -64,7 +64,7 @@
         "All existing Summarizing AI tests pass (or are updated to test new output format)"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § requirements_document_drafts table (structure column, item_locks column) — structure is hierarchical JSONB, item_locks is keyed by item ID\nDesign: N/A (backend-only)\nAI: docs/03-ai/system-prompts.md § 4. Summarizing AI — full new prompt with project_type awareness, 3 generation modes, hierarchical output format; docs/03-ai/model-config.md § Summarizing AI — GPT-4o, temperature 0.3, max_output 4000 tokens, readiness evaluation per type\nFiles: services/ai/agents/summarizing_ai/prompt.py, services/ai/agents/summarizing_ai/agent.py, services/ai/tests/test_summarizing_ai.py, services/ai/processing/brd_pipeline.py (rename to requirements_pipeline.py or update references)\nGotchas: The output format is drastically different — old format had 6 flat sections, new format has nested structure array with different schemas per project_type. User story format is 'As a [role], I want [capability] so that [benefit]'. Work package format has deliverables (bullet list) and dependencies (text). Readiness evaluation logic changes: old logic checked 6 section anchors, new logic checks whether all parent items (epics/milestones) have children (stories/packages) with required fields. item_locks uses UUIDs from structure items, not section names.",
       "context": {
@@ -106,7 +106,7 @@
         "All existing pipeline tests pass (or are updated to reflect new step)"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § gRPC Service Definitions — Core service RPCs (UpdateRequirementsStructure, GetRequirementsState); docs/02-architecture/data-model.md § requirements_document_drafts table (structure column)\nDesign: N/A (backend-only)\nAI: docs/03-ai/agent-architecture.md § 4.1 Pipeline 1: Chat Processing (Primary) — updated 6-step pipeline removes board agent step, adds requirements mutation handler in Step 4; docs/03-ai/system-prompts.md § Facilitator — update_requirements_structure tool\nFiles: services/ai/processing/pipeline.py, services/ai/processing/context_assembler.py, proto/core.proto, services/core/grpc_server/servicer.py, services/core/apps/projects/views.py (if REST endpoint needed), services/gateway/apps/websocket/consumers.py, services/ai/tests/test_pipeline.py\nGotchas: The old pipeline had a board agent step that called BoardAgent.process(). This is now removed entirely. The new mutation handler must iterate over each mutation returned by Facilitator plugin, call Core gRPC for each, collect results, and publish events. Mutations can partially fail (some succeed, others fail due to validation or locked items) — pipeline must handle gracefully. GetRequirementsState should return empty structure '[]' for projects without a requirements draft yet. UpdateRequirementsStructure must validate operation matches project_type (e.g., reject add_epic for non_software projects). The requirements structure JSON is large (can be 10K tokens for complex projects) — context_assembler must include it in facilitator context.",
       "context": {
