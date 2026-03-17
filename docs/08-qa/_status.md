@@ -6,7 +6,7 @@
 - **Last updated:** 2026-03-17
 
 ## Current Review
-- **Milestone:** 18 — Rename Idea to Project
+- **Milestone:** 19 — Structured Requirements
 - **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 1
 - **Status:** passed
@@ -32,23 +32,25 @@
 | M16 — Polish & Cross-Cutting | `qa-m16-polish.md` | 1 | PASS | 2026-03-11 |
 | M17 — Remove Features | `qa-m17-remove-features.md` | 1 | PASS | 2026-03-16 |
 | M18 — Rename Project | `qa-m18-rename-project.md` | 1 | PASS | 2026-03-17 |
+| M19 — Structured Requirements | `qa-m19-structured-requirements.md` | 1 | PASS | 2026-03-17 |
 
 ## Input Consumed
-- .ralph/prd.json (symlink to tasks/prd-m18.json)
+- .ralph/prd.json (symlink to tasks/prd-m19.json)
 - .ralph/progress.txt
 - docs/01-requirements/*.md
 - docs/02-architecture/*.md
 - docs/03-design/*.md
 - docs/04-test-architecture/test-matrix.md
 - docs/04-test-architecture/runtime-safety.md
-- docs/05-milestones/milestone-18.md
-- tasks/prd-m18.json
+- docs/05-milestones/milestone-19.md
+- tasks/prd-m19.json
 
 ## Handoff
 - **Ready for merge:** true
-- **Next phase:** Merge + Verify (handled by pipeline), then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m18-rename-project.md, docs/08-qa/_status.md
-- **Deviations for Spec Reconciler:** 1 (DEV-001 — internal step identifiers remain "brainstorm"/"document"/"review")
+- **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
+- **Files produced:** docs/08-qa/qa-m19-structured-requirements.md, docs/08-qa/_status.md
+- **Deviations for Spec Reconciler:** 0
 
 ## Open Issues
-- Pre-existing ESLint errors (4): unused vars in DocumentView, missing deps warnings in CommentsPanel, AIContextTab, MonitoringTab, ParametersTab, UsersTab. Not introduced by M18.
+- Pre-existing ESLint errors (4): SECTION_FIELD_KEYS in BRDSectionEditor.tsx + DocumentView.tsx, useless escapes in CommentContent.tsx + CommentInput.tsx (none from M19)
+- Pre-existing ESLint warnings (5): missing deps in CommentItem, CommentsPanel, MonitoringTab, ParametersTab, UsersTab
