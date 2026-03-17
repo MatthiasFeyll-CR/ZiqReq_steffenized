@@ -110,7 +110,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.4.01", "T-3.4.02", "API-3.03"],
       "notes": "Architecture: docs/02-architecture/data-model.md § facilitator_context_bucket, context_agent_bucket\nArchitecture: docs/02-architecture/api-design.md § Admin AI Context\nDesign: docs/03-design/component-specs.md § Tabs\nAI: docs/03-ai/agent-architecture.md § Context Bucket Structure\nTesting: docs/04-test-architecture/test-matrix.md § [T-3.4.01, T-3.4.02, API-3.03]\nFiles: services/ai/apps/ai/models.py, migrations/0002_add_context_type.py (new), services/gateway/apps/admin/views.py, serializers.py, frontend/src/features/admin/AIContextTab.tsx, services/ai/processing/context_assembler.py, embedding/chunker.py, reindexer.py\nGotchas: AI models may be in services/ai/apps/ai/models.py. Migration seeds 3 rows per bucket. RAG query filters context_type IN (global, project_type).",
       "context": {
