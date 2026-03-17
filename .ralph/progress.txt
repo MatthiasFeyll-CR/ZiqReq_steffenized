@@ -50,6 +50,20 @@ Started: 2026-03-17T02:02:16+0100
   - TypeScript strict mode requires explicit cast for select onChange handlers (string → union type)
 ---
 
+## US-004: Admin context buckets per project type
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/apps/context/models.py, services/ai/apps/embedding/models.py, services/ai/apps/context/migrations/0003_add_context_type.py (new), services/ai/apps/embedding/migrations/0002_add_context_type_to_chunks.py (new), services/gateway/apps/admin_ai_context/models.py, services/gateway/apps/admin_ai_context/views.py, services/gateway/apps/admin_ai_context/serializers.py, services/gateway/apps/admin_ai_context/migrations/0002_add_context_type.py (new), services/gateway/apps/admin_ai_context/tests/test_ai_context.py, services/ai/processing/context_assembler.py, services/ai/embedding/reindexer.py, services/ai/embedding/retriever.py, services/ai/agents/context_agent/agent.py, services/ai/tests/test_pipeline.py, services/ai/tests/test_context_buckets.py (new), services/ai/tests/test_context_retrieval.py (new), frontend/src/api/admin.ts, frontend/src/features/admin/AIContextTab.tsx, frontend/src/__tests__/ai-context-tab.test.tsx (new)
+- Tests: 666 python passed (25 new, 3 pre-existing failures), 365 node passed (7 new). Typecheck clean. Ruff clean.
+- Learnings for future iterations:
+  - Test container runs under gateway.settings.test — AI service apps (apps.context, apps.embedding) are NOT importable. Use gateway mirror models (apps.admin_ai_context.models) for model field tests.
+  - Gateway mirror models are `managed = False` — migrations must use RunPython with raw cursor SQL, not RunSQL with multi-statement strings. PostgreSQL doesn't support `ADD CONSTRAINT IF NOT EXISTS` in ALTER TABLE.
+  - context_chunks table is created by AI service embedding app migration, not gateway. Gateway migration must check `information_schema.tables` before altering context_chunks.
+  - context_assembler.get_facilitator_context() imports FacilitatorContextBucket lazily. Must try AI service path first, fall back to gateway mirror. Also must handle DB access errors gracefully (SynchronousOnlyOperation in async tests).
+  - sys.modules patching with `patch.dict(sys.modules, {...})` + `importlib.reload` is needed to mock AI service models in context_retrieval tests since the import path doesn't exist in gateway context.
+  - Pre-existing test failures (3): test_new_project_defaults_to_private, test_create_project_with_first_message (from US-001), test_chunks_passed_to_sk_and_ids_returned (infrastructure issue).
+---
+
 ---
 
 ## Codebase Patterns
