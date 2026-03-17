@@ -50,7 +50,7 @@ class TestProjectsCRUD(TestCase):
         """API-IDEA.01: POST /api/projects creates project, returns 201 + project object."""
         response = self.client.post(
             "/api/projects/",
-            {"first_message": "My project"},
+            {"first_message": "My project", "project_type": "software"},
             format="json",
         )
         assert response.status_code == 201

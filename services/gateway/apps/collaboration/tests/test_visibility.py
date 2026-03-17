@@ -40,7 +40,7 @@ class TestVisibilityDefaults(TestCase):
     def test_new_project_defaults_to_private(self):
         response = self.client.post(
             "/api/projects/",
-            {"first_message": "Hello world"},
+            {"project_type": "software"},
             format="json",
         )
         assert response.status_code == 201
