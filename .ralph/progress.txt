@@ -49,3 +49,19 @@ Started: 2026-03-16T23:46:08+0100
   - prd.json is a symlink to tasks/prd-m18.json — commit via `git add tasks/prd-m18.json`
   - Verification grep `grep -r "ideas/\|idea_id" services/gateway/apps/ --include="*.py" --exclude-dir=migrations --exclude-dir=tests` returns zero hits
 ---
+
+## US-003: [Frontend] Rename all idea references to project
+- Status: PASS
+- Attempts: 1
+- Changes: 109 files modified across frontend/src/: api/ideas.ts→projects.ts, pages/IdeaWorkspace→ProjectWorkspace, pages/idea-workspace.tsx→project-workspace.tsx, components/landing/IdeaCard→ProjectCard (and Compact/Skeleton variants), components/layout/IdeasListFloating→ProjectsListFloating, features/admin/IdeasTab→ProjectsTab, hooks/use-create-idea→use-create-project (and delete/restore/my/by-state/filters/collaborating variants), hooks/useIdeaSync→useProjectSync, all 34 test files updated, types/models.ts (Idea→Project), store/presence-slice.ts (byIdea→byProject), store/rate-limit-slice.ts, app/router.tsx (/idea/:id→/project/:id), all component props/variables renamed
+- Tests: 614 Python tests passed, 341 Node tests passed (46 files), tsc clean (0 errors), ruff clean, Docker build OK
+- Learnings for future iterations:
+  - Bulk sed is effective for mass rename across 109 files but requires multiple passes: import paths first, then type names, then function names, then variables, then query keys
+  - The `idea` prop in components was renamed to `project` — but destructuring params in function args need special care (type annotation vs param name)
+  - data-testid attributes like "idea-workspace" need to be renamed in both source and test files — easy to miss
+  - The comment reference format `[#Title](idea:uuid)` was renamed to `[#Title](project:uuid)` — this is a markdown link format used in the comments system
+  - WebSocket event fields use snake_case (idea_id→project_id), component props use camelCase (ideaId→projectId)
+  - String literals inside t() translation calls were NOT changed (those are US-004 scope) — only code-level references were renamed
+  - Some types like IdeaComment, AdminIdea, ReviewIdea, IdeaState needed renaming in api/*.ts files beyond just ideas.ts
+  - The leaveIdea function in collaboration.ts and email preference keys (idea_submitted etc.) also needed renaming
+---
