@@ -42,7 +42,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-3.2.01", "T-3.2.02", "T-3.2.03", "API-3.01", "API-3.02"],
       "notes": "Architecture: docs/02-architecture/data-model.md § requirements_document_drafts, requirements_document_versions\nArchitecture: docs/02-architecture/api-design.md § Requirements Management\nTesting: docs/04-test-architecture/test-matrix.md § [T-3.2.01, T-3.2.02, T-3.2.03, API-3.01, API-3.02]\nFiles: services/core/apps/projects/models.py, migrations/0005_requirements_documents.py (new), services/gateway/apps/projects/serializers.py, views.py, websocket/consumers.py, proto/core.proto, grpc_clients/\nGotchas: Migration maps old BRD 6-section model to new structure. Structure JSONB validated against project_type. WebSocket group project_{id} exists.",
       "context": {
