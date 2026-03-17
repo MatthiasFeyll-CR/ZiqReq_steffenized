@@ -1771,6 +1771,8 @@ service CoreService {
 }
 ```
 
+> **Implementation Note (M20):** The proto definitions above serve as API contracts and documentation. At runtime, the AI service accesses Core data via `CoreClient` using direct PostgreSQL queries rather than gRPC server calls. This pattern is consistent across all CoreClient operations and avoids unnecessary gRPC hop overhead, as all services share the same PostgreSQL database. The Core gRPC servicer implementation exists primarily as a stub — runtime operations use direct database access through CoreClient.
+
 #### GetProjectsByState
 
 Retrieve project counts grouped by state. Called by gateway for admin monitoring dashboard.
