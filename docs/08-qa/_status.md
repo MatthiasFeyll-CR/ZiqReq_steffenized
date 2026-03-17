@@ -6,7 +6,7 @@
 - **Last updated:** 2026-03-17
 
 ## Current Review
-- **Milestone:** 20 — AI System Prompt Rework
+- **Milestone:** 21 — Document View, PDF Generation & Final Polish
 - **Phase:** 6 (verdict delivered)
 - **Bugfix cycle:** 0
 - **Status:** passed
@@ -34,9 +34,10 @@
 | M18 — Rename Project | `qa-m18-rename-project.md` | 1 | PASS | 2026-03-17 |
 | M19 — Structured Requirements | `qa-m19-structured-requirements.md` | 1 | PASS | 2026-03-17 |
 | M20 — AI System Prompt Rework | `qa-m20-ai-rework.md` | 0 | PASS | 2026-03-17 |
+| M21 — Polish Final | `qa-m21-polish-final.md` | 0 | PASS | 2026-03-17 |
 
 ## Input Consumed
-- .ralph/prd.json (symlink to tasks/prd-m20.json)
+- .ralph/prd.json
 - .ralph/progress.txt
 - docs/01-requirements/*.md
 - docs/02-architecture/*.md
@@ -44,15 +45,16 @@
 - docs/03-ai/*.md
 - docs/04-test-architecture/test-matrix.md
 - docs/04-test-architecture/runtime-safety.md
-- docs/05-milestones/milestone-20.md
-- tasks/prd-m20.json
+- docs/05-milestones/milestone-21.md
+- tasks/prd-m21.json
 
 ## Handoff
 - **Ready for merge:** true
 - **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m20-ai-rework.md, docs/08-qa/_status.md
-- **Deviations for Spec Reconciler:** 2 (DEV-001: gRPC servicer via CoreClient direct DB, DEV-002: board references already absent)
+- **Files produced:** docs/08-qa/qa-m21-polish-final.md, docs/08-qa/_status.md
+- **Deviations for Spec Reconciler:** 2 (DEV-001: brd_draft/BrdDraft internal references remain in AI service + gateway raw SQL + frontend orphans; DEV-002: orphan BRD components ReviewTab/BRDSectionEditor only used by tests)
 
 ## Open Issues
-- Pre-existing ESLint errors (4): SECTION_FIELD_KEYS in BRDSectionEditor.tsx + DocumentView.tsx, useless escapes in CommentContent.tsx + CommentInput.tsx (none from M20)
+- Pre-existing ESLint errors (3): SECTION_FIELD_KEYS in BRDSectionEditor.tsx (orphan), useless escape in CommentInput.tsx (DocumentView.tsx error gone — file deleted in M21)
 - Pre-existing ESLint warnings (5): missing deps in CommentItem, CommentsPanel, MonitoringTab, ParametersTab, UsersTab
+- All 21 milestones (M1-M21) have now passed QA. The full refactoring is complete.
