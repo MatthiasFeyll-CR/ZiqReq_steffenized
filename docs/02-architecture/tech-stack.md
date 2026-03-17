@@ -217,10 +217,12 @@ Requirements structure changes (creating, updating, deleting, reordering epics/s
 
 > ⚙️ This section addresses the downstream delegation for requirements panel state handling.
 
-- **Storage:** Frontend-only. Redux Toolkit slice holds optimistic local state for drag operations and pending mutations.
+- **Storage:** Component-local state. RequirementsPanel component manages UI state (expanded accordions, editing mode) via React useState hooks.
+- **WebSocket sync:** Window CustomEvent listeners (matching the pattern used elsewhere for WS events). Events: `requirements_updated`, `requirements_generating`, `requirements_ready`.
 - **Scope:** Requirements panel item reordering, create/update/delete operations.
 - **Optimistic updates:** Drag operations are applied immediately to local state. On drop, REST mutation is sent. On success, WebSocket broadcasts to other users. On failure, local state is reverted and error toast shown.
 - **No undo/redo:** The requirements panel does not require undo/redo functionality. Users edit structured requirement items directly (with standard form validation and save/cancel flows).
+- **Redux not used:** The requirements panel is self-contained with no cross-component state sharing needs. CustomEvents for WS sync reduced Redux boilerplate.
 
 ## PDF Generation Service Design (F-4.7)
 

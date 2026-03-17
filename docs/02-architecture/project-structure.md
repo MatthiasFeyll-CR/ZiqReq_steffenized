@@ -100,6 +100,76 @@ class Project(models.Model):
 
 **Module mirroring for test discoverability (as of M15):** Some Core service modules are mirrored into Gateway for test discoverability when namespace conflicts exist. For example, `apps.monitoring` exists in both Core and Gateway. Core owns the business logic (`health_checks.py`, `tasks.py`), but these files are mirrored into Gateway's `apps.monitoring/` directory so Gateway's test runner can discover and test them. This pattern is used sparingly when PYTHONPATH resolution would otherwise break test imports.
 
+### Migration Patterns for Mirror Models
+
+> ⚙️ Technical patterns discovered during M19 implementation for Gateway mirror models that point to tables owned by other services.
+
+**When Gateway mirrors tables from Core or AI services:**
+
+Gateway mirror models use `managed = False` in their Meta class to indicate that Django should not attempt to create/alter/drop these tables. However, test environments require special handling.
+
+**Migration pattern for `managed=False` mirror models (M19+):**
+
+```python
+# services/gateway/apps/projects/migrations/0004_requirements_documents.py
+from django.db import migrations
+
+def create_requirements_tables(apps, schema_editor):
+    """Create requirements tables if they don't exist (for test environments)."""
+    with schema_editor.connection.cursor() as cursor:
+        # Check if table exists first (Core service may have already created it)
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables
+                WHERE table_name = 'requirements_document_drafts'
+            )
+        """)
+        if not cursor.fetchone()[0]:
+            # Table doesn't exist — create it for test environment
+            cursor.execute("""
+                CREATE TABLE requirements_document_drafts (
+                    id UUID PRIMARY KEY,
+                    project_id UUID UNIQUE NOT NULL,
+                    title TEXT,
+                    structure JSONB NOT NULL DEFAULT '[]'::jsonb,
+                    ...
+                )
+            """)
+
+class Migration(migrations.Migration):
+    dependencies = [
+        ('projects', '0003_project_type'),
+    ]
+
+    operations = [
+        migrations.RunPython(
+            create_requirements_tables,
+            reverse_code=migrations.RunPython.noop
+        ),
+    ]
+```
+
+**Key rules:**
+
+1. **Use RunPython, not RunSQL** — PostgreSQL doesn't support multi-statement strings in RunSQL for complex DDL.
+2. **Check table existence via `information_schema.tables`** — Core/AI services may have already created the table in shared DB.
+3. **Use `CREATE TABLE IF NOT EXISTS` where possible** — simpler than checking existence first.
+4. **Avoid `ADD CONSTRAINT IF NOT EXISTS`** — PostgreSQL doesn't support this. Check table existence and skip entire DDL block if table exists.
+5. **Handle ForeignKey references to Core tables** — Gateway mirror models can reference other Gateway mirror models as FKs in Django ORM, but the underlying SQL must reference the actual shared table name.
+
+**Why this pattern is needed:**
+
+- Gateway test container's PYTHONPATH resolves `apps.projects.models` to Gateway namespace (Gateway comes first in sys.path)
+- AI service apps (`apps.context`, `apps.embedding`) are not importable from Gateway test environment
+- `--reuse-db` pytest option means migrations must be idempotent (safe to run multiple times)
+- Core service creates the table in production, but Gateway tests run in isolated test DB where Core migrations may not have run
+
+**Tables using this pattern (as of M19):**
+- `requirements_document_drafts` (Core-owned, Gateway mirrors)
+- `requirements_document_versions` (Core-owned, Gateway mirrors)
+- `facilitator_context_bucket` (AI-owned, Gateway mirrors for admin endpoints)
+- `context_chunks` (AI-owned, Gateway mirrors for admin endpoints)
+
 ### Communication Patterns
 
 ```

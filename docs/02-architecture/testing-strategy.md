@@ -17,7 +17,7 @@
 
 | Type | Location | Naming | Example |
 |------|----------|--------|---------|
-| Frontend unit/component | Co-located with source | `*.test.tsx` / `*.test.ts` | `src/components/chat/chat-message.test.tsx` |
+| Frontend unit/component | Co-located with source (M19+) OR `src/__tests__/` (legacy) | `*.test.tsx` / `*.test.ts` | `src/components/workspace/__tests__/RequirementsPanel.test.tsx` OR `src/__tests__/workspace-layout.test.tsx` |
 | Frontend hook tests | Co-located with hooks | `*.test.ts` | `src/features/chat/use-chat.test.ts` |
 | Frontend E2E | `frontend/e2e/` | `*.spec.ts` | `frontend/e2e/project-workspace.spec.ts` |
 | Backend unit | `tests/` per Django app | `test_*.py` | `services/core/apps/projects/tests/test_services.py` |
@@ -29,6 +29,8 @@
 ### Co-location Rationale (Frontend)
 
 Frontend tests live next to the code they test. This keeps the test discoverable when reading the source and ensures tests are updated when the component changes. The `e2e/` directory is the exception — those tests span multiple pages and features.
+
+**Note on transition:** M1-M18 tests reside in the flat `frontend/src/__tests__/` directory. Starting with M19, new component tests follow the co-location pattern (e.g., `components/landing/__tests__/NewProjectModal.test.tsx`). Legacy tests remain in `__tests__/` until a future migration milestone.
 
 ### Separate `tests/` Directory (Backend)
 
