@@ -73,7 +73,7 @@ Rename the core "Idea" entity to "Project" across the entire codebase — databa
 - [ ] All frontend files, types, hooks, components renamed
 - [ ] Routing updated to /project/:id
 - [ ] All translations updated (en.json and de.json)
-- [ ] Process steps renamed: Define, Structure, Review
+- [ ] Process step labels renamed: Define, Structure, Review (internal identifiers remain "brainstorm"/"document"/"review" — to be renamed in M21)
 - [ ] AI prompts updated to use project/requirements language
 - [ ] grep -r "idea\|Idea\|brainstorm" returns only intentional/comment hits
 - [ ] TypeScript typecheck passes
