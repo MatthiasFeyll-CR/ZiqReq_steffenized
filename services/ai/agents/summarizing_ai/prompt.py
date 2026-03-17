@@ -1,41 +1,13 @@
 """Summarizing AI system prompt template.
 
 Builds the system prompt for the Summarizing AI agent, which generates
-6-section BRDs from project requirements data.
+hierarchical requirements documents (Epics/Stories or Milestones/Packages)
+from project requirements data.
 """
 
 from __future__ import annotations
 
 from typing import Any
-
-# The 6 BRD section keys in canonical order
-SECTION_KEYS = [
-    "title",
-    "short_description",
-    "current_workflow",
-    "affected_department",
-    "core_capabilities",
-    "success_criteria",
-]
-
-SECTION_LABELS = {
-    "title": "1. Title",
-    "short_description": "2. Short Description",
-    "current_workflow": "3. Current Workflow & Pain Points",
-    "affected_department": "4. Affected Department",
-    "core_capabilities": "5. Core Capabilities",
-    "success_criteria": "6. Success Criteria",
-}
-
-# Minimum information anchors for readiness evaluation
-READINESS_ANCHORS = {
-    "title": "3+ keywords from chat",
-    "short_description": "1+ pain point or goal",
-    "current_workflow": "2+ process steps",
-    "affected_department": "1+ team/department",
-    "core_capabilities": "2+ capabilities",
-    "success_criteria": "1+ measurable outcome",
-}
 
 
 def build_system_prompt(input_data: dict[str, Any]) -> str:
@@ -43,48 +15,46 @@ def build_system_prompt(input_data: dict[str, Any]) -> str:
 
     Args:
         input_data: Dict with keys:
-            - mode: str — generation mode
+            - mode: str — generation mode (full_generation, selective_regeneration,
+              item_regeneration)
+            - project_type: str — 'software' or 'non_software'
             - chat_summary: str — summary of chat context
             - recent_messages: list[dict] — last 20 chat messages
-            - locked_sections: list[str] — locked section names
+            - locked_items: dict[str, bool] — locked item IDs
             - allow_information_gaps: bool — whether to allow /TODO markers
-            - section_name: str | None — for section_regeneration mode
+            - item_id: str | None — for item_regeneration mode
 
     Returns:
         Rendered system prompt string.
     """
     mode = input_data.get("mode", "full_generation")
+    project_type = input_data.get("project_type", "software")
     chat_summary = input_data.get("chat_summary", "")
     recent_messages = input_data.get("recent_messages", [])
-    locked_sections = input_data.get("locked_sections", [])
+    locked_items = input_data.get("locked_items", {})
     allow_information_gaps = input_data.get("allow_information_gaps", False)
-    section_name = input_data.get("section_name")
+    item_id = input_data.get("item_id")
 
     messages_formatted = _format_messages(recent_messages)
-    mode_instructions = _build_mode_instructions(mode, locked_sections, section_name)
+    mode_instructions = _build_mode_instructions(mode, locked_items, item_id, project_type)
     gaps_instructions = _build_gaps_instructions(allow_information_gaps)
-    sections_spec = _build_sections_spec()
-    readiness_spec = _build_readiness_spec()
+    output_format = _build_output_format(project_type)
+    readiness_spec = _build_readiness_spec(project_type)
 
     return f"""<system>
-<identity>You are the Summarizing AI for ZiqReq at Commerz Real. Your role is to generate \
-structured Business Requirements Documents (BRDs) from project requirements data.</identity>
+<identity>You are a requirements document generator for ZiqReq at Commerz Real. Your role is to \
+generate structured hierarchical requirements documents from project requirements data.</identity>
 
 <critical_rule>
-NEVER FABRICATE INFORMATION. If the project discussion did not produce enough information for a \
-section, output "Not enough information." Do NOT fill gaps with invented, inferred, or assumed \
-content. Every claim in the BRD must be traceable to the chat messages provided.
+NEVER FABRICATE INFORMATION. If the project discussion did not produce enough information for an \
+item, output "Not enough information." Do NOT fill gaps with invented, inferred, or assumed \
+content. Every claim in the document must be traceable to the chat messages provided.
 </critical_rule>
 
-<sections>
-{sections_spec}
-</sections>
+<generation_mode>{mode}</generation_mode>
+<project_type>{project_type}</project_type>
 
-<readiness_evaluation>
-Evaluate each section: "ready" (sufficient detail) or "insufficient" (lacks detail).
-Minimum information anchors:
 {readiness_spec}
-</readiness_evaluation>
 
 {gaps_instructions}
 
@@ -99,19 +69,7 @@ Minimum information anchors:
   </recent_messages>
 </project>
 
-<output_format>
-Respond with ONLY a valid JSON object containing these keys:
-- section_title: string
-- section_short_description: string
-- section_current_workflow: string
-- section_affected_department: string
-- section_core_capabilities: string
-- section_success_criteria: string
-- readiness_evaluation: object with keys (title, short_description, current_workflow, \
-affected_department, core_capabilities, success_criteria) each valued "ready" or "insufficient"
-
-Do NOT include any text before or after the JSON object.
-</output_format>
+{output_format}
 </system>"""
 
 
@@ -130,27 +88,41 @@ def _format_messages(messages: list[dict[str, Any]]) -> str:
 
 
 def _build_mode_instructions(
-    mode: str, locked_sections: list[str], section_name: str | None
+    mode: str,
+    locked_items: dict[str, bool],
+    item_id: str | None,
+    project_type: str,
 ) -> str:
     """Build mode-specific instructions."""
+    if project_type == "software":
+        parent_label = "epics"
+        child_label = "user stories"
+    else:
+        parent_label = "milestones"
+        child_label = "work packages"
+
     if mode == "full_generation":
-        return "Generate ALL 6 sections from scratch based on the project requirements data."
+        return (
+            f"Generate ALL {parent_label} and {child_label} from scratch "
+            "based on the project requirements data."
+        )
     elif mode == "selective_regeneration":
-        locked_str = ", ".join(locked_sections) if locked_sections else "(none)"
-        unlocked = [s for s in SECTION_KEYS if s not in locked_sections]
-        unlocked_str = ", ".join(unlocked) if unlocked else "(none)"
+        locked_ids = [k for k, v in locked_items.items() if v]
+        locked_str = ", ".join(locked_ids) if locked_ids else "(none)"
         return (
-            f"Regenerate ONLY the unlocked sections: {unlocked_str}\n"
-            f"Locked sections (DO NOT regenerate, return null for these): {locked_str}\n"
-            "For locked sections, set the section value to null in the JSON output."
+            f"Regenerate ONLY unlocked {parent_label} and {child_label}.\n"
+            f"Locked items (DO NOT regenerate, preserve as-is): {locked_str}\n"
+            "For locked items, include them in the output exactly as they are."
         )
-    elif mode == "section_regeneration":
+    elif mode == "item_regeneration":
         return (
-            f"Regenerate ONLY the section: {section_name}\n"
-            "For all other sections, set the section value to null in the JSON output.\n"
-            "Only evaluate readiness for the regenerated section; set others to their current status or null."
+            f"Regenerate ONLY the item with ID: {item_id}\n"
+            "Include all other items as-is in the output."
         )
-    return "Generate ALL 6 sections from scratch based on the project data."
+    return (
+        f"Generate ALL {parent_label} and {child_label} from scratch "
+        "based on the project requirements data."
+    )
 
 
 def _build_gaps_instructions(allow_information_gaps: bool) -> str:
@@ -158,43 +130,102 @@ def _build_gaps_instructions(allow_information_gaps: bool) -> str:
     if allow_information_gaps:
         return (
             "<information_gaps_mode>\n"
-            "When information is insufficient for a section, leave /TODO markers:\n"
+            "When information is insufficient for an item, leave /TODO markers:\n"
             '"/TODO: [What information is needed]"\n'
             "This helps users identify what additional requirements discussion is needed.\n"
             "</information_gaps_mode>"
         )
     return (
         "<no_gaps_mode>\n"
-        "When information is insufficient for a section, output exactly\n"
+        "When information is insufficient for an item, output exactly\n"
         '"Not enough information." — do NOT use /TODO markers or fabricate.\n'
         "</no_gaps_mode>"
     )
 
 
-def _build_sections_spec() -> str:
-    """Build the sections specification."""
-    return "\n".join(
-        f"  {label}: {_section_description(key)}"
-        for key, label in SECTION_LABELS.items()
-    )
-
-
-def _section_description(key: str) -> str:
-    """Return a brief description for each section."""
-    descriptions = {
-        "title": "Concise, descriptive title for the requirement",
-        "short_description": "2-3 sentence summary of the requirement",
-        "current_workflow": "Describe the current process and its pain points",
-        "affected_department": "Which teams and departments this impacts",
-        "core_capabilities": "What users will be able to do with the solution",
-        "success_criteria": "Measurable outcomes that define success",
+def _build_output_format(project_type: str) -> str:
+    """Build the output format specification based on project type."""
+    if project_type == "software":
+        return """<output_format>
+Respond with ONLY a valid JSON object with this structure:
+{
+  "title": "Project title",
+  "short_description": "1-2 sentence summary",
+  "structure": [
+    {
+      "epic_id": "unique-id",
+      "title": "Epic title",
+      "description": "Detailed epic description (2-4 paragraphs)",
+      "stories": [
+        {
+          "story_id": "unique-id",
+          "title": "As a [role], I want [capability] so that [benefit]",
+          "description": "Story details (1-2 paragraphs)",
+          "acceptance_criteria": "Bullet list of testable criteria",
+          "priority": "High | Medium | Low"
+        }
+      ]
     }
-    return descriptions.get(key, "")
+  ],
+  "readiness_evaluation": {
+    "ready_for_development": true or false,
+    "missing_information": ["list of gaps"],
+    "recommendation": "summary recommendation"
+  }
+}
+
+Do NOT include any text before or after the JSON object.
+</output_format>"""
+    else:
+        return """<output_format>
+Respond with ONLY a valid JSON object with this structure:
+{
+  "title": "Project title",
+  "short_description": "1-2 sentence summary",
+  "structure": [
+    {
+      "milestone_id": "unique-id",
+      "title": "Milestone title",
+      "description": "Detailed milestone description (2-4 paragraphs)",
+      "packages": [
+        {
+          "package_id": "unique-id",
+          "title": "Work package title",
+          "description": "Package details (1-2 paragraphs)",
+          "deliverables": "Bullet list of concrete deliverables",
+          "dependencies": "What must be completed first or what this depends on"
+        }
+      ]
+    }
+  ],
+  "readiness_evaluation": {
+    "ready_for_execution": true or false,
+    "missing_information": ["list of gaps"],
+    "recommendation": "summary recommendation"
+  }
+}
+
+Do NOT include any text before or after the JSON object.
+</output_format>"""
 
 
-def _build_readiness_spec() -> str:
-    """Build the readiness evaluation specification."""
-    return "\n".join(
-        f"  - {SECTION_LABELS[key]}: {anchor}"
-        for key, anchor in READINESS_ANCHORS.items()
-    )
+def _build_readiness_spec(project_type: str) -> str:
+    """Build the readiness evaluation specification based on project type."""
+    if project_type == "software":
+        return (
+            "<readiness_evaluation>\n"
+            "Evaluate readiness for development:\n"
+            "  - Ready when ALL epics have at least one user story with acceptance criteria\n"
+            "  - Missing information: list any epics without stories, or stories without acceptance criteria\n"
+            "  - Set ready_for_development to true only when all criteria are met\n"
+            "</readiness_evaluation>"
+        )
+    else:
+        return (
+            "<readiness_evaluation>\n"
+            "Evaluate readiness for execution:\n"
+            "  - Ready when ALL milestones have at least one work package with deliverables\n"
+            "  - Missing information: list any milestones without packages, or packages without deliverables\n"
+            "  - Set ready_for_execution to true only when all criteria are met\n"
+            "</readiness_evaluation>"
+        )

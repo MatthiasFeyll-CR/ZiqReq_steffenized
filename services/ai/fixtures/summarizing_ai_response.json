@@ -1,16 +1,62 @@
 {
-  "section_title": "Automated Invoice Processing System",
-  "section_short_description": "A system to automate the manual invoice processing workflow at Commerz Real, reducing processing time and human errors in the accounts payable department.",
-  "section_current_workflow": "Currently, invoices arrive via email and are manually downloaded by AP clerks. Each invoice is printed, stamped, and routed to the responsible cost center manager for approval. Approved invoices are then manually entered into SAP. Pain points include: (1) average processing time of 5 days per invoice, (2) frequent data entry errors causing payment delays, (3) lost invoices during physical routing.",
-  "section_affected_department": "Accounts Payable (primary), Finance Controlling, all cost center managers across Property Management and Asset Management divisions.",
-  "section_core_capabilities": "Users will be able to: (1) upload invoices via a web portal with automatic OCR extraction, (2) route invoices digitally to approvers with configurable approval chains, (3) auto-populate SAP entries from extracted data with human review step, (4) track invoice status in real-time through a dashboard.",
-  "section_success_criteria": "Success is measured by: (1) invoice processing time reduced from 5 days to under 2 days, (2) data entry error rate below 2%, (3) 100% invoice traceability with audit trail, (4) 90% user adoption within 6 months of rollout.",
+  "title": "Automated Invoice Processing System",
+  "short_description": "A system to automate the manual invoice processing workflow at Commerz Real, reducing processing time and human errors in the accounts payable department.",
+  "structure": [
+    {
+      "epic_id": "epic-001",
+      "title": "Invoice Intake & OCR Processing",
+      "description": "Automated capture and digitization of incoming invoices. Users upload invoices via a web portal, and the system extracts key data fields (vendor, amount, date, line items) using OCR technology. This eliminates manual data entry and reduces errors from the current paper-based process.",
+      "stories": [
+        {
+          "story_id": "story-001",
+          "title": "As an AP clerk, I want to upload invoices via a web portal so that I no longer need to manually download and print them from email",
+          "description": "The upload interface accepts PDF, TIFF, and image formats. Uploaded invoices are queued for OCR processing automatically.",
+          "acceptance_criteria": "- Upload accepts PDF, TIFF, JPG, PNG formats\n- File size limit of 25MB\n- Upload confirmation shown within 2 seconds\n- Uploaded invoice appears in processing queue",
+          "priority": "High"
+        },
+        {
+          "story_id": "story-002",
+          "title": "As an AP clerk, I want OCR to automatically extract invoice data so that I can review pre-populated fields instead of typing them manually",
+          "description": "The OCR engine extracts vendor name, invoice number, date, total amount, and line items. Extracted data is presented for human review before proceeding.",
+          "acceptance_criteria": "- Extracts vendor name, invoice number, date, total amount\n- Extracts line items with descriptions and amounts\n- Confidence score shown per extracted field\n- Manual correction available for all fields",
+          "priority": "High"
+        }
+      ]
+    },
+    {
+      "epic_id": "epic-002",
+      "title": "Digital Approval Routing",
+      "description": "Configurable digital approval chains replace the current physical routing of printed invoices. Cost center managers receive approval requests digitally and can approve or reject from any device. This eliminates lost invoices and reduces approval time from days to hours.",
+      "stories": [
+        {
+          "story_id": "story-003",
+          "title": "As a cost center manager, I want to receive digital approval requests so that I can approve invoices without waiting for physical delivery",
+          "description": "Approval requests include invoice summary, extracted data, and original document. Managers can approve, reject, or request changes.",
+          "acceptance_criteria": "- Email notification sent to approver\n- Approval possible from web and mobile\n- Approve, reject, or request changes actions available\n- Decision recorded with timestamp and approver ID",
+          "priority": "High"
+        }
+      ]
+    },
+    {
+      "epic_id": "epic-003",
+      "title": "SAP Integration & Dashboard",
+      "description": "Auto-population of SAP entries from approved invoice data with a real-time tracking dashboard. This completes the end-to-end automation and provides visibility into invoice processing status across the organization.",
+      "stories": [
+        {
+          "story_id": "story-004",
+          "title": "As an AP clerk, I want approved invoices to auto-populate SAP entries so that I no longer need to manually type data into SAP",
+          "description": "Approved invoices are automatically mapped to SAP fields and submitted. A human review step is available before final submission.",
+          "acceptance_criteria": "- Automatic field mapping to SAP invoice entry\n- Human review step before final submission\n- Error handling for SAP validation failures\n- Audit trail of all SAP submissions",
+          "priority": "Medium"
+        }
+      ]
+    }
+  ],
   "readiness_evaluation": {
-    "title": "ready",
-    "short_description": "ready",
-    "current_workflow": "ready",
-    "affected_department": "ready",
-    "core_capabilities": "ready",
-    "success_criteria": "insufficient"
+    "ready_for_development": false,
+    "missing_information": [
+      "Epic 'SAP Integration & Dashboard' needs a dashboard tracking user story"
+    ],
+    "recommendation": "Add a user story for the real-time tracking dashboard to complete the SAP Integration epic."
   }
 }

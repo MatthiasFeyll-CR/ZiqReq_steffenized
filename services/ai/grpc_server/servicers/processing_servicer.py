@@ -103,7 +103,9 @@ class AiProcessingServicer:
                 await publish_event("ai.brd.ready", {
                     "project_id": project_id,
                     "mode": mode,
-                    "sections": result.get("sections", {}),
+                    "title": result.get("title", ""),
+                    "short_description": result.get("short_description", ""),
+                    "structure": result.get("structure", []),
                     "readiness_evaluation": result.get("readiness_evaluation", {}),
                     "fabrication_flags": result.get("fabrication_flags", []),
                 })

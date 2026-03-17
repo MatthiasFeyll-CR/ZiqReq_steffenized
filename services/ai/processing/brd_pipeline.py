@@ -1,7 +1,7 @@
-"""BrdGenerationPipeline — orchestrates BRD generation.
+"""BrdGenerationPipeline — orchestrates requirements document generation.
 
 Steps:
-  1. Load BRD draft state (locked sections, gaps toggle) via CoreClient
+  1. Load project context and draft state via CoreClient
   2. Assemble context for SummarizingAIAgent
   3. Invoke SummarizingAIAgent
   4. Post-processing fabrication validation
@@ -28,7 +28,7 @@ class BrdPipelineAborted(Exception):
 
 
 class BrdGenerationPipeline:
-    """Orchestrates BRD generation with context assembly and fabrication validation.
+    """Orchestrates requirements document generation with context assembly and fabrication validation.
 
     Attributes:
         _versions: Per-project processing version counters.
@@ -50,18 +50,20 @@ class BrdGenerationPipeline:
         project_id: str,
         mode: str = "full_generation",
         section_name: str | None = None,
+        item_id: str | None = None,
     ) -> dict[str, Any]:
-        """Run the BRD generation pipeline.
+        """Run the requirements document generation pipeline.
 
         Args:
             project_id: The project UUID string.
             mode: Generation mode (full_generation, selective_regeneration,
-                  section_regeneration).
-            section_name: Required for section_regeneration mode.
+                  item_regeneration).
+            section_name: Deprecated, kept for backward compatibility.
+            item_id: Required for item_regeneration mode.
 
         Returns:
-            Dict with processing_id, status, sections, readiness_evaluation,
-            and fabrication_flags.
+            Dict with processing_id, status, title, short_description,
+            structure, readiness_evaluation, and fabrication_flags.
         """
         processing_id = str(uuid.uuid4())
         version = self._start_processing(project_id)
@@ -72,14 +74,14 @@ class BrdGenerationPipeline:
         )
 
         try:
-            # Step 1: Load project context and BRD draft state
+            # Step 1: Load project context and draft state
             self._check_abort(project_id, version, step=1)
             context_data = await self._step_load_context(project_id)
 
             # Step 2: Assemble agent input
             self._check_abort(project_id, version, step=2)
             input_data = self._step_assemble_context(
-                context_data, mode, section_name,
+                context_data, mode, item_id=item_id,
             )
 
             # Step 3: Invoke SummarizingAIAgent
@@ -111,10 +113,9 @@ class BrdGenerationPipeline:
             return {
                 "processing_id": processing_id,
                 "status": "completed",
-                "sections": {
-                    k.removeprefix("section_"): v for k, v in agent_result.items()
-                    if k.startswith("section_")
-                },
+                "title": agent_result.get("title", ""),
+                "short_description": agent_result.get("short_description", ""),
+                "structure": agent_result.get("structure", []),
                 "readiness_evaluation": agent_result.get(
                     "readiness_evaluation", {}
                 ),
@@ -129,7 +130,9 @@ class BrdGenerationPipeline:
             return {
                 "processing_id": processing_id,
                 "status": "aborted",
-                "sections": None,
+                "title": None,
+                "short_description": None,
+                "structure": None,
                 "readiness_evaluation": None,
                 "fabrication_flags": [],
             }
@@ -142,7 +145,9 @@ class BrdGenerationPipeline:
             return {
                 "processing_id": processing_id,
                 "status": "error",
-                "sections": None,
+                "title": None,
+                "short_description": None,
+                "structure": None,
                 "readiness_evaluation": None,
                 "fabrication_flags": [],
             }
@@ -185,7 +190,7 @@ class BrdGenerationPipeline:
     # ── Step implementations ──
 
     async def _step_load_context(self, project_id: str) -> dict[str, Any]:
-        """Step 1: Load project context and BRD draft state."""
+        """Step 1: Load project context and draft state."""
         logger.info("BRD Step 1: Loading context for project %s", project_id)
 
         project_context = self.core_client.get_project_context(
@@ -205,7 +210,7 @@ class BrdGenerationPipeline:
         self,
         context_data: dict[str, Any],
         mode: str,
-        section_name: str | None,
+        item_id: str | None = None,
     ) -> dict[str, Any]:
         """Step 2: Assemble input data for SummarizingAIAgent."""
         logger.info("BRD Step 2: Assembling context")
@@ -213,7 +218,6 @@ class BrdGenerationPipeline:
         project_context = context_data["project_context"]
         brd_draft = context_data["brd_draft"]
 
-        # Extract chat summary
         chat_summary_data = project_context.get("chat_summary")
         chat_summary = ""
         if chat_summary_data:
@@ -221,20 +225,22 @@ class BrdGenerationPipeline:
 
         recent_messages = project_context.get("recent_messages", [])
 
-        # Extract locked sections and gaps toggle from BRD draft
-        section_locks = brd_draft.get("section_locks", {})
-        locked_sections = [
-            key for key, locked in section_locks.items() if locked
-        ]
+        # Extract project_type from project metadata
+        project = project_context.get("project", {})
+        project_type = project.get("project_type", "software")
+
+        # Extract locked items and gaps toggle from draft
+        item_locks = brd_draft.get("item_locks", {})
         allow_information_gaps = brd_draft.get("allow_information_gaps", False)
 
         return {
             "mode": mode,
+            "project_type": project_type,
             "chat_summary": chat_summary,
             "recent_messages": recent_messages,
-            "locked_sections": locked_sections,
+            "locked_items": item_locks,
             "allow_information_gaps": allow_information_gaps,
-            "section_name": section_name,
+            "item_id": item_id,
         }
 
     async def _step_invoke_agent(
@@ -252,7 +258,11 @@ class BrdGenerationPipeline:
         agent_result: dict[str, Any],
         context_data: dict[str, Any],
     ) -> list[dict[str, Any]]:
-        """Step 4: Post-processing fabrication validation."""
+        """Step 4: Post-processing fabrication validation.
+
+        Extracts text content from the hierarchical structure and validates
+        against source material.
+        """
         logger.info("BRD Step 4: Validating for fabrication")
 
         project_context = context_data["project_context"]
@@ -268,13 +278,10 @@ class BrdGenerationPipeline:
             chat_summary, recent_messages,
         )
 
-        # Extract only section fields for validation
-        sections = {
-            k: v for k, v in agent_result.items()
-            if k.startswith("section_")
-        }
+        # Extract text content from hierarchical structure for validation
+        text_sections = _extract_text_for_validation(agent_result)
 
-        return self.fabrication_validator.validate(sections, source_material)
+        return self.fabrication_validator.validate(text_sections, source_material)
 
     async def _step_publish_generated(
         self,
@@ -286,15 +293,12 @@ class BrdGenerationPipeline:
         """Step 5: Publish ai.brd.generated event."""
         logger.info("BRD Step 5: Publishing ai.brd.generated for project %s", project_id)
 
-        sections = {
-            k.removeprefix("section_"): v for k, v in agent_result.items()
-            if k.startswith("section_")
-        }
-
         await publish_event("ai.brd.generated", {
             "project_id": project_id,
             "mode": mode,
-            "sections": sections,
+            "title": agent_result.get("title", ""),
+            "short_description": agent_result.get("short_description", ""),
+            "structure": agent_result.get("structure", []),
             "readiness_evaluation": agent_result.get("readiness_evaluation", {}),
             "fabrication_flags": fabrication_flags,
         })
@@ -321,3 +325,38 @@ class BrdGenerationPipeline:
         """Step 7: Cleanup — clear abort flag."""
         logger.info("BRD Step 7: Cleanup for project %s", project_id)
         self._abort_flags.pop(project_id, None)
+
+
+def _extract_text_for_validation(agent_result: dict[str, Any]) -> dict[str, str | None]:
+    """Extract text fields from hierarchical structure for fabrication validation.
+
+    Returns a dict with section-like keys mapping to text content,
+    compatible with FabricationValidator.validate().
+    """
+    sections: dict[str, str | None] = {}
+
+    title = agent_result.get("title")
+    if title:
+        sections["section_title"] = title
+
+    short_desc = agent_result.get("short_description")
+    if short_desc:
+        sections["section_short_description"] = short_desc
+
+    structure = agent_result.get("structure", [])
+    for item in structure:
+        if not isinstance(item, dict):
+            continue
+        item_id = item.get("epic_id") or item.get("milestone_id") or "unknown"
+        item_text = f"{item.get('title', '')} {item.get('description', '')}"
+        sections[f"section_{item_id}"] = item_text
+
+        children = item.get("stories", []) or item.get("packages", [])
+        for child in children:
+            if not isinstance(child, dict):
+                continue
+            child_id = child.get("story_id") or child.get("package_id") or "unknown"
+            child_text = f"{child.get('title', '')} {child.get('description', '')}"
+            sections[f"section_{child_id}"] = child_text
+
+    return sections
