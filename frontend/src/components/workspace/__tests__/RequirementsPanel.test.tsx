@@ -21,6 +21,14 @@ vi.mock("@/api/projects", async () => {
   };
 });
 
+// Mock useLazyProject
+vi.mock("@/hooks/use-lazy-project", () => ({
+  useLazyProject: () => ({
+    ensureProject: () => Promise.resolve("proj-1"),
+    isDraft: false,
+  }),
+}));
+
 // Mock react-toastify
 vi.mock("react-toastify", () => ({
   toast: {
@@ -45,6 +53,12 @@ const mockDeleteItem = deleteRequirementsItem as ReturnType<typeof vi.fn>;
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+  Element.prototype.scrollIntoView = () => {};
 });
 
 function makeSoftwareDraft(

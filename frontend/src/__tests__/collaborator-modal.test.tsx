@@ -53,6 +53,14 @@ vi.mock("react-toastify", () => ({
   ToastContainer: () => null,
 }));
 
+// Mock useLazyProject — project is already persisted in these tests
+vi.mock("@/hooks/use-lazy-project", () => ({
+  useLazyProject: () => ({
+    ensureProject: () => Promise.resolve("11111111-1111-1111-1111-111111111111"),
+    isDraft: false,
+  }),
+}));
+
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
     user: { id: OWNER_ID, display_name: "Owner User", email: "owner@test.com", roles: [] },

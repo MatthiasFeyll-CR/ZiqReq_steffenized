@@ -18,6 +18,9 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("@/hooks/use-projects-by-state");
+vi.mock("@/hooks/use-highlighted-projects");
+
+import { useHighlightedProjects } from "@/hooks/use-highlighted-projects";
 
 function createQueryClient() {
   return new QueryClient({
@@ -50,6 +53,7 @@ describe("ProjectsListFloating", () => {
   beforeEach(() => {
     mockNavigate.mockClear();
     vi.mocked(useProjectsByState).mockReturnValue(mockHookReturn());
+    vi.mocked(useHighlightedProjects).mockReturnValue({ data: { results: [] }, isLoading: false } as never);
   });
 
   it("renders all 4 tabs", () => {
@@ -60,27 +64,34 @@ describe("ProjectsListFloating", () => {
     expect(screen.getByRole("tab", { name: "Closed" })).toBeInTheDocument();
   });
 
-  it("renders projects in the active tab by default", () => {
+  it("renders projects in the active tab after switching", async () => {
+    const user = userEvent.setup();
     renderFloating();
+    await user.click(screen.getByRole("tab", { name: "Active" }));
     expect(screen.getByText("First Project")).toBeInTheDocument();
     expect(screen.getByText("Second Project")).toBeInTheDocument();
   });
 
-  it("shows empty message when no projects", () => {
+  it("shows empty message when no projects in active tab", async () => {
     vi.mocked(useProjectsByState).mockReturnValue(mockHookReturn([]));
+    const user = userEvent.setup();
     renderFloating();
+    await user.click(screen.getByRole("tab", { name: "Active" }));
     expect(screen.getByText(/No active projects/)).toBeInTheDocument();
   });
 
-  it("shows loading state", () => {
+  it("shows loading state", async () => {
     vi.mocked(useProjectsByState).mockReturnValue(mockHookReturn([], true));
+    const user = userEvent.setup();
     renderFloating();
+    await user.click(screen.getByRole("tab", { name: "Active" }));
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("navigates to project and closes on click", async () => {
     const user = userEvent.setup();
     const onClose = renderFloating();
+    await user.click(screen.getByRole("tab", { name: "Active" }));
     await user.click(screen.getByText("First Project"));
     expect(mockNavigate).toHaveBeenCalledWith("/project/id-1");
     expect(onClose).toHaveBeenCalled();

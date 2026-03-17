@@ -122,74 +122,24 @@ describe("Project creation flow (single-click type selection)", () => {
   });
 
   it("creates a software project and redirects on single click", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          id: "new-project-uuid",
-          title: "",
-          project_type: "software",
-          state: "open",
-          visibility: "private",
-          owner: null,
-          created_at: "2026-03-17T00:00:00Z",
-        }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
     renderLandingPage();
     const user = userEvent.setup();
 
     await user.click(screen.getByTestId("new-project-software"));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/project/new-project-uuid");
+      expect(mockNavigate).toHaveBeenCalledWith("/project/new?type=software");
     });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/projects/"),
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ project_type: "software" }),
-      }),
-    );
-
-    vi.unstubAllGlobals();
   });
 
   it("creates a non-software project on single click", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          id: "ns-project-uuid",
-          title: "",
-          project_type: "non_software",
-          state: "open",
-          visibility: "private",
-          owner: null,
-          created_at: "2026-03-17T00:00:00Z",
-        }),
-    });
-    vi.stubGlobal("fetch", mockFetch);
-
     renderLandingPage();
     const user = userEvent.setup();
 
     await user.click(screen.getByTestId("new-project-non_software"));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/project/ns-project-uuid");
+      expect(mockNavigate).toHaveBeenCalledWith("/project/new?type=non_software");
     });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/projects/"),
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ project_type: "non_software" }),
-      }),
-    );
-
-    vi.unstubAllGlobals();
   });
 });

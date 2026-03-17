@@ -129,7 +129,8 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
     renderLandingPage();
 
     expect(screen.getByText("Create a new project")).toBeInTheDocument();
-    expect(screen.getByTestId("new-project-button")).toBeInTheDocument();
+    expect(screen.getByTestId("new-project-software")).toBeInTheDocument();
+    expect(screen.getByTestId("new-project-non_software")).toBeInTheDocument();
   });
 
   it("renders all 4 section headings", () => {

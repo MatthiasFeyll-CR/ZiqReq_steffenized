@@ -427,6 +427,12 @@ class FacilitatorPlugin:
                 result_entry["generated_id"] = generated_id
             results.append(result_entry)
 
+            await publish_event("ai.requirements.updated", {
+                "project_id": self.project_id,
+                "operation": operation,
+                "data": data,
+            })
+
         # Store mutations for pipeline to process
         self.requirements_mutations.extend(
             m for m, r in zip(mutations_list, results) if r["status"] == "success"

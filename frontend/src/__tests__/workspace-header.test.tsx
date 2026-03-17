@@ -43,6 +43,14 @@ vi.mock("@/hooks/use-auth", () => ({
   AuthContext: { Provider: ({ children }: { children: React.ReactNode }) => children },
 }));
 
+// Mock useLazyProject — project is already persisted in these tests
+vi.mock("@/hooks/use-lazy-project", () => ({
+  useLazyProject: () => ({
+    ensureProject: () => Promise.resolve("11111111-1111-1111-1111-111111111111"),
+    isDraft: false,
+  }),
+}));
+
 import { patchProject } from "@/api/projects";
 
 // Radix Select uses pointer events; stub for jsdom

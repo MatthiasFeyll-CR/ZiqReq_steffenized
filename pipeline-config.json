@@ -291,13 +291,6 @@
         "host": "localhost",
         "port": 5672,
         "startup_timeout": 120
-      },
-      {
-        "name": "minio",
-        "type": "tcp",
-        "host": "localhost",
-        "port": 9000,
-        "startup_timeout": 60
       }
     ]
   },
