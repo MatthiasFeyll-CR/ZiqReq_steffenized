@@ -158,6 +158,7 @@ class TestContextAgentGrounding:
         assert result["response"] == "Based on the onboarding section, it takes 3 days."
         mock_retriever.retrieve.assert_called_once_with(
             query_embedding=[0.1] * 1536,
+            project_type=None,
         )
 
 
