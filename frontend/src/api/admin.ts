@@ -3,8 +3,11 @@ import { authFetch } from "@/lib/auth-token";
 
 // ---------- AI Context ----------
 
+export type ContextType = "global" | "software" | "non_software";
+
 export interface FacilitatorContext {
   id: string;
+  context_type: ContextType;
   content: string;
   updated_by: string | null;
   updated_at: string;
@@ -12,16 +15,20 @@ export interface FacilitatorContext {
 
 export interface CompanyContext {
   id: string;
+  context_type: ContextType;
   sections: Record<string, unknown>;
   free_text: string;
   updated_by: string | null;
   updated_at: string;
 }
 
-export async function fetchFacilitatorContext(): Promise<FacilitatorContext> {
-  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/facilitator`, {
-    credentials: "include",
-  });
+export async function fetchFacilitatorContext(
+  type: ContextType = "global",
+): Promise<FacilitatorContext> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/admin/ai-context/facilitator?type=${type}`,
+    { credentials: "include" },
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
@@ -29,13 +36,19 @@ export async function fetchFacilitatorContext(): Promise<FacilitatorContext> {
   return res.json();
 }
 
-export async function patchFacilitatorContext(content: string): Promise<FacilitatorContext> {
-  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/facilitator`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ content }),
-  });
+export async function patchFacilitatorContext(
+  content: string,
+  type: ContextType = "global",
+): Promise<FacilitatorContext> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/admin/ai-context/facilitator?type=${type}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ content }),
+    },
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
@@ -43,10 +56,13 @@ export async function patchFacilitatorContext(content: string): Promise<Facilita
   return res.json();
 }
 
-export async function fetchCompanyContext(): Promise<CompanyContext> {
-  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/company`, {
-    credentials: "include",
-  });
+export async function fetchCompanyContext(
+  type: ContextType = "global",
+): Promise<CompanyContext> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/admin/ai-context/company?type=${type}`,
+    { credentials: "include" },
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
@@ -57,13 +73,17 @@ export async function fetchCompanyContext(): Promise<CompanyContext> {
 export async function patchCompanyContext(
   sections: Record<string, unknown>,
   free_text: string,
+  type: ContextType = "global",
 ): Promise<CompanyContext> {
-  const res = await authFetch(`${env.apiBaseUrl}/admin/ai-context/company`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ sections, free_text }),
-  });
+  const res = await authFetch(
+    `${env.apiBaseUrl}/admin/ai-context/company?type=${type}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ sections, free_text }),
+    },
+  );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);

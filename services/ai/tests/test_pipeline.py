@@ -662,7 +662,8 @@ class TestContextExtensionDelegation:
 
 
 class TestContextAssembler:
-    def test_assemble_basic_context(self):
+    @patch("processing.context_assembler.get_facilitator_context", return_value="SAP, DocuSign")
+    def test_assemble_basic_context(self, mock_get_fc):
         from processing.context_assembler import ContextAssembler
 
         assembler = ContextAssembler()
@@ -691,7 +692,8 @@ class TestContextAssembler:
         assert result["delegation_results"] is None
         assert result["extension_results"] is None
 
-    def test_assemble_empty_response(self):
+    @patch("processing.context_assembler.get_facilitator_context", return_value="")
+    def test_assemble_empty_response(self, mock_get_fc):
         from processing.context_assembler import ContextAssembler
 
         assembler = ContextAssembler()

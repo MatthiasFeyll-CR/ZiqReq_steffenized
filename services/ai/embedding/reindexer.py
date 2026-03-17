@@ -31,6 +31,7 @@ class Reindexer:
         bucket_id: str,
         sections: dict[str, str],
         free_text: str,
+        context_type: str | None = None,
     ) -> dict[str, Any]:
         """Re-index a context agent bucket: chunk, embed, persist.
 
@@ -41,6 +42,7 @@ class Reindexer:
             bucket_id: UUID of the context_agent_bucket.
             sections: {section_key: section_text} from bucket.
             free_text: Free text content from bucket.
+            context_type: The bucket's context_type (global, software, non_software).
 
         Returns:
             Dict with chunk_count, total_tokens, duration_ms.
@@ -60,7 +62,7 @@ class Reindexer:
 
         embedded_chunks = await self.embedder.embed(chunks)
 
-        await self._persist_chunks(bucket_id, embedded_chunks)
+        await self._persist_chunks(bucket_id, embedded_chunks, context_type=context_type)
 
         total_tokens = sum(c["token_count"] for c in embedded_chunks)
         elapsed = int((time.monotonic() - start) * 1000)
@@ -92,6 +94,7 @@ class Reindexer:
         self,
         bucket_id: str,
         embedded_chunks: list[dict[str, Any]],
+        context_type: str | None = None,
     ) -> None:
         """Atomically replace all chunks for a bucket."""
         from apps.embedding.models import ContextChunk
@@ -109,6 +112,7 @@ class Reindexer:
                         token_count=chunk["token_count"],
                         embedding=chunk["embedding"],
                         source_section=chunk["source_section"],
+                        context_type=context_type,
                     )
                 )
 
