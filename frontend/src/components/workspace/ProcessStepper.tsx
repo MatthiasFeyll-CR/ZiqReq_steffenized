@@ -9,25 +9,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type ProcessStep = "brainstorm" | "document" | "review";
+export type ProcessStep = "brainstorm" | "structure" | "review";
 
-const STEPS: ProcessStep[] = ["brainstorm", "document", "review"];
+const STEPS: ProcessStep[] = ["brainstorm", "structure", "review"];
 
 interface ProcessStepperProps {
   activeStep: ProcessStep;
   onStepChange: (step: ProcessStep) => void;
-  canAccessDocument: boolean;
+  canAccessStructure: boolean;
   canAccessReview: boolean;
-  documentGateMessage?: string;
+  structureGateMessage?: string;
   reviewGateMessage?: string;
 }
 
 export function ProcessStepper({
   activeStep,
   onStepChange,
-  canAccessDocument,
+  canAccessStructure,
   canAccessReview,
-  documentGateMessage,
+  structureGateMessage,
   reviewGateMessage,
 }: ProcessStepperProps) {
   const { t } = useTranslation();
@@ -37,9 +37,9 @@ export function ProcessStepper({
       label: t("process.brainstorm", "Define"),
       description: t("process.brainstormDesc", "Chat with AI to define your project"),
     },
-    document: {
-      label: t("process.document", "Structure"),
-      description: t("process.documentDesc", "Generate & refine your requirements document"),
+    structure: {
+      label: t("process.structure", "Structure"),
+      description: t("process.structureDesc", "Review & refine your requirements"),
     },
     review: {
       label: t("process.review", "Review"),
@@ -61,11 +61,11 @@ export function ProcessStepper({
           const isActive = step === activeStep;
           const isCompleted = index < activeIndex;
           const isGated =
-            (step === "document" && !canAccessDocument) ||
+            (step === "structure" && !canAccessStructure) ||
             (step === "review" && !canAccessReview);
           const gateMessage =
-            step === "document"
-              ? documentGateMessage
+            step === "structure"
+              ? structureGateMessage
               : step === "review"
                 ? reviewGateMessage
                 : undefined;

@@ -99,7 +99,7 @@ function renderHeader(props: Partial<{
               readOnly={props.readOnly ?? false}
               activeStep="brainstorm"
               onStepChange={onStepChange}
-              canAccessDocument={true}
+              canAccessStructure={true}
               canAccessReview={false}
             />
           </MemoryRouter>
@@ -255,9 +255,9 @@ describe("Process stepper in header", () => {
   it("calls onStepChange when clicking a step", () => {
     const { onStepChange } = renderHeader();
 
-    fireEvent.click(screen.getByTestId("step-document"));
+    fireEvent.click(screen.getByTestId("step-structure"));
 
-    expect(onStepChange).toHaveBeenCalledWith("document");
+    expect(onStepChange).toHaveBeenCalledWith("structure");
   });
 
   it("renders options menu trigger button", () => {

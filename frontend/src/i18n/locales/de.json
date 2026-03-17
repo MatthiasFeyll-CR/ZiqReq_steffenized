@@ -336,6 +336,20 @@
       "next": "Weiter"
     }
   },
+  "structure": {
+    "pdfPreview": "Dokumentvorschau",
+    "pdfPlaceholder": "PDF-Vorschau wird nach der Erstellung hier angezeigt.",
+    "pdfFallback": "PDF kann nicht angezeigt werden. Bitte laden Sie es stattdessen herunter.",
+    "generating": "Wird erstellt...",
+    "regenerate": "Neu erstellen",
+    "generate": "KI-Entwurf erstellen",
+    "generateError": "Anforderungen konnten nicht erstellt werden",
+    "ready": "bereit",
+    "locks": "Sperren:",
+    "lock": "Sperren (KI-Neuerstellung verhindern)",
+    "unlock": "Entsperren (KI-Neuerstellung zulassen)",
+    "notReady": "Einige Elemente sind nicht bereit. Aktivieren Sie 'Informationslücken zulassen' oder vervollständigen Sie alle Elemente."
+  },
   "brd": {
     "editDocument": "Dokument bearbeiten",
     "allowGaps": "Informationslücken zulassen",
@@ -371,9 +385,13 @@
     "review": "Überprüfung",
     "reviewDesc": "Zur Genehmigung einreichen",
     "stepper": "Prozessschritte",
-    "brainstormDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihr Business Requirements Document zu erstellen.",
+    "structure": "Strukturieren",
+    "structureDesc": "Anforderungen überprüfen und verfeinern",
+    "brainstormDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihre Anforderungen zu strukturieren.",
+    "structureGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zur Strukturierung übergehen.",
     "documentGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zum Dokument übergehen.",
     "reviewGate": "Reichen Sie Ihr Projekt zuerst zur Überprüfung ein.",
+    "continueToStructure": "Weiter zur Strukturierung",
     "continueToDocument": "Weiter zur Strukturierung",
     "documentGuide": "Überprüfen und verfeinern Sie jeden Abschnitt unten, dann reichen Sie zur Überprüfung ein, wenn Sie bereit sind."
   },

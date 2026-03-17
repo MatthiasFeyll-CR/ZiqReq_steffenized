@@ -18,7 +18,7 @@ import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { RequirementsPanel } from "@/components/workspace/RequirementsPanel";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
-import { DocumentView } from "@/components/workspace/DocumentView";
+import { StructureStepView } from "./StructureStepView";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
@@ -30,7 +30,7 @@ import { selectIsOnline, selectConnectionState } from "@/store/websocket-slice";
 import { useWsSend } from "@/app/providers";
 import type { ProcessStep } from "@/components/workspace/ProcessStepper";
 
-const VALID_STEPS: ProcessStep[] = ["brainstorm", "document", "review"];
+const VALID_STEPS: ProcessStep[] = ["brainstorm", "structure", "review"];
 
 function parseStep(value: string | null): ProcessStep {
   if (value && VALID_STEPS.includes(value as ProcessStep)) {
@@ -249,12 +249,12 @@ function ProjectWorkspaceContent({
   const hasBeenSubmitted = project.state !== "open" && project.state !== "deleted";
 
   // Access gates
-  const canAccessDocument = hasMessages === true;
+  const canAccessStructure = hasMessages === true;
   const canAccessReview = hasBeenSubmitted;
 
-  const documentGateMessage = t(
-    "process.documentGate",
-    "Send at least one message in the chat before proceeding to the document.",
+  const structureGateMessage = t(
+    "process.structureGate",
+    "Send at least one message in the chat before proceeding to structure.",
   );
   const reviewGateMessage = t(
     "process.reviewGate",
@@ -276,13 +276,13 @@ function ProjectWorkspaceContent({
 
   // If landed on a gated step, redirect to brainstorm
   useEffect(() => {
-    if (activeStep === "document" && !canAccessDocument) {
+    if (activeStep === "structure" && !canAccessStructure) {
       handleStepChange("brainstorm");
     } else if (activeStep === "review" && !canAccessReview) {
-      // Redirect to document if they can access it, otherwise brainstorm
-      handleStepChange(canAccessDocument ? "document" : "brainstorm");
+      // Redirect to structure if they can access it, otherwise brainstorm
+      handleStepChange(canAccessStructure ? "structure" : "brainstorm");
     }
-  }, [activeStep, canAccessDocument, canAccessReview, handleStepChange]);
+  }, [activeStep, canAccessStructure, canAccessReview, handleStepChange]);
 
   // Subscribe to idea's WebSocket group when connected
   useEffect(() => {
@@ -369,9 +369,9 @@ function ProjectWorkspaceContent({
         readOnly={effectiveReadOnly}
         activeStep={activeStep}
         onStepChange={handleStepChange}
-        canAccessDocument={canAccessDocument}
+        canAccessStructure={canAccessStructure}
         canAccessReview={canAccessReview}
-        documentGateMessage={documentGateMessage}
+        structureGateMessage={structureGateMessage}
         reviewGateMessage={reviewGateMessage}
         shareToken={shareToken}
       />
@@ -473,11 +473,11 @@ function ProjectWorkspaceContent({
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => handleStepChange("document")}
+                  onClick={() => handleStepChange("structure")}
                   className="shrink-0 gap-1.5"
-                  data-testid="continue-to-document"
+                  data-testid="continue-to-structure"
                 >
-                  {t("process.continueToDocument", "Continue to Document")}
+                  {t("process.continueToStructure", "Continue to Structure")}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -486,30 +486,21 @@ function ProjectWorkspaceContent({
         </div>
       )}
 
-      {activeStep === "document" && (
-        <div className="flex-1 min-h-0 flex flex-col">
-
-          {/* Step guidance */}
-          <div className="shrink-0 px-6 pt-4 pb-2">
-            <p className="text-sm text-muted-foreground">
-              {t("process.documentGuide", "Review and refine each section below, then submit for review when you're ready.")}
-            </p>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
-            <DocumentView
-              projectId={project.id}
-              projectState={project.state}
-              disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
-              onStepChange={handleStepChange}
-              onSubmitted={() => {
-                fetchProject(project.id).then((updated) => {
-                  onProjectUpdate(updated);
-                }).catch(() => {});
-              }}
-            />
-          </div>
-        </div>
+      {activeStep === "structure" && (
+        <StructureStepView
+          projectId={project.id}
+          projectType={project.project_type}
+          projectState={project.state}
+          disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
+          readOnly={effectiveReadOnly}
+          collaborators={project.collaborators}
+          onStepChange={handleStepChange}
+          onSubmitted={() => {
+            fetchProject(project.id).then((updated) => {
+              onProjectUpdate(updated);
+            }).catch(() => {});
+          }}
+        />
       )}
 
       {activeStep === "review" && (

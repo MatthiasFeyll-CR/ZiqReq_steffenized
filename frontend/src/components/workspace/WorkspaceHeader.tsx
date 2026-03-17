@@ -34,9 +34,9 @@ interface WorkspaceHeaderProps {
   readOnly?: boolean;
   activeStep: ProcessStep;
   onStepChange: (step: ProcessStep) => void;
-  canAccessDocument: boolean;
+  canAccessStructure: boolean;
   canAccessReview: boolean;
-  documentGateMessage?: string;
+  structureGateMessage?: string;
   reviewGateMessage?: string;
   shareToken?: string | null;
 }
@@ -47,9 +47,9 @@ export function WorkspaceHeader({
   readOnly = false,
   activeStep,
   onStepChange,
-  canAccessDocument,
+  canAccessStructure,
   canAccessReview,
-  documentGateMessage,
+  structureGateMessage,
   reviewGateMessage,
   shareToken,
 }: WorkspaceHeaderProps) {
@@ -262,9 +262,9 @@ export function WorkspaceHeader({
         <ProcessStepper
           activeStep={activeStep}
           onStepChange={onStepChange}
-          canAccessDocument={canAccessDocument}
+          canAccessStructure={canAccessStructure}
           canAccessReview={canAccessReview}
-          documentGateMessage={documentGateMessage}
+          structureGateMessage={structureGateMessage}
           reviewGateMessage={reviewGateMessage}
         />
       </div>

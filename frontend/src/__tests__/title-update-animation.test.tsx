@@ -81,7 +81,7 @@ function renderHeader(idea: Project = MOCK_PROJECT) {
               onProjectUpdate={onProjectUpdate}
               activeStep="brainstorm"
               onStepChange={() => {}}
-              canAccessDocument={true}
+              canAccessStructure={true}
               canAccessReview={false}
             />
         </MemoryRouter>
@@ -122,7 +122,7 @@ describe("T-2.3.03: Title update animates", () => {
                 onProjectUpdate={onProjectUpdate}
                 activeStep="brainstorm"
                 onStepChange={() => {}}
-                canAccessDocument={true}
+                canAccessStructure={true}
                 canAccessReview={false}
               />
           </MemoryRouter>

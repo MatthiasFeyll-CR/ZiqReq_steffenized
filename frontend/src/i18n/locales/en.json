@@ -336,6 +336,20 @@
       "next": "Next"
     }
   },
+  "structure": {
+    "pdfPreview": "Document Preview",
+    "pdfPlaceholder": "PDF preview will appear here after generation.",
+    "pdfFallback": "Unable to display PDF. Please download instead.",
+    "generating": "Generating...",
+    "regenerate": "Regenerate",
+    "generate": "Generate AI Draft",
+    "generateError": "Failed to generate requirements",
+    "ready": "ready",
+    "locks": "Locks:",
+    "lock": "Lock (prevent AI regeneration)",
+    "unlock": "Unlock (allow AI regeneration)",
+    "notReady": "Some items are not ready. Enable 'Allow information gaps' or complete all items."
+  },
   "brd": {
     "editDocument": "Edit Document",
     "allowGaps": "Allow information gaps",
@@ -371,9 +385,13 @@
     "review": "Review",
     "reviewDesc": "Submit for approval",
     "stepper": "Process steps",
-    "brainstormDoneHint": "Ready to formalize your project? Continue to generate your Business Requirements Document.",
+    "structure": "Structure",
+    "structureDesc": "Review & refine your requirements",
+    "brainstormDoneHint": "Ready to formalize your project? Continue to structure your requirements.",
+    "structureGate": "Send at least one message in the chat before proceeding to structure.",
     "documentGate": "Send at least one message in the chat before proceeding to the document.",
     "reviewGate": "Submit your project for review first.",
+    "continueToStructure": "Continue to Structure",
     "continueToDocument": "Continue to Structure",
     "documentGuide": "Review and refine each section below, then submit for review when you're ready."
   },
