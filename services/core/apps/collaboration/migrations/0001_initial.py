@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             name="CollaborationInvitation",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 ("inviter_id", models.UUIDField()),
                 ("invitee_id", models.UUIDField()),
                 (
@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="collaborationinvitation",
-            index=models.Index(fields=["idea_id"], name="idx_invite_idea"),
+            index=models.Index(fields=["project_id"], name="idx_invite_project"),
         ),
         # CHECK constraint
         migrations.RunSQL(

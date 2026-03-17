@@ -20,9 +20,16 @@ def migrate_brd_to_requirements(apps, schema_editor):
         if not cursor.fetchone()[0]:
             return
 
+        # Detect column name: idea_id (fresh DB) or project_id (already renamed)
+        cursor.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'brd_drafts' AND column_name IN ('project_id', 'idea_id')"
+        )
+        fk_col = cursor.fetchone()[0]
+
         # Fetch all brd_drafts
         cursor.execute(
-            "SELECT id, project_id, section_title, section_short_description, "
+            f"SELECT id, {fk_col}, section_title, section_short_description, "
             "section_current_workflow, section_affected_department, "
             "section_core_capabilities, section_success_criteria, "
             "section_locks, allow_information_gaps, readiness_evaluation, "
@@ -105,8 +112,15 @@ def migrate_brd_to_requirements(apps, schema_editor):
             "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'brd_versions')"
         )
         if cursor.fetchone()[0]:
+            # Detect column name for brd_versions too
             cursor.execute(
-                "SELECT id, project_id, version_number, section_title, "
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'brd_versions' AND column_name IN ('project_id', 'idea_id')"
+            )
+            ver_fk_col = cursor.fetchone()[0]
+
+            cursor.execute(
+                f"SELECT id, {ver_fk_col}, version_number, section_title, "
                 "section_short_description, section_current_workflow, "
                 "section_affected_department, section_core_capabilities, "
                 "section_success_criteria, pdf_file_path, created_at "
@@ -186,7 +200,7 @@ def drop_old_brd_tables(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("projects", "0004_rename_to_projects"),
+        ("projects", "0001_initial"),
     ]
 
     operations = [

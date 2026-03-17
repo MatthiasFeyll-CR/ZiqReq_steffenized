@@ -80,12 +80,9 @@ services:
         echo 'Waiting for core service (migrations)...' &&
         until python -c \"import socket; s=socket.create_connection(('core',50051),2); s.close()\" 2>/dev/null; do sleep 2; done &&
         echo 'Core ready. Running gateway migrations...' &&
-        python manage.py migrate --fake board 2>/dev/null;
-        python manage.py migrate --fake brd 2>/dev/null;
+        python manage.py migrate --fake gateway_projects 2>/dev/null;
         python manage.py migrate --fake gateway_collaboration 2>/dev/null;
-        python manage.py migrate --fake gateway_ideas 2>/dev/null;
-        python manage.py migrate --fake review 2>/dev/null;
-        python manage.py migrate --noinput &&
+        python manage.py migrate --noinput || exit 1;
         python grpc_server/server.py &
         python events/rabbitmq_subscriber.py &
         daphne -b 0.0.0.0 -p 8000 gateway.asgi:application

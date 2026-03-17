@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             name="BrdDraft",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField(unique=True)),
+                ("project_id", models.UUIDField(unique=True)),
                 ("section_title", models.TextField(blank=True, null=True)),
                 ("section_short_description", models.TextField(blank=True, null=True)),
                 ("section_current_workflow", models.TextField(blank=True, null=True)),
@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
             name="BrdVersion",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 ("version_number", models.IntegerField()),
                 ("section_title", models.TextField(blank=True, null=True)),
                 ("section_short_description", models.TextField(blank=True, null=True)),
@@ -48,11 +48,11 @@ class Migration(migrations.Migration):
             ],
             options={
                 "db_table": "brd_versions",
-                "unique_together": {("idea_id", "version_number")},
+                "unique_together": {("project_id", "version_number")},
             },
         ),
         migrations.AddIndex(
             model_name="brdversion",
-            index=models.Index(fields=["idea_id", "version_number"], name="idx_brd_ver_idea"),
+            index=models.Index(fields=["project_id", "version_number"], name="idx_brd_ver_project"),
         ),
     ]

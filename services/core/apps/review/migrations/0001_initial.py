@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             name="ReviewAssignment",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 ("reviewer_id", models.UUIDField()),
                 (
                     "assigned_by",
@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
             name="ReviewTimelineEntry",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 (
                     "entry_type",
                     models.CharField(
@@ -65,12 +65,12 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="reviewassignment",
-            index=models.Index(fields=["idea_id"], name="idx_review_idea"),
+            index=models.Index(fields=["project_id"], name="idx_review_project"),
         ),
         # ReviewTimelineEntry indexes
         migrations.AddIndex(
             model_name="reviewtimelineentry",
-            index=models.Index(fields=["idea_id", "created_at"], name="idx_timeline_idea"),
+            index=models.Index(fields=["project_id", "created_at"], name="idx_timeline_project"),
         ),
         migrations.AddIndex(
             model_name="reviewtimelineentry",
@@ -101,7 +101,7 @@ class Migration(migrations.Migration):
             sql=[
                 (
                     "CREATE UNIQUE INDEX uq_active_review_assignment"
-                    " ON review_assignments (idea_id, reviewer_id)"
+                    " ON review_assignments (project_id, reviewer_id)"
                     " WHERE unassigned_at IS NULL;"
                 ),
             ],

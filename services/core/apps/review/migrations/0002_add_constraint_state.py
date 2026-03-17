@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
                     model_name="reviewassignment",
                     constraint=models.UniqueConstraint(
                         condition=django.db.models.Q(("unassigned_at__isnull", True)),
-                        fields=("idea_id", "reviewer_id"),
+                        fields=("project_id", "reviewer_id"),
                         name="uq_active_review_assignment",
                     ),
                 ),

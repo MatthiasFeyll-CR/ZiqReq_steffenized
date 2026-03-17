@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             name="ChatMessage",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 (
                     "sender_type",
                     models.CharField(
@@ -91,7 +91,7 @@ class Migration(migrations.Migration):
         # Indexes
         migrations.AddIndex(
             model_name="chatmessage",
-            index=models.Index(fields=["idea_id", "created_at"], name="idx_chat_idea_created"),
+            index=models.Index(fields=["project_id", "created_at"], name="idx_chat_project_created"),
         ),
         migrations.AddIndex(
             model_name="chatmessage",

@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
             name="ChatContextSummary",
             fields=[
                 ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ("idea_id", models.UUIDField()),
+                ("project_id", models.UUIDField()),
                 ("summary_text", models.TextField()),
                 ("messages_covered_up_to_id", models.UUIDField()),
                 ("compression_iteration", models.IntegerField(default=1)),
@@ -51,6 +51,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="chatcontextsummary",
-            index=models.Index(fields=["idea_id"], name="idx_ctx_summary_idea"),
+            index=models.Index(fields=["project_id"], name="idx_ctx_summary_project"),
         ),
     ]
