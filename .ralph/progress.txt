@@ -88,3 +88,13 @@ Started: 2026-03-17T02:02:16+0100
   - test_visibility.py only needs project_type (no first_message) since first_message is optional in ProjectCreateSerializer
   - test_views.py needs both first_message and project_type since the test verifies ChatMessage creation
 ---
+
+## BF-002: Fix: Context agent test assertion missing project_type parameter
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/tests/test_context_agent.py
+- Tests: 669 passed, 0 failed. Typecheck clean. Ruff clean.
+- Learnings for future iterations:
+  - When adding a new parameter to a function (like project_type to retriever.retrieve()), all mock assertions (assert_called_once_with) must be updated to include the new parameter
+  - The context agent passes project_type=None by default when no project_type is in the input payload
+---
