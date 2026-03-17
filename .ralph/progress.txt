@@ -35,6 +35,21 @@ Started: 2026-03-17T02:02:16+0100
   - Two pre-existing test failures (from US-001) send `first_message` without required `project_type`. Future iterations should fix: services/gateway/apps/projects/tests/test_views.py::test_create_project_with_first_message and services/gateway/apps/collaboration/tests/test_visibility.py::test_new_project_defaults_to_private.
 ---
 
+## US-003: Structured requirements panel UI
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/workspace/RequirementsPanel.tsx (new), EpicCard.tsx (new), MilestoneCard.tsx (new), UserStoryCard.tsx (new), WorkPackageCard.tsx (new), RequirementsItemEditor.tsx (new), WorkspaceLayout.tsx (rewritten for 40/60 split), frontend/src/hooks/use-websocket.ts (3 new WS event handlers), frontend/src/pages/ProjectWorkspace/index.tsx (added RequirementsPanel), frontend/package.json (@dnd-kit deps), frontend/src/components/workspace/__tests__/RequirementsPanel.test.tsx (new, 14 tests)
+- Tests: 358 passed (14 new), 0 failed. Typecheck clean. Ruff clean.
+- Learnings for future iterations:
+  - @dnd-kit requires 3 packages: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities
+  - WorkspaceLayout now accepts optional `requirementsPanel` prop — backwards compatible (single panel if omitted)
+  - WebSocket events for requirements (requirements_updated, requirements_generating, requirements_ready) use CustomEvent dispatch via window like all other WS events in the codebase
+  - The RequirementsPanel uses window CustomEvent listeners for WS sync rather than Redux to keep state local to the component
+  - Drag-and-drop across parents (moving a story between epics) works by tracking parentId in sortable data
+  - EditorMode discriminated union pattern works well for the multi-purpose item editor dialog
+  - TypeScript strict mode requires explicit cast for select onChange handlers (string → union type)
+---
+
 ---
 
 ## Codebase Patterns
