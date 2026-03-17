@@ -3,7 +3,7 @@
   "version": "1.0",
   "project": {
     "name": "ZiqReq",
-    "description": "Refactoring ZiqReq from AI-brainstorming platform to structured requirements assembly platform (M17-M21)"
+    "description": "M22: Chat File Attachments — adds file upload (images + PDFs) to chat with MinIO storage, AI content extraction, prompt injection sandboxing, and frontend UI"
   },
   "paths": {
     "docs_dir": "docs",
@@ -169,6 +169,13 @@
       "name": "Document View, PDF Generation & Final Polish",
       "stories": 5,
       "dependencies": [20]
+    },
+    {
+      "id": 22,
+      "slug": "chat-attachments",
+      "name": "Chat File Attachments",
+      "stories": 10,
+      "dependencies": [21]
     }
   ],
   "models": {
@@ -284,6 +291,13 @@
         "host": "localhost",
         "port": 5672,
         "startup_timeout": 120
+      },
+      {
+        "name": "minio",
+        "type": "tcp",
+        "host": "localhost",
+        "port": 9000,
+        "startup_timeout": 60
       }
     ]
   },
