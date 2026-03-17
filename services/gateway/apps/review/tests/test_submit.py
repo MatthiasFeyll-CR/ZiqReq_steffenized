@@ -11,8 +11,8 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
-from apps.brd.models import BrdDraft
 from apps.projects.models import Project
+from apps.requirements_document.models import BrdDraft
 from apps.review.models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
 
 USER_1_ID = uuid.UUID("00000000-0000-0000-0000-000000000101")
@@ -46,12 +46,17 @@ class TestSubmitProject(TestCase):
         self.project = Project.objects.create(owner_id=self.user1.id, state="open", title="Test Project")
         BrdDraft.objects.create(
             project_id=self.project.id,
-            section_title="My Title",
-            section_short_description="My Description",
-            section_current_workflow="Current workflow",
-            section_affected_department="IT",
-            section_core_capabilities="Capabilities",
-            section_success_criteria="Success criteria",
+            title="My Title",
+            short_description="My Description",
+            structure=[
+                {
+                    "id": "epic-1",
+                    "type": "epic",
+                    "title": "Epic One",
+                    "description": "Description",
+                    "children": [],
+                }
+            ],
         )
         self._login_as(self.user1)
 
@@ -139,12 +144,10 @@ class TestSubmitProject(TestCase):
         assert response.status_code == 200
 
         version = BrdVersion.objects.get(project_id=self.project.id, version_number=1)
-        assert version.section_title == "My Title"
-        assert version.section_short_description == "My Description"
-        assert version.section_current_workflow == "Current workflow"
-        assert version.section_affected_department == "IT"
-        assert version.section_core_capabilities == "Capabilities"
-        assert version.section_success_criteria == "Success criteria"
+        assert version.title == "My Title"
+        assert version.short_description == "My Description"
+        assert len(version.structure) == 1
+        assert version.structure[0]["title"] == "Epic One"
 
     # --- T-4.10.01: Submit with reviewer IDs creates assignments ---
 

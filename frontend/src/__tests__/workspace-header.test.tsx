@@ -242,7 +242,7 @@ describe("Process stepper in header", () => {
 
     expect(screen.getByTestId("process-stepper")).toBeInTheDocument();
     expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
-    expect(screen.getByTestId("step-document")).toBeInTheDocument();
+    expect(screen.getByTestId("step-structure")).toBeInTheDocument();
     expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });
 

@@ -12,7 +12,7 @@ urlpatterns = [
     path("<str:project_id>/submit", review_views.submit_project),
     path("<str:project_id>/chat/", include("apps.chat.urls")),
     path("<str:project_id>/context-window", views.context_window),
-    path("<str:project_id>/brd/", include("apps.brd.urls")),
+    path("<str:project_id>/brd/", include("apps.requirements_document.urls")),
     # Requirements endpoints (US-002)
     path("<str:project_id>/requirements/", requirements_views.requirements_root),
     path("<str:project_id>/requirements/items", requirements_views.requirements_items),

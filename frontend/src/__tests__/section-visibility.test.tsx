@@ -140,7 +140,7 @@ describe("T-1.2.01: process stepper renders with correct steps", () => {
     });
 
     expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
-    expect(screen.getByTestId("step-document")).toBeInTheDocument();
+    expect(screen.getByTestId("step-structure")).toBeInTheDocument();
     expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });
 });

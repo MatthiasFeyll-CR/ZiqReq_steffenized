@@ -22,7 +22,7 @@ INSTALLED_APPS = [
     "apps.projects",
     "apps.chat",
     "apps.collaboration",
-    "apps.brd",
+    "apps.requirements_document",
     "apps.review",
     "apps.admin_ai_context",
     "apps.websocket",

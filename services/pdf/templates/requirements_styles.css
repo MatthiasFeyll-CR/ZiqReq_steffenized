@@ -1,0 +1,182 @@
+/* Requirements Document PDF Styles — Commerz Real Branding */
+@page {
+  size: A4 portrait;
+  margin: 25mm 20mm 30mm 20mm;
+
+  @bottom-center {
+    content: counter(page);
+    font-family: Gotham, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 9pt;
+    color: #666;
+  }
+
+  @bottom-left {
+    content: "Commerz Real — ZiqReq";
+    font-family: Gotham, ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 8pt;
+    color: #999;
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Gotham, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+
+/* Header */
+.requirements-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 3px solid #c8a951;
+  padding-bottom: 12pt;
+  margin-bottom: 24pt;
+}
+
+.brand-name {
+  display: block;
+  font-size: 18pt;
+  font-weight: 700;
+  color: #003366;
+  letter-spacing: 0.5pt;
+}
+
+.brand-sub {
+  display: block;
+  font-size: 10pt;
+  color: #666;
+  margin-top: 2pt;
+}
+
+.generated-date {
+  font-size: 9pt;
+  color: #666;
+}
+
+/* Main Title */
+.project-title {
+  font-size: 22pt;
+  font-weight: 700;
+  color: #003366;
+  margin-bottom: 8pt;
+  line-height: 1.3;
+}
+
+.short-description {
+  font-size: 11pt;
+  color: #444;
+  margin-bottom: 20pt;
+  line-height: 1.6;
+}
+
+/* Sections (Epics / Milestones) */
+.epic-section,
+.milestone-section {
+  margin-bottom: 24pt;
+  page-break-inside: avoid;
+}
+
+.epic-section h2,
+.milestone-section h2 {
+  font-size: 14pt;
+  font-weight: 700;
+  color: #003366;
+  border-bottom: 2px solid #c8a951;
+  padding-bottom: 4pt;
+  margin-bottom: 8pt;
+}
+
+.section-description {
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #333;
+  margin-bottom: 12pt;
+}
+
+.section-description p {
+  margin-bottom: 4pt;
+}
+
+/* Tables */
+.requirements-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-top: 8pt;
+}
+
+.requirements-table th {
+  background-color: #003366;
+  color: #fff;
+  font-weight: 600;
+  text-align: left;
+  padding: 6pt 8pt;
+  font-size: 9pt;
+}
+
+.requirements-table td {
+  padding: 6pt 8pt;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+  font-size: 9pt;
+  line-height: 1.4;
+}
+
+.requirements-table tr:nth-child(even) td {
+  background-color: #f8f9fa;
+}
+
+.col-id {
+  width: 60pt;
+  font-family: monospace;
+  font-size: 8pt;
+  color: #666;
+}
+
+/* Bullet lists inside table cells */
+.requirements-table ul {
+  margin: 0;
+  padding-left: 14pt;
+}
+
+.requirements-table li {
+  margin-bottom: 2pt;
+}
+
+/* Priority badges */
+.priority-badge {
+  display: inline-block;
+  padding: 2pt 6pt;
+  border-radius: 3pt;
+  font-size: 8pt;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.priority-high {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.priority-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.priority-low {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+/* Footer — handled by @page rules, hide in body */
+.requirements-footer {
+  display: none;
+}

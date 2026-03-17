@@ -1,77 +1,152 @@
-"""BRD HTML assembly from sections."""
+"""Requirements document HTML assembly — type-specific templates."""
 
 from __future__ import annotations
 
 import html
+import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
-class BrdContent:
-    """Holds all BRD content needed for PDF generation."""
+class RequirementsDocumentContent:
+    """Holds all content needed for PDF generation."""
 
-    section_title: str
-    section_short_description: str
-    section_current_workflow: str
-    section_affected_department: str
-    section_core_capabilities: str
-    section_success_criteria: str
-    project_title: str
-    generated_date: str
+    project_type: str  # "software" or "non_software"
+    title: str
+    short_description: str
+    structure: list[dict] = field(default_factory=list)
+    generated_date: str = ""
 
 
 _TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
 
-_SECTION_LABELS = [
-    ("section_title", "1. Title"),
-    ("section_short_description", "2. Short Description"),
-    ("section_current_workflow", "3. Current Workflow & Pain Points"),
-    ("section_affected_department", "4. Affected Department"),
-    ("section_core_capabilities", "5. Core Capabilities"),
-    ("section_success_criteria", "6. Success Criteria"),
-]
-
 
 def _load_css() -> str:
-    css_path = os.path.join(_TEMPLATE_DIR, "brd_styles.css")
+    css_path = os.path.join(_TEMPLATE_DIR, "requirements_styles.css")
     with open(css_path) as f:
         return f.read()
 
 
-def _render_section(label: str, content: str) -> str:
-    escaped = html.escape(content or "")
-    paragraphs = "\n".join(
+def _render_bullet_list(text: str) -> str:
+    """Render a text block as an HTML bullet list."""
+    if not text:
+        return ""
+    lines = [line.strip().lstrip("- ").lstrip("* ") for line in text.strip().split("\n") if line.strip()]
+    if not lines:
+        return ""
+    items = "\n".join(f"<li>{html.escape(line)}</li>" for line in lines)
+    return f"<ul>{items}</ul>"
+
+
+def _render_epic(epic: dict) -> str:
+    """Render an epic section with user stories table."""
+    title = html.escape(epic.get("title", ""))
+    description = html.escape(epic.get("description", ""))
+    desc_html = "\n".join(
         f"<p>{line}</p>" if line.strip() else "<p>&nbsp;</p>"
-        for line in escaped.split("\n")
+        for line in description.split("\n")
     )
-    return f"""<section class="brd-section">
-  <h2>{html.escape(label)}</h2>
-  <div class="section-content">{paragraphs}</div>
+
+    children = epic.get("children", [])
+    rows = ""
+    for story in children:
+        sid = html.escape(story.get("id", "")[:8])
+        stitle = html.escape(story.get("title", ""))
+        sdesc = html.escape(story.get("description", ""))
+        ac = _render_bullet_list(story.get("acceptance_criteria", ""))
+        priority = story.get("priority", "Medium")
+        priority_class = priority.lower() if priority else "medium"
+        rows += f"""      <tr>
+        <td class="col-id">{sid}</td>
+        <td>{stitle}</td>
+        <td>{sdesc}</td>
+        <td>{ac}</td>
+        <td><span class="priority-badge priority-{html.escape(priority_class)}">{html.escape(priority)}</span></td>
+      </tr>\n"""
+
+    table = ""
+    if rows:
+        table = f"""  <table class="requirements-table user-stories-table">
+    <thead>
+      <tr><th class="col-id">ID</th><th>Title</th><th>Description</th><th>Acceptance Criteria</th><th>Priority</th></tr>
+    </thead>
+    <tbody>
+{rows}    </tbody>
+  </table>"""
+
+    return f"""<section class="epic-section">
+  <h2>Epic: {title}</h2>
+  <div class="section-description">{desc_html}</div>
+{table}
 </section>"""
 
 
-def build_html(content: BrdContent) -> str:
-    """Build a complete HTML document from BRD content for PDF rendering."""
+def _render_milestone(milestone: dict) -> str:
+    """Render a milestone section with work packages table."""
+    title = html.escape(milestone.get("title", ""))
+    description = html.escape(milestone.get("description", ""))
+    desc_html = "\n".join(
+        f"<p>{line}</p>" if line.strip() else "<p>&nbsp;</p>"
+        for line in description.split("\n")
+    )
+
+    children = milestone.get("children", [])
+    rows = ""
+    for pkg in children:
+        pid = html.escape(pkg.get("id", "")[:8])
+        ptitle = html.escape(pkg.get("title", ""))
+        pdesc = html.escape(pkg.get("description", ""))
+        deliverables = _render_bullet_list(pkg.get("deliverables", ""))
+        dependencies = html.escape(pkg.get("dependencies", ""))
+        rows += f"""      <tr>
+        <td class="col-id">{pid}</td>
+        <td>{ptitle}</td>
+        <td>{pdesc}</td>
+        <td>{deliverables}</td>
+        <td>{dependencies}</td>
+      </tr>\n"""
+
+    table = ""
+    if rows:
+        table = f"""  <table class="requirements-table work-packages-table">
+    <thead>
+      <tr><th class="col-id">ID</th><th>Title</th><th>Description</th><th>Deliverables</th><th>Dependencies</th></tr>
+    </thead>
+    <tbody>
+{rows}    </tbody>
+  </table>"""
+
+    return f"""<section class="milestone-section">
+  <h2>Milestone: {title}</h2>
+  <div class="section-description">{desc_html}</div>
+{table}
+</section>"""
+
+
+def build_html(content: RequirementsDocumentContent) -> str:
+    """Build a complete HTML document from requirements content for PDF rendering."""
     css = _load_css()
 
-    sections_html = "\n".join(
-        _render_section(label, getattr(content, field))
-        for field, label in _SECTION_LABELS
-    )
+    if content.project_type == "software":
+        sections_html = "\n".join(_render_epic(epic) for epic in content.structure)
+        doc_type = "Software Requirements Document"
+    else:
+        sections_html = "\n".join(_render_milestone(ms) for ms in content.structure)
+        doc_type = "Project Requirements Document"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BRD — {html.escape(content.project_title)}</title>
+  <title>{html.escape(doc_type)} — {html.escape(content.title)}</title>
   <style>{css}</style>
 </head>
 <body>
-  <header class="brd-header">
+  <header class="requirements-header">
     <div class="brand">
       <span class="brand-name">Commerz Real</span>
-      <span class="brand-sub">Business Requirements Document</span>
+      <span class="brand-sub">{html.escape(doc_type)}</span>
     </div>
     <div class="header-meta">
       <span class="generated-date">Generated: {html.escape(content.generated_date)}</span>
@@ -79,13 +154,25 @@ def build_html(content: BrdContent) -> str:
   </header>
 
   <main>
-    <h1 class="project-title">{html.escape(content.project_title)}</h1>
+    <h1 class="project-title">{html.escape(content.title)}</h1>
+    <p class="short-description">{html.escape(content.short_description)}</p>
     {sections_html}
   </main>
 
-  <footer class="brd-footer">
+  <footer class="requirements-footer">
     <span class="footer-brand">Commerz Real — ZiqReq</span>
     <span class="page-number"></span>
   </footer>
 </body>
 </html>"""
+
+
+def parse_structure_json(structure_json: str) -> list[dict]:
+    """Parse a JSON string into a structure list, returning empty list on failure."""
+    if not structure_json:
+        return []
+    try:
+        parsed = json.loads(structure_json)
+        return parsed if isinstance(parsed, list) else []
+    except (json.JSONDecodeError, TypeError):
+        return []

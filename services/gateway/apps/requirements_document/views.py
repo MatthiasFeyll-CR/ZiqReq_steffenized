@@ -1,10 +1,11 @@
+import json
 import logging
 import os
 import uuid
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.http import FileResponse, HttpResponse
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.request import Request
@@ -12,15 +13,12 @@ from rest_framework.response import Response
 
 from apps.projects.authentication import MiddlewareAuthentication
 from apps.projects.models import Project, ProjectCollaborator
-from apps.review.models import BrdVersion
 
-from .models import BrdDraft
+from .models import RequirementsDocumentDraft
 from .serializers import (
-    SECTION_FIELDS,
-    SECTION_LOCK_KEYS,
-    BrdDraftPatchSerializer,
-    BrdDraftResponseSerializer,
-    BrdGenerateSerializer,
+    RequirementsDocumentDraftPatchSerializer,
+    RequirementsDocumentDraftResponseSerializer,
+    RequirementsGenerateSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -93,14 +91,14 @@ def _check_access(user, project) -> Response | None:
 
 @api_view(["GET", "PATCH"])
 @authentication_classes([MiddlewareAuthentication])
-def brd_draft(request: Request, project_id: str) -> Response:
-    """Route /api/projects/:id/brd — GET returns draft, PATCH updates it."""
+def requirements_document_draft(request: Request, project_id: str) -> Response:
+    """Route /api/projects/:id/requirements/ — GET returns draft, PATCH updates it."""
     if request.method == "PATCH":
-        return _patch_brd_draft(request, project_id)
-    return _get_brd_draft(request, project_id)
+        return _patch_requirements_draft(request, project_id)
+    return _get_requirements_draft(request, project_id)
 
 
-def _get_brd_draft(request: Request, project_id: str) -> Response:
+def _get_requirements_draft(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
@@ -109,23 +107,20 @@ def _get_brd_draft(request: Request, project_id: str) -> Response:
     if error:
         return error
 
-    # Any authenticated user can read BRD draft (read-only access)
-
-    # Get or create empty draft
-    draft, _created = BrdDraft.objects.get_or_create(
+    draft, _created = RequirementsDocumentDraft.objects.get_or_create(
         project_id=project.id,
         defaults={
-            "section_locks": {},
+            "item_locks": {},
             "allow_information_gaps": False,
             "readiness_evaluation": {},
         },
     )
 
-    serializer = BrdDraftResponseSerializer(draft)
+    serializer = RequirementsDocumentDraftResponseSerializer(draft)
     return Response(serializer.data)
 
 
-def _patch_brd_draft(request: Request, project_id: str) -> Response:
+def _patch_requirements_draft(request: Request, project_id: str) -> Response:
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
@@ -138,15 +133,14 @@ def _patch_brd_draft(request: Request, project_id: str) -> Response:
     if access_error:
         return access_error
 
-    serializer = BrdDraftPatchSerializer(data=request.data)
+    serializer = RequirementsDocumentDraftPatchSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # Get or create draft
-    draft, _created = BrdDraft.objects.get_or_create(
+    draft, _created = RequirementsDocumentDraft.objects.get_or_create(
         project_id=project.id,
         defaults={
-            "section_locks": {},
+            "item_locks": {},
             "allow_information_gaps": False,
             "readiness_evaluation": {},
         },
@@ -155,42 +149,34 @@ def _patch_brd_draft(request: Request, project_id: str) -> Response:
     validated = serializer.validated_data
     update_fields = ["updated_at"]
 
-    # Apply section_locks if explicitly provided
-    if "section_locks" in validated:
-        current_locks = draft.section_locks or {}
-        current_locks.update(validated["section_locks"])
-        draft.section_locks = current_locks
-        update_fields.append("section_locks")
+    if "item_locks" in validated:
+        current_locks = draft.item_locks or {}
+        current_locks.update(validated["item_locks"])
+        draft.item_locks = current_locks
+        update_fields.append("item_locks")
 
-    # Apply allow_information_gaps if provided
     if "allow_information_gaps" in validated:
         draft.allow_information_gaps = validated["allow_information_gaps"]
         update_fields.append("allow_information_gaps")
 
-    # Apply section content updates + auto-lock on edit
-    for field in SECTION_FIELDS:
-        if field in validated:
-            setattr(draft, field, validated[field])
-            update_fields.append(field)
+    if "title" in validated:
+        draft.title = validated["title"]
+        update_fields.append("title")
 
-            # Auto-lock: when a section is manually edited, lock it
-            lock_key = SECTION_LOCK_KEYS[field]
-            current_locks = draft.section_locks or {}
-            current_locks[lock_key] = True
-            draft.section_locks = current_locks
-            if "section_locks" not in update_fields:
-                update_fields.append("section_locks")
+    if "short_description" in validated:
+        draft.short_description = validated["short_description"]
+        update_fields.append("short_description")
 
     draft.save(update_fields=update_fields)
 
-    response_serializer = BrdDraftResponseSerializer(draft)
+    response_serializer = RequirementsDocumentDraftResponseSerializer(draft)
     return Response(response_serializer.data)
 
 
 @api_view(["POST"])
 @authentication_classes([MiddlewareAuthentication])
-def brd_generate(request: Request, project_id: str) -> Response:
-    """POST /api/projects/:id/brd/generate — trigger async BRD generation via AI gRPC."""
+def requirements_generate(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/requirements/generate — trigger async generation via AI gRPC."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
@@ -203,31 +189,28 @@ def brd_generate(request: Request, project_id: str) -> Response:
     if access_error:
         return access_error
 
-    # Only open projects can trigger BRD generation
     if project.state != "open":
         return Response(
             {
                 "error": "INVALID_STATE",
-                "message": "BRD generation is only available for projects in 'open' state.",
+                "message": "Requirements generation is only available for projects in 'open' state.",
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    serializer = BrdGenerateSerializer(data=request.data)
+    serializer = RequirementsGenerateSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     validated = serializer.validated_data
     mode = validated["mode"]
-    section_name = validated.get("section_name", "")
 
-    # Invoke AI service via gRPC
     try:
         ai_client = _create_ai_client()
         result = ai_client.trigger_brd_generation(
             project_id=str(project.id),
             mode=mode,
-            section_name=section_name,
+            section_name="",
         )
     except Exception:
         logger.exception("gRPC call to AI service failed for project %s", project_id)
@@ -236,7 +219,6 @@ def brd_generate(request: Request, project_id: str) -> Response:
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
-    # Notify all connected clients that BRD generation has started
     try:
         channel_layer = get_channel_layer()
         if channel_layer:
@@ -244,13 +226,13 @@ def brd_generate(request: Request, project_id: str) -> Response:
             async_to_sync(channel_layer.group_send)(
                 group_name,
                 {
-                    "type": "brd_generating",
+                    "type": "requirements_generating",
                     "project_id": str(project.id),
                     "payload": {"project_id": str(project.id), "mode": mode},
                 },
             )
     except Exception:
-        logger.exception("Failed to broadcast brd_generating for project %s", project_id)
+        logger.exception("Failed to broadcast requirements_generating for project %s", project_id)
 
     return Response(
         {
@@ -263,70 +245,8 @@ def brd_generate(request: Request, project_id: str) -> Response:
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
-def brd_version_pdf(request: Request, project_id: str, version: str) -> Response:
-    """GET /api/projects/:id/brd/versions/:version/pdf — Download BRD version PDF."""
-    user = _require_auth(request)
-    if user is None:
-        return _unauthorized_response()
-
-    project, error = _get_project_or_error(project_id)
-    if error:
-        return error
-
-    # Any authenticated user can download BRD PDF (read-only access)
-
-    # Resolve "latest" to actual version number
-    if version == "latest":
-        brd_version = (
-            BrdVersion.objects.filter(project_id=project.id)
-            .order_by("-version_number")
-            .first()
-        )
-    else:
-        try:
-            version_num = int(version)
-        except ValueError:
-            return Response(
-                {"error": "NOT_FOUND", "message": "Invalid version"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        brd_version = BrdVersion.objects.filter(
-            project_id=project.id, version_number=version_num
-        ).first()
-
-    if not brd_version:
-        return Response(
-            {"error": "NOT_FOUND", "message": "BRD version not found"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    if not brd_version.pdf_file_path:
-        return Response(
-            {"error": "NOT_FOUND", "message": "PDF not available for this version"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    storage_root = os.environ.get("PDF_STORAGE_PATH", "/data/pdfs")
-    full_path = os.path.join(storage_root, brd_version.pdf_file_path)
-
-    if not os.path.isfile(full_path):
-        return Response(
-            {"error": "NOT_FOUND", "message": "PDF file not found"},
-            status=status.HTTP_404_NOT_FOUND,
-        )
-
-    return FileResponse(
-        open(full_path, "rb"),
-        content_type="application/pdf",
-        as_attachment=False,
-        filename=f"brd-v{brd_version.version_number}.pdf",
-    )
-
-
-@api_view(["GET"])
-@authentication_classes([MiddlewareAuthentication])
-def brd_preview_pdf(request: Request, project_id: str) -> Response | HttpResponse:
-    """GET /api/projects/:id/brd/preview-pdf — Generate PDF preview from current draft."""
+def requirements_preview_pdf(request: Request, project_id: str) -> Response | HttpResponse:
+    """GET /api/projects/:id/requirements/pdf/preview — Generate PDF preview from current draft."""
     user = _require_auth(request)
     if user is None:
         return _unauthorized_response()
@@ -336,42 +256,30 @@ def brd_preview_pdf(request: Request, project_id: str) -> Response | HttpRespons
         return error
 
     try:
-        draft = BrdDraft.objects.get(project_id=project.id)
-    except BrdDraft.DoesNotExist:
+        draft = RequirementsDocumentDraft.objects.get(project_id=project.id)
+    except RequirementsDocumentDraft.DoesNotExist:
         return Response(
-            {"error": "NOT_FOUND", "message": "No BRD draft found"},
+            {"error": "NOT_FOUND", "message": "No requirements draft found"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    has_content = any([
-        draft.section_title,
-        draft.section_short_description,
-        draft.section_current_workflow,
-        draft.section_affected_department,
-        draft.section_core_capabilities,
-        draft.section_success_criteria,
-    ])
+    has_content = bool(draft.title or draft.short_description or draft.structure)
     if not has_content:
         return Response(
-            {"error": "NO_CONTENT", "message": "BRD draft has no content to preview"},
+            {"error": "NO_CONTENT", "message": "Requirements draft has no content to preview"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    sections = {
-        "title": draft.section_title or "",
-        "short_description": draft.section_short_description or "",
-        "current_workflow": draft.section_current_workflow or "",
-        "affected_department": draft.section_affected_department or "",
-        "core_capabilities": draft.section_core_capabilities or "",
-        "success_criteria": draft.section_success_criteria or "",
-    }
+    structure_json = json.dumps(draft.structure) if draft.structure else "[]"
 
     try:
         pdf_client = _create_pdf_client()
         result = pdf_client.generate_pdf(
             project_id=str(project.id),
-            project_title=project.title or "",
-            sections=sections,
+            project_type=getattr(project, "project_type", "software"),
+            title=draft.title or project.title or "",
+            short_description=draft.short_description or "",
+            structure_json=structure_json,
         )
     except Exception:
         logger.exception("PDF preview generation failed for project %s", project_id)
@@ -390,5 +298,11 @@ def brd_preview_pdf(request: Request, project_id: str) -> Response | HttpRespons
     return HttpResponse(
         pdf_data,
         content_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="brd-preview-{project.id}.pdf"'},
+        headers={"Content-Disposition": f'inline; filename="requirements-preview-{project.id}.pdf"'},
     )
+
+
+# Keep old view names as aliases for backwards compat during transition
+brd_draft = requirements_document_draft
+brd_generate = requirements_generate
+brd_preview_pdf = requirements_preview_pdf

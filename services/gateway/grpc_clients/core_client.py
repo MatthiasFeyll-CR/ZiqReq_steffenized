@@ -254,7 +254,7 @@ class CoreClient:
         sections: dict[str, str],
         readiness_evaluation_json: str = "",
     ) -> dict[str, Any]:
-        from apps.brd.models import BrdDraft
+        from apps.requirements_document.models import BrdDraft
 
         draft, _created = BrdDraft.objects.get_or_create(
             project_id=project_id,
