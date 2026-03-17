@@ -1,0 +1,135 @@
+{
+  "project": "ZiqReq",
+  "branchName": "ralph/m20-ai-rework",
+  "description": "Milestone 20: AI System Prompt Rework. Rewrite all AI agents to work with the new structured requirements model. The Facilitator becomes a requirements structuring assistant with type-specific behavior. The Summarizing AI generates hierarchical documents instead of flat BRDs. The AI pipeline is updated to handle requirements structure mutations.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "New Facilitator system prompt with update_requirements_structure tool",
+      "description": "As a developer, I want the Facilitator to use a type-aware system prompt and a new update_requirements_structure tool so that the AI can help users structure requirements (Epics/Stories or Milestones/Packages) instead of brainstorming on a board.",
+      "acceptanceCriteria": [
+        "Facilitator system prompt (services/ai/agents/facilitator/prompt.py) includes <project_type> variable injection",
+        "Facilitator system prompt has type-specific identity: 'help employees structure their ideas into formal requirements documents' with Software (Epics → User Stories) vs Non-Software (Milestones → Work Packages) guidance",
+        "Facilitator system prompt includes <requirements_structure> block showing current hierarchical JSON (Epics/Stories or Milestones/Packages based on project_type)",
+        "Facilitator plugin (services/ai/agents/facilitator/plugins.py) has update_requirements_structure tool with mutations parameter supporting operations: add_epic, update_epic, remove_epic, reorder_epics, add_story, update_story, remove_story, reorder_stories, add_milestone, update_milestone, remove_milestone, reorder_milestones, add_package, update_package, remove_package, reorder_packages",
+        "update_requirements_structure tool validates operation matches project_type (e.g., add_epic only for software projects)",
+        "update_requirements_structure tool publishes ai.requirements.updated event for each successful mutation",
+        "Board reference syntax ([[Item Title]]) completely removed from send_chat_message tool description and system prompt",
+        "context_assembler.py injects project_type and requirements_structure JSON into Facilitator context",
+        "Facilitator bucket context (facilitator_bucket_content) combines global + type-specific content (global + software OR global + non_software based on project_type)",
+        "All references to 'board' removed from facilitator prompt and tools",
+        "Typecheck passes",
+        "All existing Facilitator tests pass (or are updated to reflect new tool)"
+      ],
+      "priority": 1,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/data-model.md § projects table (project_type column), requirements_document_drafts table (structure column) — requirements structure is JSONB with hierarchical items\nDesign: N/A (backend-only)\nAI: docs/03-ai/system-prompts.md § 1. Facilitator (Requirements Assistant) — full new prompt with project_type awareness, requirements structuring guidance, update_requirements_structure tool examples; docs/03-ai/tools-and-functions.md § 6. update_requirements_structure — complete mutation operation schemas for all 16 operations (epic/story/milestone/package CRUD + reorder)\nFiles: services/ai/agents/facilitator/prompt.py, services/ai/agents/facilitator/plugins.py, services/ai/processing/context_assembler.py, services/ai/agents/facilitator/agent.py (if SK kernel needs update), services/ai/tests/test_facilitator.py\nGotchas: The update_requirements_structure tool returns mutation results (success/failure per mutation) — must handle partial failures (some mutations succeed, others fail). The facilitator_bucket now has 3 context_type values (global, software, non_software) — context_assembler must combine global + type-specific. Requirements structure JSON format is defined in data-model.md line 169-184 (different for software vs non-software). All board-related code (request_board_changes tool, board state in context, board reference syntax) must be removed.",
+      "context": {
+        "data_model": [
+          "projects: id uuid PK, project_type varchar(20) CHECK IN ('software', 'non_software') — determines requirements structure type",
+          "requirements_document_drafts: id uuid PK, project_id uuid FK UNIQUE, structure jsonb NOT NULL DEFAULT '[]' — hierarchical requirements (Epics/Stories or Milestones/Packages)"
+        ],
+        "api_endpoints": [
+          "UpdateRequirementsStructure (gRPC) — apply AI mutations to requirements draft (Story 3 implements this)",
+          "GetRequirementsState (gRPC) — fetch current structure for context assembly (Story 3 implements this)"
+        ],
+        "test_cases": [],
+        "ai_specs": [
+          "Facilitator — GPT-4o, 6 tools (send_chat_message, react_to_message, update_title, delegate_to_context_agent, delegate_to_context_extension, update_requirements_structure), temperature 0.7, max_output 1000 tokens",
+          "update_requirements_structure tool — 16 operations (4 per entity: add/update/remove/reorder), data schemas vary by operation (see tools-and-functions.md lines 393-531)"
+        ],
+        "existing_code": [
+          "services/ai/agents/facilitator/prompt.py: build_system_prompt(context) — renders XML template with runtime variables (agent_mode, project_title, etc.)",
+          "services/ai/agents/facilitator/plugins.py: FacilitatorPlugin class — SK plugin with @kernel_function decorated methods for each tool",
+          "services/ai/processing/context_assembler.py: assemble(project_id, project_context_response) — loads facilitator bucket, builds context dict for prompt"
+        ]
+      }
+    },
+    {
+      "id": "US-002",
+      "title": "New Summarizing AI for hierarchical requirements documents",
+      "description": "As a developer, I want the Summarizing AI to generate hierarchical JSON documents (Epics/Stories or Milestones/Packages) instead of flat 6-section BRDs so that the requirements document matches the structured requirements model.",
+      "acceptanceCriteria": [
+        "Summarizing AI system prompt (services/ai/agents/summarizing_ai/prompt.py) generates hierarchical JSON with structure: {title, short_description, structure: [{epic_id, title, description, stories: [{story_id, title, description, acceptance_criteria, priority}]}], readiness_evaluation} for software projects",
+        "Summarizing AI system prompt generates hierarchical JSON with structure: {title, short_description, structure: [{milestone_id, title, description, packages: [{package_id, title, description, deliverables, dependencies}]}], readiness_evaluation} for non-software projects",
+        "Summarizing AI prompt includes <project_type> variable injection to select correct output format",
+        "Summarizing AI prompt supports 3 modes: full_generation (generate all items from scratch), selective_regeneration (only unlocked items), item_regeneration (single epic/milestone or story/package)",
+        "Summarizing AI prompt includes <locked_items> block listing items to exclude from regeneration (by ID)",
+        "Summarizing AI prompt includes readiness evaluation criteria: Software (ready when all epics have user stories with acceptance criteria), Non-Software (ready when all milestones have work packages with deliverables)",
+        "Old 6-section BRD format (title, short_description, current_workflow, affected_department, core_capabilities, success_criteria) completely removed",
+        "SECTION_KEYS, SECTION_LABELS, READINESS_ANCHORS constants removed from prompt.py (no longer relevant)",
+        "Summarizing AI agent (services/ai/agents/summarizing_ai/agent.py) parses hierarchical JSON response and validates structure against project_type",
+        "Typecheck passes",
+        "All existing Summarizing AI tests pass (or are updated to test new output format)"
+      ],
+      "priority": 2,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/data-model.md § requirements_document_drafts table (structure column, item_locks column) — structure is hierarchical JSONB, item_locks is keyed by item ID\nDesign: N/A (backend-only)\nAI: docs/03-ai/system-prompts.md § 4. Summarizing AI — full new prompt with project_type awareness, 3 generation modes, hierarchical output format; docs/03-ai/model-config.md § Summarizing AI — GPT-4o, temperature 0.3, max_output 4000 tokens, readiness evaluation per type\nFiles: services/ai/agents/summarizing_ai/prompt.py, services/ai/agents/summarizing_ai/agent.py, services/ai/tests/test_summarizing_ai.py, services/ai/processing/brd_pipeline.py (rename to requirements_pipeline.py or update references)\nGotchas: The output format is drastically different — old format had 6 flat sections, new format has nested structure array with different schemas per project_type. User story format is 'As a [role], I want [capability] so that [benefit]'. Work package format has deliverables (bullet list) and dependencies (text). Readiness evaluation logic changes: old logic checked 6 section anchors, new logic checks whether all parent items (epics/milestones) have children (stories/packages) with required fields. item_locks uses UUIDs from structure items, not section names.",
+      "context": {
+        "data_model": [
+          "requirements_document_drafts: structure jsonb NOT NULL DEFAULT '[]' — for software: array of {id, type: 'epic', title, description, children: [UserStory, ...]}; for non-software: array of {id, type: 'milestone', title, description, children: [WorkPackage, ...]}",
+          "requirements_document_drafts: item_locks jsonb NOT NULL DEFAULT '{}' — keyed by item UUID (e.g., {\"epic_uuid\": true})"
+        ],
+        "api_endpoints": [],
+        "test_cases": [],
+        "ai_specs": [
+          "Summarizing AI — GPT-4o, no tools, temperature 0.3, max_output 4000 tokens, 3 modes (full_generation, selective_regeneration, item_regeneration)",
+          "Output format: Software projects return {title, short_description, structure: [Epic{id, type, title, description, children: [Story{id, type, title, description, acceptance_criteria, priority}]}], readiness_evaluation}",
+          "Output format: Non-Software projects return {title, short_description, structure: [Milestone{id, type, title, description, children: [Package{id, type, title, description, deliverables, dependencies}]}], readiness_evaluation}"
+        ],
+        "existing_code": [
+          "services/ai/agents/summarizing_ai/prompt.py: build_system_prompt(input_data) — renders prompt with mode-specific sections, current has SECTION_KEYS = ['title', 'short_description', 'current_workflow', ...] (6 flat sections)",
+          "services/ai/agents/summarizing_ai/agent.py: SummarizingAgent.process(input_data) — invokes SK kernel, parses JSON response",
+          "services/ai/processing/brd_pipeline.py: BRDGenerationPipeline — orchestrates Summarizing AI invocation and fabrication validation"
+        ]
+      }
+    },
+    {
+      "id": "US-003",
+      "title": "AI pipeline update for requirements structure mutations",
+      "description": "As a developer, I want the AI pipeline to handle requirements structure mutations and remove board agent invocations so that the Facilitator's update_requirements_structure tool calls are persisted and broadcast to clients.",
+      "acceptanceCriteria": [
+        "AI pipeline (services/ai/processing/pipeline.py) removes board agent invocation step (Step 4 in old pipeline)",
+        "AI pipeline adds requirements structure mutation handler: when Facilitator calls update_requirements_structure, apply mutations via Core gRPC UpdateRequirementsStructure RPC",
+        "AI pipeline publishes ai.requirements.updated event after each successful mutation",
+        "AI pipeline includes requirements structure JSON in context assembly (Step 1): calls Core gRPC GetRequirementsState to fetch current structure",
+        "AI pipeline includes project_type in facilitator context (from GetProjectContext response)",
+        "Core gRPC proto (proto/core.proto) defines UpdateRequirementsStructure RPC: accepts mutations array (operation + data), returns mutation_results array (status per mutation)",
+        "Core gRPC proto defines GetRequirementsState RPC: accepts project_id, returns structure JSONB + project_type",
+        "Core gRPC servicer (services/core/grpc_server/servicer.py) implements UpdateRequirementsStructure: validates mutations, applies to RequirementsDocumentDraft, publishes events",
+        "Core gRPC servicer implements GetRequirementsState: reads draft structure and returns as JSON",
+        "Gateway WebSocket consumer (services/gateway/apps/websocket/consumers.py) handles ai.requirements.updated event and broadcasts to connected clients on that project",
+        "Board agent references removed from pipeline.py (import, invocation, delegation handling)",
+        "Typecheck passes",
+        "All existing pipeline tests pass (or are updated to reflect new step)"
+      ],
+      "priority": 3,
+      "passes": false,
+      "testIds": [],
+      "notes": "Architecture: docs/02-architecture/api-design.md § gRPC Service Definitions — Core service RPCs (UpdateRequirementsStructure, GetRequirementsState); docs/02-architecture/data-model.md § requirements_document_drafts table (structure column)\nDesign: N/A (backend-only)\nAI: docs/03-ai/agent-architecture.md § 4.1 Pipeline 1: Chat Processing (Primary) — updated 6-step pipeline removes board agent step, adds requirements mutation handler in Step 4; docs/03-ai/system-prompts.md § Facilitator — update_requirements_structure tool\nFiles: services/ai/processing/pipeline.py, services/ai/processing/context_assembler.py, proto/core.proto, services/core/grpc_server/servicer.py, services/core/apps/projects/views.py (if REST endpoint needed), services/gateway/apps/websocket/consumers.py, services/ai/tests/test_pipeline.py\nGotchas: The old pipeline had a board agent step that called BoardAgent.process(). This is now removed entirely. The new mutation handler must iterate over each mutation returned by Facilitator plugin, call Core gRPC for each, collect results, and publish events. Mutations can partially fail (some succeed, others fail due to validation or locked items) — pipeline must handle gracefully. GetRequirementsState should return empty structure '[]' for projects without a requirements draft yet. UpdateRequirementsStructure must validate operation matches project_type (e.g., reject add_epic for non_software projects). The requirements structure JSON is large (can be 10K tokens for complex projects) — context_assembler must include it in facilitator context.",
+      "context": {
+        "data_model": [
+          "requirements_document_drafts: structure jsonb NOT NULL DEFAULT '[]' — current hierarchical requirements",
+          "projects: project_type varchar(20) CHECK IN ('software', 'non_software') — determines valid mutation operations"
+        ],
+        "api_endpoints": [
+          "UpdateRequirementsStructure (gRPC Core) — request: {project_id, mutations: [{operation, data}]}, response: {mutation_results: [{operation, status, error}]}",
+          "GetRequirementsState (gRPC Core) — request: {project_id}, response: {structure: jsonb, project_type: string}"
+        ],
+        "test_cases": [],
+        "ai_specs": [
+          "Facilitator — update_requirements_structure tool returns {accepted: bool, mutation_count: int, mutations_applied: [{operation, status, error}]}",
+          "Pipeline Step 4 — requirements structure mutation handler: receives Facilitator plugin results, extracts mutations, applies via Core gRPC, publishes events"
+        ],
+        "existing_code": [
+          "services/ai/processing/pipeline.py: ChatProcessingPipeline._step_delegation() — handles async delegations to Context Agent/Extension (board agent was here, now remove)",
+          "services/ai/processing/context_assembler.py: assemble(project_id, project_context_response) — builds context dict for Facilitator (add requirements_structure here)",
+          "services/core/grpc_server/servicer.py: CoreServicer class — implements gRPC RPCs for Core service",
+          "proto/core.proto: service Core { ... } — gRPC service definition"
+        ]
+      }
+    }
+  ]
+}
