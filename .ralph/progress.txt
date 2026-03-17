@@ -37,3 +37,39 @@ Started: 2026-03-17T03:40:30+0100
   - No board references existed in the current code — no removal was needed
   - The context_assembler reads requirements_state from project_context_response.get("requirements_state", {}) — pipeline (US-003) must provide this key
 ---
+
+## US-002: New Summarizing AI for hierarchical requirements documents
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/agents/summarizing_ai/prompt.py, services/ai/agents/summarizing_ai/agent.py, services/ai/fixtures/summarizing_ai_response.json, services/ai/processing/brd_pipeline.py, services/ai/grpc_server/servicers/processing_servicer.py, services/ai/tests/test_summarizing_ai.py, services/ai/tests/test_brd_pipeline.py
+- Tests: 708 Python tests passed, 365 Node tests passed (all green)
+- Learnings for future iterations:
+  - Old SECTION_KEYS/SECTION_LABELS/READINESS_ANCHORS constants fully removed — no backward compat needed
+  - The Summarizing AI prompt uses f-string interpolation (not str.format) — simpler variable injection than Facilitator
+  - Agent output format changed from {section_title, section_short_description, ...} to {title, short_description, structure: [...], readiness_evaluation}
+  - brd_pipeline.py had to be updated to handle new output format — _extract_text_for_validation() flattens hierarchical structure for FabricationValidator compatibility
+  - processing_servicer.py publishes ai.brd.ready event — updated to use structure/title/short_description instead of old sections dict
+  - Mock fixture (summarizing_ai_response.json) now returns software project format with epic_id/stories — project_type defaults to "software"
+  - _validate_structure checks for epic_id (software) or milestone_id (non_software) in each structure item
+  - brd_pipeline._step_assemble_context now extracts project_type from project_context.project.project_type
+  - The old "section_regeneration" mode is now "item_regeneration" with item_id parameter
+  - The .ralph/prd.json is a symlink to tasks/prd-m20.json — must git add the real file path
+---
+
+## US-003: AI pipeline update for requirements structure mutations
+- Status: PASS
+- Attempts: 1
+- Changes: proto/core.proto, services/ai/grpc_clients/core_client.py, services/ai/processing/pipeline.py, services/ai/tests/test_pipeline.py
+- Tests: 712 Python tests passed, 365 Node tests passed (all green)
+- Learnings for future iterations:
+  - CoreServicer is a dead stub — all services use direct DB access via CoreClient. No actual gRPC server implementation needed.
+  - Proto file serves as spec documentation; runtime uses CoreClient direct SQL queries
+  - Pipeline step numbering shifted: old 5-step became 7-step (added requirements state fetch in Step 1, mutation handler as Step 5)
+  - FacilitatorPlugin stores validated mutations in self.requirements_mutations; pipeline extracts and applies via CoreClient.apply_requirements_mutations()
+  - Gateway WebSocket consumer already had requirements_updated handler from a previous milestone — no changes needed
+  - Board agent references were already absent from the codebase — no removal was needed
+  - _apply_single_mutation uses uuid_mod.uuid4() to generate IDs for new items (epics, stories, milestones, packages)
+  - Structure JSONB mutation: must list(structure) to create mutable copy before modifying, then persist full structure back
+  - MutationError class enables clean per-mutation error handling with partial success support
+  - Mock CoreClient in tests must include get_requirements_state, _get_project_type, and apply_requirements_mutations mocks
+---
