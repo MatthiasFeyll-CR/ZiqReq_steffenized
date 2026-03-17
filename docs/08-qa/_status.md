@@ -6,9 +6,9 @@
 - **Last updated:** 2026-03-17
 
 ## Current Review
-- **Milestone:** 19 — Structured Requirements
+- **Milestone:** 20 — AI System Prompt Rework
 - **Phase:** 6 (verdict delivered)
-- **Bugfix cycle:** 1
+- **Bugfix cycle:** 0
 - **Status:** passed
 
 ## Milestone QA History
@@ -33,24 +33,26 @@
 | M17 — Remove Features | `qa-m17-remove-features.md` | 1 | PASS | 2026-03-16 |
 | M18 — Rename Project | `qa-m18-rename-project.md` | 1 | PASS | 2026-03-17 |
 | M19 — Structured Requirements | `qa-m19-structured-requirements.md` | 1 | PASS | 2026-03-17 |
+| M20 — AI System Prompt Rework | `qa-m20-ai-rework.md` | 0 | PASS | 2026-03-17 |
 
 ## Input Consumed
-- .ralph/prd.json (symlink to tasks/prd-m19.json)
+- .ralph/prd.json (symlink to tasks/prd-m20.json)
 - .ralph/progress.txt
 - docs/01-requirements/*.md
 - docs/02-architecture/*.md
 - docs/03-design/*.md
+- docs/03-ai/*.md
 - docs/04-test-architecture/test-matrix.md
 - docs/04-test-architecture/runtime-safety.md
-- docs/05-milestones/milestone-19.md
-- tasks/prd-m19.json
+- docs/05-milestones/milestone-20.md
+- tasks/prd-m20.json
 
 ## Handoff
 - **Ready for merge:** true
 - **Next phase:** Merge + Verify (handled by the pipeline) then Spec Reconciler
-- **Files produced:** docs/08-qa/qa-m19-structured-requirements.md, docs/08-qa/_status.md
-- **Deviations for Spec Reconciler:** 0
+- **Files produced:** docs/08-qa/qa-m20-ai-rework.md, docs/08-qa/_status.md
+- **Deviations for Spec Reconciler:** 2 (DEV-001: gRPC servicer via CoreClient direct DB, DEV-002: board references already absent)
 
 ## Open Issues
-- Pre-existing ESLint errors (4): SECTION_FIELD_KEYS in BRDSectionEditor.tsx + DocumentView.tsx, useless escapes in CommentContent.tsx + CommentInput.tsx (none from M19)
+- Pre-existing ESLint errors (4): SECTION_FIELD_KEYS in BRDSectionEditor.tsx + DocumentView.tsx, useless escapes in CommentContent.tsx + CommentInput.tsx (none from M20)
 - Pre-existing ESLint warnings (5): missing deps in CommentItem, CommentsPanel, MonitoringTab, ParametersTab, UsersTab
