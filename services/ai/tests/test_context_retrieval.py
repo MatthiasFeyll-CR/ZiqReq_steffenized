@@ -134,7 +134,7 @@ class TestContextAssemblerWithProjectType:
                     "project": {
                         "title": "Test",
                         "state": "open",
-                        "agent_mode": "interactive",
+
                         "title_manually_edited": False,
                         "project_type": "software",
                     },

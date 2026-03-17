@@ -8,7 +8,6 @@ export interface Project {
   title: string;
   project_type: ProjectType;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted";
-  agent_mode: "interactive" | "silent";
   visibility: "private" | "collaborating";
   owner_id: string;
   created_at: string;
@@ -33,7 +32,7 @@ export async function fetchProject(id: string, token?: string): Promise<Project>
 
 export async function patchProject(
   id: string,
-  data: { title?: string; agent_mode?: "interactive" | "silent" },
+  data: { title?: string },
 ): Promise<Project> {
   const res = await authFetch(`${env.apiBaseUrl}/projects/${id}/`, {
     method: "PATCH",
@@ -56,7 +55,6 @@ export interface CreateProjectResponse {
   project_type: ProjectType;
   state: string;
   visibility: string;
-  agent_mode: string;
   owner: { id: string; display_name: string } | null;
   created_at: string;
 }

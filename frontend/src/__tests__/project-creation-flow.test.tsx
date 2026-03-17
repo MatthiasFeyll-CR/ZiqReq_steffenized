@@ -139,7 +139,6 @@ describe("Project creation flow (M19 — type selection)", () => {
           project_type: "software",
           state: "open",
           visibility: "private",
-          agent_mode: "interactive",
           owner: null,
           created_at: "2026-03-17T00:00:00Z",
         }),

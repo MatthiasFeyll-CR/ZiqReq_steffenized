@@ -108,9 +108,6 @@
     "inReviewReadOnly": "This project is currently under review. Content is read-only until the review is complete.",
     "goToReview": "Go to Review",
     "restoreProject": "Restore",
-    "agentMode": "AI Mode",
-    "modeInteractive": "Interactive",
-    "modeSilent": "Silent",
     "invitationBanner": {
       "text": "invited you to collaborate on this project"
     }

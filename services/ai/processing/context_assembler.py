@@ -1,7 +1,7 @@
 """Context window assembly from gRPC data.
 
 Assembles the context dict that the Facilitator agent needs:
-  - project metadata (title, state, agent_mode, title_manually_edited, project_type)
+  - project metadata (title, state, title_manually_edited, project_type)
   - recent messages (last N from admin param)
   - chat summary (from chat_context_summaries if exists)
   - facilitator bucket content (global + type-specific combined)
@@ -105,7 +105,6 @@ class ContextAssembler:
             "project_context": {
                 "title": project.get("title", ""),
                 "state": project.get("state", "open"),
-                "agent_mode": project.get("agent_mode", "interactive"),
                 "title_manually_edited": project.get("title_manually_edited", False),
                 "project_type": project_type,
             },
@@ -128,14 +127,21 @@ class ContextAssembler:
 
 
 def _parse_requirements_structure(requirements_state: dict[str, Any]) -> list[dict[str, Any]]:
-    """Parse requirements structure from gRPC requirements state response.
+    """Parse requirements structure from CoreClient requirements state response.
 
     Args:
-        requirements_state: Dict with 'structure_json' key (JSON string) or empty.
+        requirements_state: Dict from CoreClient.get_requirements_state() with
+            'structure' key (already-parsed list) or 'structure_json' (JSON string).
 
     Returns:
         Parsed list of structure items, or empty list.
     """
+    # CoreClient.get_requirements_state() returns "structure" as a parsed list
+    structure = requirements_state.get("structure")
+    if isinstance(structure, list):
+        return structure
+
+    # Fallback: support JSON string under "structure_json" key
     structure_json = requirements_state.get("structure_json", "")
     if not structure_json:
         return []

@@ -37,7 +37,6 @@ class CoreClient:
             "title": project.title or "",
             "title_manually_edited": project.title_manually_edited,
             "state": project.state,
-            "agent_mode": project.agent_mode,
             "owner_display_name": "",
         }
 

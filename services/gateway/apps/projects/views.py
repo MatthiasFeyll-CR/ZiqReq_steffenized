@@ -296,10 +296,6 @@ def _patch_project(request: Request, project_id: str) -> Response:
         project.title = serializer.validated_data["title"]
         project.title_manually_edited = True
         update_fields.extend(["title", "title_manually_edited"])
-    if "agent_mode" in serializer.validated_data:
-        project.agent_mode = serializer.validated_data["agent_mode"]
-        update_fields.append("agent_mode")
-
     project.save(update_fields=update_fields)
 
     users = User.objects.filter(id=project.owner_id)

@@ -37,7 +37,6 @@ message ProjectMetadata {
   string title = 2;
   bool title_manually_edited = 3;
   string state = 4;
-  string agent_mode = 5;
   string owner_display_name = 6;
   string co_owner_display_name = 7;
   string project_type = 8;

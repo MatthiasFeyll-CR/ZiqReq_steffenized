@@ -375,7 +375,7 @@ class TestPipelineCompressionTrigger:
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
             "project": {"title": "Test", "state": "open",
-                     "agent_mode": "interactive", "title_manually_edited": False},
+                     "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-1", "content": big_content, "sender_type": "user"},
             ],
@@ -428,7 +428,7 @@ class TestPipelineCompressionTrigger:
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
             "project": {"title": "Test", "state": "open",
-                     "agent_mode": "interactive", "title_manually_edited": False},
+                     "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-1", "content": "Short message", "sender_type": "user"},
             ],
@@ -476,7 +476,7 @@ class TestPipelineCompressionTrigger:
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
             "project": {"title": "Test", "state": "open",
-                     "agent_mode": "interactive", "title_manually_edited": False},
+                     "title_manually_edited": False},
             "recent_messages": [],
             "chat_summary": None,
             "facilitator_bucket_content": "",
@@ -513,7 +513,7 @@ class TestPipelineCompressionTrigger:
         core_client = MagicMock()
         core_client.get_project_context.return_value = {
             "project": {"title": "Test", "state": "open",
-                     "agent_mode": "interactive", "title_manually_edited": False},
+                     "title_manually_edited": False},
             "recent_messages": [
                 {"id": "msg-5", "content": big_content, "sender_type": "user"},
             ],

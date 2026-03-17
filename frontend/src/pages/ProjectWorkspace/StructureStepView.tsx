@@ -20,6 +20,7 @@ interface StructureStepViewProps {
   projectId: string;
   projectType: ProjectType;
   projectState: string;
+  projectTitle?: string;
   disabled?: boolean;
   readOnly?: boolean;
   collaborators?: Array<{ user_id: string; display_name: string }>;
@@ -31,6 +32,7 @@ export function StructureStepView({
   projectId,
   projectType,
   projectState,
+  projectTitle,
   disabled,
   readOnly,
   collaborators,
@@ -239,6 +241,7 @@ export function StructureStepView({
             projectType={projectType}
             readOnly={readOnly || disabled}
             collaborators={collaborators}
+            projectTitle={projectTitle}
           />
 
           {/* Per-item lock controls */}

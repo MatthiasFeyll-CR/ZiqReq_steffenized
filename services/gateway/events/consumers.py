@@ -4,6 +4,7 @@ Subscribes to:
   - ai.chat_response.ready → Core CreateChatMessage + broadcast chat_message
   - ai.reaction.ready → Core CreateAIReaction + broadcast ai_reaction
   - ai.title.updated → Core UpdateProjectTitle + broadcast title_update
+  - ai.requirements.updated → fetch requirements state + broadcast requirements_updated
 
 Retry: 3 attempts (1s, 2s, 4s backoff), then dead-letter queue.
 Idempotency: event_id tracking prevents duplicate processing.
@@ -31,6 +32,7 @@ _EVENT_HANDLERS = {
     "ai.title.updated": "_handle_title_update",
     "ai.processing.complete": "_handle_processing_complete",
     "ai.brd.ready": "_handle_brd_ready",
+    "ai.requirements.updated": "_handle_requirements_updated",
 }
 
 
@@ -194,6 +196,20 @@ class AIEventConsumer:
         }
 
         await self._broadcast(project_id, "brd_ready", payload)
+
+    async def _handle_requirements_updated(self, event: dict[str, Any]) -> None:
+        """ai.requirements.updated → fetch current requirements state + broadcast requirements_updated."""
+        project_id = event["project_id"]
+
+        state = self._core_client.get_requirements_state(project_id)
+
+        payload = {
+            "project_id": project_id,
+            "structure": state.get("structure", []),
+            "readiness_evaluation": state.get("readiness_evaluation", {}),
+        }
+
+        await self._broadcast(project_id, "requirements_updated", payload)
 
     async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
         """ai.processing.complete → broadcast ai_processing {state: completed}.

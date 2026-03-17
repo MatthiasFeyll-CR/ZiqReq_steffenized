@@ -46,38 +46,6 @@ def _make_ai_message(msg_id: str | None = None, content: str = "Sure!") -> dict:
     }
 
 
-# ── T-2.1.03: Silent mode no response without @ai ──
-
-
-class TestSilentModePrompt:
-    """T-2.1.03: In silent mode without @ai, prompt instructs no action."""
-
-    def test_silent_mode_no_ai_mention(self):
-        prompt = build_system_prompt({
-            "agent_mode": "silent",
-            "project_title": "Test",
-            "project_state": "open",
-            "title_manually_edited": False,
-            "recent_messages_formatted": '<message id="1" sender="Lisa" type="user">Hello</message>',
-
-        })
-        assert "SILENT MODE RULES" in prompt
-        assert "take NO action" in prompt
-
-    # T-2.1.04: Silent mode with @ai forces response
-    def test_silent_mode_with_ai_mention(self):
-        prompt = build_system_prompt({
-            "agent_mode": "silent",
-            "project_title": "Test",
-            "project_state": "open",
-            "title_manually_edited": False,
-            "recent_messages_formatted": '<message id="1" sender="Lisa" type="user">@ai what do you think?</message>',
-
-        })
-        assert "SILENT MODE RULES" in prompt
-        assert "you MUST respond" in prompt
-
-
 # ── T-2.3.01 / T-2.3.02: Title management ──
 
 
@@ -633,27 +601,24 @@ class TestFacilitatorAgentMockMode:
 
 
 class TestSystemPromptRendering:
-    def test_interactive_mode_prompt(self):
+    def test_prompt_renders_with_project_data(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
             "project_title": "Invoice Automation",
             "project_state": "open",
             "title_manually_edited": False,
             "facilitator_bucket_content": "Systems: SAP, DocuSign",
             "recent_messages_formatted": "(no messages yet)",
-
             "no_messages_yet": True,
             "creator_language": "German",
         })
-        assert "INTERACTIVE MODE RULES" in prompt
+        assert "@ai" in prompt  # decision rules mention @ai
         assert "Invoice Automation" in prompt
         assert "SAP, DocuSign" in prompt
         assert "German" in prompt
-        assert "SILENT MODE RULES" not in prompt
 
     def test_prompt_with_compressed_summary(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "title_manually_edited": False,
@@ -667,7 +632,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_with_delegation_results(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "title_manually_edited": False,
@@ -680,7 +645,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_multi_user(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "title_manually_edited": False,
@@ -694,7 +659,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_includes_project_type(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "software",
@@ -715,7 +680,7 @@ class TestSystemPromptRendering:
             }
         ]
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "software",
@@ -740,7 +705,7 @@ class TestSystemPromptRendering:
             }
         ]
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "non_software",
@@ -755,7 +720,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_empty_requirements_structure(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "software",
@@ -766,7 +731,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_software_structuring_guidance(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "software",
@@ -778,7 +743,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_non_software_structuring_guidance(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "non_software",
@@ -790,7 +755,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_no_board_references(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "software",
@@ -802,7 +767,7 @@ class TestSystemPromptRendering:
 
     def test_prompt_identity_mentions_requirements_assembly(self):
         prompt = build_system_prompt({
-            "agent_mode": "interactive",
+
             "project_title": "Test",
             "project_state": "open",
             "project_type": "software",

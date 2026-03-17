@@ -15,10 +15,6 @@ class Project(models.Model):
         ("private", "Private"),
         ("collaborating", "Collaborating"),
     ]
-    AGENT_MODE_CHOICES = [
-        ("interactive", "Interactive"),
-        ("silent", "Silent"),
-    ]
     PROJECT_TYPE_CHOICES = [
         ("software", "Software"),
         ("non_software", "Non-Software"),
@@ -29,7 +25,6 @@ class Project(models.Model):
     title_manually_edited = models.BooleanField(default=False)
     state = models.CharField(max_length=20, choices=STATE_CHOICES, default="open")
     visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default="private")
-    agent_mode = models.CharField(max_length=20, choices=AGENT_MODE_CHOICES, default="interactive")
     project_type = models.CharField(max_length=20, choices=PROJECT_TYPE_CHOICES, default="software")
     owner_id = models.UUIDField()
     share_link_token = models.CharField(max_length=64, null=True, blank=True, unique=True)

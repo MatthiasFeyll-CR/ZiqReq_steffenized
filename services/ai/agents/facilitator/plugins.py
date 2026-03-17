@@ -29,6 +29,99 @@ _NON_SOFTWARE_OPERATIONS = frozenset({
 _ALL_OPERATIONS = _SOFTWARE_OPERATIONS | _NON_SOFTWARE_OPERATIONS
 
 
+def _parse_mutations_input(mutations: Any) -> list[dict[str, Any]] | None:
+    """Parse mutations from various formats SK/LLM might provide.
+
+    Handles:
+      - Python list (SK parsed the JSON before passing)
+      - Python dict (unwrap to find list inside, or treat as single mutation)
+      - JSON string (standard path)
+      - Plain-text function-call syntax fallback (e.g. 'add_epic(title: "...")')
+
+    Returns a list of {operation, data} dicts, or None if unparseable.
+    """
+    if isinstance(mutations, list):
+        return mutations if mutations else None
+
+    if isinstance(mutations, dict):
+        for v in mutations.values():
+            if isinstance(v, list):
+                return v if v else None
+        if "operation" in mutations:
+            return [mutations]
+        return None
+
+    if not isinstance(mutations, str):
+        return None
+
+    # Try JSON parse first
+    try:
+        parsed = json.loads(mutations)
+        if isinstance(parsed, list) and parsed:
+            return parsed
+        if isinstance(parsed, dict):
+            if "operation" in parsed:
+                return [parsed]
+            for v in parsed.values():
+                if isinstance(v, list) and v:
+                    return v
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    # Fallback: parse plain-text function-call syntax like:
+    #   add_epic(title: "My Epic", description: "...")
+    #   add_story(epic_id: "...", title: "...", ...)
+    return _parse_plaintext_mutations(mutations)
+
+
+def _parse_plaintext_mutations(text: str) -> list[dict[str, Any]] | None:
+    """Best-effort parser for plain-text function-call syntax from the LLM.
+
+    Parses lines like:
+        add_epic(title: "Title", description: "Desc")
+        add_story(epic_id: "...", title: "...", acceptance_criteria: "...")
+    """
+    import re
+
+    results: list[dict[str, Any]] = []
+    # Match function-call patterns: operation_name(key: "value", ...)
+    pattern = re.compile(
+        r'(add_epic|update_epic|remove_epic|reorder_epics'
+        r'|add_story|update_story|remove_story|reorder_stories'
+        r'|add_milestone|update_milestone|remove_milestone|reorder_milestones'
+        r'|add_package|update_package|remove_package|reorder_packages)'
+        r'\s*\(([^)]*)\)',
+        re.DOTALL,
+    )
+
+    for match in pattern.finditer(text):
+        operation = match.group(1)
+        args_str = match.group(2)
+
+        # Parse key: "value" pairs (handles escaped quotes)
+        data: dict[str, Any] = {}
+        kv_pattern = re.compile(
+            r'(\w+)\s*:\s*"((?:[^"\\]|\\.)*)"\s*[,;]?\s*',
+            re.DOTALL,
+        )
+        for kv_match in kv_pattern.finditer(args_str):
+            key = kv_match.group(1)
+            value = kv_match.group(2).replace('\\"', '"').replace("\\n", "\n")
+            data[key] = value
+
+        if data:
+            # Map 'epic' key to 'epic_id' for add_story references by title
+            # (LLM sometimes uses epic: "Epic Title" instead of epic_id)
+            if "epic" in data and "epic_id" not in data:
+                data["epic_id"] = data.pop("epic")
+            if "milestone" in data and "milestone_id" not in data:
+                data["milestone_id"] = data.pop("milestone")
+
+            results.append({"operation": operation, "data": data})
+
+    return results if results else None
+
+
 def _error_response(code: str, message: str) -> dict[str, Any]:
     """Standard error format returned to the model."""
     return {"error": {"code": code, "message": message}}
@@ -223,9 +316,17 @@ class FacilitatorPlugin:
         name="update_requirements_structure",
         description=(
             "Submit structured mutations to update the project's requirements. "
-            "Each mutation specifies an operation (add/update/remove/reorder) and "
-            "the data for that operation. Software projects use epic/story operations; "
-            "non-software projects use milestone/package operations."
+            "The mutations parameter MUST be a JSON array of objects. "
+            "Each object has 'operation' (string) and 'data' (object). "
+            "Example: "
+            '[{"operation":"add_epic","data":{"title":"My Epic","description":"Description"}}, '
+            '{"operation":"add_story","data":{"epic_id":"<id>","title":"As a user...","description":"...","acceptance_criteria":"...","priority":"High"}}]. '
+            "Valid operations for software: add_epic, update_epic, remove_epic, reorder_epics, "
+            "add_story, update_story, remove_story, reorder_stories. "
+            "Valid operations for non-software: add_milestone, update_milestone, remove_milestone, "
+            "reorder_milestones, add_package, update_package, remove_package, reorder_packages. "
+            "For add_story, set epic_id to the id of an existing epic from the requirements structure. "
+            "For new epics, first add the epic, then add stories in a separate call after receiving the epic id."
         ),
     )
     async def update_requirements_structure(
@@ -235,13 +336,22 @@ class FacilitatorPlugin:
         """Apply requirements structure mutations.
 
         Args:
-            mutations: JSON string of array of {operation, data} objects.
+            mutations: JSON array of {operation, data} objects.
+                SK may also pass a Python list/dict directly instead of a string.
         """
-        # Parse mutations JSON
-        try:
-            mutations_list: list[dict[str, Any]] = json.loads(mutations)
-        except (json.JSONDecodeError, TypeError):
-            return _error_response("validation_error", "mutations must be a valid JSON array.")
+        logger.info(
+            "update_requirements_structure called: mutations type=%s, value=%.200s",
+            type(mutations).__name__,
+            str(mutations)[:200],
+        )
+        mutations_list = _parse_mutations_input(mutations)
+
+        if not mutations_list:
+            return _error_response(
+                "validation_error",
+                "mutations must be a JSON array of {operation, data} objects. "
+                'Example: [{"operation":"add_epic","data":{"title":"Epic Title","description":"..."}}]',
+            )
 
         if not isinstance(mutations_list, list) or len(mutations_list) == 0:
             return _error_response("validation_error", "mutations must be a non-empty array.")

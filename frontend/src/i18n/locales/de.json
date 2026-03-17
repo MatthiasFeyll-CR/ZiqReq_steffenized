@@ -108,9 +108,6 @@
     "inReviewReadOnly": "Dieses Projekt wird derzeit überprüft. Inhalte sind schreibgeschützt, bis die Überprüfung abgeschlossen ist.",
     "goToReview": "Zur Überprüfung",
     "restoreProject": "Wiederherstellen",
-    "agentMode": "KI-Modus",
-    "modeInteractive": "Interaktiv",
-    "modeSilent": "Still",
     "invitationBanner": {
       "text": "hat Sie zur Zusammenarbeit an diesem Projekt eingeladen"
     }

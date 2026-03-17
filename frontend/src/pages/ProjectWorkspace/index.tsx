@@ -6,14 +6,6 @@ import { fetchChatMessages } from "@/api/chat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { patchProject } from "@/api/projects";
 import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { RequirementsPanel } from "@/components/workspace/RequirementsPanel";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
@@ -359,21 +351,6 @@ function ProjectWorkspaceContent({
           : lockReason;
   const effectiveReadOnly = allReadOnly || readOnly || isDeleted || isInReviewReadOnly;
 
-  const handleAgentModeChange = useCallback(
-    async (value: string) => {
-      const mode = value as "interactive" | "silent";
-      const previousMode = project.agent_mode;
-      onProjectUpdate({ ...project, agent_mode: mode });
-      try {
-        const updated = await patchProject(project.id, { agent_mode: mode });
-        onProjectUpdate(updated);
-      } catch {
-        onProjectUpdate({ ...project, agent_mode: previousMode });
-      }
-    },
-    [project, onProjectUpdate],
-  );
-
   return (
     <div className="flex flex-col h-full overflow-hidden" data-testid="project-workspace">
       <WorkspaceHeader
@@ -443,26 +420,6 @@ function ProjectWorkspaceContent({
       {activeStep === "define" && (
         <div className="flex-1 min-h-0 flex flex-col">
 
-          {/* Agent mode selector — contextual to define step */}
-          <div className="shrink-0 flex items-center gap-2 px-6 py-2 border-b border-border/50 bg-surface">
-            <span className="text-sm text-muted-foreground">
-              {t("workspace.agentMode", "AI Mode")}
-            </span>
-            <Select value={project.agent_mode} onValueChange={handleAgentModeChange} disabled={effectiveReadOnly}>
-              <SelectTrigger className="w-36 h-8 text-sm" data-testid="agent-mode-trigger">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="interactive" data-testid="mode-interactive">
-                  {t("workspace.modeInteractive", "Interactive")}
-                </SelectItem>
-                <SelectItem value="silent" data-testid="mode-silent">
-                  {t("workspace.modeSilent", "Silent")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <WorkspaceLayout
             chatPanel={
               <ChatPanel project={project} locked={effectiveChatLocked} lockReason={effectiveLockReason} readOnly={readOnly || isInReviewReadOnly} />
@@ -473,6 +430,7 @@ function ProjectWorkspaceContent({
                 projectType={project.project_type}
                 readOnly={effectiveReadOnly}
                 collaborators={project.collaborators}
+                projectTitle={project.title}
               />
             }
           />
@@ -508,6 +466,7 @@ function ProjectWorkspaceContent({
           projectId={project.id}
           projectType={project.project_type}
           projectState={project.state}
+          projectTitle={project.title}
           disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly || structureNotCompleted}
           readOnly={effectiveReadOnly || structureNotCompleted}
           collaborators={project.collaborators}

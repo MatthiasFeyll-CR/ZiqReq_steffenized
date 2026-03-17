@@ -113,7 +113,6 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     title: "Test Project",
     project_type: "software",
     state: "open",
-    agent_mode: "interactive",
     visibility: "collaborating",
     owner_id: OWNER_ID,
     created_at: "2024-01-01T00:00:00Z",

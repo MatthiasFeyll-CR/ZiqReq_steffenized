@@ -38,7 +38,7 @@ def _mock_core_client(project_context: dict | None = None) -> MagicMock:
         "project": {
             "title": "Test Project",
             "state": "open",
-            "agent_mode": "interactive",
+
             "title_manually_edited": False,
             "project_type": "software",
         },
@@ -815,7 +815,7 @@ class TestContextAssembler:
             "project": {
                 "title": "Invoice Automation",
                 "state": "open",
-                "agent_mode": "interactive",
+    
                 "title_manually_edited": False,
             },
             "recent_messages": [
@@ -829,7 +829,7 @@ class TestContextAssembler:
 
         assert result["project_id"] == "project-123"
         assert result["project_context"]["title"] == "Invoice Automation"
-        assert result["project_context"]["agent_mode"] == "interactive"
+
         assert len(result["recent_messages"]) == 1
         assert result["chat_summary"] == "Previous discussion about workflows."
         assert result["facilitator_bucket_content"] == "SAP, DocuSign"
@@ -845,6 +845,6 @@ class TestContextAssembler:
 
         assert result["project_id"] == "project-empty"
         assert result["project_context"]["title"] == ""
-        assert result["project_context"]["agent_mode"] == "interactive"
+
         assert result["recent_messages"] == []
         assert result["chat_summary"] is None

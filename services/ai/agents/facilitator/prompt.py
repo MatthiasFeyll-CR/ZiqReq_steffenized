@@ -20,8 +20,6 @@ and redirect to the requirements structuring task.
 
 <project_type>{project_type}</project_type>
 
-<agent_mode>{agent_mode}</agent_mode>
-
 <decision_layer>
 Before producing any output, decide what action to take. Follow these rules strictly
 and IN ORDER — stop at the first matching rule:
@@ -107,7 +105,7 @@ Rules:
 </requirements_structuring_guidance>
 
 <project>
-<metadata title="{project_title}" state="{project_state}" agent_mode="{agent_mode}" />
+<metadata title="{project_title}" state="{project_state}" />
 
 <chat_history>
 {chat_history_block}
@@ -123,15 +121,7 @@ Rules:
 </system>"""
 
 
-_SILENT_RULES = """\
-SILENT MODE RULES:
-1. If @ai is explicitly mentioned in the latest message(s) → you MUST respond.
-   Apply the Interactive Mode rules below to determine HOW to respond.
-2. Otherwise → take NO action. No response, no reaction, no title update.
-   Return an empty output."""
-
-_INTERACTIVE_RULES = """\
-INTERACTIVE MODE RULES:
+_DECISION_RULES = """\
 1. If @ai is explicitly mentioned → you MUST respond (full response or delegate+respond).
 2. If the message relates to a topic in the <facilitator_bucket> below → delegate to the
    context agent AND respond with a delegation message first.
@@ -153,7 +143,6 @@ def build_system_prompt(context: dict[str, Any]) -> str:
 
     Args:
         context: Dict with keys:
-            - agent_mode: "interactive" or "silent"
             - project_title, project_state
             - title_manually_edited: bool
             - facilitator_bucket_content: str
@@ -166,14 +155,8 @@ def build_system_prompt(context: dict[str, Any]) -> str:
             - creator_language: str
             - no_messages_yet: bool
     """
-    agent_mode = context.get("agent_mode", "interactive")
-    is_silent = agent_mode == "silent"
-
     # Decision rules
-    if is_silent:
-        decision_rules = f"{_SILENT_RULES}\n\n{_INTERACTIVE_RULES}"
-    else:
-        decision_rules = _INTERACTIVE_RULES
+    decision_rules = _DECISION_RULES
 
     # Language block
     if context.get("no_messages_yet"):
@@ -279,7 +262,6 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     requirements_structuring_guidance = _get_structuring_guidance(project_type)
 
     return FACILITATOR_SYSTEM_PROMPT_TEMPLATE.format(
-        agent_mode=agent_mode,
         project_type=project_type,
         decision_rules=decision_rules,
         language_block=language_block,

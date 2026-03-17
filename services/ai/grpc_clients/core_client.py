@@ -606,9 +606,18 @@ def _apply_single_mutation(
 
 
 def _find_item(structure: list[dict[str, Any]], item_id: str) -> dict[str, Any] | None:
+    """Find an item by ID, falling back to title match if ID is not a UUID."""
     for item in structure:
         if item.get("id") == item_id:
             return item
+    # Fallback: LLM may send title instead of UUID (from plaintext parsing)
+    try:
+        uuid_mod.UUID(item_id)
+    except (ValueError, AttributeError):
+        # item_id is not a valid UUID — try matching by title
+        for item in structure:
+            if item.get("title") == item_id:
+                return item
     return None
 
 

@@ -41,7 +41,7 @@ class FacilitatorAgent(BaseAgent):
         Args:
             input_data: Dict with keys:
                 - project_id: str
-                - project_context: dict (title, state, agent_mode, title_manually_edited, etc.)
+                - project_context: dict (title, state, title_manually_edited, etc.)
                 - recent_messages: list[dict]
                 - chat_summary: str | None
                 - facilitator_bucket_content: str
@@ -74,7 +74,7 @@ class FacilitatorAgent(BaseAgent):
         assert isinstance(service, AzureChatCompletion)
 
         settings = service.get_prompt_execution_settings_class()(service_id="facilitator")
-        settings.max_tokens = 1000
+        settings.max_tokens = 4096
         settings.temperature = 0.7
         settings.frequency_penalty = 0.3
         settings.function_choice_behavior = FunctionChoiceBehavior.Auto(
@@ -126,7 +126,6 @@ def _build_prompt_context(input_data: dict[str, Any]) -> dict[str, Any]:
     """Map pipeline input_data to prompt template variables."""
     ctx = input_data.get("project_context", {})
     return {
-        "agent_mode": ctx.get("agent_mode", "interactive"),
         "project_title": ctx.get("title", ""),
         "project_state": ctx.get("state", "open"),
         "project_type": ctx.get("project_type", "software"),

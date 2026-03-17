@@ -3,7 +3,6 @@ export interface Project {
   title: string;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected";
   visibility: "private" | "collaborating";
-  agentMode: "interactive" | "silent";
   ownerId: string;
   coOwnerId: string | null;
   createdAt: string;

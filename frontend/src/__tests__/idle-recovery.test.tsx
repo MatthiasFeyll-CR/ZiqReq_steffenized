@@ -58,7 +58,6 @@ const fakeProject: Project = {
   title: "Updated Title",
   project_type: "software",
   state: "open",
-  agent_mode: "interactive",
   visibility: "private",
   owner_id: "user-1",
   created_at: "2026-01-01T00:00:00Z",

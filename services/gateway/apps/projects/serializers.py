@@ -8,9 +8,6 @@ class ProjectCreateSerializer(serializers.Serializer):
 
 class ProjectPatchSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=500, required=False)
-    agent_mode = serializers.ChoiceField(
-        choices=["interactive", "silent"], required=False
-    )
 
     def validate(self, attrs):  # type: ignore[override]
         if not attrs:
@@ -24,7 +21,6 @@ class ProjectDetailSerializer(serializers.Serializer):
     project_type = serializers.CharField()
     state = serializers.CharField()
     visibility = serializers.CharField()
-    agent_mode = serializers.CharField()
     owner = serializers.SerializerMethodField()
     collaborators = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField()

@@ -43,6 +43,7 @@ interface RequirementsPanelProps {
   projectType: ProjectType;
   readOnly?: boolean;
   collaborators?: Array<{ user_id: string; display_name: string }>;
+  projectTitle?: string;
 }
 
 export function RequirementsPanel({
@@ -50,6 +51,7 @@ export function RequirementsPanel({
   projectType,
   readOnly,
   collaborators,
+  projectTitle,
 }: RequirementsPanelProps) {
   const [draft, setDraft] = useState<RequirementsDraft | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,6 +101,19 @@ export function RequirementsPanel({
     };
     window.addEventListener("ws:requirements_updated", handler);
     return () => window.removeEventListener("ws:requirements_updated", handler);
+  }, [projectId]);
+
+  // Listen for title_update to sync project title into draft
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail.project_id !== projectId) return;
+      if (detail.title != null) {
+        setDraft((prev) => (prev ? { ...prev, title: detail.title } : prev));
+      }
+    };
+    window.addEventListener("ws:title_update", handler);
+    return () => window.removeEventListener("ws:title_update", handler);
   }, [projectId]);
 
   // Listen for requirements_ready (AI generation complete)
@@ -473,7 +488,7 @@ export function RequirementsPanel({
             }}
             data-testid="requirements-title"
           >
-            {draft.title || "Untitled Project"}
+            {draft.title || projectTitle || "Untitled Project"}
           </h2>
         )}
         {editingDesc ? (
