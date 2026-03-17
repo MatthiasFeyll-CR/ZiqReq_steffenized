@@ -7,14 +7,18 @@ from typing import Any
 FACILITATOR_SYSTEM_PROMPT_TEMPLATE = """\
 <system>
 <identity>
-You are the AI Facilitator for ZiqReq, a requirements assembly platform at Commerz Real.
-You guide employees through structured requirements definition to help them turn workflow
-improvement projects into Business Requirements Documents.
+You are the Requirements Assistant for ZiqReq, a requirements assembly platform at Commerz Real.
+You help employees structure their ideas into formal requirements documents. You guide them through
+the process of breaking down their project into hierarchical requirements:
+- Software Projects: Epics → User Stories (with acceptance criteria)
+- Non-Software Projects: Milestones → Work Packages (with deliverables)
 
 You are NOT a general-purpose assistant. You are scoped exclusively to defining
 business requirements within Commerz Real's context. Refuse off-topic requests politely
 and redirect to the requirements structuring task.
 </identity>
+
+<project_type>{project_type}</project_type>
 
 <agent_mode>{agent_mode}</agent_mode>
 
@@ -93,6 +97,14 @@ Rules:
 <facilitator_bucket>
 {facilitator_bucket_content}
 </facilitator_bucket>
+
+<requirements_structure>
+{requirements_structure_block}
+</requirements_structure>
+
+<requirements_structuring_guidance>
+{requirements_structuring_guidance}
+</requirements_structuring_guidance>
 
 <project>
 <metadata title="{project_title}" state="{project_state}" agent_mode="{agent_mode}" />
@@ -251,8 +263,24 @@ def build_system_prompt(context: dict[str, Any]) -> str:
     else:
         extension_results_block = ""
 
+    # Project type and requirements structure
+    project_type = context.get("project_type", "software")
+    requirements_structure = context.get("requirements_structure")
+
+    if requirements_structure:
+        requirements_structure_block = _render_requirements_structure(
+            project_type, requirements_structure
+        )
+    else:
+        requirements_structure_block = (
+            "(No requirements structure yet. Help the user start defining their requirements.)"
+        )
+
+    requirements_structuring_guidance = _get_structuring_guidance(project_type)
+
     return FACILITATOR_SYSTEM_PROMPT_TEMPLATE.format(
         agent_mode=agent_mode,
+        project_type=project_type,
         decision_rules=decision_rules,
         language_block=language_block,
         multi_user_block=multi_user_block,
@@ -265,4 +293,73 @@ def build_system_prompt(context: dict[str, Any]) -> str:
         delegation_results_block=delegation_results_block,
         extension_results_block=extension_results_block,
         context_extension_block=context_extension_block,
+        requirements_structure_block=requirements_structure_block,
+        requirements_structuring_guidance=requirements_structuring_guidance,
     )
+
+
+def _render_requirements_structure(project_type: str, structure: list[dict[str, Any]]) -> str:
+    """Render the hierarchical requirements structure as a readable tree."""
+    if not structure:
+        return "(No requirements structure yet. Help the user start defining their requirements.)"
+
+    lines: list[str] = []
+    if project_type == "software":
+        lines.append("Epics and User Stories:")
+        for item in structure:
+            lines.append(f"Epic {item.get('id', '?')}: {item.get('title', 'Untitled')}")
+            for child in item.get("children", []):
+                priority = child.get("priority", "")
+                priority_str = f"  Priority: {priority}" if priority else ""
+                lines.append(
+                    f"  └─ Story {child.get('id', '?')}: {child.get('title', 'Untitled')}"
+                )
+                if priority_str:
+                    lines.append(f"    {priority_str}")
+    else:
+        lines.append("Milestones and Work Packages:")
+        for item in structure:
+            lines.append(
+                f"Milestone {item.get('id', '?')}: {item.get('title', 'Untitled')}"
+            )
+            for child in item.get("children", []):
+                lines.append(
+                    f"  └─ Package {child.get('id', '?')}: {child.get('title', 'Untitled')}"
+                )
+
+    return "\n".join(lines)
+
+
+_SOFTWARE_GUIDANCE = """\
+SOFTWARE PROJECT GUIDANCE:
+When to create a new Epic:
+- User describes a distinct feature area or capability
+
+When to create a new User Story:
+- User describes a specific interaction or workflow step
+- Use format: "As a [role], I want [capability] so that [benefit]"
+
+When to update/remove:
+- Use update_epic/update_story to refine titles, descriptions, or acceptance criteria
+- Use remove_epic/remove_story when the user explicitly drops a requirement
+- Use reorder_epics/reorder_stories to change priority order"""
+
+_NON_SOFTWARE_GUIDANCE = """\
+NON-SOFTWARE PROJECT GUIDANCE:
+When to create a new Milestone:
+- User describes a major project phase or decision point
+
+When to create a new Work Package:
+- User describes a specific deliverable or activity
+
+When to update/remove:
+- Use update_milestone/update_package to refine titles, descriptions, or deliverables
+- Use remove_milestone/remove_package when the user explicitly drops a requirement
+- Use reorder_milestones/reorder_packages to change priority order"""
+
+
+def _get_structuring_guidance(project_type: str) -> str:
+    """Return type-specific structuring guidance."""
+    if project_type == "software":
+        return _SOFTWARE_GUIDANCE
+    return _NON_SOFTWARE_GUIDANCE

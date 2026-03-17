@@ -1,14 +1,16 @@
 """Context window assembly from gRPC data.
 
 Assembles the context dict that the Facilitator agent needs:
-  - project metadata (title, state, agent_mode, title_manually_edited)
+  - project metadata (title, state, agent_mode, title_manually_edited, project_type)
   - recent messages (last N from admin param)
   - chat summary (from chat_context_summaries if exists)
   - facilitator bucket content (global + type-specific combined)
+  - requirements structure (hierarchical JSON from requirements draft)
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -93,6 +95,11 @@ class ContextAssembler:
             # Fall back to raw gRPC response content if no buckets found
             facilitator_bucket = project_context_response.get("facilitator_bucket_content", "")
 
+        # Parse requirements structure from gRPC response
+        requirements_structure = _parse_requirements_structure(
+            project_context_response.get("requirements_state", {})
+        )
+
         assembled = {
             "project_id": project_id,
             "project_context": {
@@ -105,6 +112,7 @@ class ContextAssembler:
             "recent_messages": recent_messages,
             "chat_summary": chat_summary,
             "facilitator_bucket_content": facilitator_bucket,
+            "requirements_structure": requirements_structure,
             "delegation_results": None,
             "extension_results": None,
         }
@@ -117,3 +125,26 @@ class ContextAssembler:
             project_type,
         )
         return assembled
+
+
+def _parse_requirements_structure(requirements_state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Parse requirements structure from gRPC requirements state response.
+
+    Args:
+        requirements_state: Dict with 'structure_json' key (JSON string) or empty.
+
+    Returns:
+        Parsed list of structure items, or empty list.
+    """
+    structure_json = requirements_state.get("structure_json", "")
+    if not structure_json:
+        return []
+    try:
+        parsed = json.loads(structure_json)
+        if isinstance(parsed, list):
+            return parsed
+        logger.warning("requirements structure_json is not a list, ignoring")
+        return []
+    except (json.JSONDecodeError, TypeError):
+        logger.warning("Failed to parse requirements structure_json")
+        return []
