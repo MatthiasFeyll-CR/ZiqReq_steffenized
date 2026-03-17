@@ -1,0 +1,37 @@
+# Ralph Progress Log — M19 (structured-requirements)
+Started: 2026-03-17T02:02:16+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+## US-001: Project type selection at creation
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/landing/HeroSection.tsx, frontend/src/components/landing/NewProjectModal.tsx (new), frontend/src/components/landing/__tests__/NewProjectModal.test.tsx (new), frontend/src/hooks/use-create-project.ts, frontend/src/api/projects.ts, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, services/gateway/apps/projects/serializers.py, services/gateway/apps/projects/views.py, + 11 test files updated for project_type in mock data
+- Tests: 344 passed, 0 failed. Typecheck clean. Ruff clean. ESLint clean on changed files (4 pre-existing errors in unrelated files).
+- Learnings for future iterations:
+  - Adding a required field to the Project interface requires updating mock objects in ~9 test files. Consider searching for `agent_mode: "interactive"` to find all mock Project objects.
+  - The existing `project-creation-flow.test.tsx` and `landing-page.test.tsx` both tested the old textarea flow — both needed rewriting for the new modal-based flow.
+  - `markAiProcessing` import removed from use-create-project.ts since new flow doesn't send first_message by default.
+  - Dialog component uses Radix UI Dialog primitives — DialogDescription is required to avoid accessibility warnings.
+  - Tests are all in `frontend/src/__tests__/` (flat), not in `__tests__` subdirectories of component folders. NewProjectModal test was placed in `components/landing/__tests__/` per the PRD spec.
+---
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
