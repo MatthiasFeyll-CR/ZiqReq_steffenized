@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { toast } from "react-toastify";
+import { UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { acceptInvitation, declineInvitation } from "@/api/collaboration";
 import { fetchInvitations } from "@/api/projects";
@@ -9,9 +10,11 @@ import { useAuth } from "@/hooks/use-auth";
 
 interface InvitationBannerProps {
   projectId: string;
+  onAccepted?: () => void;
+  onDeclined?: () => void;
 }
 
-export function InvitationBanner({ projectId }: InvitationBannerProps) {
+export function InvitationBanner({ projectId, onAccepted, onDeclined }: InvitationBannerProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -30,7 +33,9 @@ export function InvitationBanner({ projectId }: InvitationBannerProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
       queryClient.invalidateQueries({ queryKey: ["collaborators", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
       toast.success(t("landing.invitations.accepted", "Invitation accepted"));
+      onAccepted?.();
     },
   });
 
@@ -39,6 +44,7 @@ export function InvitationBanner({ projectId }: InvitationBannerProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
       toast.success(t("landing.invitations.declined", "Invitation declined"));
+      onDeclined?.();
     },
   });
 
@@ -53,13 +59,14 @@ export function InvitationBanner({ projectId }: InvitationBannerProps) {
           transition={{ duration: prefersReducedMotion ? 0 : 0.3 }}
           data-testid="invitation-banner"
         >
-          <div className="border-b bg-primary/5 px-4 py-3 border-l-4 border-l-primary flex items-center justify-between" role="alert" aria-live="polite">
-            <p className="text-sm text-foreground">
-              <span className="font-medium">{invitation.inviter.display_name}</span>
-              {" "}
-              {t("workspace.invitationBanner.text", "invited you to collaborate on this project")}
-            </p>
-            <div className="ml-4 flex gap-2">
+          <div className="shrink-0 border-b border-l-4 border-l-primary bg-primary/5 px-6 py-3 flex items-center gap-3" role="alert" aria-live="polite">
+              <UserPlus className="h-4 w-4 text-primary shrink-0" />
+              <p className="text-sm text-foreground">
+                <span className="font-medium">{invitation.inviter.display_name}</span>
+                {" "}
+                {t("workspace.invitationBanner.text", "invited you to collaborate on this project")}
+              </p>
+            <div className="flex gap-2 ml-3">
               <Button
                 variant="primary"
                 size="sm"
@@ -67,7 +74,7 @@ export function InvitationBanner({ projectId }: InvitationBannerProps) {
                 disabled={acceptMut.isPending || declineMut.isPending}
                 data-testid="banner-accept-button"
               >
-                {t("landing.invitations.accept", "Accept")}
+                {t("workspace.invitationBanner.accept", "Accept Invite")}
               </Button>
               <Button
                 variant="outline"
@@ -76,10 +83,10 @@ export function InvitationBanner({ projectId }: InvitationBannerProps) {
                 disabled={acceptMut.isPending || declineMut.isPending}
                 data-testid="banner-decline-button"
               >
-                {t("landing.invitations.decline", "Decline")}
+                {t("workspace.invitationBanner.decline", "Decline")}
               </Button>
             </div>
-          </div>
+            </div>
         </motion.div>
       )}
     </AnimatePresence>

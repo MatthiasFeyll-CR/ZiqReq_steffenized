@@ -314,12 +314,21 @@ def _render_requirements_structure(project_type: str, structure: list[dict[str, 
 
 _SOFTWARE_GUIDANCE = """\
 SOFTWARE PROJECT GUIDANCE:
-When to create a new Epic:
-- User describes a distinct feature area or capability
+IMPORTANT: You MUST call update_requirements_structure to create/modify the requirements
+structure whenever the conversation yields actionable requirements. Do NOT just discuss
+requirements in chat — actually create them using the tool.
 
-When to create a new User Story:
-- User describes a specific interaction or workflow step
-- Use format: "As a [role], I want [capability] so that [benefit]"
+When to create Epics and User Stories:
+- User describes a feature area → create an Epic AND its User Stories in ONE call
+- User describes a specific interaction → create a User Story under the relevant Epic
+- User explicitly asks to create epics or stories → do it immediately
+- Use format for stories: "As a [role], I want [capability] so that [benefit]"
+
+How to create Epics with Stories in one call:
+- Include add_epic AND add_story mutations in the same array
+- Set epic_id in add_story to the EXACT title of the new epic from the same batch
+- Example: [{"operation":"add_epic","data":{"title":"Auth"}},
+  {"operation":"add_story","data":{"epic_id":"Auth","title":"As a user, I want to log in"}}]
 
 When to update/remove:
 - Use update_epic/update_story to refine titles, descriptions, or acceptance criteria
@@ -328,11 +337,20 @@ When to update/remove:
 
 _NON_SOFTWARE_GUIDANCE = """\
 NON-SOFTWARE PROJECT GUIDANCE:
-When to create a new Milestone:
-- User describes a major project phase or decision point
+IMPORTANT: You MUST call update_requirements_structure to create/modify the requirements
+structure whenever the conversation yields actionable requirements. Do NOT just discuss
+requirements in chat — actually create them using the tool.
 
-When to create a new Work Package:
-- User describes a specific deliverable or activity
+When to create Milestones and Work Packages:
+- User describes a project phase → create a Milestone AND its Work Packages in ONE call
+- User describes a specific deliverable → create a Work Package under the relevant Milestone
+- User explicitly asks to create milestones or packages → do it immediately
+
+How to create Milestones with Work Packages in one call:
+- Include add_milestone AND add_package mutations in the same array
+- Set milestone_id in add_package to the EXACT title of the new milestone from the same batch
+- Example: [{"operation":"add_milestone","data":{"title":"Phase 1"}},
+  {"operation":"add_package","data":{"milestone_id":"Phase 1","title":"Deliverable A"}}]
 
 When to update/remove:
 - Use update_milestone/update_package to refine titles, descriptions, or deliverables

@@ -492,7 +492,7 @@ def _apply_single_mutation(
     if operation in ("add_epic", "add_milestone"):
         item_type = "epic" if operation == "add_epic" else "milestone"
         new_item = {
-            "id": str(uuid_mod.uuid4()),
+            "id": data.get("_generated_id") or str(uuid_mod.uuid4()),
             "type": item_type,
             "title": data.get("title", ""),
             "description": data.get("description", ""),
@@ -545,17 +545,17 @@ def _apply_single_mutation(
             raise MutationError(f"Parent {parent_id} not found")
         child_type = "user_story" if operation == "add_story" else "work_package"
         child: dict[str, Any] = {
-            "id": str(uuid_mod.uuid4()),
+            "id": data.get("_generated_id") or str(uuid_mod.uuid4()),
             "type": child_type,
             "title": data.get("title", ""),
             "description": data.get("description", ""),
         }
         if child_type == "user_story":
-            child["acceptance_criteria"] = data.get("acceptance_criteria", "")
-            child["priority"] = data.get("priority", "Medium")
+            child["acceptance_criteria"] = _ensure_list(data.get("acceptance_criteria", []))
+            child["priority"] = data.get("priority", "medium").lower()
         else:
-            child["deliverables"] = data.get("deliverables", "")
-            child["dependencies"] = data.get("dependencies", "")
+            child["deliverables"] = _ensure_list(data.get("deliverables", []))
+            child["dependencies"] = _ensure_list(data.get("dependencies", []))
         parent.setdefault("children", []).append(child)
         return structure
 
@@ -568,9 +568,12 @@ def _apply_single_mutation(
         child_item = _find_child(structure, child_id)
         if child_item is None:
             raise MutationError(f"Item {child_id} not found")
-        for key in ("title", "description", "acceptance_criteria", "priority", "deliverables", "dependencies"):
+        for key in ("title", "description", "priority"):
             if key in data:
                 child_item[key] = data[key]
+        for key in ("acceptance_criteria", "deliverables", "dependencies"):
+            if key in data:
+                child_item[key] = _ensure_list(data[key])
         return structure
 
     # --- Child-level remove ---
@@ -603,6 +606,23 @@ def _apply_single_mutation(
         return structure
 
     raise MutationError(f"Unhandled operation: {operation}")
+
+
+def _ensure_list(value: Any) -> list[str]:
+    """Normalize a value to a list of strings.
+
+    The LLM may provide acceptance_criteria/deliverables/dependencies as a
+    single string, a comma-separated string, or already a list.
+    """
+    if isinstance(value, list):
+        return [str(v) for v in value if v]
+    if isinstance(value, str) and value.strip():
+        # Split on newlines or semicolons (common LLM patterns), fall back to single-item list
+        for sep in ("\n", ";"):
+            if sep in value:
+                return [item.strip().lstrip("- ").lstrip("• ") for item in value.split(sep) if item.strip()]
+        return [value.strip()]
+    return []
 
 
 def _find_item(structure: list[dict[str, Any]], item_id: str) -> dict[str, Any] | None:

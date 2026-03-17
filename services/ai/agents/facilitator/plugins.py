@@ -318,15 +318,18 @@ class FacilitatorPlugin:
             "Submit structured mutations to update the project's requirements. "
             "The mutations parameter MUST be a JSON array of objects. "
             "Each object has 'operation' (string) and 'data' (object). "
+            "You CAN add epics/milestones and their children (stories/packages) in a SINGLE call. "
+            "For add_story/add_package referencing a NEW epic/milestone from the same batch, "
+            "set epic_id/milestone_id to the EXACT title of the new epic/milestone. "
+            "For existing epics/milestones, use the UUID from the requirements structure. "
             "Example: "
-            '[{"operation":"add_epic","data":{"title":"My Epic","description":"Description"}}, '
-            '{"operation":"add_story","data":{"epic_id":"<id>","title":"As a user...","description":"...","acceptance_criteria":"...","priority":"High"}}]. '
+            '[{"operation":"add_epic","data":{"title":"User Management","description":"..."}}, '
+            '{"operation":"add_story","data":{"epic_id":"User Management","title":"As a user, I want to log in","description":"...","acceptance_criteria":"...","priority":"High"}}]. '
             "Valid operations for software: add_epic, update_epic, remove_epic, reorder_epics, "
             "add_story, update_story, remove_story, reorder_stories. "
             "Valid operations for non-software: add_milestone, update_milestone, remove_milestone, "
             "reorder_milestones, add_package, update_package, remove_package, reorder_packages. "
-            "For add_story, set epic_id to the id of an existing epic from the requirements structure. "
-            "For new epics, first add the epic, then add stories in a separate call after receiving the epic id."
+            "The response includes generated IDs for all newly created items."
         ),
     )
     async def update_requirements_structure(
@@ -358,6 +361,10 @@ class FacilitatorPlugin:
 
         project_type = self.project_context.get("project_type", "software")
         valid_ops = _SOFTWARE_OPERATIONS if project_type == "software" else _NON_SOFTWARE_OPERATIONS
+
+        # Track newly created parent items by title → generated UUID
+        # so child mutations in the same batch can reference them.
+        pending_parents: dict[str, str] = {}
 
         results: list[dict[str, Any]] = []
         for mutation in mutations_list:
@@ -392,26 +399,38 @@ class FacilitatorPlugin:
                 })
                 continue
 
-            # Record successful mutation (actual persistence handled by pipeline Step 4)
-            results.append({
+            # Pre-generate UUIDs for add operations
+            generated_id = None
+            if operation in ("add_epic", "add_milestone"):
+                generated_id = str(uuid.uuid4())
+                data["_generated_id"] = generated_id
+                title = data.get("title", "")
+                if title:
+                    pending_parents[title] = generated_id
+
+            elif operation in ("add_story", "add_package"):
+                generated_id = str(uuid.uuid4())
+                data["_generated_id"] = generated_id
+                # Resolve parent reference: if epic_id/milestone_id matches
+                # a pending parent title, substitute the generated UUID.
+                parent_key = "epic_id" if operation == "add_story" else "milestone_id"
+                parent_ref = data.get(parent_key, "")
+                if parent_ref in pending_parents:
+                    data[parent_key] = pending_parents[parent_ref]
+
+            result_entry: dict[str, Any] = {
                 "operation": operation,
                 "status": "success",
                 "error": None,
-            })
+            }
+            if generated_id:
+                result_entry["generated_id"] = generated_id
+            results.append(result_entry)
 
         # Store mutations for pipeline to process
         self.requirements_mutations.extend(
             m for m, r in zip(mutations_list, results) if r["status"] == "success"
         )
-
-        # Publish event for each successful mutation
-        for mutation, result in zip(mutations_list, results):
-            if result["status"] == "success":
-                await publish_event("ai.requirements.updated", {
-                    "project_id": self.project_id,
-                    "operation": mutation.get("operation"),
-                    "data": mutation.get("data", {}),
-                })
 
         accepted = any(r["status"] == "success" for r in results)
         return {

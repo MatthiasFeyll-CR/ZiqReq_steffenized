@@ -1,6 +1,6 @@
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { Menu, X, Lightbulb } from "lucide-react"
+import { Menu, X, Lightbulb, Search } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useAuth } from "@/hooks/use-auth"
 import { NavbarLink } from "./NavbarLink"
@@ -9,17 +9,32 @@ import { ConnectionIndicator } from "./ConnectionIndicator"
 import { ProjectsListFloating } from "./ProjectsListFloating"
 import { NotificationBell } from "./NotificationBell"
 import { NotificationPanel } from "@/components/notifications/NotificationPanel"
+import { QuickSearch } from "./QuickSearch"
 
 export function Navbar() {
   const { user, hasRole } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(false)
   const [notifPanelOpen, setNotifPanelOpen] = useState(false)
+  const [quickSearchOpen, setQuickSearchOpen] = useState(false)
   const { t } = useTranslation()
 
   const closeProjects = useCallback(() => setProjectsOpen(false), [])
   const toggleNotifPanel = useCallback(() => setNotifPanelOpen((prev) => !prev), [])
   const closeNotifPanel = useCallback(() => setNotifPanelOpen(false), [])
+  const closeQuickSearch = useCallback(() => setQuickSearchOpen(false), [])
+
+  // Global Cmd/Ctrl+K shortcut
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault()
+        setQuickSearchOpen((prev) => !prev)
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [])
 
   return (
     <nav className="sticky top-0 z-40 flex h-14 items-center bg-[#002E3C] px-4 text-white dark:bg-[#1C1C22]">
@@ -31,6 +46,7 @@ export function Navbar() {
       {/* Desktop nav links */}
       <div className="hidden md:flex md:items-center md:gap-1">
         <NavbarLink to="/">{t("nav.projects")}</NavbarLink>
+        <NavbarLink to="/explore">{t("nav.explore")}</NavbarLink>
         {hasRole("reviewer") && <NavbarLink to="/reviews">{t("nav.reviews")}</NavbarLink>}
         {hasRole("admin") && <NavbarLink to="/admin">{t("nav.admin")}</NavbarLink>}
       </div>
@@ -41,6 +57,16 @@ export function Navbar() {
       {/* Right utility area */}
       <div className="flex items-center gap-3">
         <ConnectionIndicator />
+        <button
+          className="flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          onClick={() => setQuickSearchOpen(true)}
+          aria-label={t("quickSearch.title", "Quick Search")}
+        >
+          <Search className="h-4 w-4" />
+          <kbd className="hidden sm:inline-flex items-center rounded border border-white/20 px-1.5 py-0.5 text-[10px] font-medium text-white/50">
+            {navigator.platform?.includes("Mac") ? "\u2318K" : "Ctrl+K"}
+          </kbd>
+        </button>
         <div className="relative">
           <button
             className="flex items-center gap-1 rounded-full px-2 py-1.5 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
@@ -73,6 +99,7 @@ export function Navbar() {
         <div className="absolute left-0 top-14 z-50 w-full bg-[#002E3C] shadow-lg dark:bg-[#1C1C22] md:hidden">
           <div className="flex flex-col py-2">
             <MobileLink to="/" onClick={() => setMobileOpen(false)}>{t("nav.projects")}</MobileLink>
+            <MobileLink to="/explore" onClick={() => setMobileOpen(false)}>{t("nav.explore")}</MobileLink>
             {hasRole("reviewer") && (
               <MobileLink to="/reviews" onClick={() => setMobileOpen(false)}>{t("nav.reviews")}</MobileLink>
             )}
@@ -82,6 +109,7 @@ export function Navbar() {
           </div>
         </div>
       )}
+      <QuickSearch open={quickSearchOpen} onClose={closeQuickSearch} />
     </nav>
   )
 }

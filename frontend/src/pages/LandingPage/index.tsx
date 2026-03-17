@@ -21,6 +21,8 @@ import { useDeleteProject } from "@/hooks/use-delete-project";
 import { useRestoreProject } from "@/hooks/use-restore-project";
 import { useProjectsFilters } from "@/hooks/use-projects-filters";
 import { useLandingSync } from "@/hooks/use-landing-sync";
+import { useHighlightedProjects } from "@/hooks/use-highlighted-projects";
+import { useToggleFavorite } from "@/hooks/use-toggle-favorite";
 
 interface SectionProps {
   title: string;
@@ -76,8 +78,10 @@ export default function LandingPage() {
   );
   const invitations = useInvitations();
   const trash = useTrash();
+  const highlighted = useHighlightedProjects();
   const deleteMutation = useDeleteProject();
   const restoreMutation = useRestoreProject();
+  const favoriteMutation = useToggleFavorite();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -117,6 +121,7 @@ export default function LandingPage() {
     : [];
   const invitationsData = invitations.data?.invitations ?? [];
   const trashData = trash.data?.results ?? [];
+  const highlightedData = highlighted.data?.results ?? [];
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -151,6 +156,13 @@ export default function LandingPage() {
     [restoreMutation],
   );
 
+  const handleToggleFavorite = useCallback(
+    (id: string) => {
+      favoriteMutation.mutate(id);
+    },
+    [favoriteMutation],
+  );
+
   return (
       <div className="mx-auto max-w-5xl px-4 pb-12">
         <HeroSection />
@@ -167,6 +179,32 @@ export default function LandingPage() {
             onClear={clearFilters}
           />
         </div>
+
+        {highlightedData.length > 0 && (
+          <div className="mt-8">
+            <Section
+              title={t("landing.lists.highlighted")}
+              count={highlightedData.length}
+            >
+              <div className="flex flex-col gap-2">
+                {highlightedData.map((p) => (
+                  <ProjectCard
+                    key={p.id}
+                    id={p.id}
+                    title={p.title}
+                    projectType={p.project_type}
+                    state={p.state as ProjectState}
+                    updatedAt={p.updated_at}
+                    deletedAt={p.deleted_at}
+                    isHighlighted={true}
+                    onDelete={handleDelete}
+                    onToggleFavorite={handleToggleFavorite}
+                  />
+                ))}
+              </div>
+            </Section>
+          </div>
+        )}
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">
           <Section
@@ -191,7 +229,9 @@ export default function LandingPage() {
                     state={p.state as ProjectState}
                     updatedAt={p.updated_at}
                     deletedAt={p.deleted_at}
+                    isHighlighted={p.is_highlighted}
                     onDelete={handleDelete}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 ))}
               </div>
@@ -220,7 +260,9 @@ export default function LandingPage() {
                     state={p.state as ProjectState}
                     updatedAt={p.updated_at}
                     deletedAt={p.deleted_at}
+                    isHighlighted={p.is_highlighted}
                     onDelete={handleDelete}
+                    onToggleFavorite={handleToggleFavorite}
                   />
                 ))}
               </div>

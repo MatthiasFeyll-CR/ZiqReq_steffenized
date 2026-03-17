@@ -50,7 +50,8 @@ export function NewProjectModal({ open, onOpenChange }: NewProjectModalProps) {
   const [selectedType, setSelectedType] = useState<ProjectType | null>(null);
   const mutation = useCreateProject();
 
-  const handleCreate = () => {
+  const handleCreate = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!selectedType) return;
     mutation.mutate(selectedType, {
       onSuccess: () => onOpenChange(false),
@@ -68,73 +69,70 @@ export function NewProjectModal({ open, onOpenChange }: NewProjectModalProps) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md" data-testid="new-project-modal">
-        <DialogHeader>
-          <DialogTitle>
-            {t("landing.newProject.title", "Create New Project")}
-          </DialogTitle>
-          <DialogDescription>
-            {t(
-              "landing.newProject.description",
-              "Choose the type of project you want to create.",
-            )}
-          </DialogDescription>
-        </DialogHeader>
+        <form onSubmit={handleCreate}>
+          <DialogHeader>
+            <DialogTitle>
+              {t("landing.newProject.title", "Create New Project")}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                "landing.newProject.description",
+                "Choose the type of project you want to create.",
+              )}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="flex flex-col gap-3">
-          {TYPE_OPTIONS.map((option) => {
-            const Icon = option.icon;
-            const isSelected = selectedType === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                data-testid={`project-type-${option.value}`}
-                onClick={() => setSelectedType(option.value)}
-                className={cn(
-                  "flex items-center gap-4 rounded-md border p-4 text-left cursor-pointer transition-colors hover:bg-muted/50",
-                  isSelected
-                    ? "border-primary border-2 bg-primary/5"
-                    : "border-border",
-                )}
-              >
-                <Icon className="h-5 w-5 shrink-0 text-primary" />
-                <div>
-                  <div className="text-base font-medium text-foreground">
-                    {t(option.titleKey, option.titleFallback)}
+          <div className="flex flex-col gap-3 py-4">
+            {TYPE_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              const isSelected = selectedType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  data-testid={`project-type-${option.value}`}
+                  onClick={() => setSelectedType(option.value)}
+                  className={cn(
+                    "flex items-center gap-4 rounded-md border p-4 text-left cursor-pointer transition-colors hover:bg-muted/50",
+                    isSelected
+                      ? "border-primary border-2 bg-primary/5"
+                      : "border-border",
+                  )}
+                >
+                  <Icon className="h-5 w-5 shrink-0 text-primary" />
+                  <div>
+                    <div className="text-base font-medium text-foreground">
+                      {t(option.titleKey, option.titleFallback)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {t(option.subtitleKey, option.subtitleFallback)}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {t(option.subtitleKey, option.subtitleFallback)}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                </button>
+              );
+            })}
+          </div>
 
-        {mutation.isError && (
-          <p className="text-sm text-destructive" role="alert">
-            {t("landing.hero.errorCreating")}
-          </p>
-        )}
-
-        <DialogFooter>
-          <Button
-            variant="ghost"
-            onClick={() => handleOpenChange(false)}
-          >
-            {t("common.cancel", "Cancel")}
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleCreate}
-            disabled={!selectedType || mutation.isPending}
-            data-testid="create-project-button"
-          >
-            {mutation.isPending
-              ? t("common.loading", "Loading...")
-              : t("landing.newProject.create", "Create")}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => handleOpenChange(false)}
+            >
+              {t("common.cancel", "Cancel")}
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={!selectedType || mutation.isPending}
+              data-testid="create-project-button"
+            >
+              {mutation.isPending
+                ? t("common.loading", "Loading...")
+                : t("landing.newProject.create", "Create")}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

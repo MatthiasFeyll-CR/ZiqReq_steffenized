@@ -120,11 +120,45 @@
   30%, 70% { transform: translateX(3px); }
 }
 
+/* Collapsible panel – CSS grid height animation */
+.collapsible-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms ease-out;
+}
+.collapsible-grid[data-expanded="true"] {
+  grid-template-rows: 1fr;
+}
+.collapsible-grid > .collapsible-content {
+  overflow: hidden;
+}
+
+/* Banner slide-in / slide-out */
+@keyframes banner-slide-in {
+  from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+  to   { opacity: 1; max-height: 80px; }
+}
+@keyframes banner-slide-out {
+  from { opacity: 1; max-height: 80px; }
+  to   { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+}
+.animate-banner-in {
+  animation: banner-slide-in 250ms ease-out forwards;
+}
+.animate-banner-out {
+  animation: banner-slide-out 200ms ease-in forwards;
+}
+
 /* Prefers-reduced-motion: disable all animations and transitions */
 @media (prefers-reduced-motion: reduce) {
   .animate-scale-in,
   .typing-dot,
-  .animate-\[shake_0\.5s_ease-in-out\] {
+  .animate-\[shake_0\.5s_ease-in-out\],
+  .animate-banner-in,
+  .animate-banner-out {
     animation: none;
+  }
+  .collapsible-grid {
+    transition: none;
   }
 }

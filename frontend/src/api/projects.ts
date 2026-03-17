@@ -9,11 +9,17 @@ export interface Project {
   project_type: ProjectType;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted";
   visibility: "private" | "collaborating";
-  owner_id: string;
+  owner: { id: string; display_name: string };
   created_at: string;
   updated_at: string;
   collaborators: Array<{ user_id: string; display_name: string }>;
   read_only?: boolean;
+  is_highlighted?: boolean;
+}
+
+/** Helper to extract owner_id from a Project */
+export function getOwnerId(project: Project): string {
+  return project.owner.id;
 }
 
 export async function fetchProject(id: string, token?: string): Promise<Project> {
@@ -88,6 +94,7 @@ export interface ProjectListItem {
   collaborator_count: number;
   updated_at: string;
   deleted_at: string | null;
+  is_highlighted: boolean;
 }
 
 export interface ProjectsListResponse {
@@ -162,6 +169,18 @@ export async function restoreProject(id: string): Promise<void> {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
   }
+}
+
+export async function toggleFavorite(id: string): Promise<{ is_highlighted: boolean }> {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${id}/favorite`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
 }
 
 export interface SubmitProjectResponse {

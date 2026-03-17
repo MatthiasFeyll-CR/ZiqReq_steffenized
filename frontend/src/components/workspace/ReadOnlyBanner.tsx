@@ -3,7 +3,7 @@ import { Eye } from "lucide-react";
 export function ReadOnlyBanner() {
   return (
     <div
-      className="border-b bg-primary/5 px-4 py-3 border-l-4 border-primary flex items-center gap-2"
+      className="shrink-0 border-b border-l-4 border-l-primary bg-primary/5 px-6 py-3 flex items-center gap-3"
       role="status"
       aria-live="polite"
       data-testid="read-only-banner"

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { MoreVertical, Trash2, RotateCcw } from "lucide-react";
+import { MoreVertical, Trash2, RotateCcw, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -8,6 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatRelativeTime } from "@/lib/utils";
 
 export type ProjectState =
@@ -42,8 +48,10 @@ export interface ProjectCardProps {
   state: ProjectState;
   updatedAt: string;
   deletedAt?: string | null;
+  isHighlighted?: boolean;
   onDelete?: (id: string) => void;
   onRestore?: (id: string) => void;
+  onToggleFavorite?: (id: string) => void;
 }
 
 export function ProjectCard({
@@ -53,8 +61,10 @@ export function ProjectCard({
   state,
   updatedAt,
   deletedAt,
+  isHighlighted,
   onDelete,
   onRestore,
+  onToggleFavorite,
 }: ProjectCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -96,6 +106,37 @@ export function ProjectCard({
       <Badge variant={state} className="shrink-0">
         {STATE_LABELS[state]}
       </Badge>
+
+      {onToggleFavorite && (
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span
+                role="button"
+                tabIndex={0}
+                className="shrink-0 rounded-md p-1.5 text-text-secondary hover:bg-muted"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(id);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    onToggleFavorite(id);
+                  }
+                }}
+              >
+                <Star
+                  className={`h-4 w-4 ${isHighlighted ? "fill-yellow-400 text-yellow-400" : ""}`}
+                />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t("landing.projectCard.highlight")}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

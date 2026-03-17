@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Star } from "lucide-react";
 import type { ProjectState } from "./ProjectCard";
 
 const STATE_DOT_COLORS: Record<ProjectState, string> = {
@@ -14,6 +15,7 @@ export interface ProjectCardCompactProps {
   id: string;
   title: string;
   state: ProjectState;
+  isHighlighted?: boolean;
   onClick?: () => void;
 }
 
@@ -21,6 +23,7 @@ export function ProjectCardCompact({
   id,
   title,
   state,
+  isHighlighted,
   onClick,
 }: ProjectCardCompactProps) {
   const { t } = useTranslation();
@@ -46,6 +49,9 @@ export function ProjectCardCompact({
       <span className="truncate text-sm font-medium text-foreground">
         {title || t("landing.untitled")}
       </span>
+      {isHighlighted && (
+        <Star className="ml-auto h-3.5 w-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
+      )}
     </button>
   );
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, MessageCircle, MoreVertical, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Code, MessageCircle, MoreVertical, Package, Star, Trash2, Users } from "lucide-react";
 import { fetchUnreadCommentCount } from "@/api/comments";
 import { CommentsPanel } from "@/components/comments/CommentsPanel";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { patchProject, deleteProject, fetchProject, type Project } from "@/api/projects";
+import { useLazyProject } from "@/hooks/use-lazy-project";
+import { useToggleFavorite } from "@/hooks/use-toggle-favorite";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
 import { PresenceIndicators } from "./PresenceIndicators";
 import { ProcessStepper, type ProcessStep } from "./ProcessStepper";
@@ -40,6 +48,7 @@ interface WorkspaceHeaderProps {
   reviewGateMessage?: string;
   shareToken?: string | null;
   completedSteps?: Set<ProcessStep>;
+  isHighlighted?: boolean;
 }
 
 export function WorkspaceHeader({
@@ -54,9 +63,12 @@ export function WorkspaceHeader({
   reviewGateMessage,
   shareToken,
   completedSteps,
+  isHighlighted,
 }: WorkspaceHeaderProps) {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { ensureProject, isDraft } = useLazyProject();
+  const favoriteMutation = useToggleFavorite();
 
   const { user } = useAuth();
   const prefersReducedMotion = useReducedMotion();
@@ -67,10 +79,11 @@ export function WorkspaceHeader({
   const [unreadComments, setUnreadComments] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch unread comment count
+  // Fetch unread comment count (skip for drafts)
   useEffect(() => {
+    if (isDraft) return;
     fetchUnreadCommentCount(project.id, shareToken).then(setUnreadComments).catch(() => {});
-  }, [project.id, shareToken]);
+  }, [project.id, shareToken, isDraft]);
 
   // Listen for new comments via WebSocket to update badge
   useEffect(() => {
@@ -109,12 +122,13 @@ export function WorkspaceHeader({
     onProjectUpdate({ ...project, title: trimmed });
 
     try {
-      const updated = await patchProject(project.id, { title: trimmed });
+      const realId = await ensureProject();
+      const updated = await patchProject(realId, { title: trimmed });
       onProjectUpdate(updated);
     } catch {
       onProjectUpdate({ ...project, title: previousTitle });
     }
-  }, [editValue, project, onProjectUpdate]);
+  }, [editValue, project, onProjectUpdate, ensureProject]);
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -140,13 +154,18 @@ export function WorkspaceHeader({
   }, [project, onProjectUpdate]);
 
   const handleDelete = useCallback(async () => {
+    // Draft not yet persisted — just navigate away
+    if (isDraft) {
+      navigate("/");
+      return;
+    }
     try {
       await deleteProject(project.id);
       onProjectUpdate({ ...project, state: "deleted" });
     } catch {
       // Error handled silently — user stays on page
     }
-  }, [project, onProjectUpdate]);
+  }, [project, onProjectUpdate, isDraft, navigate]);
 
   return (
     <div
@@ -199,6 +218,31 @@ export function WorkspaceHeader({
           </button>
         )}
 
+        {/* Project type icon */}
+        {project.project_type && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="shrink-0 flex items-center justify-center rounded-md p-1 text-primary">
+                  {project.project_type === "software" ? (
+                    <Code className="h-4 w-4" />
+                  ) : (
+                    <Package className="h-4 w-4" />
+                  )}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {t(
+                    `projectType.${project.project_type === "software" ? "software" : "nonSoftware"}`,
+                    project.project_type === "software" ? "Software Project" : "Non-Software Project",
+                  )}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+
         {/* State badge */}
         <Badge
           variant={project.state as "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted"}
@@ -206,6 +250,33 @@ export function WorkspaceHeader({
         >
           {STATE_LABELS[project.state] || project.state}
         </Badge>
+
+        {/* Highlight / favorite toggle */}
+        {!isDraft && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => {
+                    onProjectUpdate({ ...project, is_highlighted: !isHighlighted });
+                    favoriteMutation.mutate(project.id);
+                  }}
+                  aria-label={t("landing.projectCard.highlight")}
+                  data-testid="favorite-toggle"
+                >
+                  <Star
+                    className={`h-4 w-4 ${isHighlighted ? "fill-yellow-400 text-yellow-400" : ""}`}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t("landing.projectCard.highlight")}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         <div className="flex-1" />
 
@@ -284,7 +355,7 @@ export function WorkspaceHeader({
 
       <CollaboratorModal
         projectId={project.id}
-        ownerId={project.owner_id}
+        ownerId={project.owner.id}
         open={collaboratorModalOpen}
         onOpenChange={setCollaboratorModalOpen}
         onLeave={handleLeave}

@@ -1,0 +1,27 @@
+import uuid
+
+from django.db import migrations, models
+import django.db.models.deletion
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("gateway_projects", "0005_remove_agent_mode"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="ProjectFavorite",
+            fields=[
+                ("id", models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ("user_id", models.UUIDField()),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("project", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="favorites", to="gateway_projects.project")),
+            ],
+            options={
+                "db_table": "project_favorites",
+                "unique_together": {("project", "user_id")},
+            },
+        ),
+    ]

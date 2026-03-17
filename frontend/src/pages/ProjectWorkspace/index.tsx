@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { fetchProject, restoreProject, type Project } from "@/api/projects";
+import { fetchProject, restoreProject, type Project, type ProjectType } from "@/api/projects";
 import { fetchChatMessages } from "@/api/chat";
+import { LazyProjectProvider } from "@/hooks/use-lazy-project";
+import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
 import { ReviewSection } from "@/components/review/ReviewSection";
 import { useSectionVisibility } from "@/components/workspace/useSectionVisibility";
 import { useProjectSync } from "@/hooks/useProjectSync";
+import { useInvitations } from "@/hooks/use-invitations";
 import { useSelector } from "react-redux";
 import { selectIsOnline, selectConnectionState } from "@/store/websocket-slice";
 import { useWsSend } from "@/app/providers";
@@ -35,6 +38,7 @@ export default function ProjectWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const shareToken = searchParams.get("token");
 
@@ -42,8 +46,11 @@ export default function ProjectWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; status?: number } | null>(null);
 
+  const isNewDraft = id === "new";
+  const draftType = (searchParams.get("type") as ProjectType) || "software";
+
   useEffect(() => {
-    if (!id) return;
+    if (!id || isNewDraft) return;
 
     let cancelled = false;
     setLoading(true);
@@ -69,7 +76,24 @@ export default function ProjectWorkspacePage() {
     return () => {
       cancelled = true;
     };
-  }, [id, shareToken, t]);
+  }, [id, isNewDraft, shareToken, t]);
+
+  // For new drafts, create a synthetic project immediately (no API call)
+  useEffect(() => {
+    if (!isNewDraft) return;
+    setProject({
+      id: "new",
+      title: "",
+      project_type: draftType,
+      state: "open",
+      visibility: "private",
+      owner: { id: user?.id ?? "", display_name: user?.display_name ?? "" },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      collaborators: [],
+    });
+    setLoading(false);
+  }, [isNewDraft, draftType, user]);
 
   const handleProjectUpdate = useCallback((updated: Project) => {
     setProject(updated);
@@ -161,14 +185,20 @@ export default function ProjectWorkspacePage() {
   if (!project) return null;
 
   return (
-    <ProjectWorkspaceContent project={project} onProjectUpdate={handleProjectUpdate} readOnly={!!shareToken || !!project.read_only} shareToken={shareToken} />
+    <LazyProjectProvider
+      projectId={project.id}
+      projectType={project.project_type}
+      onCreated={handleProjectUpdate}
+    >
+      <ProjectWorkspaceContent project={project} onProjectUpdate={handleProjectUpdate} readOnly={!!shareToken || !!project.read_only} shareToken={shareToken} />
+    </LazyProjectProvider>
   );
 }
 
 function ProjectWorkspaceContent({
   project,
   onProjectUpdate,
-  readOnly = false,
+  readOnly: readOnlyProp = false,
   shareToken,
 }: {
   project: Project;
@@ -182,6 +212,25 @@ function ProjectWorkspaceContent({
   const isOnline = useSelector(selectIsOnline);
   const connectionState = useSelector(selectConnectionState);
   const sendWs = useWsSend();
+  const { user } = useAuth();
+
+  // Invitation-aware read-only: starts as prop value, can be lifted on accept
+  const [inviteReadOnlyOverride, setInviteReadOnlyOverride] = useState(false);
+  const readOnly = readOnlyProp && !inviteReadOnlyOverride;
+
+  // Check if there's a pending invitation for this project
+  const { data: invitationData } = useInvitations();
+  const hasPendingInvite = !!user && !!invitationData?.invitations?.find(
+    (inv) => inv.project_id === project.id,
+  );
+
+  const handleInviteAccepted = useCallback(() => {
+    setInviteReadOnlyOverride(true);
+    // Refetch project to get updated access
+    fetchProject(project.id).then((updated) => {
+      onProjectUpdate(updated);
+    }).catch(() => {});
+  }, [project.id, onProjectUpdate]);
 
   // Step management via URL — default step depends on project state
   const [activeStep, setActiveStep] = useState<ProcessStep>(() => {
@@ -203,10 +252,13 @@ function ProjectWorkspaceContent({
     return new Set<ProcessStep>();
   });
 
+  const isDraft = project.id === "new";
+
   // Track whether the project has at least one chat message
   const [hasMessages, setHasMessages] = useState<boolean | null>(null);
 
   useEffect(() => {
+    if (isDraft) { setHasMessages(false); return; }
     let cancelled = false;
     fetchChatMessages(project.id, { limit: 1 }).then((data) => {
       if (!cancelled) {
@@ -216,7 +268,7 @@ function ProjectWorkspaceContent({
       if (!cancelled) setHasMessages(false);
     });
     return () => { cancelled = true; };
-  }, [project.id]);
+  }, [project.id, isDraft]);
 
   // Listen for new chat messages to update hasMessages
   useEffect(() => {
@@ -286,8 +338,9 @@ function ProjectWorkspaceContent({
     }
   }, [activeStep, canAccessStructure, canAccessReview, handleStepChange]);
 
-  // Subscribe to project's WebSocket group when connected
+  // Subscribe to project's WebSocket group when connected (skip for drafts)
   useEffect(() => {
+    if (isDraft) return;
     if (connectionState === "online") {
       sendWs({ type: "subscribe_project", project_id: project.id });
     }
@@ -296,10 +349,10 @@ function ProjectWorkspaceContent({
         sendWs({ type: "unsubscribe_project", project_id: project.id });
       }
     };
-  }, [project.id, connectionState, sendWs]);
+  }, [project.id, isDraft, connectionState, sendWs]);
 
-  // Return-from-idle sync
-  useProjectSync({ projectId: project.id, onProjectUpdate });
+  // Return-from-idle sync (skip for drafts)
+  useProjectSync({ projectId: isDraft ? "" : project.id, onProjectUpdate });
   const projectRef = useRef(project);
   projectRef.current = project;
   const onProjectUpdateRef = useRef(onProjectUpdate);
@@ -365,17 +418,24 @@ function ProjectWorkspaceContent({
         reviewGateMessage={reviewGateMessage}
         shareToken={shareToken}
         completedSteps={completedSteps}
+        isHighlighted={project.is_highlighted}
       />
 
       {/* Banners */}
-      {readOnly && <ReadOnlyBanner />}
-      {!readOnly && !isDeleted && <InvitationBanner projectId={project.id} />}
+      {readOnly && !hasPendingInvite && <ReadOnlyBanner />}
+      {!isDeleted && (
+        <InvitationBanner
+          projectId={project.id}
+          onAccepted={handleInviteAccepted}
+        />
+      )}
       {isDeleted && (
         <div
-          className="shrink-0 flex items-center gap-3 px-6 py-3 bg-red-50 dark:bg-red-950/20 border-b border-red-200 dark:border-red-900/30"
+          className="shrink-0 border-b border-l-4 border-l-red-400 dark:border-l-red-500 bg-red-50 dark:bg-red-950/20 px-6 py-3 flex items-center gap-3"
           data-testid="deleted-banner"
         >
-          <p className="text-sm text-red-700 dark:text-red-400 flex-1">
+          <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+          <p className="text-sm text-red-700 dark:text-red-400">
             {t("workspace.deletedReason", "This project has been deleted. All content is read-only.")}
           </p>
           <Button
@@ -384,7 +444,7 @@ function ProjectWorkspaceContent({
             onClick={handleRestore}
             disabled={isRestoring}
             data-testid="restore-project-button"
-            className="shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
+            className="ml-3 shrink-0 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
           >
             {isRestoring ? (
               <RotateCcw className="mr-1 h-4 w-4 animate-spin" />
@@ -397,10 +457,11 @@ function ProjectWorkspaceContent({
       )}
       {isInReviewReadOnly && (
         <div
-          className="shrink-0 flex items-center gap-3 px-6 py-3 bg-amber-50 dark:bg-amber-950/20 border-b border-amber-200 dark:border-amber-900/30"
+          className="shrink-0 border-b border-l-4 border-l-amber-400 dark:border-l-amber-500 bg-amber-50 dark:bg-amber-950/20 px-6 py-3 flex items-center gap-3"
           data-testid="in-review-banner"
         >
-          <p className="text-sm text-amber-700 dark:text-amber-400 flex-1">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <p className="text-sm text-amber-700 dark:text-amber-400">
             {t("workspace.inReviewReadOnly", "This project is currently under review. Content is read-only until the review is complete.")}
           </p>
           <Button
@@ -408,7 +469,7 @@ function ProjectWorkspaceContent({
             size="sm"
             onClick={() => handleStepChange("review")}
             data-testid="go-to-review-button"
-            className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
+            className="ml-3 shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
           >
             {t("workspace.goToReview", "Go to Review")}
           </Button>
@@ -431,6 +492,7 @@ function ProjectWorkspaceContent({
                 readOnly={effectiveReadOnly}
                 collaborators={project.collaborators}
                 projectTitle={project.title}
+                showHeader={false}
               />
             }
           />

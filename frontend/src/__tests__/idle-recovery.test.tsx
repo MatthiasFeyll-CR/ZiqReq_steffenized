@@ -59,7 +59,7 @@ const fakeProject: Project = {
   project_type: "software",
   state: "open",
   visibility: "private",
-  owner_id: "user-1",
+  owner: { id: "user-1", display_name: "" },
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
   collaborators: [],

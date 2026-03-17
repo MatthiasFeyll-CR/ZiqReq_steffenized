@@ -28,11 +28,14 @@ def _load_css() -> str:
         return f.read()
 
 
-def _render_bullet_list(text: str) -> str:
-    """Render a text block as an HTML bullet list."""
+def _render_bullet_list(text) -> str:
+    """Render a text block or list as an HTML bullet list."""
     if not text:
         return ""
-    lines = [line.strip().lstrip("- ").lstrip("* ") for line in text.strip().split("\n") if line.strip()]
+    if isinstance(text, list):
+        lines = [str(item).strip() for item in text if str(item).strip()]
+    else:
+        lines = [line.strip().lstrip("- ").lstrip("* ") for line in str(text).strip().split("\n") if line.strip()]
     if not lines:
         return ""
     items = "\n".join(f"<li>{html.escape(line)}</li>" for line in lines)
@@ -98,7 +101,7 @@ def _render_milestone(milestone: dict) -> str:
         ptitle = html.escape(pkg.get("title", ""))
         pdesc = html.escape(pkg.get("description", ""))
         deliverables = _render_bullet_list(pkg.get("deliverables", ""))
-        dependencies = html.escape(pkg.get("dependencies", ""))
+        dependencies = _render_bullet_list(pkg.get("dependencies", ""))
         rows += f"""      <tr>
         <td class="col-id">{pid}</td>
         <td>{ptitle}</td>

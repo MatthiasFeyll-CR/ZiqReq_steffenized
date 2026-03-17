@@ -32,13 +32,12 @@ export function OfflineBanner() {
           data-testid="offline-banner"
         >
           <div
-            className="flex flex-col items-center gap-3 bg-amber-50 dark:bg-amber-950 border border-amber-400 dark:border-amber-600 rounded-md p-4 mx-0"
+            className="shrink-0 border-b border-l-4 border-l-amber-400 dark:border-l-amber-500 bg-amber-50 dark:bg-amber-950/20 px-6 py-3 flex items-center gap-3"
             role="alert"
             aria-live="assertive"
           >
-            <div className="flex items-center gap-2">
-              <WifiOff className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-              <p className="text-sm text-foreground">
+              <WifiOff className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <p className="text-sm text-amber-700 dark:text-amber-400">
                 {isIdleDisconnected ? (
                   t("offline.idleDisconnected")
                 ) : (
@@ -52,15 +51,15 @@ export function OfflineBanner() {
               </p>
               {!isIdleDisconnected && (
                 <Button
-                  variant="primary"
+                  variant="outline"
                   size="sm"
                   onClick={reconnect}
                   data-testid="reconnect-button"
+                  className="ml-3 shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
                 >
                   {t("offline.reconnect")}
                 </Button>
               )}
-            </div>
           </div>
         </motion.div>
       )}

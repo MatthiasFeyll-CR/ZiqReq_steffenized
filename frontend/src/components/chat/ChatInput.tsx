@@ -7,6 +7,7 @@ import { MentionDropdown, type MentionItem } from "./MentionDropdown";
 import { ContextWindowIndicator } from "./ContextWindowIndicator";
 import { QuickReplyChips } from "./QuickReplyChips";
 import type { Project } from "@/api/projects";
+import { useLazyProject } from "@/hooks/use-lazy-project";
 
 interface ChatInputProps {
   projectId: string;
@@ -17,6 +18,7 @@ interface ChatInputProps {
 
 export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatInputProps) {
   const { t } = useTranslation();
+  const { ensureProject } = useLazyProject();
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -109,7 +111,8 @@ export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatI
     closeMention();
     setSending(true);
     try {
-      const message = await sendChatMessage(projectId, content);
+      const realId = await ensureProject();
+      const message = await sendChatMessage(realId, content);
       setValue("");
       resetHeight();
       onMessageSent(message);
@@ -119,7 +122,7 @@ export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatI
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [value, sending, disabled, projectId, onMessageSent, resetHeight, closeMention]);
+  }, [value, sending, disabled, ensureProject, onMessageSent, resetHeight, closeMention]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {

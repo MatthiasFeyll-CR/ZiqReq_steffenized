@@ -9,6 +9,7 @@ urlpatterns = [
     path("", views.projects_root),
     path("<str:project_id>/", views.projects_detail),
     path("<str:project_id>/restore", views.restore_project),
+    path("<str:project_id>/favorite", views.toggle_favorite),
     path("<str:project_id>/submit", review_views.submit_project),
     path("<str:project_id>/chat/", include("apps.chat.urls")),
     path("<str:project_id>/context-window", views.context_window),

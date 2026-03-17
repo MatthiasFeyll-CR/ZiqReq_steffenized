@@ -13,6 +13,7 @@ import {
   markCommentsRead,
   type ProjectComment,
 } from "@/api/comments";
+import { useLazyProject } from "@/hooks/use-lazy-project";
 import { CommentItem } from "./CommentItem";
 import { CommentInput } from "./CommentInput";
 import { SystemEventItem } from "./SystemEventItem";
@@ -39,6 +40,7 @@ export function CommentsPanel({
   shareToken,
 }: CommentsPanelProps) {
   const { t } = useTranslation();
+  const { ensureProject, isDraft } = useLazyProject();
   const [comments, setComments] = useState<ProjectComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -57,11 +59,13 @@ export function CommentsPanel({
   }, [projectId, shareToken]);
 
   useEffect(() => {
-    if (open) {
+    if (open && !isDraft) {
       loadComments();
       markCommentsRead(projectId, shareToken).catch(() => {});
+    } else if (open && isDraft) {
+      setLoading(false);
     }
-  }, [open, projectId, shareToken, loadComments]);
+  }, [open, projectId, shareToken, loadComments, isDraft]);
 
   // Scroll to bottom when comments change
   useEffect(() => {
@@ -154,13 +158,14 @@ export function CommentsPanel({
 
   const handleSubmit = useCallback(
     async (content: string) => {
-      await createComment(projectId, {
+      const realId = await ensureProject();
+      await createComment(realId, {
         content,
         parent_id: replyTo,
       }, shareToken);
       setReplyTo(null);
     },
-    [projectId, replyTo, shareToken]
+    [ensureProject, replyTo, shareToken]
   );
 
   const handleCommentUpdated = useCallback((updated: ProjectComment) => {

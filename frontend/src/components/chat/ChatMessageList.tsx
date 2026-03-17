@@ -31,6 +31,12 @@ export function ChatMessageList({ project, appendedMessages = [] }: ChatMessageL
   }, [fetchedMessages, appendedMessages]);
 
   useEffect(() => {
+    // Skip fetching for draft projects that haven't been persisted yet
+    if (project.id === "new") {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     fetchChatMessages(project.id)

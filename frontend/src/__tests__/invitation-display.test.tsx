@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
 import { InvitationCard } from "@/components/landing/InvitationCard";
@@ -95,13 +96,15 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, project, accept/dec
     const qc = createQueryClient();
     render(
       <QueryClientProvider client={qc}>
-        <InvitationCard
-          id={INVITE_ID}
-          projectId={PROJECT_ID}
-          projectTitle="Test Project"
-          inviterName={INVITER_NAME}
-          createdAt="2024-01-01T00:00:00Z"
-        />
+        <MemoryRouter>
+          <InvitationCard
+            id={INVITE_ID}
+            projectId={PROJECT_ID}
+            projectTitle="Test Project"
+            inviterName={INVITER_NAME}
+            createdAt="2024-01-01T00:00:00Z"
+          />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
 
@@ -117,14 +120,16 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, project, accept/dec
     const onAccept = vi.fn();
     render(
       <QueryClientProvider client={qc}>
-        <InvitationCard
-          id={INVITE_ID}
-          projectId={PROJECT_ID}
-          projectTitle="Test Project"
-          inviterName={INVITER_NAME}
-          createdAt="2024-01-01T00:00:00Z"
-          onAccept={onAccept}
-        />
+        <MemoryRouter>
+          <InvitationCard
+            id={INVITE_ID}
+            projectId={PROJECT_ID}
+            projectTitle="Test Project"
+            inviterName={INVITER_NAME}
+            createdAt="2024-01-01T00:00:00Z"
+            onAccept={onAccept}
+          />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
 
@@ -138,14 +143,16 @@ describe("UI-INVITE.01: InvitationCard renders with inviter, project, accept/dec
     const onDecline = vi.fn();
     render(
       <QueryClientProvider client={qc}>
-        <InvitationCard
-          id={INVITE_ID}
-          projectId={PROJECT_ID}
-          projectTitle="Test Project"
-          inviterName={INVITER_NAME}
-          createdAt="2024-01-01T00:00:00Z"
-          onDecline={onDecline}
-        />
+        <MemoryRouter>
+          <InvitationCard
+            id={INVITE_ID}
+            projectId={PROJECT_ID}
+            projectTitle="Test Project"
+            inviterName={INVITER_NAME}
+            createdAt="2024-01-01T00:00:00Z"
+            onDecline={onDecline}
+          />
+        </MemoryRouter>
       </QueryClientProvider>,
     );
 

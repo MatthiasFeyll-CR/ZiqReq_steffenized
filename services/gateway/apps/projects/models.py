@@ -34,6 +34,9 @@ class Project(models.Model):
 
     class Meta:
         db_table = "projects"
+        indexes = [
+            models.Index(fields=["-updated_at"], condition=models.Q(deleted_at__isnull=True), name="idx_projects_explore"),
+        ]
 
     def __str__(self) -> str:
         return self.title or f"Project {self.id}"
@@ -137,6 +140,20 @@ class RequirementsDocumentVersion(models.Model):
 
     def __str__(self) -> str:
         return f"RequirementsDocumentVersion {self.version_number} for project {self.project_id}"
+
+
+class ProjectFavorite(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="favorites")
+    user_id = models.UUIDField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "project_favorites"
+        unique_together = [("project", "user_id")]
+
+    def __str__(self) -> str:
+        return f"Favorite {self.user_id} on {self.project_id}"
 
 
 class UserReaction(models.Model):

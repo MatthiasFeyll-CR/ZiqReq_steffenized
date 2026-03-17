@@ -35,7 +35,7 @@ export function EpicCard({
   onAddChild,
   readOnly,
 }: EpicCardProps) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const {
     attributes,
@@ -62,7 +62,7 @@ export function EpicCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="rounded-md border border-border bg-card"
+      className="rounded-md border border-border bg-card transition-colors hover:bg-muted/40"
       data-testid={`epic-card-${item.id}`}
     >
       {/* Header */}
@@ -70,6 +70,7 @@ export function EpicCard({
         {!readOnly && (
           <button
             className="cursor-grab text-muted-foreground hover:text-foreground"
+            onClick={(e) => e.stopPropagation()}
             {...attributes}
             {...listeners}
             data-testid={`drag-handle-${item.id}`}
@@ -77,30 +78,33 @@ export function EpicCard({
             <GripVertical className="h-4 w-4" />
           </button>
         )}
-        <button
-          className="text-muted-foreground hover:text-foreground"
+        <div
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
           onClick={() => setExpanded((prev) => !prev)}
           data-testid={`toggle-${item.id}`}
         >
-          {expanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{item.title}</p>
-          {!expanded && item.description && (
-            <p className="line-clamp-1 text-xs text-muted-foreground">
-              {item.description}
-            </p>
-          )}
-          {!expanded && item.children.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {item.children.length} user{" "}
-              {item.children.length === 1 ? "story" : "stories"}
-            </p>
-          )}
+          <span className="text-muted-foreground transition-transform duration-200">
+            {expanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground">{item.title}</p>
+              {item.children.length > 0 && (
+                <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {item.children.length} {item.children.length === 1 ? "story" : "stories"}
+                </span>
+              )}
+            </div>
+            {!expanded && item.description && (
+              <p className="line-clamp-1 text-xs text-muted-foreground">
+                {item.description}
+              </p>
+            )}
+          </div>
         </div>
         {!readOnly && (
           <div className="flex shrink-0 gap-1">
@@ -122,43 +126,45 @@ export function EpicCard({
         )}
       </div>
 
-      {/* Expanded content */}
-      {expanded && (
-        <div className="border-t border-border px-3 pb-3 pt-2">
-          {item.description && (
-            <p className="mb-2 text-xs text-muted-foreground line-clamp-2">
-              {item.description}
-            </p>
-          )}
-          <SortableContext
-            items={childIds}
-            strategy={verticalListSortingStrategy}
-          >
-            <div className="flex flex-col gap-2">
-              {item.children.map((child) => (
-                <UserStoryCard
-                  key={child.id}
-                  child={child}
-                  parentId={item.id}
-                  onEdit={onEditChild}
-                  onDelete={onDeleteChild}
-                  readOnly={readOnly}
-                />
-              ))}
-            </div>
-          </SortableContext>
-          {!readOnly && (
-            <button
-              className="mt-2 flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={() => onAddChild(item.id)}
-              data-testid={`add-child-${item.id}`}
+      {/* Expandable content with animation */}
+      <div className="collapsible-grid" data-expanded={expanded}>
+        <div className="collapsible-content">
+          <div className="border-t border-border px-3 pb-3 pt-2">
+            {item.description && (
+              <p className="mb-2 text-xs text-muted-foreground line-clamp-2">
+                {item.description}
+              </p>
+            )}
+            <SortableContext
+              items={childIds}
+              strategy={verticalListSortingStrategy}
             >
-              <Plus className="h-3.5 w-3.5" />
-              Add User Story
-            </button>
-          )}
+              <div className="flex flex-col gap-2">
+                {item.children.map((child) => (
+                  <UserStoryCard
+                    key={child.id}
+                    child={child}
+                    parentId={item.id}
+                    onEdit={onEditChild}
+                    onDelete={onDeleteChild}
+                    readOnly={readOnly}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+            {!readOnly && (
+              <button
+                className="mt-2 flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => onAddChild(item.id)}
+                data-testid={`add-child-${item.id}`}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add User Story
+              </button>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

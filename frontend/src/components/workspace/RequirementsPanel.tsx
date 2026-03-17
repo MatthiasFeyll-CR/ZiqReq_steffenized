@@ -13,8 +13,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
+import { useTranslation } from "react-i18next";
 import { EpicCard } from "./EpicCard";
 import { MilestoneCard } from "./MilestoneCard";
 import {
@@ -37,6 +38,7 @@ import {
   deleteRequirementsChild,
   reorderRequirements,
 } from "@/api/projects";
+import { useLazyProject } from "@/hooks/use-lazy-project";
 
 interface RequirementsPanelProps {
   projectId: string;
@@ -44,6 +46,7 @@ interface RequirementsPanelProps {
   readOnly?: boolean;
   collaborators?: Array<{ user_id: string; display_name: string }>;
   projectTitle?: string;
+  showHeader?: boolean;
 }
 
 export function RequirementsPanel({
@@ -52,16 +55,33 @@ export function RequirementsPanel({
   readOnly,
   collaborators,
   projectTitle,
+  showHeader = true,
 }: RequirementsPanelProps) {
+  const { t } = useTranslation();
+  const { ensureProject, isDraft } = useLazyProject();
   const [draft, setDraft] = useState<RequirementsDraft | null>(null);
   const [loading, setLoading] = useState(true);
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null);
   const [saving, setSaving] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(false);
 
   const structureVersionRef = useRef(0);
 
-  // Fetch requirements on mount
+  // Fetch requirements on mount (skip for draft projects)
   useEffect(() => {
+    if (isDraft) {
+      setDraft({
+        title: null,
+        short_description: null,
+        structure: [],
+        item_locks: {},
+        allow_information_gaps: false,
+        readiness_evaluation: {},
+      });
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     fetchRequirements(projectId)
@@ -132,11 +152,48 @@ export function RequirementsPanel({
               }
             : prev,
         );
+        setAiGenerating(false);
       }
     };
     window.addEventListener("ws:requirements_ready", handler);
     return () => window.removeEventListener("ws:requirements_ready", handler);
   }, [projectId]);
+
+  // Track AI processing state for the generating banner
+  useEffect(() => {
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleProcessing = (e: Event) => {
+      const { project_id, state } = (e as CustomEvent).detail;
+      if (project_id !== projectId) return;
+      if (state === "started") {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        setAiGenerating(true);
+      } else if (state === "failed") {
+        if (fallbackTimer) clearTimeout(fallbackTimer);
+        setAiGenerating(false);
+      } else if (state === "completed") {
+        // Chat response is done but requirements may still arrive.
+        // Set a fallback timeout so the banner doesn't stay forever
+        // if the AI decided not to update requirements this turn.
+        fallbackTimer = setTimeout(() => setAiGenerating(false), 15_000);
+      }
+    };
+    window.addEventListener("ws:ai_processing", handleProcessing);
+    return () => {
+      window.removeEventListener("ws:ai_processing", handleProcessing);
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
+  }, [projectId]);
+
+  // Keep banner in DOM during exit animation
+  useEffect(() => {
+    if (aiGenerating) {
+      setBannerVisible(true);
+    }
+    // When aiGenerating turns false, bannerVisible stays true
+    // until the CSS animation ends (handled by onAnimationEnd)
+  }, [aiGenerating]);
 
   // Title/description inline edit
   const [editingTitle, setEditingTitle] = useState(false);
@@ -150,11 +207,12 @@ export function RequirementsPanel({
     const prev = draft;
     setDraft({ ...draft, title: titleValue });
     try {
-      await patchRequirements(projectId, { title: titleValue });
+      const realId = await ensureProject();
+      await patchRequirements(realId, { title: titleValue });
     } catch {
       setDraft(prev);
     }
-  }, [draft, projectId, titleValue]);
+  }, [draft, ensureProject, titleValue]);
 
   const handleDescSave = useCallback(async () => {
     setEditingDesc(false);
@@ -162,11 +220,12 @@ export function RequirementsPanel({
     const prev = draft;
     setDraft({ ...draft, short_description: descValue });
     try {
-      await patchRequirements(projectId, { short_description: descValue });
+      const realId = await ensureProject();
+      await patchRequirements(realId, { short_description: descValue });
     } catch {
       setDraft(prev);
     }
-  }, [draft, projectId, descValue]);
+  }, [draft, ensureProject, descValue]);
 
   // DnD sensors
   const sensors = useSensors(
@@ -205,8 +264,9 @@ export function RequirementsPanel({
           newStructure.splice(newIndex, 0, moved);
           setDraft({ ...draft, structure: newStructure });
           try {
+            const realId = await ensureProject();
             await reorderRequirements(
-              projectId,
+              realId,
               newStructure.map((s) => s.id),
             );
           } catch {
@@ -270,8 +330,9 @@ export function RequirementsPanel({
 
         setDraft({ ...draft, structure: newStructure });
         try {
+          const realId = await ensureProject();
           await reorderRequirements(
-            projectId,
+            realId,
             newStructure.map((s) => s.id),
           );
         } catch {
@@ -279,7 +340,7 @@ export function RequirementsPanel({
         }
       }
     },
-    [draft, projectId],
+    [draft, ensureProject],
   );
 
   // Editor handlers
@@ -307,12 +368,13 @@ export function RequirementsPanel({
         structure: draft.structure.filter((i) => i.id !== itemId),
       });
       try {
-        await deleteRequirementsItem(projectId, itemId);
+        const realId = await ensureProject();
+        await deleteRequirementsItem(realId, itemId);
       } catch {
         setDraft(prev);
       }
     },
-    [draft, projectId],
+    [draft, ensureProject],
   );
 
   const handleEditChild = useCallback(
@@ -349,12 +411,13 @@ export function RequirementsPanel({
         ),
       });
       try {
-        await deleteRequirementsChild(projectId, parentId, childId);
+        const realId = await ensureProject();
+        await deleteRequirementsChild(realId, parentId, childId);
       } catch {
         setDraft(prev);
       }
     },
-    [draft, projectId],
+    [draft, ensureProject],
   );
 
   const handleAddChild = useCallback(
@@ -369,9 +432,10 @@ export function RequirementsPanel({
       if (!draft || !editorMode) return;
       setSaving(true);
       try {
+        const realId = await ensureProject();
         if (editorMode.kind === "add-parent") {
           const item = await addRequirementsItem(
-            projectId,
+            realId,
             data as { title: string; description?: string; type: "epic" | "milestone" },
           );
           setDraft({
@@ -380,7 +444,7 @@ export function RequirementsPanel({
           });
         } else if (editorMode.kind === "edit-parent") {
           const updated = await patchRequirementsItem(
-            projectId,
+            realId,
             editorMode.itemId,
             data as { title?: string; description?: string },
           );
@@ -392,7 +456,7 @@ export function RequirementsPanel({
           });
         } else if (editorMode.kind === "add-child") {
           const child = await addRequirementsChild(
-            projectId,
+            realId,
             editorMode.parentId,
             data as { title: string; description?: string },
           );
@@ -406,7 +470,7 @@ export function RequirementsPanel({
           });
         } else if (editorMode.kind === "edit-child") {
           const updated = await patchRequirementsChild(
-            projectId,
+            realId,
             editorMode.parentId,
             editorMode.childId,
             data as { title?: string; description?: string },
@@ -432,7 +496,7 @@ export function RequirementsPanel({
         setSaving(false);
       }
     },
-    [draft, editorMode, projectId],
+    [draft, editorMode, ensureProject],
   );
 
   if (loading) {
@@ -465,72 +529,106 @@ export function RequirementsPanel({
       className="flex h-full flex-col overflow-hidden"
       data-testid="requirements-panel"
     >
-      {/* Header section */}
-      <div className="shrink-0 border-b border-border p-4">
-        {editingTitle ? (
-          <input
-            className="w-full rounded border border-border bg-background px-2 py-1 text-lg font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            value={titleValue}
-            onChange={(e) => setTitleValue(e.target.value)}
-            onBlur={handleTitleSave}
-            onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
-            autoFocus
-            data-testid="requirements-title-input"
-          />
-        ) : (
-          <h2
-            className="cursor-pointer text-lg font-semibold text-foreground hover:underline"
-            onClick={() => {
-              if (!readOnly) {
-                setTitleValue(draft.title ?? "");
-                setEditingTitle(true);
-              }
-            }}
-            data-testid="requirements-title"
-          >
-            {draft.title || projectTitle || "Untitled Project"}
-          </h2>
-        )}
-        {editingDesc ? (
-          <textarea
-            className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-            value={descValue}
-            onChange={(e) => setDescValue(e.target.value)}
-            onBlur={handleDescSave}
-            autoFocus
-            data-testid="requirements-desc-input"
-          />
-        ) : (
-          <p
-            className="mt-1 cursor-pointer text-sm text-muted-foreground hover:underline"
-            onClick={() => {
-              if (!readOnly) {
-                setDescValue(draft.short_description ?? "");
-                setEditingDesc(true);
-              }
-            }}
-            data-testid="requirements-description"
-          >
-            {draft.short_description || "Click to add a description..."}
-          </p>
-        )}
-        {collaborators && collaborators.length > 0 && (
-          <div
-            className="mt-2 flex items-center gap-1"
-            data-testid="requirements-contributors"
-          >
-            {collaborators.map((c) => (
-              <span
-                key={c.user_id}
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary"
-                title={c.display_name}
-              >
-                {c.display_name.charAt(0).toUpperCase()}
-              </span>
-            ))}
+      {/* Header section — hidden on the define step */}
+      {showHeader && (
+        <div className="shrink-0 border-b border-border p-4">
+          {editingTitle ? (
+            <input
+              className="w-full rounded border border-border bg-background px-2 py-1 text-lg font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              value={titleValue}
+              onChange={(e) => setTitleValue(e.target.value)}
+              onBlur={handleTitleSave}
+              onKeyDown={(e) => e.key === "Enter" && handleTitleSave()}
+              autoFocus
+              data-testid="requirements-title-input"
+            />
+          ) : (
+            <h2
+              className="cursor-pointer text-lg font-semibold text-foreground hover:underline"
+              onClick={() => {
+                if (!readOnly) {
+                  setTitleValue(draft.title ?? "");
+                  setEditingTitle(true);
+                }
+              }}
+              data-testid="requirements-title"
+            >
+              {draft.title || projectTitle || "Untitled Project"}
+            </h2>
+          )}
+          {editingDesc ? (
+            <textarea
+              className="mt-1 w-full rounded border border-border bg-background px-2 py-1 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              value={descValue}
+              onChange={(e) => setDescValue(e.target.value)}
+              onBlur={handleDescSave}
+              autoFocus
+              data-testid="requirements-desc-input"
+            />
+          ) : (
+            <p
+              className="mt-1 cursor-pointer text-sm text-muted-foreground hover:underline"
+              onClick={() => {
+                if (!readOnly) {
+                  setDescValue(draft.short_description ?? "");
+                  setEditingDesc(true);
+                }
+              }}
+              data-testid="requirements-description"
+            >
+              {draft.short_description || "Click to add a description..."}
+            </p>
+          )}
+          {collaborators && collaborators.length > 0 && (
+            <div
+              className="mt-2 flex items-center gap-1"
+              data-testid="requirements-contributors"
+            >
+              {collaborators.map((c) => (
+                <span
+                  key={c.user_id}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary"
+                  title={c.display_name}
+                >
+                  {c.display_name.charAt(0).toUpperCase()}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI generating banner */}
+      {bannerVisible && (
+        <div
+          className={`shrink-0 flex items-center gap-3 border-b border-primary/20 bg-primary/5 px-4 py-3 overflow-hidden ${
+            aiGenerating ? "animate-banner-in" : "animate-banner-out"
+          }`}
+          role="status"
+          aria-live="polite"
+          data-testid="requirements-generating-banner"
+          onAnimationEnd={() => {
+            if (!aiGenerating) setBannerVisible(false);
+          }}
+        >
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              {t("requirements.generating.title", "Structuring requirements...")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {isSoftware
+                ? t("requirements.generating.subtitleSoftware", "Epics and user stories will appear shortly")
+                : t("requirements.generating.subtitleNonSoftware", "Milestones and work packages will appear shortly")}
+            </p>
           </div>
-        )}
-      </div>
+          <div className="flex gap-1" aria-hidden="true">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: "0ms" }} />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: "300ms" }} />
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: "600ms" }} />
+          </div>
+        </div>
+      )}
 
       {/* Items list */}
       <div className="flex-1 overflow-y-auto p-4">

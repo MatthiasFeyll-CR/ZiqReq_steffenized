@@ -17,6 +17,7 @@
   },
   "nav": {
     "projects": "Projekte",
+    "explore": "Entdecken",
     "reviews": "Bewertungen",
     "admin": "Verwaltung",
     "openMenu": "Menü öffnen",
@@ -51,12 +52,14 @@
       "create": "Erstellen"
     },
     "lists": {
+      "highlighted": "Hervorgehoben",
       "myProjects": "Meine Projekte",
       "collaborating": "Zusammenarbeit",
       "invitations": "Ausstehende Einladungen",
       "trash": "Papierkorb"
     },
     "empty": {
+      "highlighted": "Keine hervorgehobenen Projekte",
       "myProjects": "Erstellen Sie Ihr erstes Projekt",
       "collaborating": "Noch keine Zusammenarbeit",
       "invitations": "Keine ausstehenden Einladungen",
@@ -68,7 +71,8 @@
       "delete": "Löschen",
       "restore": "Wiederherstellen",
       "deletedUndo": "Projekt in den Papierkorb verschoben",
-      "undo": "Rückgängig"
+      "undo": "Rückgängig",
+      "highlight": "Projekt hervorheben"
     },
     "invitations": {
       "from": "Von {{name}}",
@@ -94,6 +98,28 @@
       "clearAll": "Filter zurücksetzen"
     }
   },
+  "explore": {
+    "title": "Projekte entdecken",
+    "subtitle": "Durchsuchen Sie alle Projekte in der Organisation.",
+    "searchPlaceholder": "Projekte nach Titel suchen...",
+    "typePlaceholder": "Projekttyp",
+    "typeAll": "Alle Typen",
+    "tabs": {
+      "all": "Alle",
+      "open": "Offen",
+      "inReview": "In Prüfung",
+      "accepted": "Akzeptiert",
+      "dropped": "Verworfen",
+      "rejected": "Abgelehnt"
+    },
+    "empty": "Keine Projekte gefunden",
+    "emptyFiltered": "Versuchen Sie, Ihre Filter oder Ihren Suchbegriff anzupassen.",
+    "emptyAll": "Es gibt noch keine Projekte in der Organisation.",
+    "unknownOwner": "Unbekannt",
+    "prev": "Zurück",
+    "next": "Weiter",
+    "pageInfo": "Seite {{current}} von {{total}}"
+  },
   "workspace": {
     "notFound": "Projekt nicht gefunden",
     "noAccess": "Sie haben keinen Zugriff auf dieses Projekt",
@@ -109,18 +135,22 @@
     "goToReview": "Zur Überprüfung",
     "restoreProject": "Wiederherstellen",
     "invitationBanner": {
-      "text": "hat Sie zur Zusammenarbeit an diesem Projekt eingeladen"
+      "text": "hat Sie zur Zusammenarbeit an diesem Projekt eingeladen",
+      "accept": "Einladung annehmen",
+      "decline": "Ablehnen"
     }
   },
   "projectsFloat": {
     "title": "Projekte",
     "tabs": {
+      "highlighted": "Hervorgehoben",
       "active": "Aktiv",
       "inReview": "In Prüfung",
       "accepted": "Akzeptiert",
       "closed": "Geschlossen"
     },
     "empty": "Keine {{state}} Projekte",
+    "emptyHighlighted": "Keine hervorgehobenen Projekte",
     "stateLabels": {
       "open": "aktiven",
       "in_review": "in Prüfung befindlichen",
@@ -408,5 +438,22 @@
     "viewDetails": "Details anzeigen",
     "managePreferences": "Um Ihre E-Mail-Benachrichtigungseinstellungen zu verwalten, besuchen Sie Ihre Kontoeinstellungen.",
     "subject": "ZiqReq: {{title}}"
+  },
+  "quickSearch": {
+    "title": "Schnellsuche",
+    "placeholder": "Projekte nach Titel, ID oder Typ suchen...",
+    "hint": "Beginnen Sie zu tippen...",
+    "myProjects": "Meine Projekte",
+    "collaborating": "Mitarbeit",
+    "navigate": "navigieren",
+    "open": "öffnen",
+    "close": "schließen"
+  },
+  "requirements": {
+    "generating": {
+      "title": "Anforderungen werden strukturiert...",
+      "subtitleSoftware": "Epics und User Stories erscheinen in Kürze",
+      "subtitleNonSoftware": "Meilensteine und Arbeitspakete erscheinen in Kürze"
+    }
   }
 }

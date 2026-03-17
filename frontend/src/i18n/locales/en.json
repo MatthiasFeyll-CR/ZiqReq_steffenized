@@ -17,6 +17,7 @@
   },
   "nav": {
     "projects": "Projects",
+    "explore": "Explore",
     "reviews": "Reviews",
     "admin": "Admin",
     "openMenu": "Open menu",
@@ -51,12 +52,14 @@
       "create": "Create"
     },
     "lists": {
+      "highlighted": "Highlighted",
       "myProjects": "My Projects",
       "collaborating": "Collaborating",
       "invitations": "Pending Invitations",
       "trash": "Trash"
     },
     "empty": {
+      "highlighted": "No highlighted projects",
       "myProjects": "Create your first project",
       "collaborating": "No collaborations yet",
       "invitations": "No pending invitations",
@@ -68,7 +71,8 @@
       "delete": "Delete",
       "restore": "Restore",
       "deletedUndo": "Project moved to trash",
-      "undo": "Undo"
+      "undo": "Undo",
+      "highlight": "Highlight project"
     },
     "invitations": {
       "from": "From {{name}}",
@@ -94,6 +98,28 @@
       "clearAll": "Clear filters"
     }
   },
+  "explore": {
+    "title": "Explore Projects",
+    "subtitle": "Discover and browse all projects across the organization.",
+    "searchPlaceholder": "Search projects by title...",
+    "typePlaceholder": "Project Type",
+    "typeAll": "All Types",
+    "tabs": {
+      "all": "All",
+      "open": "Open",
+      "inReview": "In Review",
+      "accepted": "Accepted",
+      "dropped": "Dropped",
+      "rejected": "Rejected"
+    },
+    "empty": "No projects found",
+    "emptyFiltered": "Try adjusting your filters or search term.",
+    "emptyAll": "There are no projects in the organization yet.",
+    "unknownOwner": "Unknown",
+    "prev": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {{current}} of {{total}}"
+  },
   "workspace": {
     "notFound": "Project not found",
     "noAccess": "You don't have access to this project",
@@ -109,18 +135,22 @@
     "goToReview": "Go to Review",
     "restoreProject": "Restore",
     "invitationBanner": {
-      "text": "invited you to collaborate on this project"
+      "text": "invited you to collaborate on this project",
+      "accept": "Accept Invite",
+      "decline": "Decline"
     }
   },
   "projectsFloat": {
     "title": "Projects",
     "tabs": {
+      "highlighted": "Highlighted",
       "active": "Active",
       "inReview": "In Review",
       "accepted": "Accepted",
       "closed": "Closed"
     },
     "empty": "No {{state}} projects",
+    "emptyHighlighted": "No highlighted projects",
     "stateLabels": {
       "open": "active",
       "in_review": "in review",
@@ -408,5 +438,22 @@
     "viewDetails": "View details",
     "managePreferences": "To manage your email notification preferences, visit your account settings.",
     "subject": "ZiqReq: {{title}}"
+  },
+  "quickSearch": {
+    "title": "Quick Search",
+    "placeholder": "Search projects by title, ID, or type...",
+    "hint": "Start typing to search...",
+    "myProjects": "My Projects",
+    "collaborating": "Collaborating",
+    "navigate": "navigate",
+    "open": "open",
+    "close": "close"
+  },
+  "requirements": {
+    "generating": {
+      "title": "Structuring requirements...",
+      "subtitleSoftware": "Epics and user stories will appear shortly",
+      "subtitleNonSoftware": "Milestones and work packages will appear shortly"
+    }
   }
 }

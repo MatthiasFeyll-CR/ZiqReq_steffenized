@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import i18n from "@/i18n/config";
-import { NewProjectModal } from "../NewProjectModal";
+import { HeroSection } from "../HeroSection";
 
 beforeAll(async () => {
   await i18n.changeLanguage("en");
@@ -16,62 +16,33 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-function renderModal(props: { open?: boolean; onOpenChange?: (v: boolean) => void } = {}) {
+function renderHero() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  const onOpenChange = props.onOpenChange ?? vi.fn();
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <NewProjectModal open={props.open ?? true} onOpenChange={onOpenChange} />
+        <HeroSection />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe("T-3.1.01: NewProjectModal shows two type options", () => {
-  it("renders Software and Non-Software cards when open", () => {
-    renderModal();
+describe("T-3.1.01: HeroSection shows two type options", () => {
+  it("renders Software and Non-Software cards", () => {
+    renderHero();
 
-    expect(screen.getByTestId("project-type-software")).toBeInTheDocument();
-    expect(screen.getByTestId("project-type-non_software")).toBeInTheDocument();
+    expect(screen.getByTestId("new-project-software")).toBeInTheDocument();
+    expect(screen.getByTestId("new-project-non_software")).toBeInTheDocument();
     expect(screen.getByText("Software Project")).toBeInTheDocument();
     expect(screen.getByText("Non-Software Project")).toBeInTheDocument();
     expect(screen.getByText("Epics & User Stories")).toBeInTheDocument();
     expect(screen.getByText("Milestones & Work Packages")).toBeInTheDocument();
   });
-
-  it("shows modal title and description", () => {
-    renderModal();
-
-    expect(screen.getByText("Create New Project")).toBeInTheDocument();
-    expect(
-      screen.getByText("Choose the type of project you want to create."),
-    ).toBeInTheDocument();
-  });
 });
 
-describe("T-3.1.02: Create button disabled until selection", () => {
-  it("disables Create button when no type is selected", () => {
-    renderModal();
-
-    const createBtn = screen.getByTestId("create-project-button");
-    expect(createBtn).toBeDisabled();
-  });
-
-  it("enables Create button after selecting a type", async () => {
-    renderModal();
-    const user = userEvent.setup();
-
-    await user.click(screen.getByTestId("project-type-software"));
-
-    const createBtn = screen.getByTestId("create-project-button");
-    expect(createBtn).not.toBeDisabled();
-  });
-});
-
-describe("T-3.1.03: Project created with selected type", () => {
+describe("T-3.1.03: Project created with selected type on single click", () => {
   beforeEach(() => {
     mockNavigate.mockClear();
   });
@@ -92,12 +63,10 @@ describe("T-3.1.03: Project created with selected type", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const onOpenChange = vi.fn();
-    renderModal({ onOpenChange });
+    renderHero();
     const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("project-type-software"));
-    await user.click(screen.getByTestId("create-project-button"));
+    await user.click(screen.getByTestId("new-project-software"));
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/project/new-project-uuid");
@@ -114,7 +83,7 @@ describe("T-3.1.03: Project created with selected type", () => {
     vi.unstubAllGlobals();
   });
 
-  it("sends non_software type when Non-Software card is selected", async () => {
+  it("sends non_software type when Non-Software card is clicked", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () =>
@@ -130,11 +99,10 @@ describe("T-3.1.03: Project created with selected type", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    renderModal();
+    renderHero();
     const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("project-type-non_software"));
-    await user.click(screen.getByTestId("create-project-button"));
+    await user.click(screen.getByTestId("new-project-non_software"));
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(

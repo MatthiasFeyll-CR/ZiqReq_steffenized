@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { useLazyProject } from "@/hooks/use-lazy-project";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -111,6 +112,7 @@ export function CollaboratorModal({
 function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { ensureProject, isDraft } = useLazyProject();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<UserSearchResult[]>([]);
@@ -193,8 +195,10 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
   }, [highlightedIndex]);
 
   const bulkInviteMutation = useMutation({
-    mutationFn: (inviteeIds: string[]) =>
-      sendBulkInvitations(projectId, inviteeIds),
+    mutationFn: async (inviteeIds: string[]) => {
+      const realId = await ensureProject();
+      return sendBulkInvitations(realId, inviteeIds);
+    },
     onSuccess: (data) => {
       const sentCount = data.results.filter((r) => r.status === "pending").length;
       toast.success(t("collaboration.invitationsSent", { count: sentCount }));
@@ -209,7 +213,9 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
     },
   });
 
-  const projectUrl = `${window.location.origin}/project/${projectId}`;
+  const projectUrl = isDraft
+    ? t("collaboration.shareLinkDraft", "Save the project first to get a share link")
+    : `${window.location.origin}/project/${projectId}`;
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -337,29 +343,31 @@ function InviteTab({ projectId, onClose }: { projectId: string; onClose: () => v
       {/* Share link + copy */}
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link className="h-4 w-4 shrink-0" />
-        <span className="truncate select-all">{projectUrl}</span>
-        <TooltipProvider delayDuration={0}>
-          <Tooltip open={copied}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="shrink-0 rounded p-0.5 hover:text-foreground transition-colors"
-                onClick={handleCopyLink}
-                data-testid="copy-link-button"
-                aria-label={t("collaboration.copyLink")}
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {t("collaboration.copied")}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <span className={`truncate ${isDraft ? "" : "select-all"}`}>{projectUrl}</span>
+        {!isDraft && (
+          <TooltipProvider delayDuration={0}>
+            <Tooltip open={copied}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="shrink-0 rounded p-0.5 hover:text-foreground transition-colors"
+                  onClick={handleCopyLink}
+                  data-testid="copy-link-button"
+                  aria-label={t("collaboration.copyLink")}
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t("collaboration.copied")}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <p className="text-sm text-muted-foreground -mt-2">
         {t("collaboration.shareLinkDescription")}
@@ -413,6 +421,7 @@ function CollaboratorsTab({
   const { data, isLoading } = useQuery({
     queryKey: ["collaborators", projectId],
     queryFn: () => fetchCollaborators(projectId),
+    enabled: projectId !== "new",
   });
 
   const removeMutation = useMutation({
@@ -661,7 +670,7 @@ function PendingTab({ projectId, isOwner, onClose }: { projectId: string; isOwne
   const { data, isLoading } = useQuery({
     queryKey: ["invitations", projectId],
     queryFn: () => fetchPendingInvitations(projectId),
-    enabled: isOwner,
+    enabled: isOwner && projectId !== "new",
   });
 
   const revokeMutation = useMutation({

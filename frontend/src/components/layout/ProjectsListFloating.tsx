@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ProjectCardCompact } from "@/components/landing/ProjectCardCompact";
 import { useProjectsByState } from "@/hooks/use-projects-by-state";
+import { useHighlightedProjects } from "@/hooks/use-highlighted-projects";
 import type { ProjectState } from "@/components/landing/ProjectCard";
 
 interface Tab {
@@ -12,6 +14,7 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
+  { value: "highlighted", labelKey: "projectsFloat.tabs.highlighted", state: "highlighted" },
   { value: "active", labelKey: "projectsFloat.tabs.active", state: "open" },
   { value: "in_review", labelKey: "projectsFloat.tabs.inReview", state: "in_review" },
   { value: "accepted", labelKey: "projectsFloat.tabs.accepted", state: "accepted" },
@@ -50,21 +53,66 @@ export function ProjectsListFloating({ onClose }: ProjectsListFloatingProps) {
       role="dialog"
       aria-label={t("projectsFloat.title")}
     >
-      <Tabs defaultValue="active" className="w-full">
+      <Tabs defaultValue="highlighted" className="w-full">
         <TabsList className="w-full">
           {TABS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="flex-1 text-xs">
-              {t(tab.labelKey)}
+              {tab.value === "highlighted" ? (
+                <Star className="h-3.5 w-3.5" />
+              ) : (
+                t(tab.labelKey)
+              )}
             </TabsTrigger>
           ))}
         </TabsList>
 
         {TABS.map((tab) => (
           <TabsContent key={tab.value} value={tab.value}>
-            <TabPanel state={tab.state} onItemClick={onClose} />
+            {tab.value === "highlighted" ? (
+              <HighlightedPanel onItemClick={onClose} />
+            ) : (
+              <TabPanel state={tab.state} onItemClick={onClose} />
+            )}
           </TabsContent>
         ))}
       </Tabs>
+    </div>
+  );
+}
+
+function HighlightedPanel({ onItemClick }: { onItemClick: () => void }) {
+  const { t } = useTranslation();
+  const { data, isLoading } = useHighlightedProjects();
+  const projects = data?.results ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="px-3 py-4 text-center text-sm text-text-secondary">
+        {t("common.loading")}
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div className="px-3 py-4 text-center text-sm text-text-secondary">
+        {t("projectsFloat.emptyHighlighted")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-h-64 overflow-y-auto py-1">
+      {projects.map((project) => (
+        <ProjectCardCompact
+          key={project.id}
+          id={project.id}
+          title={project.title}
+          state={project.state as ProjectState}
+          isHighlighted={true}
+          onClick={onItemClick}
+        />
+      ))}
     </div>
   );
 }
@@ -98,6 +146,7 @@ function TabPanel({ state, onItemClick }: { state: string; onItemClick: () => vo
           id={project.id}
           title={project.title}
           state={project.state as ProjectState}
+          isHighlighted={project.is_highlighted}
           onClick={onItemClick}
         />
       ))}

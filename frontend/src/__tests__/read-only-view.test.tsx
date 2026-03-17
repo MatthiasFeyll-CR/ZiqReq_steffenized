@@ -80,7 +80,7 @@ const MOCK_PROJECT: Project = {
   project_type: "software",
   state: "open",
   visibility: "private",
-  owner_id: "00000000-0000-0000-0000-000000000001",
+  owner: { id: "00000000-0000-0000-0000-000000000001", display_name: "Test User" },
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
   collaborators: [],

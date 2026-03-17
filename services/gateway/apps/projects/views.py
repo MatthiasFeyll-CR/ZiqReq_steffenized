@@ -1,7 +1,9 @@
+import hashlib
 import logging
 import secrets
 import uuid
 
+from django.core.cache import cache
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import status
@@ -12,7 +14,7 @@ from rest_framework.response import Response
 from apps.authentication.models import User
 
 from .authentication import MiddlewareAuthentication
-from .models import ChatContextSummary, ChatMessage, Project, ProjectCollaborator
+from .models import ChatContextSummary, ChatMessage, Project, ProjectCollaborator, ProjectFavorite
 from .serializers import (
     ProjectCreateSerializer,
     ProjectDetailSerializer,
@@ -151,7 +153,28 @@ def _list_projects(request: Request) -> Response:
     page = max(int(request.query_params.get("page", 1)), 1)
     page_size = min(int(request.query_params.get("page_size", DEFAULT_PAGE_SIZE)), MAX_PAGE_SIZE)
 
-    if filter_param == "my_projects":
+    if filter_param == "explore":
+        # Build a cache key from the query params (shared across users for explore)
+        cache_parts = f"explore:{state_param}:{search_param}:{request.query_params.get('project_type', '')}:{page}:{page_size}"
+        cache_key = f"projects:explore:{hashlib.md5(cache_parts.encode()).hexdigest()}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            # Inject per-user highlighted_ids into cached response
+            project_ids = [r["id"] for r in cached["results"]]
+            highlighted_ids = set(
+                str(pid) for pid in ProjectFavorite.objects.filter(
+                    user_id=user.id, project_id__in=project_ids,
+                ).values_list("project_id", flat=True)
+            )
+            for r in cached["results"]:
+                r["is_highlighted"] = r["id"] in highlighted_ids
+            return Response(cached)
+
+        qs = Project.objects.filter(deleted_at__isnull=True)
+        project_type_param = request.query_params.get("project_type")
+        if project_type_param:
+            qs = qs.filter(project_type=project_type_param)
+    elif filter_param == "my_projects":
         qs = Project.objects.filter(owner_id=user.id, deleted_at__isnull=True)
     elif filter_param == "collaborating":
         collab_project_ids = ProjectCollaborator.objects.filter(user_id=user.id).values_list("project_id", flat=True)
@@ -161,6 +184,9 @@ def _list_projects(request: Request) -> Response:
             owner_id=user.id,
             deleted_at__isnull=False,
         )
+    elif filter_param == "highlighted":
+        fav_project_ids = ProjectFavorite.objects.filter(user_id=user.id).values_list("project_id", flat=True)
+        qs = Project.objects.filter(id__in=fav_project_ids, deleted_at__isnull=True)
     else:
         collab_project_ids = ProjectCollaborator.objects.filter(user_id=user.id).values_list("project_id", flat=True)
         qs = Project.objects.filter(
@@ -184,6 +210,13 @@ def _list_projects(request: Request) -> Response:
     users = User.objects.filter(id__in=owner_ids)
     user_map = {u.id: u for u in users}
 
+    project_ids = [project.id for project in projects]
+    highlighted_ids = set(
+        ProjectFavorite.objects.filter(
+            user_id=user.id, project_id__in=project_ids,
+        ).values_list("project_id", flat=True)
+    )
+
     results = []
     for project in projects:
         role = "owner" if project.owner_id == user.id else "collaborator"
@@ -203,20 +236,25 @@ def _list_projects(request: Request) -> Response:
                 "collaborator_count": project.collab_count,
                 "updated_at": project.updated_at.isoformat(),
                 "deleted_at": project.deleted_at.isoformat() if project.deleted_at else None,
+                "is_highlighted": project.id in highlighted_ids,
             }
         )
 
     next_page = page + 1 if offset + page_size < total_count else None
     previous_page = page - 1 if page > 1 else None
 
-    return Response(
-        {
-            "results": results,
-            "count": total_count,
-            "next": next_page,
-            "previous": previous_page,
-        }
-    )
+    response_data = {
+        "results": results,
+        "count": total_count,
+        "next": next_page,
+        "previous": previous_page,
+    }
+
+    # Cache explore results for 30 seconds (shared across users)
+    if filter_param == "explore":
+        cache.set(cache_key, response_data, timeout=30)
+
+    return Response(response_data)
 
 
 def _get_project(request: Request, project_id: str) -> Response:
@@ -250,6 +288,9 @@ def _get_project(request: Request, project_id: str) -> Response:
     detail_serializer = ProjectDetailSerializer(project, context={"user_map": user_map})
     data = detail_serializer.data
     data["read_only"] = not has_write_access
+    data["is_highlighted"] = ProjectFavorite.objects.filter(
+        project_id=project.id, user_id=user.id,
+    ).exists()
 
     return Response(data)
 
@@ -336,6 +377,39 @@ def _delete_project(request: Request, project_id: str) -> Response:
     project.save(update_fields=["deleted_at", "updated_at"])
 
     return Response({"message": "Project moved to trash"})
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def toggle_favorite(request: Request, project_id: str) -> Response:
+    """POST /api/projects/:id/favorite — Toggle highlight/favorite status."""
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    try:
+        uuid.UUID(project_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Project not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Project not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    fav, created = ProjectFavorite.objects.get_or_create(
+        project_id=project_id, user_id=user.id,
+    )
+    if not created:
+        fav.delete()
+
+    return Response({"is_highlighted": created})
 
 
 @api_view(["GET"])

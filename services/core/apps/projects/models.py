@@ -112,6 +112,24 @@ def validate_structure(structure: list, project_type: str) -> None:
                 raise ValidationError("Each child must have an 'id' field.")
 
 
+class ProjectFavorite(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="favorites")
+    user_id = models.UUIDField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "project_favorites"
+        unique_together = [("project", "user_id")]
+        indexes = [
+            models.Index(fields=["user_id"], name="idx_fav_user"),
+            models.Index(fields=["project"], name="idx_fav_project"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Favorite {self.user_id} on {self.project_id}"
+
+
 class RequirementsDocumentDraft(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.OneToOneField(
