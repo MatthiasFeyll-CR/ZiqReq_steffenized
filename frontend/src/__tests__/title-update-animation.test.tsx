@@ -79,7 +79,7 @@ function renderHeader(idea: Project = MOCK_PROJECT) {
           <WorkspaceHeader
               project={idea}
               onProjectUpdate={onProjectUpdate}
-              activeStep="brainstorm"
+              activeStep="define"
               onStepChange={() => {}}
               canAccessStructure={true}
               canAccessReview={false}
@@ -120,7 +120,7 @@ describe("T-2.3.03: Title update animates", () => {
             <WorkspaceHeader
                 project={updatedIdea}
                 onProjectUpdate={onProjectUpdate}
-                activeStep="brainstorm"
+                activeStep="define"
                 onStepChange={() => {}}
                 canAccessStructure={true}
                 canAccessReview={false}

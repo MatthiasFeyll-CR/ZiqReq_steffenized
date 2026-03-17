@@ -9,9 +9,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type ProcessStep = "brainstorm" | "structure" | "review";
+export type ProcessStep = "define" | "structure" | "review";
 
-const STEPS: ProcessStep[] = ["brainstorm", "structure", "review"];
+const STEPS: ProcessStep[] = ["define", "structure", "review"];
 
 interface ProcessStepperProps {
   activeStep: ProcessStep;
@@ -33,9 +33,9 @@ export function ProcessStepper({
   const { t } = useTranslation();
 
   const stepConfig = {
-    brainstorm: {
-      label: t("process.brainstorm", "Define"),
-      description: t("process.brainstormDesc", "Chat with AI to define your project"),
+    define: {
+      label: t("process.define", "Define"),
+      description: t("process.defineDesc", "Chat with AI to define your project"),
     },
     structure: {
       label: t("process.structure", "Structure"),

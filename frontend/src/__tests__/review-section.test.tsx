@@ -121,14 +121,14 @@ beforeEach(() => {
 });
 
 describe("T-1.2.01: Review step not accessible for never-submitted idea", () => {
-  it("does not show review section when state is open (brainstorm step active)", async () => {
+  it("does not show review section when state is open (define step active)", async () => {
     renderWorkspace(makeProject("open"));
 
     await waitFor(() => {
       expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
-    // Should be on brainstorm step, review section not rendered
+    // Should be on define step, review section not rendered
     expect(screen.queryByTestId("review-section")).not.toBeInTheDocument();
   });
 });
@@ -154,14 +154,14 @@ describe("T-1.2.02: Review step accessible after first submission", () => {
     expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 
-  it("shows brainstorm step when state is rejected (user can refine)", async () => {
+  it("shows define step when state is rejected (user can refine)", async () => {
     renderWorkspace(makeProject("rejected"));
 
     await waitFor(() => {
       expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
-    // Rejected auto-navigates to brainstorm, but review step should be accessible
+    // Rejected auto-navigates to define, but review step should be accessible
     expect(screen.getByTestId("workspace-layout")).toBeInTheDocument();
   });
 

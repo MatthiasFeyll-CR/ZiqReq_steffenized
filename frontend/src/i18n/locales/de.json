@@ -233,7 +233,7 @@
     "todoWarningTitle": "Abschnitte enthalten /TODO-Markierungen",
     "todoWarningDescription": "PDF kann nicht erstellt werden: Abschnitte enthalten /TODO-Markierungen. Bitte vervollständigen oder deaktivieren Sie Informationslücken.",
     "rejectedHint": "Ihr Projekt wurde abgelehnt. Sie können es überarbeiten und erneut einreichen.",
-    "backToBrainstorm": "Zurück zum Definieren"
+    "backToDefine": "Zurück zum Definieren"
   },
   "timeline": {
     "title": "Prüfungsverlauf",
@@ -378,8 +378,8 @@
     "readyDescription": "Nach dem Einreichen wird Ihr Projekt zur Bewertung an die Prüfer gesendet."
   },
   "process": {
-    "brainstorm": "Definieren",
-    "brainstormDesc": "Chatten Sie mit KI, um Ihr Projekt zu definieren",
+    "define": "Definieren",
+    "defineDesc": "Chatten Sie mit KI, um Ihr Projekt zu definieren",
     "document": "Strukturieren",
     "documentDesc": "Erstellen und verfeinern Sie Ihr Anforderungsdokument",
     "review": "Überprüfung",
@@ -387,7 +387,7 @@
     "stepper": "Prozessschritte",
     "structure": "Strukturieren",
     "structureDesc": "Anforderungen überprüfen und verfeinern",
-    "brainstormDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihre Anforderungen zu strukturieren.",
+    "defineDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihre Anforderungen zu strukturieren.",
     "structureGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zur Strukturierung übergehen.",
     "documentGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zum Dokument übergehen.",
     "reviewGate": "Reichen Sie Ihr Projekt zuerst zur Überprüfung ein.",

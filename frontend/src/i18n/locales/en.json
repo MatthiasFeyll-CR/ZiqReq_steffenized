@@ -233,7 +233,7 @@
     "todoWarningTitle": "Sections contain /TODO markers",
     "todoWarningDescription": "Cannot generate PDF: sections contain /TODO markers. Please complete or disable information gaps.",
     "rejectedHint": "Your project was rejected. You can refine it and resubmit.",
-    "backToBrainstorm": "Back to Define"
+    "backToDefine": "Back to Define"
   },
   "timeline": {
     "title": "Review timeline",
@@ -378,8 +378,8 @@
     "readyDescription": "Once submitted, your project will be sent to reviewers for evaluation."
   },
   "process": {
-    "brainstorm": "Define",
-    "brainstormDesc": "Chat with AI to define your project",
+    "define": "Define",
+    "defineDesc": "Chat with AI to define your project",
     "document": "Structure",
     "documentDesc": "Generate & refine your requirements document",
     "review": "Review",
@@ -387,7 +387,7 @@
     "stepper": "Process steps",
     "structure": "Structure",
     "structureDesc": "Review & refine your requirements",
-    "brainstormDoneHint": "Ready to formalize your project? Continue to structure your requirements.",
+    "defineDoneHint": "Ready to formalize your project? Continue to structure your requirements.",
     "structureGate": "Send at least one message in the chat before proceeding to structure.",
     "documentGate": "Send at least one message in the chat before proceeding to the document.",
     "reviewGate": "Submit your project for review first.",

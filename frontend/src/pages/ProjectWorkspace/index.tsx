@@ -30,13 +30,13 @@ import { selectIsOnline, selectConnectionState } from "@/store/websocket-slice";
 import { useWsSend } from "@/app/providers";
 import type { ProcessStep } from "@/components/workspace/ProcessStepper";
 
-const VALID_STEPS: ProcessStep[] = ["brainstorm", "structure", "review"];
+const VALID_STEPS: ProcessStep[] = ["define", "structure", "review"];
 
 function parseStep(value: string | null): ProcessStep {
   if (value && VALID_STEPS.includes(value as ProcessStep)) {
     return value as ProcessStep;
   }
-  return "brainstorm";
+  return "define";
 }
 
 export default function ProjectWorkspacePage() {
@@ -196,7 +196,7 @@ function ProjectWorkspaceContent({
     const urlStep = parseStep(searchParams.get("step"));
     // If no explicit step in URL, derive from idea state
     if (!searchParams.get("step")) {
-      if (project.state === "rejected" || project.state === "deleted") return "brainstorm";
+      if (project.state === "rejected" || project.state === "deleted") return "define";
       if (["in_review", "accepted", "dropped"].includes(project.state)) return "review";
     }
     return urlStep;
@@ -234,7 +234,7 @@ function ProjectWorkspaceContent({
       setActiveStep(step);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        if (step === "brainstorm") {
+        if (step === "define") {
           next.delete("step");
         } else {
           next.set("step", step);
@@ -268,19 +268,19 @@ function ProjectWorkspaceContent({
     prevStateRef.current = project.state;
 
     if (project.state === "rejected" || project.state === "deleted") {
-      handleStepChange("brainstorm");
+      handleStepChange("define");
     } else if (["in_review", "accepted", "dropped"].includes(project.state)) {
       handleStepChange("review");
     }
   }, [project.state, handleStepChange]);
 
-  // If landed on a gated step, redirect to brainstorm
+  // If landed on a gated step, redirect to define
   useEffect(() => {
     if (activeStep === "structure" && !canAccessStructure) {
-      handleStepChange("brainstorm");
+      handleStepChange("define");
     } else if (activeStep === "review" && !canAccessReview) {
-      // Redirect to structure if they can access it, otherwise brainstorm
-      handleStepChange(canAccessStructure ? "structure" : "brainstorm");
+      // Redirect to structure if they can access it, otherwise define
+      handleStepChange(canAccessStructure ? "structure" : "define");
     }
   }, [activeStep, canAccessStructure, canAccessReview, handleStepChange]);
 
@@ -426,10 +426,10 @@ function ProjectWorkspaceContent({
       <OfflineBanner />
 
       {/* Step Content */}
-      {activeStep === "brainstorm" && (
+      {activeStep === "define" && (
         <div className="flex-1 min-h-0 flex flex-col">
 
-          {/* Agent mode selector — contextual to brainstorm step */}
+          {/* Agent mode selector — contextual to define step */}
           <div className="shrink-0 flex items-center gap-2 px-6 py-2 border-b border-border/50 bg-surface">
             <span className="text-sm text-muted-foreground">
               {t("workspace.agentMode", "AI Mode")}
@@ -468,7 +468,7 @@ function ProjectWorkspaceContent({
             <div className="shrink-0 border-t border-border bg-surface/80 backdrop-blur-sm px-6 py-3" data-testid="next-step-cta">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-sm text-muted-foreground">
-                  {t("process.brainstormDoneHint", "Ready to formalize your project? Continue to generate your Business Requirements Document.")}
+                  {t("process.defineDoneHint", "Ready to formalize your project? Continue to structure your requirements.")}
                 </p>
                 <Button
                   variant="primary"
@@ -514,10 +514,10 @@ function ProjectWorkspaceContent({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleStepChange("brainstorm")}
-                data-testid="go-back-to-brainstorm"
+                onClick={() => handleStepChange("define")}
+                data-testid="go-back-to-define"
               >
-                {t("review.backToBrainstorm", "Back to Define")}
+                {t("review.backToDefine", "Back to Define")}
               </Button>
             </div>
           )}

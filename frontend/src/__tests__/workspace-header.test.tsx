@@ -97,7 +97,7 @@ function renderHeader(props: Partial<{
               project={props.project ?? MOCK_PROJECT}
               onProjectUpdate={onProjectUpdate}
               readOnly={props.readOnly ?? false}
-              activeStep="brainstorm"
+              activeStep="define"
               onStepChange={onStepChange}
               canAccessStructure={true}
               canAccessReview={false}
@@ -241,7 +241,7 @@ describe("Process stepper in header", () => {
     renderHeader();
 
     expect(screen.getByTestId("process-stepper")).toBeInTheDocument();
-    expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
+    expect(screen.getByTestId("step-define")).toBeInTheDocument();
     expect(screen.getByTestId("step-structure")).toBeInTheDocument();
     expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });

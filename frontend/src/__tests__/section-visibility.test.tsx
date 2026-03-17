@@ -121,7 +121,7 @@ function renderWorkspace(idea: Project, step?: string) {
 }
 
 describe("T-1.2.01: process stepper renders with correct steps", () => {
-  it("shows process stepper with brainstorm step active by default", async () => {
+  it("shows process stepper with define step active by default", async () => {
     renderWorkspace(makeProject("open"));
 
     await waitFor(() => {
@@ -129,7 +129,7 @@ describe("T-1.2.01: process stepper renders with correct steps", () => {
     });
 
     expect(screen.getByTestId("process-stepper")).toBeInTheDocument();
-    expect(screen.getByTestId("step-brainstorm")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByTestId("step-define")).toHaveAttribute("aria-current", "step");
   });
 
   it("shows all three process steps", async () => {
@@ -139,7 +139,7 @@ describe("T-1.2.01: process stepper renders with correct steps", () => {
       expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
+    expect(screen.getByTestId("step-define")).toBeInTheDocument();
     expect(screen.getByTestId("step-structure")).toBeInTheDocument();
     expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });
@@ -196,15 +196,15 @@ describe("T-1.4.02: in_review state — auto-navigated to review step", () => {
   });
 });
 
-describe("T-1.4.03: rejected state — auto-navigated to brainstorm, chat enabled", () => {
-  it("shows brainstorm view when idea is rejected", async () => {
+describe("T-1.4.03: rejected state — auto-navigated to define, chat enabled", () => {
+  it("shows define view when idea is rejected", async () => {
     renderWorkspace(makeProject("rejected"));
 
     await waitFor(() => {
       expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("step-brainstorm")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByTestId("step-define")).toHaveAttribute("aria-current", "step");
     expect(screen.queryByTestId("lock-overlay")).not.toBeInTheDocument();
     expect(screen.getByTestId("chat-input")).toHaveAttribute(
       "data-disabled",
