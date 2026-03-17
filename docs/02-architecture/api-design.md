@@ -125,6 +125,7 @@
         "title": "string",
         "state": "open",
         "visibility": "private",
+        "project_type": "software",
         "role": "owner",
         "owner": { "id": "uuid", "display_name": "string" },
         "collaborator_count": 2,
@@ -457,13 +458,13 @@
   |--------|------|------|
   | 404 | PDF_NOT_FOUND | PDF not yet generated for this version |
 
-#### GET /api/projects/:id/requirements/pdf
-- **Purpose:** Generate and download PDF from current requirements document
+#### GET /api/projects/:id/requirements/pdf/preview
+- **Purpose:** Generate and preview PDF from current requirements document (draft, not persisted)
 - **Auth:** Owner, co-owner, or collaborator
 - **Response (200):** PDF file bytes (Content-Type: application/pdf). Binary PDF data returned directly.
 - **Notes:**
   - PDF generated on-demand via Gateway → PDF Service gRPC call (`GeneratePdf`)
-  - Frontend uses `<object type="application/pdf" data="/api/projects/:id/requirements/pdf">` for preview
+  - Frontend uses `<object type="application/pdf" data="/api/projects/:id/requirements/pdf/preview">` for preview in PDFPreviewPanel
   - Download button creates temporary `<a>` element with blob URL from fetch response
   - PDF not persisted for drafts — only for submitted versions (via POST /submit)
 

@@ -6,7 +6,7 @@
 
 ### FA-1: Project Workspace
 
-- **F-1.1:** Project Page Layout — The project page is a vertically extended viewport with two sections. The top section (fills viewport) contains a two-panel layout with a draggable divider: left panel is the chat interface, right panel is a tabbed context panel with Requirements Panel and Review tabs. The bottom section (below the fold) contains the review workflow, only accessible after the project has been submitted for review at least once.
+- **F-1.1:** Project Page Layout — The project page uses a three-step process flow: Define → Structure → Review. Each step is a separate view accessed via ProcessStepper tabs. Define step shows chat + context. Structure step shows RequirementsPanel (60%) + PDFPreviewPanel (40%) in a 60/40 split layout. Review step shows the review workflow (visible after first submit).
 
 - **F-1.2:** Section Visibility — The review section is hidden/inaccessible until the project is submitted for review at least once. Once submitted, both sections persist on the page regardless of current state.
 

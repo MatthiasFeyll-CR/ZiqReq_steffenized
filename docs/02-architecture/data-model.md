@@ -10,8 +10,8 @@
 | chat_messages | Immutable chat messages (user + AI) | uuid v4 | FK → projects, users | core |
 | ai_reactions | AI reactions on user messages | uuid v4 | FK → chat_messages | core |
 | user_reactions | User reactions on other users' messages | uuid v4 | FK → chat_messages, users | core |
-| requirements_document_drafts | Current working requirements document (one per project) | uuid v4 | FK → projects | core |
-| requirements_document_versions | Immutable requirements snapshots (one per submit) | uuid v4 | FK → projects | core |
+| requirements_document_drafts | Current working requirements document (one per project). Table name: `brd_drafts` (not renamed for migration compatibility). Gateway uses `BrdDraft` backward-compat alias. | uuid v4 | FK → projects | core |
+| requirements_document_versions | Immutable requirements snapshots (one per submit). Table name: `brd_versions`. | uuid v4 | FK → projects | core |
 | review_assignments | Reviewer-to-project assignments | uuid v4 | FK → projects, users | core |
 | review_timeline_entries | Timeline events: comments, state changes, resubmissions | uuid v4 | FK → projects, users, self-referential (replies) | core |
 | collaboration_invitations | Invitations to collaborate | uuid v4 | FK → projects, users (inviter, invitee) | core |
@@ -187,15 +187,15 @@ One per project. Current working state of the requirements document.
 
 ### requirements_document_versions
 
-Immutable snapshots created on each submit/resubmit.
+Immutable snapshots created on each submit/resubmit. **Schema change in M21:** Replaced 6 flat section columns (overview, background, objectives, scope, constraints, success_criteria) with hierarchical structure (title, short_description, structure JSONB).
 
 | Column | Type | Nullable | Default | Constraints | Notes |
 |--------|------|----------|---------|-------------|-------|
 | id | uuid | NO | gen_random_uuid() | PK | |
 | project_id | uuid | NO | — | FK → projects(id) ON DELETE CASCADE | |
 | version_number | integer | NO | — | | Sequential per project |
-| title | text | YES | NULL | | Frozen |
-| short_description | text | YES | NULL | | Frozen |
+| title | text | YES | NULL | | Frozen document title |
+| short_description | text | YES | NULL | | Frozen document short description |
 | structure | jsonb | NO | `[]` | | Frozen hierarchical requirements structure (same format as draft) |
 | pdf_file_path | varchar(500) | YES | NULL | | Path/reference to generated PDF file (see tech-stack.md PDF Generation Service Design) |
 | created_at | timestamptz | NO | now() | | Submission timestamp |

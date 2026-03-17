@@ -22,7 +22,7 @@ ZiqReq uses a **monorepo** — all services, shared definitions, infrastructure 
 | **core** | Django 5 | Own tables in shared PG | `core`, `celery-worker`, `celery-beat` | Domain logic: projects, chat, collaboration, review, admin config |
 | **ai** | Django 5 (lightweight) + AI framework (TBD by AI Engineer) | Own tables in shared PG | `ai` | All AI agents, context management, embedding pipeline |
 | **notification** | Python | — (stateless consumer) | `notification` | Event consumer → email dispatch + notification creation via gateway gRPC |
-| **pdf** | Python + WeasyPrint | — (stateless) | `pdf` | HTML-to-PDF generation |
+| **pdf** | Python + WeasyPrint | — (stateless) | `pdf` | HTML-to-PDF generation. Type-specific rendering: `_render_epic()` (Software projects), `_render_milestone()` (Non-Software projects). |
 
 > **AI service framework:** The AI service's internal framework (Semantic Kernel, LangChain, direct SDK, etc.) is chosen by the AI Engineer in `docs/03-ai/`. The Architect defines the service boundary, database ownership, gRPC interface, and container topology.
 
@@ -267,6 +267,7 @@ ziqreq/
 │   │   │   │   ├── index.tsx            # Main ProjectWorkspace component
 │   │   │   │   ├── WorkspaceHeader.tsx  # Sticky header with inline title editing, agent mode
 │   │   │   │   ├── PanelDivider.tsx     # Draggable divider with localStorage persistence
+│   │   │   │   ├── StructureStepView.tsx  # Structure step (replaces DocumentView) — 60/40 split: RequirementsPanel + PDFPreviewPanel
 │   │   │   │   └── RequirementsSection.tsx  # Two-panel layout (chat + requirements panel/review tabs)
 │   │   │   ├── review-page.tsx
 │   │   │   ├── admin-panel.tsx
@@ -279,7 +280,9 @@ ziqreq/
 │   │   │   │   └── ProjectCard/          # ProjectCard component (used by LandingPage and others)
 │   │   │   ├── chat/                      # ChatPanel, ChatMessage, ChatInput, MentionDropdown, TypingIndicator
 │   │   │   ├── requirements/              # RequirementsPanel, RequirementCard, HierarchyTree, SortableList
+│   │   │   ├── workspace/                 # ProcessStepper, PDFPreviewPanel, WorkspaceHeader, LockOverlay, InvitationBanner, ReadOnlyBanner
 │   │   │   ├── requirements_document/     # DocumentEditor, SectionEditor, ReadinessIndicator, PdfPreview
+│   │   │   ├── brd/                       # ORPHAN: ReviewTab.tsx, BRDSectionEditor.tsx — test-only imports (old BRD flow, replaced by StructureStepView)
 │   │   │   ├── review/                    # ReviewTimeline, TimelineEntry, ReviewActions
 │   │   │   ├── collaboration/             # InviteDialog, CollaboratorList, PresenceIndicators
 │   │   │   ├── notification/              # NotificationList, NotificationItem
@@ -598,7 +601,8 @@ ziqreq/
 │       │   ├── renderer.py               # HTML-to-PDF rendering
 │       │   └── builder.py                # Requirements document HTML assembly from sections
 │       ├── templates/                    # HTML templates for PDF layout
-│       │   └── requirements_document.html  # Requirements document PDF template
+│       │   ├── requirements_document.html  # Requirements document PDF template
+│       │   └── requirements_styles.css   # PDF styling (Gotham font, Commerz Real branding)
 │       ├── grpc_server/                  # gRPC service
 │       │   ├── servicers/
 │       │   │   └── pdf_servicer.py
@@ -940,6 +944,6 @@ services:
 4. **Celery workers share core codebase** — standard pattern. Separate containers, same code and database.
 5. **Feature-based frontend organization** — `features/` for business logic (hooks, API calls), `components/` for UI. Clear separation of concerns.
 6. **Service layer in Django apps** — all business logic in `services.py`, not in models or views. Makes logic testable and reusable across gRPC and REST interfaces.
-7. **Proto files in shared directory** — single source of truth for gRPC contracts. Compiled stubs generated into each service.
+7. **Proto files in shared directory** — single source of truth for gRPC contracts. Compiled stubs generated into `proto/` directory (same location as .proto files, not a separate generated/ subdirectory).
 8. **Ruff over Black + flake8 + isort** — single tool replaces three. Faster, simpler configuration, actively maintained.
 9. **AI service internal structure deferred to AI Engineer** — the Architect defines the service boundary (gRPC interface, database ownership, container config, message broker integration). The AI Engineer defines the internal organization (agent structure, framework, processing pipeline) in `docs/03-ai/`.

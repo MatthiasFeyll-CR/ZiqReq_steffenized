@@ -128,7 +128,7 @@ Detailed layout:
 |  |  [Search by title...        ]  [State v]  [Ownership v]          | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
-|  MY PROJECTS                                                 (N items)  |
+|  My Projects                                                 (N items)  |
 |  +-------------------------------------------------------------------+ |
 |  |  * Project Title                  [SW]     Open    2h ago    ... | |
 |  +-------------------------------------------------------------------+ |
@@ -139,17 +139,17 @@ Detailed layout:
 |  |  * Third Project                  [SW]  Accepted    3d ago    ... | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
-|  COLLABORATING PROJECTS                                      (N items)  |
+|  Collaborating                                               (N items)  |
 |  +-------------------------------------------------------------------+ |
 |  |  * Shared Project (by Anna M.)    [SW]     Open    5h ago    ... | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
-|  INVITATIONS                                                 (N items)  |
+|  Pending Invitations                                         (N items)  |
 |  +-------------------------------------------------------------------+ |
 |  |  "Process Optimization" from Max S.       [Accept]  [Decline]     | |
 |  +-------------------------------------------------------------------+ |
 |                                                                         |
-|  TRASH                                                       (N items)  |
+|  Trash                                                       (N items)  |
 |  +-------------------------------------------------------------------+ |
 |  |  Deleted Project                 Deletes in 28d    [Restore]      | |
 |  +-------------------------------------------------------------------+ |
@@ -251,8 +251,8 @@ Triggered by clicking "+ New Project" button in Hero Section.
 Each section shows a contextual empty state with a relevant Lucide icon and message:
 
 - My Projects (empty): Lucide `FolderOpen` icon + "Create your first project" text
-- Collaborating Projects (empty): Lucide `Users` icon + contextual message
-- Invitations (empty): Lucide `Mail` icon + contextual message
+- Collaborating (empty): Lucide `Users` icon + contextual message
+- Pending Invitations (empty): Lucide `Mail` icon + contextual message
 - Trash (empty): Lucide `Trash2` icon + "Trash is empty" muted text
 - No results (filtered): Lucide `SearchX` icon + "No projects match your filters" + clear filters link
 
