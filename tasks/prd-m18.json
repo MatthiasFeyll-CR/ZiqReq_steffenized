@@ -179,7 +179,7 @@
         "Docker build succeeds"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/01-requirements/features.md § FA-1 Project Workspace — process step terminology\nAI: docs/03-ai/system-prompts.md § Facilitator — full system prompt with 'idea' and 'brainstorming' language to update\nAI: docs/03-ai/system-prompts.md § Summarizing AI — system prompt with 'idea' language to update\nTesting: No specific test matrix entries for this scaffolding story — implement-first workflow\nFiles: frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, services/ai/agents/facilitator/prompt.py, services/ai/agents/summarizing_ai/prompt.py, services/ai/processing/pipeline.py, services/notification/templates/, services/gateway/apps/notifications/\nGotchas: The word 'idea' appears in many natural language contexts ('good idea', 'no idea', 'ideally') — do NOT replace these. Only replace user-facing product terminology. The AI prompts have significant 'brainstorming' and 'idea refinement' language that needs careful rewording to 'requirements structuring' and 'project definition' while preserving the prompt's functionality and tone. German translations must be grammatically correct (Idee -> Projekt, but check plurals and cases). Translation keys themselves may need renaming (e.g., 'landing.hero.ideaPlaceholder' -> 'landing.hero.projectPlaceholder') but be careful not to break existing references before the key is renamed everywhere. Process steps appear in multiple places: stepper component, translations, AI prompts — must be consistent everywhere.",
       "context": {
