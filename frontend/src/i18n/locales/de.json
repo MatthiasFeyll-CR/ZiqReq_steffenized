@@ -224,7 +224,9 @@
     "generate": "Erstellen",
     "editDocument": "Dokument bearbeiten",
     "todoWarningTitle": "Abschnitte enthalten /TODO-Markierungen",
-    "todoWarningDescription": "PDF kann nicht erstellt werden: Abschnitte enthalten /TODO-Markierungen. Bitte vervollständigen oder deaktivieren Sie Informationslücken."
+    "todoWarningDescription": "PDF kann nicht erstellt werden: Abschnitte enthalten /TODO-Markierungen. Bitte vervollständigen oder deaktivieren Sie Informationslücken.",
+    "rejectedHint": "Ihr Projekt wurde abgelehnt. Sie können es überarbeiten und erneut einreichen.",
+    "backToBrainstorm": "Zurück zum Definieren"
   },
   "timeline": {
     "title": "Prüfungsverlauf",
@@ -351,7 +353,22 @@
     "messageLabel": "Nachricht für Prüfer (optional)",
     "messagePlaceholder": "Nachricht für die Prüfer hinzufügen...",
     "reviewerLabel": "Prüfer zuweisen (optional)",
-    "button": "Zur Prüfung einreichen"
+    "button": "Zur Prüfung einreichen",
+    "readyDescription": "Nach dem Einreichen wird Ihr Projekt zur Bewertung an die Prüfer gesendet."
+  },
+  "process": {
+    "brainstorm": "Definieren",
+    "brainstormDesc": "Chatten Sie mit KI, um Ihr Projekt zu definieren",
+    "document": "Strukturieren",
+    "documentDesc": "Erstellen und verfeinern Sie Ihr Anforderungsdokument",
+    "review": "Überprüfung",
+    "reviewDesc": "Zur Genehmigung einreichen",
+    "stepper": "Prozessschritte",
+    "brainstormDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihr Business Requirements Document zu erstellen.",
+    "documentGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zum Dokument übergehen.",
+    "reviewGate": "Reichen Sie Ihr Projekt zuerst zur Überprüfung ein.",
+    "continueToDocument": "Weiter zur Strukturierung",
+    "documentGuide": "Überprüfen und verfeinern Sie jeden Abschnitt unten, dann reichen Sie zur Überprüfung ein, wenn Sie bereit sind."
   },
   "email": {
     "greeting": "Hallo {{name}},",

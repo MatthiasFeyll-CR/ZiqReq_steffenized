@@ -442,7 +442,7 @@ export function DocumentView({
                   {t("submit.readyTitle", "Ready to submit?")}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {t("submit.readyDescription", "Once submitted, your idea will be sent to reviewers for evaluation.")}
+                  {t("submit.readyDescription", "Once submitted, your project will be sent to reviewers for evaluation.")}
                 </p>
               </div>
             </div>

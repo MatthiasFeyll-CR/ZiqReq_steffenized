@@ -224,7 +224,9 @@
     "generate": "Generate",
     "editDocument": "Edit Document",
     "todoWarningTitle": "Sections contain /TODO markers",
-    "todoWarningDescription": "Cannot generate PDF: sections contain /TODO markers. Please complete or disable information gaps."
+    "todoWarningDescription": "Cannot generate PDF: sections contain /TODO markers. Please complete or disable information gaps.",
+    "rejectedHint": "Your project was rejected. You can refine it and resubmit.",
+    "backToBrainstorm": "Back to Define"
   },
   "timeline": {
     "title": "Review timeline",
@@ -351,7 +353,22 @@
     "messageLabel": "Message for reviewers (optional)",
     "messagePlaceholder": "Add a message for the reviewers...",
     "reviewerLabel": "Assign reviewers (optional)",
-    "button": "Submit for Review"
+    "button": "Submit for Review",
+    "readyDescription": "Once submitted, your project will be sent to reviewers for evaluation."
+  },
+  "process": {
+    "brainstorm": "Define",
+    "brainstormDesc": "Chat with AI to define your project",
+    "document": "Structure",
+    "documentDesc": "Generate & refine your requirements document",
+    "review": "Review",
+    "reviewDesc": "Submit for approval",
+    "stepper": "Process steps",
+    "brainstormDoneHint": "Ready to formalize your project? Continue to generate your Business Requirements Document.",
+    "documentGate": "Send at least one message in the chat before proceeding to the document.",
+    "reviewGate": "Submit your project for review first.",
+    "continueToDocument": "Continue to Structure",
+    "documentGuide": "Review and refine each section below, then submit for review when you're ready."
   },
   "email": {
     "greeting": "Hi {{name}},",

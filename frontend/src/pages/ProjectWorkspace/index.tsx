@@ -253,11 +253,11 @@ function ProjectWorkspaceContent({
 
   const documentGateMessage = t(
     "process.documentGate",
-    "Send at least one message in the brainstorming chat before proceeding to the document.",
+    "Send at least one message in the chat before proceeding to the document.",
   );
   const reviewGateMessage = t(
     "process.reviewGate",
-    "Submit your idea for review first.",
+    "Submit your project for review first.",
   );
 
   // Auto-navigate on state transitions
@@ -459,7 +459,7 @@ function ProjectWorkspaceContent({
             <div className="shrink-0 border-t border-border bg-surface/80 backdrop-blur-sm px-6 py-3" data-testid="next-step-cta">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-sm text-muted-foreground">
-                  {t("process.brainstormDoneHint", "Ready to formalize your idea? Continue to generate your Business Requirements Document.")}
+                  {t("process.brainstormDoneHint", "Ready to formalize your project? Continue to generate your Business Requirements Document.")}
                 </p>
                 <Button
                   variant="primary"
@@ -509,7 +509,7 @@ function ProjectWorkspaceContent({
           {project.state === "rejected" && (
             <div className="px-6 py-4 mt-4 rounded-lg border-t border-border bg-orange-50 dark:bg-orange-950/20">
               <p className="text-sm text-orange-700 dark:text-orange-400 mb-2">
-                {t("review.rejectedHint", "Your idea was rejected. You can go back to brainstorming to refine it.")}
+                {t("review.rejectedHint", "Your project was rejected. You can refine it and resubmit.")}
               </p>
               <Button
                 variant="outline"
@@ -517,7 +517,7 @@ function ProjectWorkspaceContent({
                 onClick={() => handleStepChange("brainstorm")}
                 data-testid="go-back-to-brainstorm"
               >
-                {t("review.backToBrainstorm", "Back to Brainstorm")}
+                {t("review.backToBrainstorm", "Back to Define")}
               </Button>
             </div>
           )}

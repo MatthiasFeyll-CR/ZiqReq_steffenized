@@ -79,7 +79,7 @@ export function ChatMessageList({ project, appendedMessages = [] }: ChatMessageL
       <div className="flex-1 flex items-center justify-center" data-testid="chat-empty-state">
         <EmptyState
           icon={Lightbulb}
-          message={t("chat.emptyState", "Start brainstorming...")}
+          message={t("chat.emptyState", "Start defining your requirements...")}
         />
       </div>
     );
