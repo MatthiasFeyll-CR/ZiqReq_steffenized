@@ -83,7 +83,7 @@
         "Ruff check passes (ruff check services/)"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § REST Endpoints — all /api/ideas/* endpoints become /api/projects/*\nArchitecture: docs/02-architecture/project-structure.md § Gateway Service — URL routing structure\nTesting: No specific test matrix entries for this scaffolding story — implement-first workflow\nFiles: services/gateway/apps/projects/urls.py (was ideas/urls.py), services/gateway/apps/projects/views.py, services/gateway/apps/chat/urls.py, services/gateway/apps/chat/views.py, services/gateway/apps/brd/urls.py, services/gateway/apps/brd/views.py, services/gateway/apps/review/urls.py, services/gateway/apps/review/views.py, services/gateway/apps/collaboration/urls.py, services/gateway/apps/collaboration/views.py, services/gateway/apps/comments/urls.py, services/gateway/apps/comments/views.py, services/gateway/apps/websocket/routing.py, services/gateway/apps/projects/tests/\nGotchas: Django URL patterns must match exactly — forgotten renames will cause 404s. View function parameter names must match URL pattern parameter names. Serializers may have 'idea' field names that need renaming but be careful not to break the JSON schema that frontend expects. Test files mock URL paths — all need updates. WebSocket consumers may have URL routing that references 'ideas' in the path pattern.",
       "context": {
