@@ -18,7 +18,7 @@ import { WorkspaceLayout } from "@/components/workspace/WorkspaceLayout";
 import { RequirementsPanel } from "@/components/workspace/RequirementsPanel";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/workspace/ChatPanel";
-import { DocumentView } from "@/components/workspace/DocumentView";
+import { StructureStepView } from "./StructureStepView";
 import { OfflineBanner } from "@/components/common/OfflineBanner";
 import { InvitationBanner } from "@/components/workspace/InvitationBanner";
 import { ReadOnlyBanner } from "@/components/workspace/ReadOnlyBanner";
@@ -30,13 +30,13 @@ import { selectIsOnline, selectConnectionState } from "@/store/websocket-slice";
 import { useWsSend } from "@/app/providers";
 import type { ProcessStep } from "@/components/workspace/ProcessStepper";
 
-const VALID_STEPS: ProcessStep[] = ["brainstorm", "document", "review"];
+const VALID_STEPS: ProcessStep[] = ["define", "structure", "review"];
 
 function parseStep(value: string | null): ProcessStep {
   if (value && VALID_STEPS.includes(value as ProcessStep)) {
     return value as ProcessStep;
   }
-  return "brainstorm";
+  return "define";
 }
 
 export default function ProjectWorkspacePage() {
@@ -153,9 +153,9 @@ export default function ProjectWorkspacePage() {
         <AlertTriangle className="h-12 w-12 text-destructive" />
         <h2 className="text-lg font-semibold text-foreground">
           {is404
-            ? t("workspace.notFound", "Idea not found")
+            ? t("workspace.notFound", "Project not found")
             : is403
-              ? t("workspace.noAccess", "You don't have access to this idea")
+              ? t("workspace.noAccess", "You don't have access to this project")
               : t("common.error")}
         </h2>
         <p className="text-sm text-muted-foreground">{error.message}</p>
@@ -191,18 +191,18 @@ function ProjectWorkspaceContent({
   const connectionState = useSelector(selectConnectionState);
   const sendWs = useWsSend();
 
-  // Step management via URL — default step depends on idea state
+  // Step management via URL — default step depends on project state
   const [activeStep, setActiveStep] = useState<ProcessStep>(() => {
     const urlStep = parseStep(searchParams.get("step"));
-    // If no explicit step in URL, derive from idea state
+    // If no explicit step in URL, derive from project state
     if (!searchParams.get("step")) {
-      if (project.state === "rejected" || project.state === "deleted") return "brainstorm";
+      if (project.state === "rejected" || project.state === "deleted") return "define";
       if (["in_review", "accepted", "dropped"].includes(project.state)) return "review";
     }
     return urlStep;
   });
 
-  // Track whether the idea has at least one chat message
+  // Track whether the project has at least one chat message
   const [hasMessages, setHasMessages] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -234,7 +234,7 @@ function ProjectWorkspaceContent({
       setActiveStep(step);
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        if (step === "brainstorm") {
+        if (step === "define") {
           next.delete("step");
         } else {
           next.set("step", step);
@@ -249,12 +249,12 @@ function ProjectWorkspaceContent({
   const hasBeenSubmitted = project.state !== "open" && project.state !== "deleted";
 
   // Access gates
-  const canAccessDocument = hasMessages === true;
+  const canAccessStructure = hasMessages === true;
   const canAccessReview = hasBeenSubmitted;
 
-  const documentGateMessage = t(
-    "process.documentGate",
-    "Send at least one message in the chat before proceeding to the document.",
+  const structureGateMessage = t(
+    "process.structureGate",
+    "Send at least one message in the chat before proceeding to structure.",
   );
   const reviewGateMessage = t(
     "process.reviewGate",
@@ -268,23 +268,23 @@ function ProjectWorkspaceContent({
     prevStateRef.current = project.state;
 
     if (project.state === "rejected" || project.state === "deleted") {
-      handleStepChange("brainstorm");
+      handleStepChange("define");
     } else if (["in_review", "accepted", "dropped"].includes(project.state)) {
       handleStepChange("review");
     }
   }, [project.state, handleStepChange]);
 
-  // If landed on a gated step, redirect to brainstorm
+  // If landed on a gated step, redirect to define
   useEffect(() => {
-    if (activeStep === "document" && !canAccessDocument) {
-      handleStepChange("brainstorm");
+    if (activeStep === "structure" && !canAccessStructure) {
+      handleStepChange("define");
     } else if (activeStep === "review" && !canAccessReview) {
-      // Redirect to document if they can access it, otherwise brainstorm
-      handleStepChange(canAccessDocument ? "document" : "brainstorm");
+      // Redirect to structure if they can access it, otherwise define
+      handleStepChange(canAccessStructure ? "structure" : "define");
     }
-  }, [activeStep, canAccessDocument, canAccessReview, handleStepChange]);
+  }, [activeStep, canAccessStructure, canAccessReview, handleStepChange]);
 
-  // Subscribe to idea's WebSocket group when connected
+  // Subscribe to project's WebSocket group when connected
   useEffect(() => {
     if (connectionState === "online") {
       sendWs({ type: "subscribe_project", project_id: project.id });
@@ -336,13 +336,13 @@ function ProjectWorkspaceContent({
 
   const effectiveChatLocked = chatLocked || !isOnline || readOnly || isDeleted || isInReviewReadOnly;
   const effectiveLockReason = readOnly
-    ? "Viewing shared idea — chat is read-only"
+    ? "Viewing shared project — chat is read-only"
     : !isOnline
       ? "You are currently offline. Chat is disabled."
       : isDeleted
-        ? "This idea has been deleted. All sections are read-only."
+        ? "This project has been deleted. All sections are read-only."
         : isInReviewReadOnly
-          ? "This idea is currently under review. Content is read-only."
+          ? "This project is currently under review. Content is read-only."
           : lockReason;
   const effectiveReadOnly = allReadOnly || readOnly || isDeleted || isInReviewReadOnly;
 
@@ -369,9 +369,9 @@ function ProjectWorkspaceContent({
         readOnly={effectiveReadOnly}
         activeStep={activeStep}
         onStepChange={handleStepChange}
-        canAccessDocument={canAccessDocument}
+        canAccessStructure={canAccessStructure}
         canAccessReview={canAccessReview}
-        documentGateMessage={documentGateMessage}
+        structureGateMessage={structureGateMessage}
         reviewGateMessage={reviewGateMessage}
         shareToken={shareToken}
       />
@@ -385,7 +385,7 @@ function ProjectWorkspaceContent({
           data-testid="deleted-banner"
         >
           <p className="text-sm text-red-700 dark:text-red-400 flex-1">
-            {t("workspace.deletedReason", "This idea has been deleted. All content is read-only.")}
+            {t("workspace.deletedReason", "This project has been deleted. All content is read-only.")}
           </p>
           <Button
             variant="outline"
@@ -410,7 +410,7 @@ function ProjectWorkspaceContent({
           data-testid="in-review-banner"
         >
           <p className="text-sm text-amber-700 dark:text-amber-400 flex-1">
-            {t("workspace.inReviewReadOnly", "This idea is currently under review. Content is read-only until the review is complete.")}
+            {t("workspace.inReviewReadOnly", "This project is currently under review. Content is read-only until the review is complete.")}
           </p>
           <Button
             variant="outline"
@@ -426,10 +426,10 @@ function ProjectWorkspaceContent({
       <OfflineBanner />
 
       {/* Step Content */}
-      {activeStep === "brainstorm" && (
+      {activeStep === "define" && (
         <div className="flex-1 min-h-0 flex flex-col">
 
-          {/* Agent mode selector — contextual to brainstorm step */}
+          {/* Agent mode selector — contextual to define step */}
           <div className="shrink-0 flex items-center gap-2 px-6 py-2 border-b border-border/50 bg-surface">
             <span className="text-sm text-muted-foreground">
               {t("workspace.agentMode", "AI Mode")}
@@ -463,21 +463,21 @@ function ProjectWorkspaceContent({
             }
           />
 
-          {/* Next step CTA — shown when user has chat messages and idea is still open */}
+          {/* Next step CTA — shown when user has chat messages and project is still open */}
           {hasMessages && !effectiveReadOnly && !isDeleted && !isInReviewReadOnly && (
             <div className="shrink-0 border-t border-border bg-surface/80 backdrop-blur-sm px-6 py-3" data-testid="next-step-cta">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-sm text-muted-foreground">
-                  {t("process.brainstormDoneHint", "Ready to formalize your project? Continue to generate your Business Requirements Document.")}
+                  {t("process.defineDoneHint", "Ready to formalize your project? Continue to structure your requirements.")}
                 </p>
                 <Button
                   variant="primary"
                   size="sm"
-                  onClick={() => handleStepChange("document")}
+                  onClick={() => handleStepChange("structure")}
                   className="shrink-0 gap-1.5"
-                  data-testid="continue-to-document"
+                  data-testid="continue-to-structure"
                 >
-                  {t("process.continueToDocument", "Continue to Document")}
+                  {t("process.continueToStructure", "Continue to Structure")}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -486,30 +486,21 @@ function ProjectWorkspaceContent({
         </div>
       )}
 
-      {activeStep === "document" && (
-        <div className="flex-1 min-h-0 flex flex-col">
-
-          {/* Step guidance */}
-          <div className="shrink-0 px-6 pt-4 pb-2">
-            <p className="text-sm text-muted-foreground">
-              {t("process.documentGuide", "Review and refine each section below, then submit for review when you're ready.")}
-            </p>
-          </div>
-
-          <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
-            <DocumentView
-              projectId={project.id}
-              projectState={project.state}
-              disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
-              onStepChange={handleStepChange}
-              onSubmitted={() => {
-                fetchProject(project.id).then((updated) => {
-                  onProjectUpdate(updated);
-                }).catch(() => {});
-              }}
-            />
-          </div>
-        </div>
+      {activeStep === "structure" && (
+        <StructureStepView
+          projectId={project.id}
+          projectType={project.project_type}
+          projectState={project.state}
+          disabled={!isOnline || readOnly || isDeleted || isInReviewReadOnly}
+          readOnly={effectiveReadOnly}
+          collaborators={project.collaborators}
+          onStepChange={handleStepChange}
+          onSubmitted={() => {
+            fetchProject(project.id).then((updated) => {
+              onProjectUpdate(updated);
+            }).catch(() => {});
+          }}
+        />
       )}
 
       {activeStep === "review" && (
@@ -523,10 +514,10 @@ function ProjectWorkspaceContent({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleStepChange("brainstorm")}
-                data-testid="go-back-to-brainstorm"
+                onClick={() => handleStepChange("define")}
+                data-testid="go-back-to-define"
               >
-                {t("review.backToBrainstorm", "Back to Define")}
+                {t("review.backToDefine", "Back to Define")}
               </Button>
             </div>
           )}

@@ -16,9 +16,6 @@ vi.mock("@/components/workspace/WorkspaceHeader", () => ({
     <div data-testid="workspace-header">{project.title}</div>
   ),
 }));
-vi.mock("@/components/workspace/DocumentView", () => ({
-  DocumentView: () => <div data-testid="document-view">DocumentView</div>,
-}));
 vi.mock("@/components/workspace/ChatPanel", () => ({
   ChatPanel: () => <div data-testid="chat-panel">ChatPanel</div>,
 }));

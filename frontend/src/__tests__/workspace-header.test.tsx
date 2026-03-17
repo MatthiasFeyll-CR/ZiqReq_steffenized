@@ -97,9 +97,9 @@ function renderHeader(props: Partial<{
               project={props.project ?? MOCK_PROJECT}
               onProjectUpdate={onProjectUpdate}
               readOnly={props.readOnly ?? false}
-              activeStep="brainstorm"
+              activeStep="define"
               onStepChange={onStepChange}
-              canAccessDocument={true}
+              canAccessStructure={true}
               canAccessReview={false}
             />
           </MemoryRouter>
@@ -241,8 +241,8 @@ describe("Process stepper in header", () => {
     renderHeader();
 
     expect(screen.getByTestId("process-stepper")).toBeInTheDocument();
-    expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
-    expect(screen.getByTestId("step-document")).toBeInTheDocument();
+    expect(screen.getByTestId("step-define")).toBeInTheDocument();
+    expect(screen.getByTestId("step-structure")).toBeInTheDocument();
     expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });
 
@@ -255,9 +255,9 @@ describe("Process stepper in header", () => {
   it("calls onStepChange when clicking a step", () => {
     const { onStepChange } = renderHeader();
 
-    fireEvent.click(screen.getByTestId("step-document"));
+    fireEvent.click(screen.getByTestId("step-structure"));
 
-    expect(onStepChange).toHaveBeenCalledWith("document");
+    expect(onStepChange).toHaveBeenCalledWith("structure");
   });
 
   it("renders options menu trigger button", () => {

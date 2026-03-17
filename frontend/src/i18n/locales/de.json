@@ -53,7 +53,7 @@
     "lists": {
       "myProjects": "Meine Projekte",
       "collaborating": "Zusammenarbeit",
-      "invitations": "Einladungen",
+      "invitations": "Ausstehende Einladungen",
       "trash": "Papierkorb"
     },
     "empty": {
@@ -99,6 +99,18 @@
     "noAccess": "Sie haben keinen Zugriff auf dieses Projekt",
     "backToHome": "Zurück zur Startseite",
     "editTitle": "Projekttitel bearbeiten",
+    "back": "Zurück",
+    "manage": "Verwalten",
+    "comments": "Kommentare",
+    "options": "Optionen",
+    "deleteProject": "Projekt löschen",
+    "deletedReason": "Dieses Projekt wurde gelöscht. Alle Inhalte sind schreibgeschützt.",
+    "inReviewReadOnly": "Dieses Projekt wird derzeit überprüft. Inhalte sind schreibgeschützt, bis die Überprüfung abgeschlossen ist.",
+    "goToReview": "Zur Überprüfung",
+    "restoreProject": "Wiederherstellen",
+    "agentMode": "KI-Modus",
+    "modeInteractive": "Interaktiv",
+    "modeSilent": "Still",
     "invitationBanner": {
       "text": "hat Sie zur Zusammenarbeit an diesem Projekt eingeladen"
     }
@@ -233,7 +245,7 @@
     "todoWarningTitle": "Abschnitte enthalten /TODO-Markierungen",
     "todoWarningDescription": "PDF kann nicht erstellt werden: Abschnitte enthalten /TODO-Markierungen. Bitte vervollständigen oder deaktivieren Sie Informationslücken.",
     "rejectedHint": "Ihr Projekt wurde abgelehnt. Sie können es überarbeiten und erneut einreichen.",
-    "backToBrainstorm": "Zurück zum Definieren"
+    "backToDefine": "Zurück zum Definieren"
   },
   "timeline": {
     "title": "Prüfungsverlauf",
@@ -336,6 +348,20 @@
       "next": "Weiter"
     }
   },
+  "structure": {
+    "pdfPreview": "Dokumentvorschau",
+    "pdfPlaceholder": "PDF-Vorschau wird nach der Erstellung hier angezeigt.",
+    "pdfFallback": "PDF kann nicht angezeigt werden. Bitte laden Sie es stattdessen herunter.",
+    "generating": "Wird erstellt...",
+    "regenerate": "Neu erstellen",
+    "generate": "KI-Entwurf erstellen",
+    "generateError": "Anforderungen konnten nicht erstellt werden",
+    "ready": "bereit",
+    "locks": "Sperren:",
+    "lock": "Sperren (KI-Neuerstellung verhindern)",
+    "unlock": "Entsperren (KI-Neuerstellung zulassen)",
+    "notReady": "Einige Elemente sind nicht bereit. Aktivieren Sie 'Informationslücken zulassen' oder vervollständigen Sie alle Elemente."
+  },
   "brd": {
     "editDocument": "Dokument bearbeiten",
     "allowGaps": "Informationslücken zulassen",
@@ -364,18 +390,21 @@
     "readyDescription": "Nach dem Einreichen wird Ihr Projekt zur Bewertung an die Prüfer gesendet."
   },
   "process": {
-    "brainstorm": "Definieren",
-    "brainstormDesc": "Chatten Sie mit KI, um Ihr Projekt zu definieren",
-    "document": "Strukturieren",
-    "documentDesc": "Erstellen und verfeinern Sie Ihr Anforderungsdokument",
+    "define": "Definieren",
+    "defineDesc": "Chatten Sie mit KI, um Ihr Projekt zu definieren",
     "review": "Überprüfung",
     "reviewDesc": "Zur Genehmigung einreichen",
     "stepper": "Prozessschritte",
-    "brainstormDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihr Business Requirements Document zu erstellen.",
-    "documentGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zum Dokument übergehen.",
+    "structure": "Strukturieren",
+    "structureDesc": "Anforderungen überprüfen und verfeinern",
+    "defineDoneHint": "Bereit, Ihr Projekt zu formalisieren? Fahren Sie fort, um Ihre Anforderungen zu strukturieren.",
+    "structureGate": "Senden Sie mindestens eine Nachricht im Chat, bevor Sie zur Strukturierung übergehen.",
     "reviewGate": "Reichen Sie Ihr Projekt zuerst zur Überprüfung ein.",
-    "continueToDocument": "Weiter zur Strukturierung",
-    "documentGuide": "Überprüfen und verfeinern Sie jeden Abschnitt unten, dann reichen Sie zur Überprüfung ein, wenn Sie bereit sind."
+    "continueToStructure": "Weiter zur Strukturierung"
+  },
+  "projectType": {
+    "software": "Software",
+    "nonSoftware": "Nicht-Software"
   },
   "email": {
     "greeting": "Hallo {{name}},",

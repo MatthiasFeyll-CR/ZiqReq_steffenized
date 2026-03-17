@@ -10,9 +10,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.authentication.models import User
-from apps.brd.models import BrdDraft
 from apps.projects.authentication import MiddlewareAuthentication
 from apps.projects.models import Project
+from apps.requirements_document.models import BrdDraft
 
 from .models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
 from .serializers import ReviewActionCommentSerializer, SubmitProjectSerializer, TimelineCommentSerializer
@@ -117,21 +117,22 @@ def submit_project(request: Request, project_id: str) -> Response:
 
     # Generate PDF
     try:
+        import json as _json
+
         pdf_client = _create_pdf_client()
-        sections = {}
+        structure_json = "[]"
+        title = project.title or ""
+        short_description = ""
         if draft:
-            sections = {
-                "title": draft.section_title or "",
-                "short_description": draft.section_short_description or "",
-                "current_workflow": draft.section_current_workflow or "",
-                "affected_department": draft.section_affected_department or "",
-                "core_capabilities": draft.section_core_capabilities or "",
-                "success_criteria": draft.section_success_criteria or "",
-            }
+            structure_json = _json.dumps(draft.structure) if draft.structure else "[]"
+            title = draft.title or project.title or ""
+            short_description = draft.short_description or ""
         pdf_client.generate_pdf(
             project_id=str(project.id),
-            project_title=project.title or "",
-            sections=sections,
+            project_type=getattr(project, "project_type", "software"),
+            title=title,
+            short_description=short_description,
+            structure_json=structure_json,
         )
     except Exception:
         logger.exception("PDF generation failed for project %s", project_id)
@@ -154,12 +155,9 @@ def submit_project(request: Request, project_id: str) -> Response:
         brd_version = BrdVersion.objects.create(
             project_id=project.id,
             version_number=next_version,
-            section_title=draft.section_title if draft else None,
-            section_short_description=draft.section_short_description if draft else None,
-            section_current_workflow=draft.section_current_workflow if draft else None,
-            section_affected_department=draft.section_affected_department if draft else None,
-            section_core_capabilities=draft.section_core_capabilities if draft else None,
-            section_success_criteria=draft.section_success_criteria if draft else None,
+            title=draft.title if draft else None,
+            short_description=draft.short_description if draft else None,
+            structure=draft.structure if draft else [],
             pdf_file_path=pdf_file_path,
         )
 

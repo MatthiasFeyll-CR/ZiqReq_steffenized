@@ -20,7 +20,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/project-structure.md § Frontend structure — create new component at frontend/src/pages/ProjectWorkspace/StructureStepView.tsx\nDesign: docs/03-design/page-layouts.md § Structure Step Layout (does not exist — this is new post-refactoring), docs/03-design/component-specs.md § RequirementsPanel, PDF Preview\nFiles: frontend/src/pages/ProjectWorkspace/StructureStepView.tsx (new), frontend/src/pages/ProjectWorkspace/index.tsx (update step rendering logic), frontend/src/components/workspace/RequirementsPanel.tsx (reuse from M19), frontend/src/components/workspace/PDFPreview.tsx (check if exists, may need to create), frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json\nGotchas: RequirementsPanel was built in M19 Story 3.3 but was used in 40/60 split with chat — now it needs to be full-width in Structure step. PDF preview component may not exist yet — check codebase. Submit for Review button logic should match ReviewSection submission flow (check existing submit endpoint). Step type 'structure' is new — ProcessStepper currently uses 'document' as the type even though the label says 'Structure'.\nDeviations: Spec does not provide a detailed wireframe for Structure step layout. Infer from milestone description: left side = full-width requirements editor (reuse RequirementsPanel), right side = PDF preview sidebar. Use 60/40 split (requirements 60%, PDF 40%).",
       "context": {
@@ -47,7 +47,7 @@
         "Backend lint (Ruff) passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-4.7.01", "T-4.7.02", "PDF-4.01", "PDF-4.02"],
       "notes": "Architecture: docs/02-architecture/api-design.md § PDF generation (gRPC), docs/02-architecture/project-structure.md § PDF service\nDesign: docs/03-design/component-specs.md § PDF Preview\nFiles: services/pdf/generator/builder.py (update build_html, BrdContent dataclass), services/pdf/templates/brd_styles.css (may rename to requirements_styles.css), proto/pdf.proto (update GeneratePDF RPC), services/gateway/apps/brd/ (rename to requirements_document), services/gateway/apps/requirements_document/views.py, services/gateway/apps/requirements_document/serializers.py, services/gateway/apps/requirements_document/urls.py, services/gateway/apps/requirements_document/tests/, frontend/src/api/projects.ts (update PDF API calls), frontend/src/components/workspace/PDFPreview.tsx\nGotchas: The old BRD model used 6 flat sections (section_title, section_short_description, etc.). New model uses hierarchical structure JSON. builder.py needs to iterate over structure and render tables. Each epic/milestone is a section, each story/package is a table row. CSS must support nested tables and hierarchical headings. Gateway BRD app exists at services/gateway/apps/brd/ — must rename to requirements_document and update all imports. Proto file change requires re-generating Python gRPC stubs (run make proto or equivalent). PDF service is stateless — no database migrations needed.\nDeviations: Spec does not provide exact HTML template format for hierarchical structure. Infer table layout: each epic/milestone as <section><h2>Epic/Milestone Title</h2><p>Description</p><table>...</table></section>. Story table columns: ID (UUID first 8 chars), Title, Description (As a... I want...), AC (bullet list), Priority (badge). Package table columns: ID, Title, Description, Deliverables (bullet list), Dependencies (comma-separated).",
       "context": {
@@ -73,7 +73,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/project-structure.md § Frontend structure\nDesign: docs/03-design/page-layouts.md § Process Stepper\nFiles: frontend/src/components/workspace/ProcessStepper.tsx (update step type enum, labels), frontend/src/pages/ProjectWorkspace/index.tsx (update step rendering logic, gate checks), frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json\nGotchas: ProcessStepper.tsx line 12 currently defines step types as 'brainstorm' | 'document' | 'review'. Change to 'define' | 'structure' | 'review'. Labels already say 'Define' and 'Structure' (lines 37, 42) but the type is still 'brainstorm' and 'document' internally. This is just a type rename. Gate checks: canAccessDocument should become canAccessStructure, canAccessReview stays the same. ProjectWorkspace index.tsx renders based on activeStep — update the switch/conditional to check for 'define', 'structure', 'review' instead of old types. URL parsing function parseStep (line 35) needs to accept new types.\nDeviations: None — this is a straightforward rename and logic update.",
       "context": {
@@ -95,7 +95,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": ["T-9.1.01"],
       "notes": "Architecture: docs/02-architecture/project-structure.md § Frontend structure\nDesign: docs/03-design/page-layouts.md § Landing Page, docs/03-design/component-specs.md § Project Card, Badges\nFiles: frontend/src/pages/LandingPage/index.tsx, frontend/src/components/landing/HeroSection.tsx, frontend/src/components/landing/ProjectCard.tsx, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json\nGotchas: NewProjectModal was created in M19 Story 1 (US-001). HeroSection should already have a 'New Project' button from M19 — check if it exists. If so, this story is just verifying the flow works and adding type badges to ProjectCard. ProjectCard shows state badge — add type badge next to it. Filter by type may not exist yet — if not, this is optional (milestone spec says 'Update filter hooks' but acceptance criteria says 'if filter UI exists'). Check codebase for existing filter UI.\nDeviations: None — this is polish and UI updates.",
       "context": {
@@ -124,7 +124,7 @@
         "Documentation updated (README, architecture docs) to reflect 'Project' terminology"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/ — verify all docs use 'project' terminology\nFiles: All codebase files (grep search), README.md, docs/02-architecture/*.md, frontend/src/i18n/locales/*.json\nGotchas: Some valid 'idea' references may exist in comments, documentation, or old migration files. Focus on active code (exclude migrations, exclude commented code). 'Brainstorm' may appear in translations as old keys — remove unused keys. Board references should be completely gone after M17, but check for missed cleanup. BRD -> requirements_document rename in US-002 should catch most brd_draft references, but double-check. Test execution: run full test suite, not just the tests for this milestone. Services start check: docker compose -f docker-compose.test.yml up -d --build (from pipeline-config.json).\nDeviations: This story is a verification task, not a feature implementation. No specific test IDs assigned because it's a manual check + existing test suite. If orphans are found, they must be removed before marking this story as passing.",
       "context": {

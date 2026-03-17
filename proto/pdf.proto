@@ -8,9 +8,11 @@ service PdfService {
 
 message PdfGenerationRequest {
   string project_id = 1;
-  string project_title = 2;
-  map<string, string> sections = 3;
-  string generated_at = 4;
+  string project_type = 2;
+  string title = 3;
+  string short_description = 4;
+  string structure_json = 5;
+  string generated_date = 6;
 }
 
 message PdfGenerationResponse {

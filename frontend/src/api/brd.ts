@@ -1,6 +1,19 @@
 import { env } from "@/config/env";
 import { authFetch } from "@/lib/auth-token";
 
+export interface RequirementsDocumentDraft {
+  id: string;
+  project_id: string;
+  title: string | null;
+  short_description: string | null;
+  structure: unknown[];
+  item_locks: Record<string, boolean>;
+  allow_information_gaps: boolean;
+  readiness_evaluation: Record<string, unknown>;
+  last_evaluated_at: string | null;
+}
+
+/** @deprecated Use RequirementsDocumentDraft instead */
 export interface BrdDraft {
   id: string;
   project_id: string;
@@ -76,7 +89,7 @@ export async function patchBrdDraft(
 }
 
 export async function fetchBrdPreviewPdf(projectId: string): Promise<Blob> {
-  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/preview-pdf`, {
+  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/pdf/preview`, {
     credentials: "include",
   });
   if (!res.ok) {

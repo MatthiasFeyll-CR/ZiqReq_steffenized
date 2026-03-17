@@ -53,7 +53,7 @@
     "lists": {
       "myProjects": "My Projects",
       "collaborating": "Collaborating",
-      "invitations": "Invitations",
+      "invitations": "Pending Invitations",
       "trash": "Trash"
     },
     "empty": {
@@ -99,6 +99,18 @@
     "noAccess": "You don't have access to this project",
     "backToHome": "Back to home",
     "editTitle": "Edit project title",
+    "back": "Back",
+    "manage": "Manage",
+    "comments": "Comments",
+    "options": "Options",
+    "deleteProject": "Delete Project",
+    "deletedReason": "This project has been deleted. All content is read-only.",
+    "inReviewReadOnly": "This project is currently under review. Content is read-only until the review is complete.",
+    "goToReview": "Go to Review",
+    "restoreProject": "Restore",
+    "agentMode": "AI Mode",
+    "modeInteractive": "Interactive",
+    "modeSilent": "Silent",
     "invitationBanner": {
       "text": "invited you to collaborate on this project"
     }
@@ -233,7 +245,7 @@
     "todoWarningTitle": "Sections contain /TODO markers",
     "todoWarningDescription": "Cannot generate PDF: sections contain /TODO markers. Please complete or disable information gaps.",
     "rejectedHint": "Your project was rejected. You can refine it and resubmit.",
-    "backToBrainstorm": "Back to Define"
+    "backToDefine": "Back to Define"
   },
   "timeline": {
     "title": "Review timeline",
@@ -336,6 +348,20 @@
       "next": "Next"
     }
   },
+  "structure": {
+    "pdfPreview": "Document Preview",
+    "pdfPlaceholder": "PDF preview will appear here after generation.",
+    "pdfFallback": "Unable to display PDF. Please download instead.",
+    "generating": "Generating...",
+    "regenerate": "Regenerate",
+    "generate": "Generate AI Draft",
+    "generateError": "Failed to generate requirements",
+    "ready": "ready",
+    "locks": "Locks:",
+    "lock": "Lock (prevent AI regeneration)",
+    "unlock": "Unlock (allow AI regeneration)",
+    "notReady": "Some items are not ready. Enable 'Allow information gaps' or complete all items."
+  },
   "brd": {
     "editDocument": "Edit Document",
     "allowGaps": "Allow information gaps",
@@ -364,18 +390,21 @@
     "readyDescription": "Once submitted, your project will be sent to reviewers for evaluation."
   },
   "process": {
-    "brainstorm": "Define",
-    "brainstormDesc": "Chat with AI to define your project",
-    "document": "Structure",
-    "documentDesc": "Generate & refine your requirements document",
+    "define": "Define",
+    "defineDesc": "Chat with AI to define your project",
     "review": "Review",
     "reviewDesc": "Submit for approval",
     "stepper": "Process steps",
-    "brainstormDoneHint": "Ready to formalize your project? Continue to generate your Business Requirements Document.",
-    "documentGate": "Send at least one message in the chat before proceeding to the document.",
+    "structure": "Structure",
+    "structureDesc": "Review & refine your requirements",
+    "defineDoneHint": "Ready to formalize your project? Continue to structure your requirements.",
+    "structureGate": "Send at least one message in the chat before proceeding to structure.",
     "reviewGate": "Submit your project for review first.",
-    "continueToDocument": "Continue to Structure",
-    "documentGuide": "Review and refine each section below, then submit for review when you're ready."
+    "continueToStructure": "Continue to Structure"
+  },
+  "projectType": {
+    "software": "Software",
+    "nonSoftware": "Non-Software"
   },
   "email": {
     "greeting": "Hi {{name}},",

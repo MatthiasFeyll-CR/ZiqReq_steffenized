@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class BrdConfig(AppConfig):
+class RequirementsDocumentConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.brd"
+    name = "apps.requirements_document"

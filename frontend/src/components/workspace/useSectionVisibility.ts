@@ -28,7 +28,7 @@ export function useSectionVisibility(project: Project): SectionVisibility {
         return {
           chatLocked: true,
           allReadOnly: false,
-          lockReason: "Chat is locked while the idea is under review.",
+          lockReason: "Chat is locked while the project is under review.",
         };
       case "rejected":
         return {
@@ -40,19 +40,19 @@ export function useSectionVisibility(project: Project): SectionVisibility {
         return {
           chatLocked: true,
           allReadOnly: true,
-          lockReason: "This idea has been accepted. All sections are read-only.",
+          lockReason: "This project has been accepted. All sections are read-only.",
         };
       case "dropped":
         return {
           chatLocked: true,
           allReadOnly: true,
-          lockReason: "This idea has been dropped. All sections are read-only.",
+          lockReason: "This project has been dropped. All sections are read-only.",
         };
       case "deleted":
         return {
           chatLocked: true,
           allReadOnly: true,
-          lockReason: "This idea has been deleted. All sections are read-only.",
+          lockReason: "This project has been deleted. All sections are read-only.",
         };
       default:
         return {

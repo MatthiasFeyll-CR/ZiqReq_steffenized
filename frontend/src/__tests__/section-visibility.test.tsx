@@ -85,7 +85,7 @@ beforeEach(() => {
 function makeProject(state: Project["state"]): Project {
   return {
     id: "11111111-1111-1111-1111-111111111111",
-    title: "Test Idea",
+    title: "Test Project",
     project_type: "software",
     state,
     agent_mode: "interactive",
@@ -97,8 +97,8 @@ function makeProject(state: Project["state"]): Project {
   };
 }
 
-function renderWorkspace(idea: Project, step?: string) {
-  vi.mocked(fetchProject).mockResolvedValue(idea);
+function renderWorkspace(project: Project, step?: string) {
+  vi.mocked(fetchProject).mockResolvedValue(project);
   const store = configureStore({
     reducer: { presence: presenceReducer, websocket: websocketReducer },
     preloadedState: {
@@ -106,7 +106,7 @@ function renderWorkspace(idea: Project, step?: string) {
     },
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-  const url = step ? `/project/${idea.id}?step=${step}` : `/project/${idea.id}`;
+  const url = step ? `/project/${project.id}?step=${step}` : `/project/${project.id}`;
   return render(
     <QueryClientProvider client={qc}>
       <Provider store={store}>
@@ -121,7 +121,7 @@ function renderWorkspace(idea: Project, step?: string) {
 }
 
 describe("T-1.2.01: process stepper renders with correct steps", () => {
-  it("shows process stepper with brainstorm step active by default", async () => {
+  it("shows process stepper with define step active by default", async () => {
     renderWorkspace(makeProject("open"));
 
     await waitFor(() => {
@@ -129,7 +129,7 @@ describe("T-1.2.01: process stepper renders with correct steps", () => {
     });
 
     expect(screen.getByTestId("process-stepper")).toBeInTheDocument();
-    expect(screen.getByTestId("step-brainstorm")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByTestId("step-define")).toHaveAttribute("aria-current", "step");
   });
 
   it("shows all three process steps", async () => {
@@ -139,14 +139,14 @@ describe("T-1.2.01: process stepper renders with correct steps", () => {
       expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("step-brainstorm")).toBeInTheDocument();
-    expect(screen.getByTestId("step-document")).toBeInTheDocument();
+    expect(screen.getByTestId("step-define")).toBeInTheDocument();
+    expect(screen.getByTestId("step-structure")).toBeInTheDocument();
     expect(screen.getByTestId("step-review")).toBeInTheDocument();
   });
 });
 
 describe("T-1.2.02: review step accessible after submit", () => {
-  it("auto-navigates to review step when idea is in_review", async () => {
+  it("auto-navigates to review step when project is in_review", async () => {
     renderWorkspace(makeProject("in_review"));
 
     await waitFor(() => {
@@ -157,7 +157,7 @@ describe("T-1.2.02: review step accessible after submit", () => {
     expect(screen.getByTestId("review-section")).toBeInTheDocument();
   });
 
-  it("auto-navigates to review step when idea is accepted", async () => {
+  it("auto-navigates to review step when project is accepted", async () => {
     renderWorkspace(makeProject("accepted"));
 
     await waitFor(() => {
@@ -169,7 +169,7 @@ describe("T-1.2.02: review step accessible after submit", () => {
 });
 
 describe("T-1.4.01: open state — chat enabled, no lock overlay", () => {
-  it("does not show lock overlay when idea is open", async () => {
+  it("does not show lock overlay when project is open", async () => {
     renderWorkspace(makeProject("open"));
 
     await waitFor(() => {
@@ -185,7 +185,7 @@ describe("T-1.4.01: open state — chat enabled, no lock overlay", () => {
 });
 
 describe("T-1.4.02: in_review state — auto-navigated to review step", () => {
-  it("shows review section when idea is in_review", async () => {
+  it("shows review section when project is in_review", async () => {
     renderWorkspace(makeProject("in_review"));
 
     await waitFor(() => {
@@ -196,15 +196,15 @@ describe("T-1.4.02: in_review state — auto-navigated to review step", () => {
   });
 });
 
-describe("T-1.4.03: rejected state — auto-navigated to brainstorm, chat enabled", () => {
-  it("shows brainstorm view when idea is rejected", async () => {
+describe("T-1.4.03: rejected state — auto-navigated to define, chat enabled", () => {
+  it("shows define view when project is rejected", async () => {
     renderWorkspace(makeProject("rejected"));
 
     await waitFor(() => {
       expect(screen.getByTestId("project-workspace")).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId("step-brainstorm")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByTestId("step-define")).toHaveAttribute("aria-current", "step");
     expect(screen.queryByTestId("lock-overlay")).not.toBeInTheDocument();
     expect(screen.getByTestId("chat-input")).toHaveAttribute(
       "data-disabled",
@@ -214,7 +214,7 @@ describe("T-1.4.03: rejected state — auto-navigated to brainstorm, chat enable
 });
 
 describe("T-1.4.04: accepted state — review step with read-only", () => {
-  it("auto-navigates to review step when idea is accepted", async () => {
+  it("auto-navigates to review step when project is accepted", async () => {
     renderWorkspace(makeProject("accepted"));
 
     await waitFor(() => {
@@ -227,7 +227,7 @@ describe("T-1.4.04: accepted state — review step with read-only", () => {
 });
 
 describe("T-1.4.05: dropped state — review step with read-only", () => {
-  it("auto-navigates to review step when idea is dropped", async () => {
+  it("auto-navigates to review step when project is dropped", async () => {
     renderWorkspace(makeProject("dropped"));
 
     await waitFor(() => {

@@ -129,7 +129,7 @@ describe("UI-SHARE.01: Detect ?token= param and enable read-only mode", () => {
     });
 
     expect(screen.getByTestId("read-only-banner")).toBeInTheDocument();
-    expect(screen.getByText("Viewing shared idea (read-only)")).toBeInTheDocument();
+    expect(screen.getByText("Viewing shared project (read-only)")).toBeInTheDocument();
   });
 
   it("does not show read-only banner without token", async () => {
@@ -161,7 +161,7 @@ describe("UI-SHARE.02: Hide edit controls in read-only mode", () => {
 
     expect(screen.queryByTestId("chat-input")).not.toBeInTheDocument();
     expect(screen.getByTestId("chat-read-only-notice")).toBeInTheDocument();
-    expect(screen.getByText("Viewing shared idea — chat is read-only")).toBeInTheDocument();
+    expect(screen.getByText("Viewing shared project — chat is read-only")).toBeInTheDocument();
   });
 
   it("shows chat input when not in read-only mode", async () => {

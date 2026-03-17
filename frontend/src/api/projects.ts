@@ -82,6 +82,7 @@ export async function createProject(
 export interface ProjectListItem {
   id: string;
   title: string;
+  project_type: ProjectType;
   state: string;
   visibility: string;
   role: string;

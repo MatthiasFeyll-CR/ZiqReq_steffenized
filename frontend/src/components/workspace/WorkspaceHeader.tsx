@@ -34,9 +34,9 @@ interface WorkspaceHeaderProps {
   readOnly?: boolean;
   activeStep: ProcessStep;
   onStepChange: (step: ProcessStep) => void;
-  canAccessDocument: boolean;
+  canAccessStructure: boolean;
   canAccessReview: boolean;
-  documentGateMessage?: string;
+  structureGateMessage?: string;
   reviewGateMessage?: string;
   shareToken?: string | null;
 }
@@ -47,9 +47,9 @@ export function WorkspaceHeader({
   readOnly = false,
   activeStep,
   onStepChange,
-  canAccessDocument,
+  canAccessStructure,
   canAccessReview,
-  documentGateMessage,
+  structureGateMessage,
   reviewGateMessage,
   shareToken,
 }: WorkspaceHeaderProps) {
@@ -163,7 +163,7 @@ export function WorkspaceHeader({
             onChange={(e) => setEditValue(e.target.value)}
             onBlur={handleTitleSave}
             onKeyDown={handleTitleKeyDown}
-            aria-label={t("workspace.editTitle", "Edit idea title")}
+            aria-label={t("workspace.editTitle", "Edit project title")}
             data-testid="title-input"
           />
         ) : (
@@ -247,10 +247,10 @@ export function WorkspaceHeader({
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={handleDelete}
-                data-testid="delete-idea-option"
+                data-testid="delete-project-option"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                {t("workspace.deleteProject", "Delete Idea")}
+                {t("workspace.deleteProject", "Delete Project")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -262,9 +262,9 @@ export function WorkspaceHeader({
         <ProcessStepper
           activeStep={activeStep}
           onStepChange={onStepChange}
-          canAccessDocument={canAccessDocument}
+          canAccessStructure={canAccessStructure}
           canAccessReview={canAccessReview}
-          documentGateMessage={documentGateMessage}
+          structureGateMessage={structureGateMessage}
           reviewGateMessage={reviewGateMessage}
         />
       </div>

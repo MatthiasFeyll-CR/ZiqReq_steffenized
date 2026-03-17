@@ -33,9 +33,12 @@ const STATE_LABELS: Record<ProjectState, string> = {
   rejected: "Rejected",
 };
 
+export type ProjectType = "software" | "non_software";
+
 export interface ProjectCardProps {
   id: string;
   title: string;
+  projectType?: ProjectType;
   state: ProjectState;
   updatedAt: string;
   deletedAt?: string | null;
@@ -46,6 +49,7 @@ export interface ProjectCardProps {
 export function ProjectCard({
   id,
   title,
+  projectType,
   state,
   updatedAt,
   deletedAt,
@@ -82,6 +86,12 @@ export function ProjectCard({
           })}
         </p>
       </div>
+
+      {projectType && (
+        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+          {t(`projectType.${projectType === "software" ? "software" : "nonSoftware"}`)}
+        </span>
+      )}
 
       <Badge variant={state} className="shrink-0">
         {STATE_LABELS[state]}

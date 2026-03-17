@@ -10,7 +10,7 @@ export function ReadOnlyBanner() {
     >
       <Eye className="h-4 w-4 text-primary" />
       <span className="text-sm text-muted-foreground">
-        Viewing shared idea (read-only)
+        Viewing shared project (read-only)
       </span>
     </div>
   );

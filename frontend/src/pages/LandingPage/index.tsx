@@ -187,6 +187,7 @@ export default function LandingPage() {
                     key={p.id}
                     id={p.id}
                     title={p.title}
+                    projectType={p.project_type}
                     state={p.state as ProjectState}
                     updatedAt={p.updated_at}
                     deletedAt={p.deleted_at}
@@ -215,6 +216,7 @@ export default function LandingPage() {
                     key={p.id}
                     id={p.id}
                     title={p.title}
+                    projectType={p.project_type}
                     state={p.state as ProjectState}
                     updatedAt={p.updated_at}
                     deletedAt={p.deleted_at}
@@ -269,6 +271,7 @@ export default function LandingPage() {
                     key={p.id}
                     id={p.id}
                     title={p.title}
+                    projectType={p.project_type}
                     state={p.state as ProjectState}
                     updatedAt={p.updated_at}
                     deletedAt={p.deleted_at}

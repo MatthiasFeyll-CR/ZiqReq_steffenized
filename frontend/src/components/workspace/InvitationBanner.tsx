@@ -57,7 +57,7 @@ export function InvitationBanner({ projectId }: InvitationBannerProps) {
             <p className="text-sm text-foreground">
               <span className="font-medium">{invitation.inviter.display_name}</span>
               {" "}
-              {t("workspace.invitationBanner.text", "invited you to collaborate on this idea")}
+              {t("workspace.invitationBanner.text", "invited you to collaborate on this project")}
             </p>
             <div className="ml-4 flex gap-2">
               <Button

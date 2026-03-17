@@ -196,7 +196,7 @@ export function CommentsPanel({
             {t("comments.title", "Comments")}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            {t("comments.description", "Discussion and activity timeline for this idea")}
+            {t("comments.description", "Discussion and activity timeline for this project")}
           </SheetDescription>
         </SheetHeader>
 

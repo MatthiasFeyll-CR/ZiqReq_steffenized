@@ -137,7 +137,7 @@ describe("T-9.1.01: Landing page renders all 4 lists", () => {
 
     expect(screen.getByText("My Projects")).toBeInTheDocument();
     expect(screen.getByText("Collaborating")).toBeInTheDocument();
-    expect(screen.getByText("Invitations")).toBeInTheDocument();
+    expect(screen.getByText("Pending Invitations")).toBeInTheDocument();
     expect(screen.getByText("Trash")).toBeInTheDocument();
   });
 

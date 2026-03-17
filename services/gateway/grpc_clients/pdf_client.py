@@ -48,16 +48,20 @@ class PdfClient:
     def generate_pdf(
         self,
         project_id: str,
-        project_title: str,
-        sections: dict[str, str],
-        generated_at: str = "",
+        project_type: str = "software",
+        title: str = "",
+        short_description: str = "",
+        structure_json: str = "[]",
+        generated_date: str = "",
     ) -> dict[str, Any]:
         stub = self._ensure_channel()
         request = pdf_pb2.PdfGenerationRequest(
             project_id=project_id,
-            project_title=project_title,
-            sections=sections,
-            generated_at=generated_at,
+            project_type=project_type,
+            title=title,
+            short_description=short_description,
+            structure_json=structure_json,
+            generated_date=generated_date,
         )
         response = stub.GeneratePdf(request)
         logger.info(
