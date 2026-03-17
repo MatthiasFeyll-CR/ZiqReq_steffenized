@@ -111,6 +111,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
   return {
     id: PROJECT_ID,
     title: "Test Idea",
+    project_type: "software",
     state: "open",
     agent_mode: "interactive",
     visibility: "collaborating",

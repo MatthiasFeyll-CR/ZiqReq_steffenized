@@ -56,6 +56,7 @@ function createWrapper(store: ReturnType<typeof createStore>) {
 const fakeIdea: Project = {
   id: "test-idea",
   title: "Updated Title",
+  project_type: "software",
   state: "open",
   agent_mode: "interactive",
   visibility: "private",

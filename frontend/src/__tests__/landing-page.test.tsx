@@ -125,14 +125,11 @@ beforeEach(() => {
 });
 
 describe("T-9.1.01: Landing page renders all 4 lists", () => {
-  it("renders hero section with heading, subtext, input, and submit button", () => {
+  it("renders hero section with heading, subtext, and New Project button", () => {
     renderLandingPage();
 
     expect(screen.getByText("Create a new project")).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("Describe your project..."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Begin")).toBeInTheDocument();
+    expect(screen.getByTestId("new-project-button")).toBeInTheDocument();
   });
 
   it("renders all 4 section headings", () => {

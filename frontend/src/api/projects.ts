@@ -1,9 +1,12 @@
 import { env } from "@/config/env";
 import { authFetch } from "@/lib/auth-token";
 
+export type ProjectType = "software" | "non_software";
+
 export interface Project {
   id: string;
   title: string;
+  project_type: ProjectType;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected" | "deleted";
   agent_mode: "interactive" | "silent";
   visibility: "private" | "collaborating";
@@ -50,6 +53,7 @@ export async function patchProject(
 export interface CreateProjectResponse {
   id: string;
   title: string;
+  project_type: ProjectType;
   state: string;
   visibility: string;
   agent_mode: string;
@@ -58,13 +62,13 @@ export interface CreateProjectResponse {
 }
 
 export async function createProject(
-  firstMessage: string,
+  projectType: ProjectType,
 ): Promise<CreateProjectResponse> {
   const res = await authFetch(`${env.apiBaseUrl}/projects/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ first_message: firstMessage }),
+    body: JSON.stringify({ project_type: projectType }),
   });
 
   if (!res.ok) {

@@ -37,11 +37,18 @@
   "landing": {
     "hero": {
       "heading": "Create a new project",
-      "subtext": "Describe your project and let AI help you structure the requirements.",
-      "placeholder": "Describe your project...",
-      "submit": "Begin",
-      "validationEmpty": "Please describe your project before submitting.",
+      "subtext": "Start a new requirements project and let AI help you structure it.",
+      "newProject": "New Project",
       "errorCreating": "Failed to create project. Please try again."
+    },
+    "newProject": {
+      "title": "Create New Project",
+      "description": "Choose the type of project you want to create.",
+      "software": "Software Project",
+      "softwareSubtitle": "Epics & User Stories",
+      "nonSoftware": "Non-Software Project",
+      "nonSoftwareSubtitle": "Milestones & Work Packages",
+      "create": "Create"
     },
     "lists": {
       "myProjects": "My Projects",
