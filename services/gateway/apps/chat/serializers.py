@@ -1,10 +1,18 @@
 from rest_framework import serializers
 
+from apps.attachments.serializers import AttachmentResponseSerializer
+
 VALID_REACTION_TYPES = ("thumbs_up", "thumbs_down", "heart")
 
 
 class ChatMessageCreateSerializer(serializers.Serializer):
     content = serializers.CharField(min_length=1)
+    attachment_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        max_length=3,
+        required=False,
+        default=list,
+    )
 
 
 class ChatMessageResponseSerializer(serializers.Serializer):
@@ -16,6 +24,7 @@ class ChatMessageResponseSerializer(serializers.Serializer):
     content = serializers.CharField()
     message_type = serializers.CharField()
     created_at = serializers.DateTimeField()
+    attachments = AttachmentResponseSerializer(many=True, required=False, default=list)
 
 
 class ReactionCreateSerializer(serializers.Serializer):

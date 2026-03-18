@@ -30,12 +30,11 @@ class ProjectContextResponse(_message.Message):
     def __init__(self, metadata: _Optional[_Union[ProjectMetadata, _Mapping]] = ..., recent_messages: _Optional[_Iterable[_Union[ChatMessage, _Mapping]]] = ..., brd_draft: _Optional[_Union[BrdDraftState, _Mapping]] = ..., active_users: _Optional[_Iterable[_Union[UserInfo, _Mapping]]] = ...) -> None: ...
 
 class ProjectMetadata(_message.Message):
-    __slots__ = ("project_id", "title", "title_manually_edited", "state", "agent_mode", "owner_display_name", "co_owner_display_name", "project_type")
+    __slots__ = ("project_id", "title", "title_manually_edited", "state", "owner_display_name", "co_owner_display_name", "project_type")
     PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
     TITLE_FIELD_NUMBER: _ClassVar[int]
     TITLE_MANUALLY_EDITED_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
-    AGENT_MODE_FIELD_NUMBER: _ClassVar[int]
     OWNER_DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     CO_OWNER_DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
     PROJECT_TYPE_FIELD_NUMBER: _ClassVar[int]
@@ -43,11 +42,10 @@ class ProjectMetadata(_message.Message):
     title: str
     title_manually_edited: bool
     state: str
-    agent_mode: str
     owner_display_name: str
     co_owner_display_name: str
     project_type: str
-    def __init__(self, project_id: _Optional[str] = ..., title: _Optional[str] = ..., title_manually_edited: bool = ..., state: _Optional[str] = ..., agent_mode: _Optional[str] = ..., owner_display_name: _Optional[str] = ..., co_owner_display_name: _Optional[str] = ..., project_type: _Optional[str] = ...) -> None: ...
+    def __init__(self, project_id: _Optional[str] = ..., title: _Optional[str] = ..., title_manually_edited: bool = ..., state: _Optional[str] = ..., owner_display_name: _Optional[str] = ..., co_owner_display_name: _Optional[str] = ..., project_type: _Optional[str] = ...) -> None: ...
 
 class BrdDraftState(_message.Message):
     __slots__ = ("project_id", "sections", "locked_sections", "updated_at")
@@ -85,8 +83,24 @@ class UserInfo(_message.Message):
     role: str
     def __init__(self, id: _Optional[str] = ..., display_name: _Optional[str] = ..., role: _Optional[str] = ...) -> None: ...
 
+class AttachmentMetadata(_message.Message):
+    __slots__ = ("id", "filename", "content_type", "size_bytes", "extraction_status", "extracted_content_preview")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    FILENAME_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    SIZE_BYTES_FIELD_NUMBER: _ClassVar[int]
+    EXTRACTION_STATUS_FIELD_NUMBER: _ClassVar[int]
+    EXTRACTED_CONTENT_PREVIEW_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    filename: str
+    content_type: str
+    size_bytes: int
+    extraction_status: str
+    extracted_content_preview: str
+    def __init__(self, id: _Optional[str] = ..., filename: _Optional[str] = ..., content_type: _Optional[str] = ..., size_bytes: _Optional[int] = ..., extraction_status: _Optional[str] = ..., extracted_content_preview: _Optional[str] = ...) -> None: ...
+
 class ChatMessage(_message.Message):
-    __slots__ = ("id", "sender_type", "sender_display_name", "content", "message_type", "created_at", "reactions")
+    __slots__ = ("id", "sender_type", "sender_display_name", "content", "message_type", "created_at", "reactions", "attachments")
     ID_FIELD_NUMBER: _ClassVar[int]
     SENDER_TYPE_FIELD_NUMBER: _ClassVar[int]
     SENDER_DISPLAY_NAME_FIELD_NUMBER: _ClassVar[int]
@@ -94,6 +108,7 @@ class ChatMessage(_message.Message):
     MESSAGE_TYPE_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     REACTIONS_FIELD_NUMBER: _ClassVar[int]
+    ATTACHMENTS_FIELD_NUMBER: _ClassVar[int]
     id: str
     sender_type: str
     sender_display_name: str
@@ -101,7 +116,8 @@ class ChatMessage(_message.Message):
     message_type: str
     created_at: str
     reactions: _containers.RepeatedCompositeFieldContainer[_common_pb2.Reaction]
-    def __init__(self, id: _Optional[str] = ..., sender_type: _Optional[str] = ..., sender_display_name: _Optional[str] = ..., content: _Optional[str] = ..., message_type: _Optional[str] = ..., created_at: _Optional[str] = ..., reactions: _Optional[_Iterable[_Union[_common_pb2.Reaction, _Mapping]]] = ...) -> None: ...
+    attachments: _containers.RepeatedCompositeFieldContainer[AttachmentMetadata]
+    def __init__(self, id: _Optional[str] = ..., sender_type: _Optional[str] = ..., sender_display_name: _Optional[str] = ..., content: _Optional[str] = ..., message_type: _Optional[str] = ..., created_at: _Optional[str] = ..., reactions: _Optional[_Iterable[_Union[_common_pb2.Reaction, _Mapping]]] = ..., attachments: _Optional[_Iterable[_Union[AttachmentMetadata, _Mapping]]] = ...) -> None: ...
 
 class FullChatHistoryRequest(_message.Message):
     __slots__ = ("project_id",)
@@ -189,6 +205,68 @@ class UpdateBrdDraftResponse(_message.Message):
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     success: bool
     def __init__(self, success: bool = ...) -> None: ...
+
+class GetRequirementsStateRequest(_message.Message):
+    __slots__ = ("project_id",)
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    project_id: str
+    def __init__(self, project_id: _Optional[str] = ...) -> None: ...
+
+class GetRequirementsStateResponse(_message.Message):
+    __slots__ = ("project_id", "title", "short_description", "structure_json", "item_locks_json", "allow_information_gaps", "readiness_evaluation_json", "updated_at")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    TITLE_FIELD_NUMBER: _ClassVar[int]
+    SHORT_DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    STRUCTURE_JSON_FIELD_NUMBER: _ClassVar[int]
+    ITEM_LOCKS_JSON_FIELD_NUMBER: _ClassVar[int]
+    ALLOW_INFORMATION_GAPS_FIELD_NUMBER: _ClassVar[int]
+    READINESS_EVALUATION_JSON_FIELD_NUMBER: _ClassVar[int]
+    UPDATED_AT_FIELD_NUMBER: _ClassVar[int]
+    project_id: str
+    title: str
+    short_description: str
+    structure_json: str
+    item_locks_json: str
+    allow_information_gaps: bool
+    readiness_evaluation_json: str
+    updated_at: str
+    def __init__(self, project_id: _Optional[str] = ..., title: _Optional[str] = ..., short_description: _Optional[str] = ..., structure_json: _Optional[str] = ..., item_locks_json: _Optional[str] = ..., allow_information_gaps: bool = ..., readiness_evaluation_json: _Optional[str] = ..., updated_at: _Optional[str] = ...) -> None: ...
+
+class StructureMutation(_message.Message):
+    __slots__ = ("operation", "data_json")
+    OPERATION_FIELD_NUMBER: _ClassVar[int]
+    DATA_JSON_FIELD_NUMBER: _ClassVar[int]
+    operation: str
+    data_json: str
+    def __init__(self, operation: _Optional[str] = ..., data_json: _Optional[str] = ...) -> None: ...
+
+class UpdateRequirementsStructureRequest(_message.Message):
+    __slots__ = ("project_id", "mutations")
+    PROJECT_ID_FIELD_NUMBER: _ClassVar[int]
+    MUTATIONS_FIELD_NUMBER: _ClassVar[int]
+    project_id: str
+    mutations: _containers.RepeatedCompositeFieldContainer[StructureMutation]
+    def __init__(self, project_id: _Optional[str] = ..., mutations: _Optional[_Iterable[_Union[StructureMutation, _Mapping]]] = ...) -> None: ...
+
+class MutationResult(_message.Message):
+    __slots__ = ("operation", "status", "error")
+    OPERATION_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    operation: str
+    status: str
+    error: str
+    def __init__(self, operation: _Optional[str] = ..., status: _Optional[str] = ..., error: _Optional[str] = ...) -> None: ...
+
+class UpdateRequirementsStructureResponse(_message.Message):
+    __slots__ = ("accepted", "mutation_count", "mutations_applied")
+    ACCEPTED_FIELD_NUMBER: _ClassVar[int]
+    MUTATION_COUNT_FIELD_NUMBER: _ClassVar[int]
+    MUTATIONS_APPLIED_FIELD_NUMBER: _ClassVar[int]
+    accepted: bool
+    mutation_count: int
+    mutations_applied: _containers.RepeatedCompositeFieldContainer[MutationResult]
+    def __init__(self, accepted: bool = ..., mutation_count: _Optional[int] = ..., mutations_applied: _Optional[_Iterable[_Union[MutationResult, _Mapping]]] = ...) -> None: ...
 
 class ProjectsByStateRequest(_message.Message):
     __slots__ = ()

@@ -251,6 +251,13 @@ def attachment_delete(request: Request, project_id: str, attachment_id: str) -> 
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    # Immutability rule: cannot delete attachment already linked to a message
+    if attachment.message_id is not None:
+        return Response(
+            {"error": "IMMUTABLE", "message": "Cannot delete attachment already sent with message"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     # Soft delete
     attachment.deleted_at = timezone.now()
     attachment.save(update_fields=["deleted_at"])

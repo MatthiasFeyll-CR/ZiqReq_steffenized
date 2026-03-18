@@ -64,6 +64,16 @@ class CoreServiceStub(object):
                 request_serializer=core__pb2.UpdateBrdDraftRequest.SerializeToString,
                 response_deserializer=core__pb2.UpdateBrdDraftResponse.FromString,
                 _registered_method=True)
+        self.GetRequirementsState = channel.unary_unary(
+                '/ziqreq.core.CoreService/GetRequirementsState',
+                request_serializer=core__pb2.GetRequirementsStateRequest.SerializeToString,
+                response_deserializer=core__pb2.GetRequirementsStateResponse.FromString,
+                _registered_method=True)
+        self.UpdateRequirementsStructure = channel.unary_unary(
+                '/ziqreq.core.CoreService/UpdateRequirementsStructure',
+                request_serializer=core__pb2.UpdateRequirementsStructureRequest.SerializeToString,
+                response_deserializer=core__pb2.UpdateRequirementsStructureResponse.FromString,
+                _registered_method=True)
         self.GetProjectsByState = channel.unary_unary(
                 '/ziqreq.core.CoreService/GetProjectsByState',
                 request_serializer=core__pb2.ProjectsByStateRequest.SerializeToString,
@@ -120,6 +130,18 @@ class CoreServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetRequirementsState(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def UpdateRequirementsStructure(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetProjectsByState(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -170,6 +192,16 @@ def add_CoreServiceServicer_to_server(servicer, server):
                     servicer.UpdateBrdDraft,
                     request_deserializer=core__pb2.UpdateBrdDraftRequest.FromString,
                     response_serializer=core__pb2.UpdateBrdDraftResponse.SerializeToString,
+            ),
+            'GetRequirementsState': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRequirementsState,
+                    request_deserializer=core__pb2.GetRequirementsStateRequest.FromString,
+                    response_serializer=core__pb2.GetRequirementsStateResponse.SerializeToString,
+            ),
+            'UpdateRequirementsStructure': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateRequirementsStructure,
+                    request_deserializer=core__pb2.UpdateRequirementsStructureRequest.FromString,
+                    response_serializer=core__pb2.UpdateRequirementsStructureResponse.SerializeToString,
             ),
             'GetProjectsByState': grpc.unary_unary_rpc_method_handler(
                     servicer.GetProjectsByState,
@@ -349,6 +381,60 @@ class CoreService(object):
             '/ziqreq.core.CoreService/UpdateBrdDraft',
             core__pb2.UpdateBrdDraftRequest.SerializeToString,
             core__pb2.UpdateBrdDraftResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetRequirementsState(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ziqreq.core.CoreService/GetRequirementsState',
+            core__pb2.GetRequirementsStateRequest.SerializeToString,
+            core__pb2.GetRequirementsStateResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateRequirementsStructure(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/ziqreq.core.CoreService/UpdateRequirementsStructure',
+            core__pb2.UpdateRequirementsStructureRequest.SerializeToString,
+            core__pb2.UpdateRequirementsStructureResponse.FromString,
             options,
             channel_credentials,
             insecure,
