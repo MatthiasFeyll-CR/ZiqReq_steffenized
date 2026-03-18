@@ -25,6 +25,8 @@ function isImageType(contentType: string): boolean {
   return contentType.startsWith("image/");
 }
 
+const DEFAULT_TTL_HOURS = 96;
+
 export function AttachmentBox({
   attachment,
   projectId,
@@ -34,15 +36,32 @@ export function AttachmentBox({
   thumbnailUrl,
 }: AttachmentBoxProps) {
   const { t } = useTranslation();
+  const isDeleted = !!attachment.deleted_at;
+
+  const hoursUntilPermanentDelete = (() => {
+    if (!attachment.deleted_at) return 0;
+    const deadline = new Date(attachment.deleted_at).getTime() + DEFAULT_TTL_HOURS * 60 * 60 * 1000;
+    return Math.max(0, Math.round((deadline - Date.now()) / (60 * 60 * 1000)));
+  })();
 
   const handleClick = useCallback(() => {
+    if (isDeleted) {
+      toast.info(
+        t(
+          "attachment.deletedClickPrompt",
+          "This attachment has been deleted. Restore it in the attachment modal. Permanently deleted in {{hours}} hours.",
+          { hours: hoursUntilPermanentDelete },
+        ),
+      );
+      return;
+    }
     if (!clickable) {
       toast.info(t("attachment.readOnlyBlocked", "Download not available in read-only mode"));
       return;
     }
     const url = `${env.apiBaseUrl}/projects/${projectId}/attachments/${attachment.id}/download/`;
     window.open(url, "_blank");
-  }, [clickable, projectId, attachment.id, t]);
+  }, [isDeleted, clickable, projectId, attachment.id, t, hoursUntilPermanentDelete]);
 
   const isImage = isImageType(attachment.content_type);
   const Icon = isImage ? Image : FileText;
@@ -54,9 +73,14 @@ export function AttachmentBox({
   return (
     <div
       className={cn(
-        "relative group flex items-center gap-2 rounded-md border border-border bg-muted/50 px-2 py-1.5 text-sm max-w-[200px]",
-        clickable ? "cursor-pointer hover:bg-muted" : "cursor-not-allowed opacity-80",
+        "relative group flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm max-w-[200px]",
+        isDeleted
+          ? "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30 cursor-pointer"
+          : clickable
+            ? "border-border bg-muted/50 cursor-pointer hover:bg-muted"
+            : "border-border bg-muted/50 cursor-not-allowed opacity-80",
       )}
+      title={isDeleted ? t("attachment.deletedTitle", "Deleted — permanently removed in {{hours}}h", { hours: hoursUntilPermanentDelete }) : undefined}
       onClick={handleClick}
       role="button"
       tabIndex={0}
@@ -79,7 +103,7 @@ export function AttachmentBox({
         <Icon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
       )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-medium" title={attachment.filename}>
+        <p className={cn("truncate text-xs font-medium", isDeleted && "line-through text-red-700 dark:text-red-400")} title={attachment.filename}>
           {attachment.filename}
         </p>
         <div className="flex items-center gap-1">

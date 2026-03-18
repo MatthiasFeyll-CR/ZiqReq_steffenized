@@ -485,7 +485,23 @@
     "readOnlyBlocked": "Download im Nur-Lesen-Modus nicht verfügbar",
     "processing": "Verarbeitung...",
     "extractionFailed": "Extraktion fehlgeschlagen",
-    "downloadFailed": "Download fehlgeschlagen"
+    "downloadFailed": "Download fehlgeschlagen",
+    "deletedClickPrompt": "Dieser Anhang wurde gelöscht. Stellen Sie ihn im Anhang-Dialog wieder her. Endgültig gelöscht in {{hours}} Stunden.",
+    "deletedTitle": "Gelöscht — endgültig entfernt in {{hours}}h"
+  },
+  "attachments": {
+    "modalTitle": "Projektanhänge",
+    "active": "Aktiv",
+    "deleted": "Gelöscht",
+    "noActive": "Keine aktiven Anhänge",
+    "noDeleted": "Keine gelöschten Anhänge",
+    "open": "Anhang öffnen",
+    "delete": "Anhang löschen",
+    "restore": "Wiederherstellen",
+    "deleteSuccess": "Anhang gelöscht",
+    "restoreSuccess": "Anhang wiederhergestellt",
+    "deleteNote": "Gelöschte Anhänge werden nach {{hours}} Stunden endgültig entfernt.",
+    "permanentDeleteIn": "Endgültig gelöscht in {{hours}}h {{minutes}}m"
   },
   "requirements": {
     "generating": {

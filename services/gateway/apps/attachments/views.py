@@ -16,6 +16,9 @@ from apps.admin_config.services import get_parameter
 from apps.projects.authentication import MiddlewareAuthentication
 from apps.projects.models import Attachment, Project, ProjectCollaborator
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 from .serializers import AttachmentResponseSerializer
 from .validators import (
     FileValidationError,
@@ -102,6 +105,24 @@ def _check_rate_limit(user_id: str) -> bool:
 def _is_admin(user) -> bool:
     roles = getattr(user, "roles", []) or []
     return "admin" in roles
+
+
+def _broadcast_attachment_event(event_type: str, project_id: str, attachment_id: str) -> None:
+    """Broadcast an attachment event to the project's WebSocket group."""
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            group_name = f"project_{project_id}"
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    "type": event_type,
+                    "project_id": project_id,
+                    "payload": {"attachment_id": attachment_id},
+                },
+            )
+    except Exception:
+        logger.exception("Failed to broadcast %s for project %s", event_type, project_id)
 
 
 def _get_storage_backend():
@@ -342,6 +363,8 @@ def attachment_delete(request: Request, project_id: str, attachment_id: str) -> 
     attachment.deleted_at = timezone.now()
     attachment.save(update_fields=["deleted_at"])
 
+    _broadcast_attachment_event("attachment_deleted", str(project.id), str(attachment.id))
+
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -408,6 +431,9 @@ def attachment_restore(request: Request, project_id: str, attachment_id: str) ->
 
     attachment.deleted_at = None
     attachment.save(update_fields=["deleted_at"])
+
+    _broadcast_attachment_event("attachment_restored", str(project.id), str(attachment.id))
+
     return Response(AttachmentResponseSerializer(attachment).data)
 
 

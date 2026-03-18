@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, Code, MessageCircle, MoreVertical, Package, Star, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Code, MessageCircle, MoreVertical, Package, Paperclip, Star, Trash2, Users } from "lucide-react";
 import { fetchUnreadCommentCount } from "@/api/comments";
 import { CommentsPanel } from "@/components/comments/CommentsPanel";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,7 +23,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { listAttachments } from "@/api/attachments";
 import { CollaboratorModal } from "@/components/collaboration/CollaboratorModal";
+import { AttachmentsModal } from "./AttachmentsModal";
 import { PresenceIndicators } from "./PresenceIndicators";
 import { ProcessStepper, type ProcessStep } from "./ProcessStepper";
 
@@ -76,6 +78,8 @@ export function WorkspaceHeader({
   const [editValue, setEditValue] = useState(project.title);
   const [collaboratorModalOpen, setCollaboratorModalOpen] = useState(false);
   const [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
+  const [attachmentsModalOpen, setAttachmentsModalOpen] = useState(false);
+  const [attachmentCount, setAttachmentCount] = useState(0);
   const [unreadComments, setUnreadComments] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -84,6 +88,30 @@ export function WorkspaceHeader({
     if (isDraft) return;
     fetchUnreadCommentCount(project.id, shareToken).then(setUnreadComments).catch(() => {});
   }, [project.id, shareToken, isDraft]);
+
+  // Fetch attachment count (skip for drafts)
+  useEffect(() => {
+    if (isDraft) return;
+    listAttachments(project.id).then((list) => setAttachmentCount(list.length)).catch(() => {});
+  }, [project.id, isDraft]);
+
+  // Listen for WS attachment events to refresh count
+  useEffect(() => {
+    const refresh = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail.project_id === project.id) {
+        listAttachments(project.id).then((list) => setAttachmentCount(list.length)).catch(() => {});
+      }
+    };
+    window.addEventListener("ws:attachment_deleted", refresh);
+    window.addEventListener("ws:attachment_restored", refresh);
+    window.addEventListener("ws:attachment_extracted", refresh);
+    return () => {
+      window.removeEventListener("ws:attachment_deleted", refresh);
+      window.removeEventListener("ws:attachment_restored", refresh);
+      window.removeEventListener("ws:attachment_extracted", refresh);
+    };
+  }, [project.id]);
 
   // Listen for new comments via WebSocket to update badge
   useEffect(() => {
@@ -293,6 +321,20 @@ export function WorkspaceHeader({
           </Button>
         )}
 
+        {/* Attachments button */}
+        {!readOnly && attachmentCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setAttachmentsModalOpen(true)}
+            data-testid="attachments-button"
+          >
+            <Paperclip className="mr-1 h-4 w-4" />
+            {t("workspace.attachments", "Attachments")}
+            <span className="ml-1 text-xs text-muted-foreground">({attachmentCount})</span>
+          </Button>
+        )}
+
         {/* Comments button */}
         <Button
           variant="outline"
@@ -369,6 +411,12 @@ export function WorkspaceHeader({
         currentUserId={user?.id}
         isOwnerOrCollaborator={!readOnly}
         shareToken={shareToken}
+      />
+
+      <AttachmentsModal
+        projectId={project.id}
+        open={attachmentsModalOpen}
+        onOpenChange={setAttachmentsModalOpen}
       />
     </div>
   );

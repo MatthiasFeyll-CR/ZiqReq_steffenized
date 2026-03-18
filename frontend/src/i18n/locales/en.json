@@ -485,7 +485,23 @@
     "readOnlyBlocked": "Download not available in read-only mode",
     "processing": "Processing...",
     "extractionFailed": "Extraction failed",
-    "downloadFailed": "Download failed"
+    "downloadFailed": "Download failed",
+    "deletedClickPrompt": "This attachment has been deleted. Restore it in the attachment modal. Permanently deleted in {{hours}} hours.",
+    "deletedTitle": "Deleted — permanently removed in {{hours}}h"
+  },
+  "attachments": {
+    "modalTitle": "Project Attachments",
+    "active": "Active",
+    "deleted": "Deleted",
+    "noActive": "No active attachments",
+    "noDeleted": "No deleted attachments",
+    "open": "Open attachment",
+    "delete": "Delete attachment",
+    "restore": "Restore",
+    "deleteSuccess": "Attachment deleted",
+    "restoreSuccess": "Attachment restored",
+    "deleteNote": "Deleted attachments are permanently removed after {{hours}} hours.",
+    "permanentDeleteIn": "Permanently deleted in {{hours}}h {{minutes}}m"
   },
   "requirements": {
     "generating": {

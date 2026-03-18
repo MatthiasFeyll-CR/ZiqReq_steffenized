@@ -8,6 +8,7 @@ export interface Attachment {
   size_bytes: number;
   extraction_status: "pending" | "processing" | "completed" | "failed";
   created_at: string;
+  deleted_at: string | null;
   message_id: string | null;
 }
 
@@ -94,6 +95,31 @@ export async function listAttachments(
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function listAttachmentsIncludeDeleted(
+  projectId: string,
+): Promise<Attachment[]> {
+  const url = `${env.apiBaseUrl}/projects/${projectId}/attachments/?include_deleted=true`;
+  const res = await authFetch(url, { credentials: "include" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function restoreAttachment(
+  projectId: string,
+  attachmentId: string,
+): Promise<Attachment> {
+  const url = `${env.apiBaseUrl}/projects/${projectId}/attachments/${attachmentId}/restore/`;
+  const res = await authFetch(url, { method: "POST", credentials: "include" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Restore failed (${res.status})`);
   }
   return res.json();
 }
