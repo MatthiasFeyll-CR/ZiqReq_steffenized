@@ -130,6 +130,44 @@ class ProjectFavorite(models.Model):
         return f"Favorite {self.user_id} on {self.project_id}"
 
 
+class Attachment(models.Model):
+    """Unmanaged mirror — reads Gateway's attachments table."""
+
+    EXTRACTION_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("processing", "Processing"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="attachments")
+    message_id = models.UUIDField(null=True, blank=True)
+    uploader_id = models.UUIDField()
+    filename = models.CharField(max_length=255)
+    storage_key = models.CharField(max_length=500)
+    content_type = models.CharField(max_length=100)
+    size_bytes = models.BigIntegerField()
+    extracted_content = models.TextField(null=True, blank=True)
+    extraction_status = models.CharField(
+        max_length=20, choices=EXTRACTION_STATUS_CHOICES, default="pending"
+    )
+    thumbnail_storage_key = models.CharField(max_length=500, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        managed = False
+        db_table = "attachments"
+
+    def __str__(self) -> str:
+        return f"Attachment {self.filename} ({self.id})"
+
+    @classmethod
+    def active_count_for_project(cls, project_id: uuid.UUID) -> int:
+        return cls.objects.filter(project_id=project_id, deleted_at__isnull=True).count()
+
+
 class RequirementsDocumentDraft(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.OneToOneField(
