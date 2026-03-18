@@ -148,7 +148,7 @@ class TestAdminAttachmentDelete(TestCase):
     def _login_as(self, user):
         self.client.post("/api/auth/dev-login", {"user_id": str(user.id)}, format="json")
 
-    @patch("apps.admin_config.views.get_storage_backend")
+    @patch("storage.factory.get_storage_backend")
     def test_hard_delete_success(self, mock_backend_factory):
         mock_backend = MagicMock()
         mock_backend_factory.return_value = mock_backend
@@ -159,7 +159,7 @@ class TestAdminAttachmentDelete(TestCase):
         assert not Attachment.objects.filter(id=att.id).exists()
         mock_backend.delete_file.assert_called_once_with(att.storage_key)
 
-    @patch("apps.admin_config.views.get_storage_backend")
+    @patch("storage.factory.get_storage_backend")
     def test_hard_delete_storage_failure_still_deletes_record(self, mock_backend_factory):
         mock_backend = MagicMock()
         mock_backend.delete_file.side_effect = Exception("storage error")
@@ -199,7 +199,7 @@ class TestAdminAttachmentRestore(TestCase):
     def _login_as(self, user):
         self.client.post("/api/auth/dev-login", {"user_id": str(user.id)}, format="json")
 
-    @patch("apps.admin_config.views.get_storage_backend")
+    @patch("storage.factory.get_storage_backend")
     def test_restore_success(self, mock_backend_factory):
         mock_backend = MagicMock()
         mock_backend.file_exists.return_value = True
@@ -218,7 +218,7 @@ class TestAdminAttachmentRestore(TestCase):
         resp = self.client.post(f"/api/admin/attachments/{att.id}/restore/")
         assert resp.status_code == 404
 
-    @patch("apps.admin_config.views.get_storage_backend")
+    @patch("storage.factory.get_storage_backend")
     def test_restore_fails_when_project_deleted(self, mock_backend_factory):
         mock_backend = MagicMock()
         mock_backend.file_exists.return_value = True
@@ -232,7 +232,7 @@ class TestAdminAttachmentRestore(TestCase):
         assert resp.status_code == 400
         assert resp.json()["error"] == "PROJECT_DELETED"
 
-    @patch("apps.admin_config.views.get_storage_backend")
+    @patch("storage.factory.get_storage_backend")
     def test_restore_fails_when_file_gone(self, mock_backend_factory):
         mock_backend = MagicMock()
         mock_backend.file_exists.return_value = False

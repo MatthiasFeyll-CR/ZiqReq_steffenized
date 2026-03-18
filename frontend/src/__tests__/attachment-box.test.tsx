@@ -110,20 +110,19 @@ describe("AttachmentBox", () => {
     expect(screen.getByText("Extraction failed")).toBeInTheDocument();
   });
 
-  it("opens presigned URL on click when clickable", async () => {
+  it("opens download URL on click when clickable", async () => {
     const mockOpen = vi.fn();
     vi.stubGlobal("open", mockOpen);
-    mockGetAttachmentUrl.mockResolvedValue("https://minio.local/presigned-url");
 
     render(
       <AttachmentBox attachment={imageAttachment} projectId={PROJECT_ID} clickable={true} />,
     );
 
     await userEvent.click(screen.getByTestId("attachment-box"));
-    await vi.waitFor(() => {
-      expect(mockGetAttachmentUrl).toHaveBeenCalledWith(PROJECT_ID, "att-1");
-      expect(mockOpen).toHaveBeenCalledWith("https://minio.local/presigned-url", "_blank");
-    });
+    expect(mockOpen).toHaveBeenCalledWith(
+      expect.stringContaining(`/projects/${PROJECT_ID}/attachments/att-1/download/`),
+      "_blank",
+    );
 
     vi.unstubAllGlobals();
   });

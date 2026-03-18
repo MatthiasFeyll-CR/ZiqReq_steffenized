@@ -207,7 +207,7 @@ class TestBulkDeleteStorage(TestCase):
 class TestDeleteStorageFiles(TestCase):
     """Tests for _delete_storage_files helper."""
 
-    @patch("apps.attachments.tasks.get_storage_backend")
+    @patch("storage.factory.get_storage_backend")
     def test_deletes_all_keys(self, mock_backend_factory):
         from apps.attachments.tasks import _delete_storage_files
 
@@ -219,7 +219,7 @@ class TestDeleteStorageFiles(TestCase):
         assert count == 3
         assert mock_backend.delete_file.call_count == 3
 
-    @patch("apps.attachments.tasks.get_storage_backend")
+    @patch("storage.factory.get_storage_backend")
     def test_continues_on_individual_failure(self, mock_backend_factory):
         from apps.attachments.tasks import _delete_storage_files
 

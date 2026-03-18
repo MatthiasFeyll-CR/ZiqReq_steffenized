@@ -188,7 +188,7 @@ describe("AttachmentsTab", () => {
     });
     render(<AttachmentsTab />);
     await waitFor(() => {
-      expect(screen.getByText(/no results/i)).toBeInTheDocument();
+      expect(screen.getByText(/no attachments found/i)).toBeInTheDocument();
     });
   });
 
