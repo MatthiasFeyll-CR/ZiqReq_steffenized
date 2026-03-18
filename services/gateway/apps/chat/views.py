@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from apps.admin_config.models import AdminParameter
 from apps.projects.authentication import MiddlewareAuthentication
-from apps.projects.models import ChatMessage, Project, ProjectCollaborator, UserReaction
+from apps.projects.models import Attachment, ChatMessage, Project, ProjectCollaborator, UserReaction
 
 from .serializers import (
     ChatMessageCreateSerializer,
@@ -154,7 +154,7 @@ def _check_access(user, project) -> bool:
     ).exists()
 
 
-def _broadcast_chat_message(message: ChatMessage, sender_user) -> None:
+def _broadcast_chat_message(message: ChatMessage, sender_user, attachments=None) -> None:
     """Broadcast a chat_message event to the project's WebSocket group."""
     try:
         channel_layer = get_channel_layer()
@@ -173,6 +173,18 @@ def _broadcast_chat_message(message: ChatMessage, sender_user) -> None:
             "content": message.content,
             "message_type": message.message_type,
             "created_at": message.created_at.isoformat(),
+            "attachments": [
+                {
+                    "id": str(a.id),
+                    "filename": a.filename,
+                    "content_type": a.content_type,
+                    "size_bytes": a.size_bytes,
+                    "extraction_status": a.extraction_status,
+                    "created_at": a.created_at.isoformat(),
+                    "message_id": str(a.message_id) if a.message_id else None,
+                }
+                for a in (attachments or [])
+            ],
         }
         async_to_sync(channel_layer.group_send)(
             group_name,
@@ -258,10 +270,17 @@ def _create_message(request: Request, project_id: str) -> Response:
         content=serializer.validated_data["content"],
     )
 
-    response_serializer = ChatMessageResponseSerializer(message)
+    # Link attachments to this message
+    attachment_ids = serializer.validated_data.get("attachment_ids", [])
+    linked_attachments = _link_attachments(message, project, attachment_ids)
+
+    # Build response data with attachments
+    response_data = ChatMessageResponseSerializer(message).data
+    from apps.attachments.serializers import AttachmentResponseSerializer
+    response_data["attachments"] = AttachmentResponseSerializer(linked_attachments, many=True).data
 
     # Broadcast chat.message.created to WebSocket subscribers
-    _broadcast_chat_message(message, user)
+    _broadcast_chat_message(message, user, linked_attachments)
 
     # Detect @mentions and publish notification events
     _publish_mention_notifications(message, user, project)
@@ -284,7 +303,41 @@ def _create_message(request: Request, project_id: str) -> Response:
             project.id, message.id,
         )
 
-    return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+    return Response(response_data, status=status.HTTP_201_CREATED)
+
+
+def _link_attachments(message: ChatMessage, project, attachment_ids: list) -> list:
+    """Validate and link attachments to a message. Returns list of linked Attachment objects."""
+    if not attachment_ids:
+        return []
+
+    # Find valid attachments: belong to project, not yet linked, not deleted
+    valid_attachments = list(
+        Attachment.objects.filter(
+            id__in=attachment_ids,
+            project_id=project.id,
+            message_id__isnull=True,
+            deleted_at__isnull=True,
+        )
+    )
+
+    valid_ids = {str(a.id) for a in valid_attachments}
+    for aid in attachment_ids:
+        if str(aid) not in valid_ids:
+            logger.warning(
+                "Skipping invalid attachment_id %s for message %s (not found, already linked, or deleted)",
+                aid, message.id,
+            )
+
+    if valid_attachments:
+        Attachment.objects.filter(
+            id__in=[a.id for a in valid_attachments]
+        ).update(message_id=message.id)
+        # Refresh to get updated message_id
+        for a in valid_attachments:
+            a.message_id = message.id
+
+    return valid_attachments
 
 
 _MENTION_PATTERN = re.compile(r"@user\[([0-9a-fA-F-]{36})\]")
@@ -335,10 +388,28 @@ def _list_messages(request: Request, project_id: str) -> Response:
     total = qs.count()
     messages = list(qs[offset : offset + limit])
 
-    response_serializer = ChatMessageResponseSerializer(messages, many=True)
+    # Prefetch active attachments for all messages in the page
+    message_ids = [m.id for m in messages]
+    attachments_by_message: dict[str, list] = {}
+    if message_ids:
+        atts = Attachment.objects.filter(
+            message_id__in=message_ids, deleted_at__isnull=True
+        )
+        for a in atts:
+            attachments_by_message.setdefault(str(a.message_id), []).append(a)
+
+    from apps.attachments.serializers import AttachmentResponseSerializer
+
+    result = []
+    for m in messages:
+        data = ChatMessageResponseSerializer(m).data
+        msg_atts = attachments_by_message.get(str(m.id), [])
+        data["attachments"] = AttachmentResponseSerializer(msg_atts, many=True).data
+        result.append(data)
+
     return Response(
         {
-            "messages": response_serializer.data,
+            "messages": result,
             "total": total,
             "limit": limit,
             "offset": offset,

@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "apps.admin_ai_context",
     "apps.websocket",
     "apps.comments",
+    "apps.attachments",
 ]
 
 MIDDLEWARE = [
@@ -86,3 +87,7 @@ AZURE_AD_ROLE_MAPPING: dict[str, str] = {}
 
 # Auth bypass for dev mode (must also have DEBUG=True)
 AUTH_BYPASS = os.environ.get("AUTH_BYPASS", "False").lower() == "true"
+
+# File upload limits (100MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600

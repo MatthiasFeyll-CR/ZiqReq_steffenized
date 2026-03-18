@@ -1,6 +1,7 @@
 import type { ChatMessage } from "@/api/chat";
 import { cn } from "@/lib/utils";
 import { ReactionChips } from "./ReactionChips";
+import { AttachmentBox } from "./AttachmentBox";
 
 interface UserMessageBubbleProps {
   message: ChatMessage;
@@ -8,6 +9,7 @@ interface UserMessageBubbleProps {
   showSenderName: boolean;
   projectId: string;
   isOwnMessage: boolean;
+  isReadOnly?: boolean;
 }
 
 export function UserMessageBubble({
@@ -16,11 +18,14 @@ export function UserMessageBubble({
   showSenderName,
   projectId,
   isOwnMessage,
+  isReadOnly,
 }: UserMessageBubbleProps) {
   const timestamp = new Date(message.created_at).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const attachments = message.attachments ?? [];
 
   return (
     <div
@@ -41,6 +46,19 @@ export function UserMessageBubble({
         )}
       >
         <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2" data-testid="message-attachments">
+            {attachments.map((att) => (
+              <AttachmentBox
+                key={att.id}
+                attachment={att}
+                projectId={projectId}
+                clickable={!isReadOnly}
+                showThumbnail={att.content_type.startsWith("image/")}
+              />
+            ))}
+          </div>
+        )}
         <span className="block text-right text-[10px] opacity-70 mt-1">
           {timestamp}
         </span>

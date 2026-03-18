@@ -41,6 +41,29 @@ export function ChatPanel({ project, locked, lockReason, readOnly }: ChatPanelPr
     return () => window.removeEventListener("ws:chat_message", handler);
   }, [project.id]);
 
+  // Listen for attachment extraction completion events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail.project_id !== project.id) return;
+      const { attachment_id, extraction_status } = detail;
+      if (!attachment_id || !extraction_status) return;
+      setNewMessages((prev) =>
+        prev.map((msg) => {
+          if (!msg.attachments?.some((a) => a.id === attachment_id)) return msg;
+          return {
+            ...msg,
+            attachments: msg.attachments!.map((a) =>
+              a.id === attachment_id ? { ...a, extraction_status } : a,
+            ),
+          };
+        }),
+      );
+    };
+    window.addEventListener("ws:attachment_extracted", handler);
+    return () => window.removeEventListener("ws:attachment_extracted", handler);
+  }, [project.id]);
+
   const isDisabled = locked || isLimited;
   const overlayReason = locked
     ? lockReason
@@ -50,7 +73,7 @@ export function ChatPanel({ project, locked, lockReason, readOnly }: ChatPanelPr
 
   return (
     <div className="relative flex flex-col flex-1 min-h-0" data-testid="chat-panel-inner">
-      <ChatMessageList project={project} appendedMessages={newMessages} />
+      <ChatMessageList project={project} appendedMessages={newMessages} isReadOnly={readOnly} />
       <AIProcessingIndicator projectId={project.id} />
       {readOnly ? (
         <div className="px-4 py-3 text-sm text-muted-foreground border-t text-center" data-testid="chat-read-only-notice">

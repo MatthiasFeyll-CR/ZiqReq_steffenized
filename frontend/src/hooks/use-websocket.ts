@@ -180,6 +180,12 @@ export function useWebSocket() {
                 detail: { project_id: data.project_id, ...data.payload },
               }),
             );
+          } else if (data.type === "attachment_extracted" && data.project_id && data.payload) {
+            window.dispatchEvent(
+              new CustomEvent("ws:attachment_extracted", {
+                detail: { project_id: data.project_id, ...data.payload },
+              }),
+            );
           } else if (data.type === "comment_created" && data.payload) {
             window.dispatchEvent(
               new CustomEvent("ws:comment_created", {

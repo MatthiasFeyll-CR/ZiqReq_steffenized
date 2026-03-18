@@ -315,6 +315,14 @@ class ProjectConsumer(AsyncJsonWebsocketConsumer):
             "payload": event["payload"],
         })
 
+    async def attachment_extracted(self, event: dict) -> None:
+        """Forward attachment_extracted group_send to the WebSocket client."""
+        await self.send_json({
+            "type": "attachment_extracted",
+            "project_id": event["project_id"],
+            "payload": event["payload"],
+        })
+
     async def requirements_generating(self, event: dict) -> None:
         """Forward requirements_generating group_send to the WebSocket client."""
         await self.send_json({

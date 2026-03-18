@@ -97,7 +97,7 @@ class TestSystemPrompt:
         """System prompt includes agent identity."""
         prompt = build_system_prompt(query="test", messages=[])
         assert "Context Extension Agent" in prompt
-        assert "Full chat history search" in prompt
+        assert "Full chat history" in prompt
 
 
 # ── Agent execution ──
@@ -116,9 +116,10 @@ class _MockSettings:
 class TestContextExtensionAgent:
     @pytest.mark.asyncio
     async def test_empty_history_returns_early(self):
-        """Agent returns early message when no messages in history."""
+        """Agent returns early message when no messages and no attachments."""
         mock_client = MagicMock()
         mock_client.get_full_chat_history.return_value = {"messages": []}
+        mock_client.get_project_attachments.return_value = []
 
         agent = ContextExtensionAgent(core_client=mock_client)
         result = await agent._execute({

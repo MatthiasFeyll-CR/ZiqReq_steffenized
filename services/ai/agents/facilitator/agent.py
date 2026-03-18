@@ -140,6 +140,7 @@ def _build_prompt_context(input_data: dict[str, Any]) -> dict[str, Any]:
         "creator_language": ctx.get("creator_language", "English"),
         "no_messages_yet": len(input_data.get("recent_messages", [])) == 0,
         "requirements_structure": input_data.get("requirements_structure"),
+        "attachments": input_data.get("attachments", []),
     }
 
 
@@ -151,5 +152,10 @@ def _format_messages(messages: list[dict[str, Any]]) -> str:
         content = msg.get("content", "")
         msg_id = msg.get("id", "")
         msg_type = msg.get("sender_type", "user")
+        # Append attachment filenames if message has attachments
+        attachments = msg.get("attachments", [])
+        if attachments:
+            filenames = ", ".join(a.get("filename", "?") for a in attachments)
+            content = f"{content}\n[Attachments: {filenames}]"
         lines.append(f'<message id="{msg_id}" sender="{sender}" type="{msg_type}">{content}</message>')
     return "\n".join(lines) if lines else "(no messages yet)"

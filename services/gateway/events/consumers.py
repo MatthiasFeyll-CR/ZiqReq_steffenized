@@ -33,6 +33,7 @@ _EVENT_HANDLERS = {
     "ai.processing.complete": "_handle_processing_complete",
     "ai.brd.ready": "_handle_brd_ready",
     "ai.requirements.updated": "_handle_requirements_updated",
+    "ai.attachment.extracted": "_handle_attachment_extracted",
 }
 
 
@@ -210,6 +211,20 @@ class AIEventConsumer:
         }
 
         await self._broadcast(project_id, "requirements_updated", payload)
+
+    async def _handle_attachment_extracted(self, event: dict[str, Any]) -> None:
+        """ai.attachment.extracted → broadcast attachment_extracted to project group."""
+        project_id = event["project_id"]
+        attachment_id = event.get("attachment_id", "")
+        extraction_status = event.get("extraction_status", "completed")
+
+        payload = {
+            "project_id": project_id,
+            "attachment_id": attachment_id,
+            "extraction_status": extraction_status,
+        }
+
+        await self._broadcast(project_id, "attachment_extracted", payload)
 
     async def _handle_processing_complete(self, event: dict[str, Any]) -> None:
         """ai.processing.complete → broadcast ai_processing {state: completed}.

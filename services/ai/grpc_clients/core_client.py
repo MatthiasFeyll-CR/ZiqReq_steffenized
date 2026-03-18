@@ -66,7 +66,13 @@ class CoreClient:
                     "message_type": row[5],
                     "created_at": row[6].isoformat() if row[6] else "",
                     "sender_name": row[3] if row[1] == "ai" else "User",
+                    "attachments": [],
                 })
+
+        # Populate attachment metadata for messages
+        if recent_messages:
+            message_ids = [m["id"] for m in recent_messages]
+            recent_messages = self._populate_message_attachments(recent_messages, message_ids)
 
         # Load chat summary if exists
         chat_summary = None
@@ -89,6 +95,41 @@ class CoreClient:
             "chat_summary": chat_summary,
         }
 
+    def _populate_message_attachments(
+        self,
+        messages: list[dict[str, Any]],
+        message_ids: list[str],
+    ) -> list[dict[str, Any]]:
+        """Fetch attachment metadata for a list of message IDs and attach to messages."""
+        from django.db import connection
+
+        if not message_ids:
+            return messages
+
+        attachments_by_msg: dict[str, list[dict[str, Any]]] = {}
+        placeholders = ", ".join(["%s"] * len(message_ids))
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT id, message_id, filename, content_type, size_bytes, extraction_status, "
+                f"SUBSTRING(extracted_content FROM 1 FOR 500) "
+                f"FROM attachments WHERE message_id IN ({placeholders}) AND deleted_at IS NULL",
+                message_ids,
+            )
+            for row in cursor.fetchall():
+                att = {
+                    "id": str(row[0]),
+                    "filename": row[2],
+                    "content_type": row[3],
+                    "size_bytes": row[4],
+                    "extraction_status": row[5],
+                    "extracted_content_preview": row[6] or "",
+                }
+                attachments_by_msg.setdefault(str(row[1]), []).append(att)
+
+        for msg in messages:
+            msg["attachments"] = attachments_by_msg.get(msg["id"], [])
+        return messages
+
     def get_full_chat_history(self, project_id: str) -> dict[str, Any]:
         from django.db import connection
 
@@ -109,7 +150,13 @@ class CoreClient:
                     "message_type": row[5],
                     "created_at": row[6].isoformat() if row[6] else "",
                     "sender_name": row[3] if row[1] == "ai" else "User",
+                    "attachments": [],
                 })
+
+        if messages:
+            message_ids = [m["id"] for m in messages]
+            messages = self._populate_message_attachments(messages, message_ids)
+
         return {"messages": messages}
 
     def get_admin_parameter(self, key: str) -> dict[str, Any]:
@@ -334,6 +381,34 @@ class CoreClient:
             if row:
                 return row[0] or "software"
         return "software"
+
+    # ── Attachment operations ──
+
+    def get_project_attachments(self, project_id: str) -> list[dict[str, Any]]:
+        """Fetch all active attachments for a project with completed extraction."""
+        from django.db import connection
+
+        attachments: list[dict[str, Any]] = []
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, filename, content_type, size_bytes, extracted_content, "
+                "extraction_status, message_id "
+                "FROM attachments "
+                "WHERE project_id = %s AND deleted_at IS NULL AND extraction_status = 'completed'",
+                [project_id],
+            )
+            for row in cursor.fetchall():
+                attachments.append({
+                    "id": str(row[0]),
+                    "filename": row[1],
+                    "content_type": row[2],
+                    "size_bytes": row[3],
+                    "extracted_content": row[4] or "",
+                    "extraction_status": row[5],
+                    "message_id": str(row[6]) if row[6] else None,
+                })
+
+        return attachments
 
     # ── BRD operations ──
 

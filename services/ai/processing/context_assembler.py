@@ -100,6 +100,9 @@ class ContextAssembler:
             project_context_response.get("requirements_state", {})
         )
 
+        # Load project attachments with completed extraction
+        attachments = _load_project_attachments(project_id)
+
         assembled = {
             "project_id": project_id,
             "project_context": {
@@ -112,18 +115,35 @@ class ContextAssembler:
             "chat_summary": chat_summary,
             "facilitator_bucket_content": facilitator_bucket,
             "requirements_structure": requirements_structure,
+            "attachments": attachments,
             "delegation_results": None,
             "extension_results": None,
         }
 
         logger.info(
-            "Assembled context for project %s: %d messages, summary=%s, type=%s",
+            "Assembled context for project %s: %d messages, %d attachments, summary=%s, type=%s",
             project_id,
             len(recent_messages),
+            len(attachments),
             "yes" if chat_summary else "no",
             project_type,
         )
         return assembled
+
+
+def _load_project_attachments(project_id: str) -> list[dict[str, Any]]:
+    """Load active attachments with completed extraction for a project.
+
+    Returns:
+        List of attachment dicts with id, filename, content_type, extracted_content, message_id.
+    """
+    try:
+        from grpc_clients.core_client import CoreClient
+        client = CoreClient()
+        return client.get_project_attachments(project_id)
+    except Exception:
+        logger.warning("Failed to load attachments for project %s", project_id)
+        return []
 
 
 def _parse_requirements_structure(requirements_state: dict[str, Any]) -> list[dict[str, Any]]:

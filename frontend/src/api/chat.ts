@@ -1,5 +1,6 @@
 import { env } from "@/config/env";
 import { authFetch } from "@/lib/auth-token";
+import type { Attachment } from "@/api/attachments";
 
 export interface ChatMessage {
   id: string;
@@ -10,6 +11,7 @@ export interface ChatMessage {
   content: string;
   message_type: "regular" | "delegation";
   created_at: string;
+  attachments?: Attachment[];
 }
 
 export interface ChatMessagesResponse {
@@ -22,13 +24,18 @@ export interface ChatMessagesResponse {
 export async function sendChatMessage(
   projectId: string,
   content: string,
+  attachment_ids?: string[],
 ): Promise<ChatMessage> {
   const url = `${env.apiBaseUrl}/projects/${projectId}/chat/`;
+  const body: Record<string, unknown> = { content };
+  if (attachment_ids && attachment_ids.length > 0) {
+    body.attachment_ids = attachment_ids;
+  }
   const res = await authFetch(url, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

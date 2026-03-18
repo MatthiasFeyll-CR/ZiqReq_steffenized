@@ -55,6 +55,15 @@ message UserInfo {
   string role = 3;
 }
 
+message AttachmentMetadata {
+  string id = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+  string extraction_status = 5;
+  string extracted_content_preview = 6;
+}
+
 message ChatMessage {
   string id = 1;
   string sender_type = 2;
@@ -63,6 +72,7 @@ message ChatMessage {
   string message_type = 5;
   string created_at = 6;
   repeated ziqreq.common.Reaction reactions = 7;
+  repeated AttachmentMetadata attachments = 8;
 }
 
 message FullChatHistoryRequest {

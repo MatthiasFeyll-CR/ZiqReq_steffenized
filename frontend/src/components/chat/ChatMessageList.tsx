@@ -12,9 +12,10 @@ import { DelegationMessage } from "./DelegationMessage";
 interface ChatMessageListProps {
   project: Project;
   appendedMessages?: ChatMessage[];
+  isReadOnly?: boolean;
 }
 
-export function ChatMessageList({ project, appendedMessages = [] }: ChatMessageListProps) {
+export function ChatMessageList({ project, appendedMessages = [], isReadOnly }: ChatMessageListProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [fetchedMessages, setFetchedMessages] = useState<ChatMessage[]>([]);
@@ -113,6 +114,7 @@ export function ChatMessageList({ project, appendedMessages = [] }: ChatMessageL
             showSenderName={isMultiUser}
             projectId={project.id}
             isOwnMessage={msg.sender_id === user?.id}
+            isReadOnly={isReadOnly}
           />
         );
       })}
