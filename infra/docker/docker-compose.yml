@@ -24,7 +24,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ziqreq} -d ${POSTGRES_DB:-ziqreq}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-ziqreq} -d ${POSTGRES_DB:-ziqreq}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -57,7 +61,7 @@ services:
       start_period: 30s
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -98,8 +102,8 @@ services:
         echo 'Waiting for core service (migrations)...' &&
         until python -c \"import socket; s=socket.create_connection(('core',50051),2); s.close()\" 2>/dev/null; do sleep 2; done &&
         echo 'Core ready. Running gateway migrations...' &&
-        python manage.py migrate --fake gateway_projects 2>/dev/null;
-        python manage.py migrate --fake gateway_collaboration 2>/dev/null;
+        python manage.py migrate --fake gateway_projects 0006_project_favorite 2>/dev/null;
+        python manage.py migrate --fake gateway_collaboration 0001_initial 2>/dev/null;
         python manage.py migrate --noinput || exit 1;
         python grpc_server/server.py &
         python events/rabbitmq_subscriber.py &

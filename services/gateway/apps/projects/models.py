@@ -187,7 +187,7 @@ class Attachment(models.Model):
             models.Index(fields=["message_id"], name="idx_attachments_message"),
             models.Index(
                 fields=["project", "deleted_at"],
-                name="idx_attachments_project_deleted",
+                name="idx_attach_proj_deleted",
             ),
         ]
 
