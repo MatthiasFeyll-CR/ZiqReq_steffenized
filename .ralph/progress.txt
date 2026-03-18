@@ -107,3 +107,22 @@ Started: 2026-03-18T01:03:58+0100
   - Existing test helpers (_fake_pdf_bytes, _fake_png_bytes etc) needed updating to use real Pillow-generated images since sanitize_image now opens them with Pillow
   - Docker test containers need rebuild after requirements changes (stale image caused false test failures)
 ---
+
+## US-006: AI content extraction — PDF processing
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/ai_service/celery.py (new), services/ai/tasks/__init__.py (new), services/ai/tasks/extract_attachment.py (new), services/ai/tests/test_extract_attachment.py (new), services/ai/requirements.txt
+- Tests: 15 new extraction tests pass, 844 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - Celery app created at ai_service/celery.py — uses BROKER_URL env var (RabbitMQ) as broker
+  - Task is NOT bind=True since retry logic isn't needed — simpler to test
+  - _is_mock_mode() helper encapsulates django.setup() + settings check — patchable in tests
+  - DB access pattern: direct SQL via django.db.connection (same as CoreClient pattern)
+  - File download: direct MinIO client in _download_file() (AI service doesn't have gateway's storage abstraction)
+  - Vision fallback: only triggered when page text < 50 chars AND page has images (expensive operation)
+  - Truncation: _get_max_chars() reads attachment_extraction_max_tokens admin param, converts tokens to chars (×4)
+  - Non-PDF content types are skipped (return without update) — US-007 will extend with image processing
+  - Tests patch at grpc_clients.core_client.CoreClient (not tasks.extract_attachment.CoreClient) because import is lazy
+  - Running specific test file paths in Docker fails due to conftest resolution — use -k filter or run full suite
+  - celery, PyMuPDF, minio added to services/ai/requirements.txt (root requirements.txt already had them)
+---
