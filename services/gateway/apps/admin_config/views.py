@@ -84,6 +84,181 @@ MAX_PAGE_SIZE = 100
 
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
+def admin_attachments_list(request: Request) -> Response:
+    """GET /api/admin/attachments — list all attachments with filter/search/pagination/stats."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    from django.db.models import Count, Sum
+
+    from apps.projects.models import Attachment, Project
+
+    filter_param = request.query_params.get("filter", "all")
+    search_param = request.query_params.get("search", "")
+    page = max(int(request.query_params.get("page", 1)), 1)
+    page_size = min(
+        int(request.query_params.get("page_size", 35)),
+        MAX_PAGE_SIZE,
+    )
+
+    qs = Attachment.objects.all()
+
+    if filter_param == "active":
+        qs = qs.filter(deleted_at__isnull=True)
+    elif filter_param == "deleted":
+        qs = qs.filter(deleted_at__isnull=False)
+
+    if search_param:
+        qs = qs.filter(Q(filename__icontains=search_param))
+
+    qs = qs.order_by("-created_at")
+
+    total_count = qs.count()
+    offset = (page - 1) * page_size
+    attachments = list(qs[offset : offset + page_size])
+
+    # Get project names
+    project_ids = {a.project_id for a in attachments}
+    projects = Project.objects.filter(id__in=project_ids)
+    project_map = {p.id: p for p in projects}
+
+    # Stats (unfiltered)
+    stats = Attachment.objects.aggregate(
+        total_size=Sum("size_bytes"),
+        total_count=Count("id"),
+    )
+
+    results = []
+    for att in attachments:
+        proj = project_map.get(att.project_id)
+        results.append(
+            {
+                "id": str(att.id),
+                "filename": att.filename,
+                "content_type": att.content_type,
+                "size_bytes": att.size_bytes,
+                "extraction_status": att.extraction_status,
+                "created_at": att.created_at.isoformat(),
+                "deleted_at": att.deleted_at.isoformat() if att.deleted_at else None,
+                "message_id": str(att.message_id) if att.message_id else None,
+                "project": {
+                    "id": str(att.project_id),
+                    "title": proj.title if proj else "Unknown",
+                },
+            }
+        )
+
+    return Response(
+        {
+            "results": results,
+            "count": total_count,
+            "next": page + 1 if offset + page_size < total_count else None,
+            "previous": page - 1 if page > 1 else None,
+            "stats": {
+                "total_size_bytes": stats["total_size"] or 0,
+                "total_count": stats["total_count"] or 0,
+            },
+        }
+    )
+
+
+@api_view(["DELETE"])
+@authentication_classes([MiddlewareAuthentication])
+def admin_attachment_delete(request: Request, attachment_id: str) -> Response:
+    """DELETE /api/admin/attachments/:id — hard-delete attachment (DB record + storage file)."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    import uuid
+
+    from apps.projects.models import Attachment
+
+    try:
+        uuid.UUID(attachment_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        attachment = Attachment.objects.get(id=attachment_id)
+    except Attachment.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Delete storage file (best-effort)
+    try:
+        from storage.factory import get_storage_backend
+
+        backend = get_storage_backend()
+        backend.delete_file(attachment.storage_key)
+    except Exception:
+        logger.warning("Failed to delete storage file %s", attachment.storage_key)
+
+    logger.info("Admin %s hard-deleted attachment %s (storage_key=%s)", request.user.id, attachment_id, attachment.storage_key)
+    attachment.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def admin_attachment_restore(request: Request, attachment_id: str) -> Response:
+    """POST /api/admin/attachments/:id/restore/ — restore soft-deleted attachment."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    import uuid
+
+    from apps.attachments.serializers import AttachmentResponseSerializer
+    from apps.projects.models import Attachment, Project
+
+    try:
+        uuid.UUID(attachment_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        attachment = Attachment.objects.get(id=attachment_id, deleted_at__isnull=False)
+    except Attachment.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found or not deleted"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Verify project still exists
+    if not Project.objects.filter(id=attachment.project_id, deleted_at__isnull=True).exists():
+        return Response(
+            {"error": "PROJECT_DELETED", "message": "Cannot restore attachment for deleted project"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Check storage file still exists
+    from storage.factory import get_storage_backend
+
+    backend = get_storage_backend()
+    if not backend.file_exists(attachment.storage_key):
+        return Response(
+            {"error": "FILE_GONE", "message": "Storage file no longer exists"},
+            status=status.HTTP_410_GONE,
+        )
+
+    attachment.deleted_at = None
+    attachment.save(update_fields=["deleted_at"])
+    logger.info("Admin %s restored attachment %s", request.user.id, attachment_id)
+    return Response(AttachmentResponseSerializer(attachment).data)
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
 def admin_projects_list(request: Request) -> Response:
     """GET /api/admin/projects — list all projects with state and keywords (admin only)."""
     denied = _require_admin(request)

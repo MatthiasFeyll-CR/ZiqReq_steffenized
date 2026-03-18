@@ -1,6 +1,8 @@
 import logging
 import uuid
 
+from datetime import timedelta
+
 from django.core.cache import cache
 from django.http import HttpResponse
 from django.utils import timezone
@@ -84,6 +86,11 @@ def _check_rate_limit(user_id: str) -> bool:
         return True
     cache.set(cache_key, count + 1, timeout=60)
     return False
+
+
+def _is_admin(user) -> bool:
+    roles = getattr(user, "roles", []) or []
+    return "admin" in roles
 
 
 def _get_storage_backend():
@@ -269,8 +276,6 @@ def _list_attachments(request: Request, project_id: str) -> Response:
         )
 
     include_deleted = request.query_params.get("include_deleted", "").lower() == "true"
-    if include_deleted and project.owner_id != user.id:
-        include_deleted = False
 
     qs = Attachment.objects.filter(project_id=project.id)
     if not include_deleted:
@@ -325,6 +330,73 @@ def attachment_delete(request: Request, project_id: str, attachment_id: str) -> 
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def attachment_restore(request: Request, project_id: str, attachment_id: str) -> Response:
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    project, error = _get_project_or_error(project_id)
+    if error:
+        return error
+
+    if not _check_access(user, project):
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "Only collaborators can restore attachments"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        uuid.UUID(attachment_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        attachment = Attachment.objects.get(
+            id=attachment_id, project_id=project.id, deleted_at__isnull=False
+        )
+    except Attachment.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # Check project attachment limit
+    active_count = Attachment.active_count_for_project(project.id)
+    if active_count >= MAX_ATTACHMENTS_PER_PROJECT:
+        return Response(
+            {"error": "LIMIT_EXCEEDED", "message": "Project has reached the maximum of 10 attachments"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Check if within restore window
+    from apps.admin_config.services import get_parameter
+
+    ttl_hours = get_parameter("orphan_attachment_ttl_hours", default=96, cast=int)
+    deadline = attachment.deleted_at + timedelta(hours=ttl_hours)
+    if timezone.now() > deadline:
+        return Response(
+            {"error": "EXPIRED", "message": "Restore window has expired"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Check storage file still exists
+    backend = _get_storage_backend()
+    if not backend.file_exists(attachment.storage_key):
+        return Response(
+            {"error": "FILE_GONE", "message": "Storage file no longer exists"},
+            status=status.HTTP_410_GONE,
+        )
+
+    attachment.deleted_at = None
+    attachment.save(update_fields=["deleted_at"])
+    return Response(AttachmentResponseSerializer(attachment).data)
+
+
 @api_view(["GET"])
 @authentication_classes([MiddlewareAuthentication])
 def attachment_url(request: Request, project_id: str, attachment_id: str) -> Response:
@@ -351,15 +423,20 @@ def attachment_url(request: Request, project_id: str, attachment_id: str) -> Res
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    is_admin = _is_admin(user)
+    lookup = {"id": attachment_id, "project_id": project.id}
+    if not is_admin:
+        lookup["deleted_at__isnull"] = True
     try:
-        attachment = Attachment.objects.get(
-            id=attachment_id, project_id=project.id, deleted_at__isnull=True
-        )
+        attachment = Attachment.objects.get(**lookup)
     except Attachment.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Attachment not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+    if is_admin and attachment.deleted_at:
+        logger.info("Admin %s accessed deleted attachment %s URL", user.id, attachment.id)
 
     try:
         backend = _get_storage_backend()
@@ -403,15 +480,20 @@ def attachment_download(request: Request, project_id: str, attachment_id: str) -
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    is_admin = _is_admin(user)
+    lookup = {"id": attachment_id, "project_id": project.id}
+    if not is_admin:
+        lookup["deleted_at__isnull"] = True
     try:
-        attachment = Attachment.objects.get(
-            id=attachment_id, project_id=project.id, deleted_at__isnull=True
-        )
+        attachment = Attachment.objects.get(**lookup)
     except Attachment.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Attachment not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+    if is_admin and attachment.deleted_at:
+        logger.info("Admin %s downloaded deleted attachment %s", user.id, attachment.id)
 
     try:
         backend = _get_storage_backend()
