@@ -164,3 +164,40 @@ Started: 2026-03-18T01:03:58+0100
   - Existing test_context_extension.py tests needed updates: mode string changed, empty history check also checks attachments
   - Docker test containers MUST be rebuilt after code changes (confirmed again — stale images cause false failures)
 ---
+
+## US-009: Frontend: attachment API, upload hook, ChatInput + drag & drop
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/api/attachments.ts (new), frontend/src/hooks/use-attachment-upload.ts (new), frontend/src/components/chat/AttachmentStagingArea.tsx (new), frontend/src/components/chat/ChatDropZone.tsx (new), frontend/src/components/chat/ChatInput.tsx, frontend/src/api/chat.ts, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/use-attachment-upload.test.tsx (new), frontend/src/__tests__/chat-input-attachments.test.tsx (new), tasks/prd-m22.json
+- Tests: 14 new frontend tests pass, 376 total frontend tests pass, TypeScript typecheck clean
+- Learnings for future iterations:
+  - Upload API uses XMLHttpRequest (not fetch) for progress events — uploadAttachment returns Promise wrapping XHR
+  - getAccessToken() from auth-token.ts provides Bearer token for XHR (authFetch only works with fetch API)
+  - useAttachmentUpload hook manages pending uploads with unique IDs (incrementing counter via useRef)
+  - Validation matches backend: 100MB max, 3 per message, 10 per project, types: png/jpg/jpeg/webp/pdf
+  - AttachmentStagingArea uses URL.createObjectURL for image thumbnails — must revoke on unmount to prevent memory leaks
+  - ChatDropZone uses dragCounter state to handle nested drag enter/leave events correctly
+  - canSend logic: true if (text non-empty OR staged attachments exist) AND not sending AND not disabled AND not uploading
+  - handleSend passes " " (single space) as content when text is empty but attachments exist — backend requires non-empty content
+  - ChatInput now accepts optional projectAttachmentCount prop to enforce project-level limits
+  - File input reset (e.target.value = "") after onChange allows re-selecting the same file
+  - react-toastify toast.error() used for user-facing validation errors (same pattern as useRateLimit)
+  - QuickReplyChips hidden when staged attachments exist (same as when text is non-empty)
+  - Pre-existing ruff errors in services/ (ai, core migrations) remain — not from US-009 changes
+---
+
+## US-010: Frontend: message attachment display, thumbnails, presigned URL access
+- Status: PASS
+- Attempts: 1
+- Changes: frontend/src/components/chat/AttachmentBox.tsx (new), frontend/src/components/chat/UserMessageBubble.tsx, frontend/src/components/chat/ChatMessageList.tsx, frontend/src/components/workspace/ChatPanel.tsx, frontend/src/hooks/use-websocket.ts, frontend/src/i18n/locales/en.json, frontend/src/i18n/locales/de.json, frontend/src/__tests__/attachment-box.test.tsx (new), frontend/src/__tests__/user-message-attachments.test.tsx (new), .ralph/prd.json
+- Tests: 15 new frontend tests pass (10 AttachmentBox + 5 UserMessageBubble), 391 total frontend tests pass, TypeScript typecheck clean
+- Learnings for future iterations:
+  - AttachmentBox component is reusable: accepts clickable, onRemove, showThumbnail, thumbnailUrl props
+  - isReadOnly prop flows: ProjectWorkspace → ChatPanel → ChatMessageList → UserMessageBubble → AttachmentBox (clickable=!isReadOnly)
+  - WebSocket event for extraction: "attachment_extracted" dispatched as CustomEvent "ws:attachment_extracted" with {project_id, attachment_id, extraction_status}
+  - ChatPanel handles ws:attachment_extracted by mapping over newMessages and updating matching attachment's extraction_status
+  - Presigned URLs are fetched fresh on each click (15-min TTL, never cached)
+  - Read-only users see attachment boxes with cursor-not-allowed; clicking shows toast via react-toastify
+  - Extraction status display: pending/processing shows pulse animation + "Processing...", failed shows muted "Extraction failed", completed shows nothing extra
+  - Pre-existing ruff errors in services/ (ai, core migrations) remain — not from US-010 changes
+---

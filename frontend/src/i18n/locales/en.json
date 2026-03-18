@@ -458,7 +458,11 @@
     "limitPerProject": "Maximum 10 attachments per project",
     "uploadFailed": "Upload failed: {{name}}",
     "uploading": "Uploading...",
-    "remove": "Remove attachment"
+    "remove": "Remove attachment",
+    "readOnlyBlocked": "Download not available in read-only mode",
+    "processing": "Processing...",
+    "extractionFailed": "Extraction failed",
+    "downloadFailed": "Download failed"
   },
   "requirements": {
     "generating": {

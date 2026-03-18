@@ -458,7 +458,11 @@
     "limitPerProject": "Maximal 10 Anhänge pro Projekt",
     "uploadFailed": "Upload fehlgeschlagen: {{name}}",
     "uploading": "Wird hochgeladen...",
-    "remove": "Anhang entfernen"
+    "remove": "Anhang entfernen",
+    "readOnlyBlocked": "Download im Nur-Lesen-Modus nicht verfügbar",
+    "processing": "Verarbeitung...",
+    "extractionFailed": "Extraktion fehlgeschlagen",
+    "downloadFailed": "Download fehlgeschlagen"
   },
   "requirements": {
     "generating": {
