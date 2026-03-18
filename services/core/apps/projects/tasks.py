@@ -33,7 +33,18 @@ def soft_delete_cleanup() -> dict:
         from apps.brd.models import BrdDraft, BrdVersion
         from apps.chat.models import AiReaction, ChatMessage, UserReaction
         from apps.collaboration.models import CollaborationInvitation
+        from apps.projects.models import Attachment
         from apps.review.models import ReviewAssignment, ReviewTimelineEntry
+
+        # Collect attachment storage keys before CASCADE delete removes the records
+        attachment_keys = list(
+            Attachment.objects.filter(project_id__in=project_ids).values_list("storage_key", flat=True)
+        )
+
+        # Dispatch storage file cleanup BEFORE deleting DB records
+        # so keys are recoverable on next run if dispatch fails
+        if attachment_keys:
+            _dispatch_storage_cleanup(attachment_keys)
 
         # Delete reactions linked to chat messages for these projects
         message_ids = list(
@@ -58,3 +69,20 @@ def soft_delete_cleanup() -> dict:
         logger.info("No expired soft-deleted projects found (countdown: %d days)", countdown_days)
 
     return {"deleted_count": count, "countdown_days": countdown_days}
+
+
+def _dispatch_storage_cleanup(storage_keys: list[str]) -> None:
+    """Dispatch storage file deletion to gateway celery worker."""
+    try:
+        from celery import Celery
+        from django.conf import settings
+
+        app = Celery("gateway", broker=settings.CELERY_BROKER_URL)
+        app.send_task(
+            "attachments.bulk_delete_storage",
+            kwargs={"storage_keys": storage_keys},
+            queue="gateway",
+        )
+        logger.info("Dispatched storage cleanup for %d files", len(storage_keys))
+    except Exception:
+        logger.warning("Failed to dispatch storage cleanup for %d files", len(storage_keys))

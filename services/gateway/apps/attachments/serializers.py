@@ -8,4 +8,5 @@ class AttachmentResponseSerializer(serializers.Serializer):
     size_bytes = serializers.IntegerField()
     extraction_status = serializers.CharField()
     created_at = serializers.DateTimeField()
+    deleted_at = serializers.DateTimeField(allow_null=True)
     message_id = serializers.UUIDField(allow_null=True)

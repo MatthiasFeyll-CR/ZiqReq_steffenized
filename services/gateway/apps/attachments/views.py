@@ -268,9 +268,14 @@ def _list_attachments(request: Request, project_id: str) -> Response:
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    attachments = Attachment.objects.filter(
-        project_id=project.id, deleted_at__isnull=True
-    ).order_by("-created_at")
+    include_deleted = request.query_params.get("include_deleted", "").lower() == "true"
+    if include_deleted and project.owner_id != user.id:
+        include_deleted = False
+
+    qs = Attachment.objects.filter(project_id=project.id)
+    if not include_deleted:
+        qs = qs.filter(deleted_at__isnull=True)
+    attachments = qs.order_by("-created_at")
 
     serializer = AttachmentResponseSerializer(attachments, many=True)
     return Response(serializer.data)
@@ -306,30 +311,16 @@ def attachment_delete(request: Request, project_id: str, attachment_id: str) -> 
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # Check access: must be uploader or project owner
-    if attachment.uploader_id != user.id and project.owner_id != user.id:
+    # Check access: any collaborator can delete
+    if not _check_access(user, project):
         return Response(
-            {"error": "ACCESS_DENIED", "message": "Only the uploader or project owner can delete this attachment"},
+            {"error": "ACCESS_DENIED", "message": "Only collaborators can delete attachments"},
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    # Immutability rule: cannot delete attachment already linked to a message
-    if attachment.message_id is not None:
-        return Response(
-            {"error": "IMMUTABLE", "message": "Cannot delete attachment already sent with message"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    # Soft delete
+    # Soft delete (storage cleanup handled by periodic task)
     attachment.deleted_at = timezone.now()
     attachment.save(update_fields=["deleted_at"])
-
-    # Best-effort storage deletion
-    try:
-        backend = _get_storage_backend()
-        backend.delete_file(attachment.storage_key)
-    except Exception:
-        logger.warning("Failed to delete file from storage: %s", attachment.storage_key)
 
     return Response(status=status.HTTP_204_NO_CONTENT)
 

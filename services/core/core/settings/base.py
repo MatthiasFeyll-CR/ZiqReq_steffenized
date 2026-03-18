@@ -40,13 +40,23 @@ ROOT_URLCONF = "core.urls"
 CELERY_BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@localhost:5672/")
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
 CELERY_BEAT_SCHEDULE = {
-"health-check-sweep": {
+    "health-check-sweep": {
         "task": "monitoring.health_check_task",
         "schedule": 60.0,  # default: every 60 seconds (configurable via admin_parameters)
     },
     "soft-delete-cleanup": {
         "task": "projects.soft_delete_cleanup",
         "schedule": 86400.0,  # daily
+    },
+    "attachment-orphan-cleanup": {
+        "task": "attachments.orphan_cleanup",
+        "schedule": 3600.0,  # hourly
+        "options": {"queue": "gateway"},
+    },
+    "attachment-storage-cleanup": {
+        "task": "attachments.storage_cleanup",
+        "schedule": 3600.0,  # hourly
+        "options": {"queue": "gateway"},
     },
 }
 

@@ -269,6 +269,36 @@ services:
       redis:
         condition: service_healthy
 
+  celery-worker-gateway:
+    build: ../../services/gateway
+    command: celery -A gateway worker -l info -Q gateway
+    environment:
+      DJANGO_SETTINGS_MODULE: gateway.settings.development
+      SECRET_KEY: ${SECRET_KEY:-insecure-dev-key-change-me}
+      DB_HOST: ${POSTGRES_HOST:-postgresql}
+      DB_NAME: ${POSTGRES_DB:-ziqreq}
+      DB_USER: ${POSTGRES_USER:-ziqreq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-minio}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-attachments}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
   celery-worker-ai:
     build: ../../services/ai
     command: celery -A ai_service worker -l info -Q ai

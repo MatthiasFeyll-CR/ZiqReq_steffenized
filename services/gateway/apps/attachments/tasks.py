@@ -1,0 +1,106 @@
+"""Celery tasks for attachment cleanup."""
+
+import logging
+
+from celery import shared_task
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task(name="attachments.orphan_cleanup")
+def orphan_cleanup() -> dict:
+    """Soft-delete orphaned attachments (uploaded but never linked to a message) past TTL."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.admin_config.services import get_parameter
+    from apps.projects.models import Attachment
+
+    ttl_hours: int = get_parameter("orphan_attachment_ttl_hours", default=96, cast=int)
+    cutoff = timezone.now() - timedelta(hours=ttl_hours)
+
+    orphaned = Attachment.objects.filter(
+        message_id__isnull=True,
+        deleted_at__isnull=True,
+        created_at__lt=cutoff,
+    )
+    count = orphaned.update(deleted_at=timezone.now())
+
+    if count:
+        logger.info("Soft-deleted %d orphaned attachments (TTL: %dh)", count, ttl_hours)
+    else:
+        logger.info("No orphaned attachments found past %dh TTL", ttl_hours)
+
+    return {"soft_deleted_count": count, "ttl_hours": ttl_hours}
+
+
+@shared_task(name="attachments.storage_cleanup")
+def storage_cleanup() -> dict:
+    """Hard-delete expired soft-deleted attachments and their storage files."""
+    from datetime import timedelta
+
+    from django.db import transaction
+    from django.utils import timezone
+
+    from apps.admin_config.services import get_parameter
+    from apps.projects.models import Attachment
+
+    retention_hours: int = get_parameter("soft_delete_retention_hours", default=720, cast=int)
+    cutoff = timezone.now() - timedelta(hours=retention_hours)
+
+    with transaction.atomic():
+        expired = Attachment.objects.select_for_update().filter(
+            deleted_at__isnull=False,
+            deleted_at__lt=cutoff,
+        )
+        storage_keys = list(expired.values_list("storage_key", flat=True))
+        count = len(storage_keys)
+
+        if count:
+            expired.delete()
+
+    # Delete storage files outside transaction (best-effort, DB records already gone)
+    if count:
+        _delete_storage_files(storage_keys)
+        logger.info("Hard-deleted %d expired attachments and storage files", count)
+    else:
+        logger.info("No expired soft-deleted attachments to clean up")
+
+    return {"hard_deleted_count": count, "retention_hours": retention_hours}
+
+
+@shared_task(name="attachments.bulk_delete_storage")
+def bulk_delete_storage(storage_keys: list[str]) -> dict:
+    """Delete a list of storage files from MinIO (dispatched by core on project hard-delete).
+
+    Only deletes keys that exist in the attachments table to prevent unauthorized deletion.
+    """
+    from apps.projects.models import Attachment
+
+    valid_keys = set(
+        Attachment.objects.filter(storage_key__in=storage_keys).values_list("storage_key", flat=True)
+    )
+    if len(valid_keys) < len(storage_keys):
+        logger.warning(
+            "bulk_delete_storage: %d/%d keys not found in DB, skipping",
+            len(storage_keys) - len(valid_keys),
+            len(storage_keys),
+        )
+    deleted = _delete_storage_files(list(valid_keys)) if valid_keys else 0
+    return {"requested": len(storage_keys), "valid": len(valid_keys), "deleted": deleted}
+
+
+def _delete_storage_files(storage_keys: list[str]) -> int:
+    """Best-effort deletion of storage files. Returns count of successful deletions."""
+    from storage.factory import get_storage_backend
+
+    backend = get_storage_backend()
+    deleted = 0
+    for key in storage_keys:
+        try:
+            backend.delete_file(key)
+            deleted += 1
+        except Exception:
+            logger.warning("Failed to delete storage file: %s", key, exc_info=True)
+    return deleted
