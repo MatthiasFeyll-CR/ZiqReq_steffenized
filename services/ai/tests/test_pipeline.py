@@ -815,7 +815,7 @@ class TestContextAssembler:
             "project": {
                 "title": "Invoice Automation",
                 "state": "open",
-    
+
                 "title_manually_edited": False,
             },
             "recent_messages": [

@@ -324,7 +324,8 @@ class FacilitatorPlugin:
             "For existing epics/milestones, use the UUID from the requirements structure. "
             "Example: "
             '[{"operation":"add_epic","data":{"title":"User Management","description":"..."}}, '
-            '{"operation":"add_story","data":{"epic_id":"User Management","title":"As a user, I want to log in","description":"...","acceptance_criteria":"...","priority":"High"}}]. '
+            '{"operation":"add_story","data":{"epic_id":"User Management","title":"As a user, I want to log in",'
+            '"description":"...","acceptance_criteria":"...","priority":"High"}}]. '
             "Valid operations for software: add_epic, update_epic, remove_epic, reorder_epics, "
             "add_story, update_story, remove_story, reorder_stories. "
             "Valid operations for non-software: add_milestone, update_milestone, remove_milestone, "
