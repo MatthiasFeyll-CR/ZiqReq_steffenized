@@ -12,6 +12,7 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from apps.admin_config.services import get_parameter
 from apps.projects.authentication import MiddlewareAuthentication
 from apps.projects.models import Attachment, Project, ProjectCollaborator
 
@@ -26,16 +27,26 @@ from .validators import (
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_CONTENT_TYPES = {
-    "image/png",
-    "image/jpeg",
-    "image/webp",
-    "application/pdf",
-}
-MAX_FILE_SIZE = 104857600  # 100MB
-MAX_ATTACHMENTS_PER_PROJECT = 10
-RATE_LIMIT_UPLOADS_PER_MINUTE = 10
-PRESIGNED_URL_TTL = 900  # 15 minutes
+
+def _allowed_content_types() -> set[str]:
+    raw = get_parameter("allowed_attachment_types", default="image/png,image/jpeg,image/webp,application/pdf")
+    return {t.strip() for t in raw.split(",") if t.strip()}
+
+
+def _max_file_size() -> int:
+    return get_parameter("max_attachment_size_mb", default=100, cast=int) * 1024 * 1024
+
+
+def _max_attachments_per_project() -> int:
+    return get_parameter("max_attachments_per_project", default=10, cast=int)
+
+
+def _rate_limit_uploads_per_minute() -> int:
+    return get_parameter("attachment_upload_rate_limit", default=10, cast=int)
+
+
+def _presigned_url_ttl() -> int:
+    return get_parameter("attachment_presigned_url_ttl", default=900, cast=int)
 
 
 def _require_auth(request: Request):
@@ -82,7 +93,7 @@ def _check_rate_limit(user_id: str) -> bool:
     """Return True if rate limit exceeded."""
     cache_key = f"upload_rate:{user_id}"
     count = cache.get(cache_key, 0)
-    if count >= RATE_LIMIT_UPLOADS_PER_MINUTE:
+    if count >= _rate_limit_uploads_per_minute():
         return True
     cache.set(cache_key, count + 1, timeout=60)
     return False
@@ -181,24 +192,28 @@ def _upload_attachment(request: Request, project_id: str) -> Response:
         )
 
     # Validate content type
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
+    allowed_types = _allowed_content_types()
+    if file.content_type not in allowed_types:
         return Response(
-            {"error": "VALIDATION_ERROR", "message": f"File type '{file.content_type}' is not allowed. Allowed types: png, jpeg, webp, pdf"},
+            {"error": "VALIDATION_ERROR", "message": f"File type '{file.content_type}' is not allowed"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Validate file size
-    if file.size > MAX_FILE_SIZE:
+    max_size = _max_file_size()
+    max_size_mb = max_size // (1024 * 1024)
+    if file.size > max_size:
         return Response(
-            {"error": "VALIDATION_ERROR", "message": "File size exceeds 100MB limit"},
+            {"error": "VALIDATION_ERROR", "message": f"File size exceeds {max_size_mb}MB limit"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Validate project attachment count
+    max_per_project = _max_attachments_per_project()
     active_count = Attachment.active_count_for_project(project.id)
-    if active_count >= MAX_ATTACHMENTS_PER_PROJECT:
+    if active_count >= max_per_project:
         return Response(
-            {"error": "VALIDATION_ERROR", "message": "Project has reached the maximum of 10 attachments"},
+            {"error": "VALIDATION_ERROR", "message": f"Project has reached the maximum of {max_per_project} attachments"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -366,16 +381,15 @@ def attachment_restore(request: Request, project_id: str, attachment_id: str) ->
         )
 
     # Check project attachment limit
+    max_per_project = _max_attachments_per_project()
     active_count = Attachment.active_count_for_project(project.id)
-    if active_count >= MAX_ATTACHMENTS_PER_PROJECT:
+    if active_count >= max_per_project:
         return Response(
-            {"error": "LIMIT_EXCEEDED", "message": "Project has reached the maximum of 10 attachments"},
+            {"error": "LIMIT_EXCEEDED", "message": f"Project has reached the maximum of {max_per_project} attachments"},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
     # Check if within restore window
-    from apps.admin_config.services import get_parameter
-
     ttl_hours = get_parameter("orphan_attachment_ttl_hours", default=96, cast=int)
     deadline = attachment.deleted_at + timedelta(hours=ttl_hours)
     if timezone.now() > deadline:
@@ -442,7 +456,7 @@ def attachment_url(request: Request, project_id: str, attachment_id: str) -> Res
         backend = _get_storage_backend()
         url = backend.get_presigned_url(
             attachment.storage_key,
-            expires_seconds=PRESIGNED_URL_TTL,
+            expires_seconds=_presigned_url_ttl(),
             filename=attachment.filename,
         )
     except Exception:

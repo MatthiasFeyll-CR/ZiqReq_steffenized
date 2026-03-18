@@ -368,18 +368,18 @@ When to update/remove:
 - Use reorder_milestones/reorder_packages to change priority order"""
 
 
-_DEFAULT_ATTACHMENT_MAX_CHARS = 16000  # 4000 tokens × 4 chars/token
+_DEFAULT_ATTACHMENT_MAX_CHARS = 16000
 
 
 def _get_max_content_chars() -> int:
-    """Read attachment_extraction_max_tokens admin param and convert to char limit."""
+    """Read attachment_extraction_max_chars admin param."""
     try:
         from grpc_clients.core_client import CoreClient
         client = CoreClient()
-        param = client.get_admin_parameter("attachment_extraction_max_tokens")
+        param = client.get_admin_parameter("attachment_extraction_max_chars")
         value = param.get("value", "")
         if value:
-            return int(value) * 4
+            return int(value)
     except Exception:
         pass
     return _DEFAULT_ATTACHMENT_MAX_CHARS

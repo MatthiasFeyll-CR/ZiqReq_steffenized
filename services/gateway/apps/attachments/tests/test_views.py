@@ -189,15 +189,15 @@ class TestAttachmentUpload(TestCase):
         f = _make_upload_file()
         with patch("apps.attachments.views._get_storage_backend") as mock_backend:
             mock_backend.return_value = MagicMock()
-            # Monkey-patch file size
-            with patch("apps.attachments.views.MAX_FILE_SIZE", 10):
+            # Return a tiny max size so the test file exceeds it
+            with patch("apps.attachments.views._max_file_size", return_value=10):
                 resp = self.client.post(
                     f"/api/projects/{self.project.id}/attachments/",
                     {"file": f},
                     format="multipart",
                 )
         assert resp.status_code == 400
-        assert "100MB" in resp.json()["message"]
+        assert "limit" in resp.json()["message"]
 
     def test_upload_exceeds_project_limit(self):
         # Create 10 existing attachments

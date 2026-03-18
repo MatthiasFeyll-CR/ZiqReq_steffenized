@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from apps.admin_config.services import get_parameter
 from apps.attachments.serializers import AttachmentResponseSerializer
 
 VALID_REACTION_TYPES = ("thumbs_up", "thumbs_down", "heart")
@@ -9,10 +10,17 @@ class ChatMessageCreateSerializer(serializers.Serializer):
     content = serializers.CharField(min_length=1)
     attachment_ids = serializers.ListField(
         child=serializers.UUIDField(),
-        max_length=3,
         required=False,
         default=list,
     )
+
+    def validate_attachment_ids(self, value):
+        max_per_message = get_parameter("max_attachments_per_message", default=3, cast=int)
+        if len(value) > max_per_message:
+            raise serializers.ValidationError(
+                f"Maximum {max_per_message} attachments per message."
+            )
+        return value
 
 
 class ChatMessageResponseSerializer(serializers.Serializer):

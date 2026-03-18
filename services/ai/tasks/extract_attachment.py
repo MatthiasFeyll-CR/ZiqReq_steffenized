@@ -107,12 +107,11 @@ def _get_max_chars() -> int:
         from grpc_clients.core_client import CoreClient
 
         client = CoreClient()
-        result = client.get_admin_parameter("attachment_extraction_max_tokens")
+        result = client.get_admin_parameter("attachment_extraction_max_chars")
         if result.get("value"):
-            # Convert token count to approximate char count (1 token ≈ 4 chars)
-            return int(result["value"]) * 4
+            return int(result["value"])
     except Exception:
-        logger.debug("Could not read attachment_extraction_max_tokens — using default")
+        logger.debug("Could not read attachment_extraction_max_chars — using default")
     return DEFAULT_MAX_CHARS
 
 
