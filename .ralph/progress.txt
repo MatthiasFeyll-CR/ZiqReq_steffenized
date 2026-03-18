@@ -126,3 +126,22 @@ Started: 2026-03-18T01:03:58+0100
   - Running specific test file paths in Docker fails due to conftest resolution — use -k filter or run full suite
   - celery, PyMuPDF, minio added to services/ai/requirements.txt (root requirements.txt already had them)
 ---
+
+## US-007: AI content extraction — image processing + task orchestration
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/tasks/extract_attachment.py, services/ai/processing/pipeline.py, services/gateway/apps/attachments/views.py, services/gateway/apps/websocket/consumers.py, services/gateway/events/consumers.py, services/ai/tests/test_extract_attachment.py, services/ai/tests/test_pipeline_extraction_wait.py (new)
+- Tests: 25 new tests pass (19 extraction + 6 pipeline wait), 854 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - Image extraction uses _extract_image() which delegates to _call_vision() with VISION_PROMPT_IMAGE
+  - IMAGE_CONTENT_TYPES set: {"image/png", "image/jpeg", "image/webp"} — used for type routing in extraction task
+  - Type check must happen BEFORE _get_max_chars/_download_file to avoid unnecessary MinIO calls for unsupported types
+  - Celery task dispatch from Gateway uses Celery().send_task() pattern (not direct import) since AI service is separate
+  - _dispatch_extraction_task reads CELERY_BROKER_URL from Django settings; skips if not configured
+  - Pipeline extraction wait: _wait_for_extraction() polls get_project_context every 2s (max 30s), checks triggering message's attachments
+  - Only the most recent user message (reversed iteration) is considered the "triggering message"
+  - Event publishing: _publish_extraction_event_sync wraps async publish_event for use in Celery (sync) context
+  - WebSocket: attachment_extracted handler added to ProjectConsumer; AIEventConsumer handles ai.attachment.extracted routing
+  - Docker test containers MUST be rebuilt (--build) after code changes — stale images cause false test failures
+  - Test container had stale code on first attempt, leading to confusing failures
+---
