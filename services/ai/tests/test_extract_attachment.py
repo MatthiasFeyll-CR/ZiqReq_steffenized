@@ -1,7 +1,8 @@
-"""Tests for the extract_attachment_content Celery task (US-006).
+"""Tests for the extract_attachment_content Celery task (US-006 + US-007).
 
 Covers: successful PDF extraction, page-level vision fallback trigger,
-truncation, mock mode, error handling, missing attachment.
+truncation, mock mode, error handling, missing attachment,
+image extraction, Celery dispatch, event publishing.
 """
 
 from __future__ import annotations
@@ -172,10 +173,11 @@ class TestExtractPdf:
 class TestExtractAttachmentContentTask:
     """Test the main Celery task."""
 
+    @patch("tasks.extract_attachment._publish_extraction_event_sync")
     @patch("tasks.extract_attachment._update_attachment")
     @patch("tasks.extract_attachment._get_attachment")
     @patch("tasks.extract_attachment._is_mock_mode", return_value=True)
-    def test_mock_mode(self, mock_mode: MagicMock, mock_get: MagicMock, mock_update: MagicMock) -> None:
+    def test_mock_mode_pdf(self, mock_mode: MagicMock, mock_get: MagicMock, mock_update: MagicMock, mock_publish: MagicMock) -> None:
         from tasks.extract_attachment import extract_attachment_content
 
         mock_get.return_value = {
@@ -192,10 +194,38 @@ class TestExtractAttachmentContentTask:
         mock_update.assert_called_once()
         args = mock_update.call_args[0]
         assert args[0] == "att-1"
-        assert "[Mock extraction]" in args[1]
+        assert "[Mock extraction] PDF content from" in args[1]
         assert "report.pdf" in args[1]
         assert "54321" in args[1]
         assert args[2] == "completed"
+        mock_publish.assert_called_once_with("proj-1", "att-1", "completed")
+
+    @patch("tasks.extract_attachment._publish_extraction_event_sync")
+    @patch("tasks.extract_attachment._update_attachment")
+    @patch("tasks.extract_attachment._get_attachment")
+    @patch("tasks.extract_attachment._is_mock_mode", return_value=True)
+    def test_mock_mode_image(self, mock_mode: MagicMock, mock_get: MagicMock, mock_update: MagicMock, mock_publish: MagicMock) -> None:
+        from tasks.extract_attachment import extract_attachment_content
+
+        mock_get.return_value = {
+            "id": "att-2",
+            "project_id": "proj-1",
+            "filename": "diagram.png",
+            "storage_key": "attachments/proj/diagram.png",
+            "content_type": "image/png",
+            "size_bytes": 8000,
+        }
+
+        extract_attachment_content("att-2", "proj-1")
+
+        mock_update.assert_called_once()
+        args = mock_update.call_args[0]
+        assert args[0] == "att-2"
+        assert "[Mock extraction] Image content from" in args[1]
+        assert "diagram.png" in args[1]
+        assert "8000" in args[1]
+        assert args[2] == "completed"
+        mock_publish.assert_called_once_with("proj-1", "att-2", "completed")
 
     @patch("tasks.extract_attachment._update_attachment")
     @patch("tasks.extract_attachment._get_attachment", return_value=None)
@@ -207,6 +237,7 @@ class TestExtractAttachmentContentTask:
 
         mock_update.assert_not_called()
 
+    @patch("tasks.extract_attachment._publish_extraction_event_sync")
     @patch("tasks.extract_attachment._update_attachment")
     @patch("tasks.extract_attachment._extract_pdf", return_value="Extracted PDF text")
     @patch("tasks.extract_attachment._download_file", return_value=b"fake pdf bytes")
@@ -223,6 +254,7 @@ class TestExtractAttachmentContentTask:
         mock_download: MagicMock,
         mock_extract: MagicMock,
         mock_update: MagicMock,
+        mock_publish: MagicMock,
     ) -> None:
         from tasks.extract_attachment import extract_attachment_content
 
@@ -241,17 +273,26 @@ class TestExtractAttachmentContentTask:
         mock_download.assert_called_once_with("attachments/proj/report.pdf")
         mock_extract.assert_called_once_with(b"fake pdf bytes", 16000)
         mock_update.assert_called_once_with("att-1", "Extracted PDF text", "completed")
+        mock_publish.assert_called_once_with("proj-1", "att-1", "completed")
 
+    @patch("tasks.extract_attachment._publish_extraction_event_sync")
     @patch("tasks.extract_attachment._update_attachment")
+    @patch("tasks.extract_attachment._extract_image", return_value="Image description")
+    @patch("tasks.extract_attachment._download_file", return_value=b"fake image bytes")
+    @patch("tasks.extract_attachment._get_max_chars", return_value=16000)
     @patch("tasks.extract_attachment._set_extraction_processing")
     @patch("tasks.extract_attachment._get_attachment")
     @patch("tasks.extract_attachment._is_mock_mode", return_value=False)
-    def test_skips_non_pdf(
+    def test_successful_image_extraction(
         self,
         mock_mode: MagicMock,
         mock_get: MagicMock,
         mock_processing: MagicMock,
+        mock_max_chars: MagicMock,
+        mock_download: MagicMock,
+        mock_extract_img: MagicMock,
         mock_update: MagicMock,
+        mock_publish: MagicMock,
     ) -> None:
         from tasks.extract_attachment import extract_attachment_content
 
@@ -266,9 +307,42 @@ class TestExtractAttachmentContentTask:
 
         extract_attachment_content("att-1", "proj-1")
 
-        # Should not call update since it's not a PDF
-        mock_update.assert_not_called()
+        mock_processing.assert_called_once_with("att-1")
+        mock_download.assert_called_once_with("attachments/proj/photo.png")
+        mock_extract_img.assert_called_once_with(b"fake image bytes", 16000)
+        mock_update.assert_called_once_with("att-1", "Image description", "completed")
+        mock_publish.assert_called_once_with("proj-1", "att-1", "completed")
 
+    @patch("tasks.extract_attachment._publish_extraction_event_sync")
+    @patch("tasks.extract_attachment._update_attachment")
+    @patch("tasks.extract_attachment._set_extraction_processing")
+    @patch("tasks.extract_attachment._get_attachment")
+    @patch("tasks.extract_attachment._is_mock_mode", return_value=False)
+    def test_skips_unsupported_type(
+        self,
+        mock_mode: MagicMock,
+        mock_get: MagicMock,
+        mock_processing: MagicMock,
+        mock_update: MagicMock,
+        mock_publish: MagicMock,
+    ) -> None:
+        from tasks.extract_attachment import extract_attachment_content
+
+        mock_get.return_value = {
+            "id": "att-1",
+            "project_id": "proj-1",
+            "filename": "file.txt",
+            "storage_key": "attachments/proj/file.txt",
+            "content_type": "text/plain",
+            "size_bytes": 5000,
+        }
+
+        extract_attachment_content("att-1", "proj-1")
+
+        mock_update.assert_not_called()
+        mock_publish.assert_not_called()
+
+    @patch("tasks.extract_attachment._publish_extraction_event_sync")
     @patch("tasks.extract_attachment._update_attachment")
     @patch("tasks.extract_attachment._download_file", side_effect=Exception("Storage error"))
     @patch("tasks.extract_attachment._get_max_chars", return_value=16000)
@@ -283,6 +357,7 @@ class TestExtractAttachmentContentTask:
         mock_max_chars: MagicMock,
         mock_download: MagicMock,
         mock_update: MagicMock,
+        mock_publish: MagicMock,
     ) -> None:
         from tasks.extract_attachment import extract_attachment_content
 
@@ -298,6 +373,7 @@ class TestExtractAttachmentContentTask:
         extract_attachment_content("att-1", "proj-1")
 
         mock_update.assert_called_once_with("att-1", "", "failed")
+        mock_publish.assert_called_once_with("proj-1", "att-1", "failed")
 
     @patch("tasks.extract_attachment._update_attachment")
     @patch("tasks.extract_attachment._set_extraction_processing")
@@ -315,6 +391,38 @@ class TestExtractAttachmentContentTask:
         extract_attachment_content("nonexistent", "proj-1")
 
         mock_update.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Tests: _get_max_chars
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Tests: _extract_image
+# ---------------------------------------------------------------------------
+
+
+class TestExtractImage:
+    """Test the _extract_image function."""
+
+    @patch("tasks.extract_attachment._call_vision", return_value="A workflow diagram showing steps A -> B -> C.")
+    def test_extracts_image_description(self, mock_vision: MagicMock) -> None:
+        from tasks.extract_attachment import VISION_PROMPT_IMAGE, _extract_image
+
+        result = _extract_image(b"fake image bytes", 16000)
+
+        assert "workflow diagram" in result
+        mock_vision.assert_called_once_with(b"fake image bytes", VISION_PROMPT_IMAGE)
+
+    @patch("tasks.extract_attachment._call_vision", return_value="A" * 200)
+    def test_truncates_long_description(self, mock_vision: MagicMock) -> None:
+        from tasks.extract_attachment import _extract_image
+
+        result = _extract_image(b"fake image bytes", 50)
+
+        assert len(result) <= 50 + len("\n[... truncated]")
+        assert "[... truncated]" in result
 
 
 # ---------------------------------------------------------------------------

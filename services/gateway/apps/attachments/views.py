@@ -90,6 +90,31 @@ def _get_storage_backend():
     return get_storage_backend()
 
 
+def _dispatch_extraction_task(attachment_id: str, project_id: str) -> None:
+    """Dispatch the Celery extraction task for the given attachment.
+
+    Best-effort: logs warning on failure but does not block the upload response.
+    """
+    try:
+        from django.conf import settings
+
+        broker_url = getattr(settings, "CELERY_BROKER_URL", None)
+        if not broker_url:
+            logger.info("No CELERY_BROKER_URL configured, skipping extraction task dispatch")
+            return
+
+        from celery import Celery
+
+        celery_app = Celery("ai_service", broker=broker_url)
+        celery_app.send_task(
+            "tasks.extract_attachment_content",
+            kwargs={"attachment_id": attachment_id, "project_id": project_id},
+        )
+        logger.info("Dispatched extraction task for attachment %s", attachment_id)
+    except Exception:
+        logger.warning("Failed to dispatch extraction task for attachment %s", attachment_id, exc_info=True)
+
+
 @api_view(["GET", "POST"])
 @authentication_classes([MiddlewareAuthentication])
 @parser_classes([MultiPartParser])
@@ -201,6 +226,9 @@ def _upload_attachment(request: Request, project_id: str) -> Response:
         content_type=file.content_type,
         size_bytes=len(file_data),
     )
+
+    # Dispatch extraction task AFTER DB commit to avoid race condition
+    _dispatch_extraction_task(str(attachment.id), str(project.id))
 
     serializer = AttachmentResponseSerializer(attachment)
     return Response(serializer.data, status=status.HTTP_201_CREATED)

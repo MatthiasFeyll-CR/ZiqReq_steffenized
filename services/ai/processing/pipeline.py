@@ -12,7 +12,9 @@ Steps:
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 import uuid
 from typing import Any
 
@@ -167,10 +169,21 @@ class ChatProcessingPipeline:
 
     # ── Step implementations ──
 
+    # Extraction wait constants
+    EXTRACTION_POLL_INTERVAL = 2  # seconds
+    EXTRACTION_POLL_TIMEOUT = 30  # seconds
+
     async def _step_load_context(self, project_id: str) -> dict[str, Any]:
-        """Step 1: Load project state via Core gRPC GetProjectContext + GetRequirementsState."""
+        """Step 1: Load project state via Core gRPC GetProjectContext + GetRequirementsState.
+
+        Also waits for pending/processing attachment extractions on the most recent
+        user message (the triggering message) to complete, polling every 2s up to 30s.
+        """
         logger.info("Step 1: Loading context for project %s", project_id)
         project_context = self.core_client.get_project_context(project_id)
+
+        # Wait for extraction of attachments on the triggering (most recent user) message
+        project_context = await self._wait_for_extraction(project_id, project_context)
 
         # Fetch requirements state and inject into response for context_assembler
         try:
@@ -187,6 +200,86 @@ class ChatProcessingPipeline:
                 project["project_type"] = self.core_client._get_project_type(project_id)
             except Exception:
                 project["project_type"] = "software"
+
+        return project_context
+
+    async def _wait_for_extraction(
+        self, project_id: str, project_context: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Wait for pending/processing extractions on the triggering message's attachments.
+
+        Polls every 2 seconds, up to 30 seconds. If timeout, proceeds with partial context.
+        Returns an updated project_context with refreshed attachment statuses.
+        """
+        # Find the most recent user message (the triggering message)
+        recent_messages = project_context.get("recent_messages", [])
+        triggering_message = None
+        for msg in reversed(recent_messages):
+            if msg.get("sender_type") == "user":
+                triggering_message = msg
+                break
+
+        if not triggering_message:
+            return project_context
+
+        attachments = triggering_message.get("attachments", [])
+        if not attachments:
+            return project_context
+
+        # Check if any attachments are still pending/processing
+        pending_statuses = {"pending", "processing"}
+        pending_ids = [
+            a["id"] for a in attachments
+            if a.get("extraction_status") in pending_statuses
+        ]
+
+        if not pending_ids:
+            return project_context
+
+        logger.info(
+            "Step 1: Waiting for extraction of %d attachments on triggering message",
+            len(pending_ids),
+        )
+
+        start = time.monotonic()
+        while time.monotonic() - start < self.EXTRACTION_POLL_TIMEOUT:
+            await asyncio.sleep(self.EXTRACTION_POLL_INTERVAL)
+
+            # Re-fetch context to check updated extraction statuses
+            project_context = self.core_client.get_project_context(project_id)
+            recent_messages = project_context.get("recent_messages", [])
+
+            # Re-find triggering message
+            triggering_message = None
+            for msg in reversed(recent_messages):
+                if msg.get("sender_type") == "user":
+                    triggering_message = msg
+                    break
+
+            if not triggering_message:
+                break
+
+            attachments = triggering_message.get("attachments", [])
+            still_pending = [
+                a["id"] for a in attachments
+                if a.get("extraction_status") in pending_statuses
+                and a["id"] in pending_ids
+            ]
+
+            if not still_pending:
+                logger.info("Step 1: All attachment extractions completed")
+                break
+
+            elapsed = time.monotonic() - start
+            logger.debug(
+                "Step 1: Still waiting for %d extractions (%.1fs elapsed)",
+                len(still_pending), elapsed,
+            )
+        else:
+            logger.warning(
+                "Step 1: Extraction wait timed out after %ds, proceeding with partial context",
+                self.EXTRACTION_POLL_TIMEOUT,
+            )
 
         return project_context
 
