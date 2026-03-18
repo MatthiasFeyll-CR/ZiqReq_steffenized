@@ -32,6 +32,7 @@ const imageAttachment: Attachment = {
   size_bytes: 204800,
   extraction_status: "completed",
   created_at: "2026-01-01T00:00:00Z",
+  deleted_at: null,
   message_id: "msg-1",
 };
 
@@ -42,6 +43,7 @@ const pdfAttachment: Attachment = {
   size_bytes: 1048576,
   extraction_status: "completed",
   created_at: "2026-01-01T00:00:00Z",
+  deleted_at: null,
   message_id: "msg-1",
 };
 
@@ -52,6 +54,7 @@ const pendingAttachment: Attachment = {
   size_bytes: 512000,
   extraction_status: "processing",
   created_at: "2026-01-01T00:00:00Z",
+  deleted_at: null,
   message_id: "msg-1",
 };
 
@@ -62,6 +65,7 @@ const failedAttachment: Attachment = {
   size_bytes: 100,
   extraction_status: "failed",
   created_at: "2026-01-01T00:00:00Z",
+  deleted_at: null,
   message_id: "msg-1",
 };
 
@@ -182,5 +186,48 @@ describe("AttachmentBox", () => {
       />,
     );
     expect(screen.getByTestId("attachment-thumbnail")).toBeInTheDocument();
+  });
+});
+
+describe("AttachmentBox — deleted state", () => {
+  const deletedAttachment: Attachment = {
+    id: "att-del",
+    filename: "removed.pdf",
+    content_type: "application/pdf",
+    size_bytes: 512000,
+    extraction_status: "completed",
+    created_at: "2026-01-01T00:00:00Z",
+    deleted_at: new Date().toISOString(),
+    message_id: "msg-1",
+  };
+
+  it("renders with red border and line-through for deleted attachment", () => {
+    render(
+      <AttachmentBox attachment={deletedAttachment} projectId={PROJECT_ID} clickable={true} />,
+    );
+    const box = screen.getByTestId("attachment-box");
+    expect(box.className).toContain("border-red");
+    const filename = screen.getByText("removed.pdf");
+    expect(filename.className).toContain("line-through");
+    expect(filename.className).toContain("text-red");
+  });
+
+  it("shows toast with restore prompt when clicked", async () => {
+    render(
+      <AttachmentBox attachment={deletedAttachment} projectId={PROJECT_ID} clickable={true} />,
+    );
+    await userEvent.click(screen.getByTestId("attachment-box"));
+    expect(mockToastInfo).toHaveBeenCalled();
+    const msg = mockToastInfo.mock.calls[0][0];
+    expect(msg).toContain("deleted");
+    expect(mockGetAttachmentUrl).not.toHaveBeenCalled();
+  });
+
+  it("has title attribute with countdown info", () => {
+    render(
+      <AttachmentBox attachment={deletedAttachment} projectId={PROJECT_ID} clickable={true} />,
+    );
+    const box = screen.getByTestId("attachment-box");
+    expect(box.getAttribute("title")).toContain("Deleted");
   });
 });

@@ -49,7 +49,8 @@ def _rate_limit_uploads_per_minute() -> int:
 
 
 def _presigned_url_ttl() -> int:
-    return get_parameter("attachment_presigned_url_ttl", default=900, cast=int)
+    ttl = get_parameter("attachment_presigned_url_ttl", default=900, cast=int)
+    return max(60, min(ttl, 7200))
 
 
 def _require_auth(request: Request):
@@ -393,44 +394,47 @@ def attachment_restore(request: Request, project_id: str, attachment_id: str) ->
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    from django.db import transaction
+
     try:
-        attachment = Attachment.objects.get(
-            id=attachment_id, project_id=project.id, deleted_at__isnull=False
-        )
+        with transaction.atomic():
+            attachment = Attachment.objects.select_for_update().get(
+                id=attachment_id, project_id=project.id, deleted_at__isnull=False
+            )
+
+            # Check project attachment limit
+            max_per_project = _max_attachments_per_project()
+            active_count = Attachment.active_count_for_project(project.id)
+            if active_count >= max_per_project:
+                return Response(
+                    {"error": "LIMIT_EXCEEDED", "message": f"Project has reached the maximum of {max_per_project} attachments"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Check if within restore window
+            ttl_hours = get_parameter("orphan_attachment_ttl_hours", default=96, cast=int)
+            deadline = attachment.deleted_at + timedelta(hours=ttl_hours)
+            if timezone.now() > deadline:
+                return Response(
+                    {"error": "EXPIRED", "message": "Restore window has expired"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Check storage file still exists
+            backend = _get_storage_backend()
+            if not backend.file_exists(attachment.storage_key):
+                return Response(
+                    {"error": "FILE_GONE", "message": "Storage file no longer exists"},
+                    status=status.HTTP_410_GONE,
+                )
+
+            attachment.deleted_at = None
+            attachment.save(update_fields=["deleted_at"])
     except Attachment.DoesNotExist:
         return Response(
             {"error": "NOT_FOUND", "message": "Attachment not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
-
-    # Check project attachment limit
-    max_per_project = _max_attachments_per_project()
-    active_count = Attachment.active_count_for_project(project.id)
-    if active_count >= max_per_project:
-        return Response(
-            {"error": "LIMIT_EXCEEDED", "message": f"Project has reached the maximum of {max_per_project} attachments"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    # Check if within restore window
-    ttl_hours = get_parameter("orphan_attachment_ttl_hours", default=96, cast=int)
-    deadline = attachment.deleted_at + timedelta(hours=ttl_hours)
-    if timezone.now() > deadline:
-        return Response(
-            {"error": "EXPIRED", "message": "Restore window has expired"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    # Check storage file still exists
-    backend = _get_storage_backend()
-    if not backend.file_exists(attachment.storage_key):
-        return Response(
-            {"error": "FILE_GONE", "message": "Storage file no longer exists"},
-            status=status.HTTP_410_GONE,
-        )
-
-    attachment.deleted_at = None
-    attachment.save(update_fields=["deleted_at"])
 
     _broadcast_attachment_event("attachment_restored", str(project.id), str(attachment.id))
 
@@ -476,7 +480,7 @@ def attachment_url(request: Request, project_id: str, attachment_id: str) -> Res
         )
 
     if is_admin and attachment.deleted_at:
-        logger.info("Admin %s accessed deleted attachment %s URL", user.id, attachment.id)
+        logger.warning("Admin %s accessed deleted attachment %s URL (project %s)", user.id, attachment.id, project.id)
 
     try:
         backend = _get_storage_backend()
@@ -533,7 +537,7 @@ def attachment_download(request: Request, project_id: str, attachment_id: str) -
         )
 
     if is_admin and attachment.deleted_at:
-        logger.info("Admin %s downloaded deleted attachment %s", user.id, attachment.id)
+        logger.warning("Admin %s downloaded deleted attachment %s (project %s)", user.id, attachment.id, project.id)
 
     try:
         backend = _get_storage_backend()

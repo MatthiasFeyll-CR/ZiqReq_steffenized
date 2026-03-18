@@ -315,6 +315,28 @@ class TestAttachmentList(TestCase):
         assert "extraction_status" in data
         assert "created_at" in data
         assert "message_id" in data
+        assert "deleted_at" in data
+
+    def test_list_include_deleted(self):
+        self._make_attachment(filename="active.pdf")
+        from django.utils import timezone
+        deleted = self._make_attachment(filename="deleted.pdf")
+        deleted.deleted_at = timezone.now()
+        deleted.save()
+
+        resp = self.client.get(f"/api/projects/{self.project.id}/attachments/?include_deleted=true")
+        assert resp.status_code == 200
+        assert len(resp.json()) == 2
+
+    def test_list_include_deleted_false_by_default(self):
+        self._make_attachment(filename="active.pdf")
+        from django.utils import timezone
+        deleted = self._make_attachment(filename="deleted.pdf")
+        deleted.deleted_at = timezone.now()
+        deleted.save()
+
+        resp = self.client.get(f"/api/projects/{self.project.id}/attachments/")
+        assert len(resp.json()) == 1
 
 
 @override_settings(DEBUG=True, AUTH_BYPASS=True)
@@ -344,27 +366,31 @@ class TestAttachmentDelete(TestCase):
         defaults.update(overrides)
         return Attachment.objects.create(**defaults)
 
-    @patch("apps.attachments.views._get_storage_backend")
-    def test_delete_by_uploader(self, mock_backend):
-        mock_backend.return_value = MagicMock()
+    def test_delete_by_uploader(self):
         att = self._make_attachment()
         resp = self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
         assert resp.status_code == 204
         att.refresh_from_db()
         assert att.deleted_at is not None
 
-    @patch("apps.attachments.views._get_storage_backend")
-    def test_delete_by_project_owner(self, mock_backend):
-        mock_backend.return_value = MagicMock()
+    def test_delete_by_project_owner(self):
         att = self._make_attachment(uploader_id=USER_2_ID)
         resp = self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
         assert resp.status_code == 204
 
-    @patch("apps.attachments.views._get_storage_backend")
-    def test_delete_by_non_owner_non_uploader(self, mock_backend):
-        mock_backend.return_value = MagicMock()
+    def test_delete_by_collaborator(self):
+        """Any collaborator can soft-delete any attachment in the project."""
         att = self._make_attachment(uploader_id=USER_1_ID)
         self._login_as(self.user2)
+        resp = self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
+        assert resp.status_code == 204
+        att.refresh_from_db()
+        assert att.deleted_at is not None
+
+    def test_delete_by_non_collaborator(self):
+        user3 = _create_user(USER_3_ID, "user3@test.local", "Test User3")
+        self._login_as(user3)
+        att = self._make_attachment(uploader_id=USER_1_ID)
         resp = self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
         assert resp.status_code == 403
 
@@ -386,20 +412,23 @@ class TestAttachmentDelete(TestCase):
         resp = self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
         assert resp.status_code == 401
 
-    @patch("apps.attachments.views._get_storage_backend")
-    def test_delete_calls_storage_delete(self, mock_backend):
-        mock_storage = MagicMock()
-        mock_backend.return_value = mock_storage
+    def test_soft_delete_does_not_call_storage(self):
+        """Soft delete only marks deleted_at; storage cleanup is handled by periodic task."""
         att = self._make_attachment()
-        self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
-        mock_storage.delete_file.assert_called_once_with(att.storage_key)
+        with patch("apps.attachments.views._get_storage_backend") as mock_backend:
+            mock_storage = MagicMock()
+            mock_backend.return_value = mock_storage
+            resp = self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
+        assert resp.status_code == 204
+        att.refresh_from_db()
+        assert att.deleted_at is not None
+        mock_storage.delete_file.assert_not_called()
 
-    @patch("apps.attachments.views._get_storage_backend")
-    def test_delete_storage_failure_still_soft_deletes(self, mock_backend):
-        mock_storage = MagicMock()
-        mock_storage.delete_file.side_effect = Exception("storage error")
-        mock_backend.return_value = mock_storage
+    def test_delete_message_linked_attachment(self):
+        """Message-linked attachments can now be soft-deleted (no immutability check)."""
         att = self._make_attachment()
+        att.message_id = uuid.uuid4()
+        att.save(update_fields=["message_id"])
         resp = self.client.delete(f"/api/projects/{self.project.id}/attachments/{att.id}/")
         assert resp.status_code == 204
         att.refresh_from_db()
@@ -485,3 +514,148 @@ class TestAttachmentPresignedUrl(TestCase):
         att = self._make_attachment()
         resp = self.client.get(f"/api/projects/{self.project.id}/attachments/{att.id}/url/")
         assert resp.status_code == 500
+
+
+@override_settings(DEBUG=True, AUTH_BYPASS=True)
+class TestAttachmentRestore(TestCase):
+    """Tests for POST /api/projects/:id/attachments/:aid/restore/"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user1 = _create_user(USER_1_ID, "user1@test.local", "Test User1")
+        self.user2 = _create_user(USER_2_ID, "user2@test.local", "Test User2")
+        self.project = Project.objects.create(title="Test Project", owner_id=USER_1_ID)
+        ProjectCollaborator.objects.create(project=self.project, user_id=USER_2_ID)
+        self._login_as(self.user1)
+
+    def _login_as(self, user):
+        self.client.post("/api/auth/dev-login", {"user_id": str(user.id)}, format="json")
+
+    def _make_attachment(self, **overrides):
+        defaults = {
+            "project": self.project,
+            "uploader_id": self.user1.id,
+            "filename": "test.pdf",
+            "storage_key": f"attachments/{self.project.id}/{uuid.uuid4()}.pdf",
+            "content_type": "application/pdf",
+            "size_bytes": 1024,
+        }
+        defaults.update(overrides)
+        return Attachment.objects.create(**defaults)
+
+    @patch("apps.attachments.views._get_storage_backend")
+    @patch("apps.admin_config.services.get_parameter", return_value=96)
+    def test_restore_success(self, _mock_param, mock_backend):
+        mock_storage = MagicMock()
+        mock_storage.file_exists.return_value = True
+        mock_backend.return_value = mock_storage
+
+        att = self._make_attachment()
+        from django.utils import timezone
+        att.deleted_at = timezone.now()
+        att.save()
+
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 200
+        att.refresh_from_db()
+        assert att.deleted_at is None
+        data = resp.json()
+        assert data["id"] == str(att.id)
+        assert data["filename"] == "test.pdf"
+
+    @patch("apps.attachments.views._get_storage_backend")
+    @patch("apps.admin_config.services.get_parameter", return_value=96)
+    def test_restore_expired_ttl(self, _mock_param, mock_backend):
+        mock_storage = MagicMock()
+        mock_storage.file_exists.return_value = True
+        mock_backend.return_value = mock_storage
+
+        att = self._make_attachment()
+        from datetime import timedelta
+        from django.utils import timezone
+        # Deleted 200 hours ago, TTL is 96h — expired
+        att.deleted_at = timezone.now() - timedelta(hours=200)
+        att.save()
+
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 400
+        assert resp.json()["error"] == "EXPIRED"
+
+    @patch("apps.attachments.views._get_storage_backend")
+    @patch("apps.admin_config.services.get_parameter", return_value=96)
+    def test_restore_file_gone(self, _mock_param, mock_backend):
+        mock_storage = MagicMock()
+        mock_storage.file_exists.return_value = False
+        mock_backend.return_value = mock_storage
+
+        att = self._make_attachment()
+        from django.utils import timezone
+        att.deleted_at = timezone.now()
+        att.save()
+
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 410
+        assert resp.json()["error"] == "FILE_GONE"
+
+    def test_restore_not_found_active_attachment(self):
+        att = self._make_attachment()
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 404
+
+    def test_restore_access_denied(self):
+        user3 = _create_user(USER_3_ID, "user3@test.local", "Test User3")
+        self._login_as(user3)
+        att = self._make_attachment()
+        from django.utils import timezone
+        att.deleted_at = timezone.now()
+        att.save()
+
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 403
+
+    @patch("apps.attachments.views._get_storage_backend")
+    @patch("apps.admin_config.services.get_parameter", return_value=96)
+    def test_restore_checks_project_attachment_limit(self, _mock_param, mock_backend):
+        mock_storage = MagicMock()
+        mock_storage.file_exists.return_value = True
+        mock_backend.return_value = mock_storage
+
+        # Fill up to limit (10)
+        for i in range(10):
+            self._make_attachment(filename=f"file{i}.pdf")
+
+        # Try to restore one more
+        att = self._make_attachment(filename="extra.pdf")
+        from django.utils import timezone
+        att.deleted_at = timezone.now()
+        att.save()
+
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 400
+        assert resp.json()["error"] == "LIMIT_EXCEEDED"
+
+    def test_restore_unauthenticated(self):
+        att = self._make_attachment()
+        from django.utils import timezone
+        att.deleted_at = timezone.now()
+        att.save()
+        self.client.logout()
+
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 401
+
+    @patch("apps.attachments.views._get_storage_backend")
+    @patch("apps.admin_config.services.get_parameter", return_value=96)
+    def test_collaborator_can_restore(self, _mock_param, mock_backend):
+        mock_storage = MagicMock()
+        mock_storage.file_exists.return_value = True
+        mock_backend.return_value = mock_storage
+
+        att = self._make_attachment()
+        from django.utils import timezone
+        att.deleted_at = timezone.now()
+        att.save()
+
+        self._login_as(self.user2)
+        resp = self.client.post(f"/api/projects/{self.project.id}/attachments/{att.id}/restore/")
+        assert resp.status_code == 200
