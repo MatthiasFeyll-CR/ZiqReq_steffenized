@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 from django.test import TestCase, override_settings
+from PIL import Image
 from rest_framework.test import APIClient
 
 from apps.authentication.models import User
@@ -26,11 +27,38 @@ def _create_user(user_id: uuid.UUID, email: str, display_name: str) -> "User":
 
 
 def _fake_pdf_bytes() -> bytes:
-    return b"%PDF-1.4 fake pdf content for testing purposes"
+    return (
+        b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n"
+        b"3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\n"
+        b"xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n"
+        b"0000000058 00000 n \n0000000115 00000 n \n"
+        b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n190\n%%EOF"
+    )
 
 
 def _fake_png_bytes() -> bytes:
-    return b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
+    img = Image.new("RGB", (2, 2), color="red")
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return buf.read()
+
+
+def _fake_jpeg_bytes() -> bytes:
+    img = Image.new("RGB", (2, 2), color="blue")
+    buf = BytesIO()
+    img.save(buf, format="JPEG")
+    buf.seek(0)
+    return buf.read()
+
+
+def _fake_webp_bytes() -> bytes:
+    img = Image.new("RGB", (2, 2), color="green")
+    buf = BytesIO()
+    img.save(buf, format="WEBP")
+    buf.seek(0)
+    return buf.read()
 
 
 def _make_upload_file(name="test.pdf", content=None, content_type="application/pdf"):
@@ -92,11 +120,11 @@ class TestAttachmentUpload(TestCase):
         assert resp.json()["content_type"] == "image/png"
 
     def test_upload_jpeg_success(self):
-        resp = self._upload(name="photo.jpg", content=b"\xff\xd8\xff" + b"\x00" * 100, content_type="image/jpeg")
+        resp = self._upload(name="photo.jpg", content=_fake_jpeg_bytes(), content_type="image/jpeg")
         assert resp.status_code == 201
 
     def test_upload_webp_success(self):
-        resp = self._upload(name="img.webp", content=b"RIFF\x00\x00\x00\x00WEBP" + b"\x00" * 100, content_type="image/webp")
+        resp = self._upload(name="img.webp", content=_fake_webp_bytes(), content_type="image/webp")
         assert resp.status_code == 201
 
     def test_upload_creates_attachment_record(self):

@@ -18,7 +18,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/tech-stack.md § Storage Strategy — MinIO for dev, Azure Blob for prod\nArchitecture: docs/02-architecture/project-structure.md § Microservice Decomposition — Gateway service owns REST API + storage layer\nFiles: infra/docker/docker-compose.yml (add MinIO service), services/gateway/storage/__init__.py (new), services/gateway/storage/backends.py (new ABC + MinIOBackend), services/gateway/storage/factory.py (new), services/gateway/requirements.txt (add minio SDK), services/gateway/gateway/settings/base.py (DATA_UPLOAD limits), services/gateway/apps/gateway_app/apps.py (AppConfig.ready() for bucket auto-create)\nGotchas: MinIO needs MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_ENDPOINT env vars. Docker network must allow gateway->minio communication. Auto-create bucket on startup avoids manual setup.",
       "context": {
@@ -45,7 +45,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § attachments table — full schema definition\nArchitecture: docs/02-architecture/project-structure.md § Django Model Sharing — Gateway managed, Core unmanaged mirror pattern\nDesign: Attachment metadata includes extraction_status to track AI processing pipeline state\nFiles: services/gateway/apps/projects/models.py (add Attachment class), services/core/apps/projects/models.py (add unmanaged Attachment mirror), services/gateway/apps/projects/migrations/000X_create_attachments.py (new)\nGotchas: message_id is nullable because attachments are uploaded first, then linked when the chat message is sent. deleted_at nullable for soft delete (frees project attachment count). storage_key format: attachments/{project_id}/{uuid}.{ext}",
       "context": {
@@ -77,7 +77,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Attachment Endpoints — full endpoint specs\nArchitecture: docs/02-architecture/data-model.md § attachments table — constraints and rules\nDesign: Rate limiting uses Redis (existing from M6 WebSocket milestone)\nFiles: services/gateway/apps/attachments/__init__.py (new app), services/gateway/apps/attachments/apps.py (new), services/gateway/apps/attachments/urls.py (new), services/gateway/apps/attachments/views.py (new), services/gateway/apps/attachments/serializers.py (new), services/gateway/apps/attachments/tests/test_views.py (new), services/gateway/apps/projects/urls.py (include attachments URLs)\nGotchas: _check_access pattern from chat views reuses auth logic. Presigned URLs must include Content-Disposition header to force download. StorageBackend.delete_file() is best-effort (log on failure, don't block deletion). Filename sanitization: strip directory path, replace non-alphanumeric except .-_ with underscore, truncate to 255.",
       "context": {
@@ -116,7 +116,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § POST /api/projects/:id/chat/ — chat message creation with attachment_ids\nDesign: docs/03-design/component-specs.md § User Message Bubble — attachments displayed below message content\nFiles: services/gateway/apps/chat/serializers.py (update ChatMessageCreateSerializer, ChatMessageResponseSerializer), services/gateway/apps/chat/views.py (update _create_message, _broadcast_chat_message, _list_messages), services/gateway/apps/attachments/serializers.py (AttachmentResponseSerializer), proto/core.proto (add AttachmentMetadata), services/core/grpc_server/servicers/core_servicer.py (populate attachments in GetProjectContext)\nGotchas: Attachment immutability after send prevents users from deleting attachments referenced in conversation history. Max 3 attachments per message is enforced by max_length validation. Invalid attachment IDs are skipped, not blocked (UX decision: partial success better than full failure).",
       "context": {
@@ -154,7 +154,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/data-model.md § Security constraints for attachments\nDesign: OWASP Top 10 compliance — validate file uploads at multiple layers (MIME, magic bytes, content sanitization)\nFiles: services/gateway/apps/attachments/validators.py (new), services/gateway/apps/attachments/views.py (integrate validators in POST upload), services/gateway/requirements.txt (add python-magic, PyMuPDF), services/gateway/apps/attachments/tests/test_validators.py (new)\nGotchas: Magic byte validation must happen BEFORE upload to prevent storing malicious files. EXIF stripping is mandatory for images (privacy + security). PDF JavaScript removal is non-negotiable (prevents XSS via PDF viewer). Rate limiting uses existing Redis connection from M6. Presigned URL Content-Disposition header prevents browser from rendering files inline (forces download).",
       "context": {

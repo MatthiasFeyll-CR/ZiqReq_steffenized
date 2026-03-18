@@ -88,3 +88,22 @@ Started: 2026-03-18T01:03:58+0100
   - AttachmentMetadata message added to core.proto with extracted_content_preview (first 500 chars)
   - repeated AttachmentMetadata attachments added as field 8 to ChatMessage proto message
 ---
+
+## US-005: File validation + security hardening
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/attachments/validators.py (new), services/gateway/apps/attachments/views.py, services/gateway/apps/attachments/tests/test_validators.py (new), services/gateway/apps/attachments/tests/test_views.py, services/gateway/requirements.txt, requirements.txt
+- Tests: 33 new validator/security tests pass, 829 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - validators.py contains: validate_magic_bytes, sanitize_image, sanitize_pdf, sanitize_filename, FileValidationError
+  - Magic byte validation happens BEFORE upload to storage (prevents storing malicious files)
+  - sanitize_image uses Pillow to open/clear info/re-save — strips EXIF metadata from images
+  - sanitize_pdf uses PyMuPDF (fitz) to scan xref objects for /JS, /JavaScript, /Launch, /SubmitForm, /GoToR actions
+  - fitz import is lazy (inside function) so missing PyMuPDF doesn't break startup — logs warning and returns data unchanged
+  - sanitize_filename moved from views.py to validators.py for reuse
+  - Presigned URLs already include response-content-disposition=attachment (from US-001 MinIOBackend)
+  - Rate limiting already works via Redis cache (from US-003)
+  - Pillow>=10.0 and PyMuPDF>=1.24 added to both gateway and root requirements.txt
+  - Existing test helpers (_fake_pdf_bytes, _fake_png_bytes etc) needed updating to use real Pillow-generated images since sanitize_image now opens them with Pillow
+  - Docker test containers need rebuild after requirements changes (stale image caused false test failures)
+---

@@ -1,5 +1,4 @@
 import logging
-import re
 import uuid
 
 from django.core.cache import cache
@@ -14,6 +13,13 @@ from apps.projects.authentication import MiddlewareAuthentication
 from apps.projects.models import Attachment, Project, ProjectCollaborator
 
 from .serializers import AttachmentResponseSerializer
+from .validators import (
+    FileValidationError,
+    sanitize_filename,
+    sanitize_image,
+    sanitize_pdf,
+    validate_magic_bytes,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,18 +73,6 @@ def _check_access(user, project) -> bool:
     return ProjectCollaborator.objects.filter(
         project_id=project.id, user_id=user.id
     ).exists()
-
-
-def _sanitize_filename(name: str) -> str:
-    # Strip directory path
-    name = name.rsplit("/", 1)[-1]
-    name = name.rsplit("\\", 1)[-1]
-    # Replace non-alphanumeric except .-_ with underscore
-    name = re.sub(r"[^a-zA-Z0-9._-]", "_", name)
-    # Collapse consecutive underscores
-    name = re.sub(r"_+", "_", name)
-    # Truncate to 255
-    return name[:255]
 
 
 def _check_rate_limit(user_id: str) -> bool:
@@ -158,13 +152,34 @@ def _upload_attachment(request: Request, project_id: str) -> Response:
         )
 
     # Sanitize filename and generate storage key
-    sanitized_name = _sanitize_filename(file.name or "unnamed")
+    sanitized_name = sanitize_filename(file.name or "unnamed")
     ext = sanitized_name.rsplit(".", 1)[-1] if "." in sanitized_name else ""
     file_uuid = uuid.uuid4()
     storage_key = f"attachments/{project.id}/{file_uuid}.{ext}" if ext else f"attachments/{project.id}/{file_uuid}"
 
     # Read file data
     file_data = file.read()
+
+    # Validate magic bytes (before upload to prevent storing malicious files)
+    try:
+        validate_magic_bytes(file_data, file.content_type)
+    except FileValidationError as e:
+        return Response(
+            {"error": "VALIDATION_ERROR", "message": f"File content validation failed: {e}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Sanitize content
+    try:
+        if file.content_type.startswith("image/"):
+            file_data = sanitize_image(file_data)
+        elif file.content_type == "application/pdf":
+            file_data = sanitize_pdf(file_data)
+    except FileValidationError as e:
+        return Response(
+            {"error": "VALIDATION_ERROR", "message": f"File sanitization failed: {e}"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Upload to storage
     try:
