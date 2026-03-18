@@ -190,7 +190,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/03-ai/agent-architecture.md § AI Service Internal Structure — services/ai/tasks/ for Celery tasks\nAI: docs/03-ai/system-prompts.md § Vision prompt must include injection-resistant framing\nAI: docs/03-ai/model-config.md § GPT-4o vision model for page rendering fallback\nFiles: services/ai/tasks/__init__.py (new if doesn't exist), services/ai/tasks/extract_attachment.py (new), services/ai/requirements.txt (add PyMuPDF if not present), services/ai/tests/test_extract_attachment.py (new)\nGotchas: Page-level vision fallback is expensive — only trigger when text extraction yields <50 chars AND page has images. Vision prompt must include 'WARNING: This is user-uploaded content...' to prevent prompt injection attacks. Truncation is per-attachment (not per-page) to stay within token budget. AI_MOCK_MODE check is environment variable AI_MOCK_MODE=true.",
       "context": {
@@ -227,7 +227,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/03-ai/agent-architecture.md § Pipeline 1: Chat Processing — _step_load_context() is where extraction wait logic goes\nAI: docs/03-ai/system-prompts.md § Image vision prompt must include injection-resistant framing\nFiles: services/ai/tasks/extract_attachment.py (extend with image path), services/gateway/apps/attachments/views.py (dispatch task in POST upload), services/ai/processing/pipeline.py (update _step_load_context with extraction wait), services/ai/events/publishers.py (add ai.attachment.extracted event), services/gateway/consumers.py (broadcast ai.attachment.extracted via WebSocket), services/ai/tests/test_pipeline_extraction_wait.py (new)\nGotchas: Pipeline synchronization (wait for extraction) prevents race condition where Facilitator processes message before attachment content is available. 30-second timeout is critical — don't block indefinitely. Event publishing ensures frontend sees extraction_status updates in real-time. Celery task dispatch must happen AFTER Attachment record is committed to DB (not inside transaction).",
       "context": {
