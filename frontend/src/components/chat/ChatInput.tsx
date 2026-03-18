@@ -1,28 +1,37 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { sendChatMessage, type ChatMessage } from "@/api/chat";
 import { MentionDropdown, type MentionItem } from "./MentionDropdown";
 import { ContextWindowIndicator } from "./ContextWindowIndicator";
 import { QuickReplyChips } from "./QuickReplyChips";
+import { AttachmentStagingArea } from "./AttachmentStagingArea";
+import { useAttachmentUpload } from "@/hooks/use-attachment-upload";
 import type { Project } from "@/api/projects";
 import { useLazyProject } from "@/hooks/use-lazy-project";
+
+const ACCEPT = ".png,.jpg,.jpeg,.webp,.pdf";
 
 interface ChatInputProps {
   projectId: string;
   project?: Project;
   onMessageSent: (message: ChatMessage) => void;
   disabled?: boolean;
+  projectAttachmentCount?: number;
 }
 
-export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatInputProps) {
+export function ChatInput({ projectId, project, onMessageSent, disabled, projectAttachmentCount = 0 }: ChatInputProps) {
   const { t } = useTranslation();
   const { ensureProject } = useLazyProject();
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { pending, addFiles, removeAttachment, stagedAttachmentIds, clearStaged, isUploading } =
+    useAttachmentUpload(projectId, projectAttachmentCount);
 
   // Mention state
   const [mentionOpen, setMentionOpen] = useState(false);
@@ -30,7 +39,8 @@ export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatI
   const [mentionAtPos, setMentionAtPos] = useState(-1);
   const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
 
-  const canSend = value.trim().length > 0 && !sending && !disabled;
+  const canSend =
+    (value.trim().length > 0 || stagedAttachmentIds.length > 0) && !sending && !disabled && !isUploading;
 
   // Build mention items: @ai first, then collaborators alphabetically
   const allMentionItems: MentionItem[] = useMemo(() => {
@@ -106,15 +116,20 @@ export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatI
 
   const handleSend = useCallback(async () => {
     const content = value.trim();
-    if (!content || sending || disabled) return;
+    if ((!content && stagedAttachmentIds.length === 0) || sending || disabled) return;
 
     closeMention();
     setSending(true);
     try {
       const realId = await ensureProject();
-      const message = await sendChatMessage(realId, content);
+      const message = await sendChatMessage(
+        realId,
+        content || " ", // backend requires non-empty content
+        stagedAttachmentIds.length > 0 ? stagedAttachmentIds : undefined,
+      );
       setValue("");
       resetHeight();
+      clearStaged();
       onMessageSent(message);
     } catch {
       // Error handling will be enhanced in future stories
@@ -122,7 +137,7 @@ export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatI
       setSending(false);
       textareaRef.current?.focus();
     }
-  }, [value, sending, disabled, ensureProject, onMessageSent, resetHeight, closeMention]);
+  }, [value, sending, disabled, ensureProject, onMessageSent, resetHeight, closeMention, stagedAttachmentIds, clearStaged]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -208,6 +223,17 @@ export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatI
     [handleInput],
   );
 
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        addFiles(e.target.files);
+      }
+      // Reset input so same file can be selected again
+      e.target.value = "";
+    },
+    [addFiles],
+  );
+
   // Close mention on click outside
   useEffect(() => {
     if (!mentionOpen) return;
@@ -228,11 +254,31 @@ export function ChatInput({ projectId, project, onMessageSent, disabled }: ChatI
 
   return (
     <div ref={containerRef} className="relative border-t bg-card" data-testid="chat-input">
-      {!disabled && value.trim().length === 0 && (
+      {!disabled && value.trim().length === 0 && stagedAttachmentIds.length === 0 && (
         <QuickReplyChips onSelect={handleQuickReply} disabled={disabled} />
       )}
+      <AttachmentStagingArea items={pending} onRemove={removeAttachment} />
       <div className="flex items-end gap-2 px-6 py-4">
       <ContextWindowIndicator projectId={projectId} projectState={project?.state ?? "open"} />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="flex-shrink-0 rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+        disabled={disabled}
+        aria-label={t("attachment.upload", "Attach file")}
+        data-testid="attachment-paperclip"
+      >
+        <Paperclip className="h-4 w-4" />
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={ACCEPT}
+        className="hidden"
+        onChange={handleFileSelect}
+        data-testid="attachment-file-input"
+      />
       <div className="relative flex-1">
         {mentionOpen && (
           <MentionDropdown

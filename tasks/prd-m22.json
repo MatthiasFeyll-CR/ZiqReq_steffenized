@@ -268,7 +268,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/03-ai/agent-architecture.md § Context Management — ContextAssembler.assemble() is where attachments are loaded\nAI: docs/03-ai/system-prompts.md § Facilitator system prompt structure — attachments_block goes after </project>\nAI: docs/03-ai/guardrails.md § Prompt injection defense — WARNING attribute on user_attachment XML element\nFiles: services/ai/processing/context_assembler.py (update assemble()), services/ai/agents/facilitator/prompt.py (update FACILITATOR_SYSTEM_PROMPT_TEMPLATE, build_system_prompt(), _format_messages()), services/ai/agents/context_extension/agent.py (update search to include extracted_content), proto/core.proto (add GetProjectAttachments RPC), services/core/grpc_server/servicers/core_servicer.py (implement GetProjectAttachments), services/ai/tests/test_context_assembly_attachments.py (new)\nGotchas: XML-style WARNING attribute on user_attachment element is NOT standard XML but a prompt engineering technique to sandbox user-uploaded content. Context extension must search both chat messages AND attachment extracted_content for full coverage. Truncation is per-attachment (not total) to ensure each attachment gets fair representation.",
       "context": {
@@ -311,7 +311,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "testIds": [],
       "notes": "Architecture: docs/02-architecture/api-design.md § Attachment Endpoints — frontend API client wraps these\nDesign: docs/03-design/component-specs.md § Chat Input Area — paperclip button position, staging area above textarea\nDesign: docs/03-design/interactions.md § Drag & Drop — overlay pattern\nFiles: frontend/src/api/attachments.ts (new), frontend/src/hooks/use-attachment-upload.ts (new), frontend/src/components/chat/ChatInput.tsx (modify), frontend/src/components/chat/AttachmentStagingArea.tsx (new), frontend/src/components/chat/ChatDropZone.tsx (new), frontend/src/api/chat.ts (update sendChatMessage), frontend/src/i18n/locales/en.json (add keys), frontend/src/i18n/locales/de.json (add keys), frontend/src/__tests__/use-attachment-upload.test.tsx (new), frontend/src/__tests__/chat-input-attachments.test.tsx (new)\nGotchas: XMLHttpRequest (not fetch) is required for upload progress events. URL.createObjectURL for image thumbnails must be revoked on component unmount to avoid memory leaks. canSend logic: empty text + staged attachments = sendable (allows attachment-only messages). Validation must match backend limits (100MB, 10 per project, 3 per message, types: png/jpg/jpeg/webp/pdf).",
       "context": {

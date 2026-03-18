@@ -449,6 +449,17 @@
     "open": "öffnen",
     "close": "schließen"
   },
+  "attachment": {
+    "upload": "Datei anhängen",
+    "dragDrop": "Dateien hier ablegen",
+    "typeError": "Dateityp nicht erlaubt: {{name}}",
+    "sizeError": "Datei zu groß: {{name}} (max 100 MB)",
+    "limitPerMessage": "Maximal 3 Anhänge pro Nachricht",
+    "limitPerProject": "Maximal 10 Anhänge pro Projekt",
+    "uploadFailed": "Upload fehlgeschlagen: {{name}}",
+    "uploading": "Wird hochgeladen...",
+    "remove": "Anhang entfernen"
+  },
   "requirements": {
     "generating": {
       "title": "Anforderungen werden strukturiert...",

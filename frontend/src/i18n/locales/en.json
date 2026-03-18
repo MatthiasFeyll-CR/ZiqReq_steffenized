@@ -449,6 +449,17 @@
     "open": "open",
     "close": "close"
   },
+  "attachment": {
+    "upload": "Attach file",
+    "dragDrop": "Drop files here",
+    "typeError": "File type not allowed: {{name}}",
+    "sizeError": "File too large: {{name}} (max 100 MB)",
+    "limitPerMessage": "Maximum 3 attachments per message",
+    "limitPerProject": "Maximum 10 attachments per project",
+    "uploadFailed": "Upload failed: {{name}}",
+    "uploading": "Uploading...",
+    "remove": "Remove attachment"
+  },
   "requirements": {
     "generating": {
       "title": "Structuring requirements...",
