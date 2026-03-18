@@ -35,5 +35,6 @@ urlpatterns = [
     path("<str:project_id>/transfer-ownership", collab_views.transfer_ownership),
     path("<str:project_id>/leave", collab_views.leave_project),
     path("<str:project_id>/share-link", views.generate_share_link),
+    path("<str:project_id>/attachments/", include("apps.attachments.urls")),
     path("<str:project_id>/comments/", include("apps.comments.urls")),
 ]

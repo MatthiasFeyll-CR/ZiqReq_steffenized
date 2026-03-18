@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "apps.admin_ai_context",
     "apps.websocket",
     "apps.comments",
+    "apps.attachments",
 ]
 
 MIDDLEWARE = [
