@@ -45,6 +45,7 @@ const messageWithAttachments: ChatMessage = {
       size_bytes: 204800,
       extraction_status: "completed",
       created_at: "2026-01-01T00:00:00Z",
+      deleted_at: null,
       message_id: "msg-1",
     },
     {
@@ -54,6 +55,7 @@ const messageWithAttachments: ChatMessage = {
       size_bytes: 1048576,
       extraction_status: "completed",
       created_at: "2026-01-01T00:00:00Z",
+      deleted_at: null,
       message_id: "msg-1",
     },
   ],

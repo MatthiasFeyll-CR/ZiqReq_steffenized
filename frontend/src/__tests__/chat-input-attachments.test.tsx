@@ -92,6 +92,7 @@ describe("ChatInput with attachments", () => {
       size_bytes: 100,
       extraction_status: "pending" as const,
       created_at: "2026-01-01T00:00:00Z",
+      deleted_at: null,
       message_id: null,
     };
 

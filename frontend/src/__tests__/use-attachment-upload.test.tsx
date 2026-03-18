@@ -102,6 +102,7 @@ describe("useAttachmentUpload", () => {
       size_bytes: 1024,
       extraction_status: "pending" as const,
       created_at: "2026-01-01T00:00:00Z",
+      deleted_at: null,
       message_id: null,
     };
 
@@ -132,6 +133,7 @@ describe("useAttachmentUpload", () => {
       size_bytes: 2048,
       extraction_status: "pending" as const,
       created_at: "2026-01-01T00:00:00Z",
+      deleted_at: null,
       message_id: null,
     };
 
@@ -163,6 +165,7 @@ describe("useAttachmentUpload", () => {
       size_bytes: 512,
       extraction_status: "pending" as const,
       created_at: "2026-01-01T00:00:00Z",
+      deleted_at: null,
       message_id: null,
     });
 

@@ -207,7 +207,7 @@ function ProjectWorkspaceContent({
   shareToken?: string | null;
 }) {
   const { t } = useTranslation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { chatLocked, allReadOnly, lockReason } = useSectionVisibility(project);
   const isOnline = useSelector(selectIsOnline);
   const connectionState = useSelector(selectConnectionState);

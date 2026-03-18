@@ -217,7 +217,7 @@ describe("AttachmentBox — deleted state", () => {
     );
     await userEvent.click(screen.getByTestId("attachment-box"));
     expect(mockToastInfo).toHaveBeenCalled();
-    const msg = mockToastInfo.mock.calls[0][0];
+    const msg = mockToastInfo.mock.calls[0]?.[0];
     expect(msg).toContain("deleted");
     expect(mockGetAttachmentUrl).not.toHaveBeenCalled();
   });

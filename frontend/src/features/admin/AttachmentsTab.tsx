@@ -201,7 +201,7 @@ export function AttachmentsTab() {
                         {att.filename}
                       </h4>
                       {isDeleted && (
-                        <Badge variant="destructive" className="flex-shrink-0 text-[10px]">
+                        <Badge variant="deleted" className="flex-shrink-0 text-[10px]">
                           {t("admin.attachments.filterDeleted")}
                         </Badge>
                       )}
