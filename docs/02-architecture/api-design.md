@@ -262,16 +262,103 @@
 - **Request:**
   ```json
   {
-    "content": "string"
+    "content": "string — required (pass \" \" single space if empty text with attachments)",
+    "attachment_ids": ["uuid", "uuid"] // optional, max 3
   }
   ```
-- **Response (201):** Created message object
-- **Side effects:** Message broadcast via WebSocket. AI processing triggered after debounce (unless rate limit reached).
+- **Response (201):** Created message object (includes attachments array)
+- **Side effects:** Message broadcast via WebSocket with attachment metadata. Attachments linked to message (message_id set). AI processing triggered after debounce (unless rate limit reached). AI pipeline waits for attachment extraction (max 30s).
 - **Errors:**
   | Status | Code | When |
   |--------|------|------|
   | 403 | PROJECT_LOCKED | Project is in a locked state (in_review, accepted, dropped) |
   | 429 | RATE_LIMITED | Chat rate cap reached, waiting for AI processing (F-2.11) |
+  | 400 | INVALID_ATTACHMENT | Attachment doesn't belong to project, already linked to another message, or deleted |
+  | 400 | TOO_MANY_ATTACHMENTS | More than 3 attachment_ids provided |
+
+---
+
+### Attachments
+
+#### POST /api/projects/:id/attachments
+- **Purpose:** Upload a file attachment (multipart/form-data)
+- **Auth:** Collaborator access (owner or collaborator, NOT read-only)
+- **Request:** `multipart/form-data` with `file` field
+- **Validation:**
+  - Content type: image/png, image/jpeg, image/webp, application/pdf
+  - Size: max 100MB
+  - Project limit: max 10 active attachments per project
+  - Rate limit: 10 uploads per minute per user
+  - Magic byte validation (prevents MIME spoofing)
+  - EXIF stripping (images), JavaScript stripping (PDFs)
+  - Filename sanitization (no path traversal, safe characters only)
+- **Response (201):**
+  ```json
+  {
+    "id": "uuid",
+    "filename": "sanitized_filename.pdf",
+    "content_type": "application/pdf",
+    "size_bytes": 1234567,
+    "extraction_status": "pending",
+    "created_at": "2026-03-18T12:00:00Z"
+  }
+  ```
+- **Side effects:** File stored in MinIO/Azure Blob. Celery task dispatched for AI content extraction (PDF text + vision, or image description).
+- **Errors:**
+  | Status | Code | When |
+  |--------|------|------|
+  | 400 | INVALID_FILE_TYPE | File type not in allowlist |
+  | 400 | FILE_TOO_LARGE | File exceeds 100MB |
+  | 400 | PROJECT_LIMIT_REACHED | Project already has 10 active attachments |
+  | 429 | RATE_LIMITED | User exceeded 10 uploads/minute |
+
+#### GET /api/projects/:id/attachments
+- **Purpose:** List all active attachments for a project
+- **Auth:** Collaborator access
+- **Response (200):**
+  ```json
+  {
+    "attachments": [
+      {
+        "id": "uuid",
+        "filename": "document.pdf",
+        "content_type": "application/pdf",
+        "size_bytes": 1234567,
+        "extraction_status": "completed",
+        "message_id": "uuid or null",
+        "created_at": "2026-03-18T12:00:00Z"
+      }
+    ]
+  }
+  ```
+
+#### DELETE /api/projects/:id/attachments/:attachmentId
+- **Purpose:** Soft-delete an attachment (frees project count)
+- **Auth:** Collaborator access (must be uploader or project owner)
+- **Response (204):** No content
+- **Side effects:** Sets `deleted_at` timestamp. Storage deletion best-effort (logged on failure). Frees project attachment count.
+- **Errors:**
+  | Status | Code | When |
+  |--------|------|------|
+  | 400 | ATTACHMENT_IMMUTABLE | Attachment already linked to a sent message (message_id not null) |
+  | 403 | FORBIDDEN | User is not uploader or project owner |
+  | 404 | NOT_FOUND | Attachment not found or already deleted |
+
+#### GET /api/projects/:id/attachments/:attachmentId/url
+- **Purpose:** Generate presigned download URL (15-minute TTL)
+- **Auth:** Collaborator access (NOT read-only share link users)
+- **Response (200):**
+  ```json
+  {
+    "url": "https://minio.../presigned-url?response-content-disposition=attachment"
+  }
+  ```
+- **Side effects:** None (URL generation only)
+- **Errors:**
+  | Status | Code | When |
+  |--------|------|------|
+  | 403 | READ_ONLY_ACCESS | User accessing via read-only share link (enforced by collaborator check) |
+  | 404 | NOT_FOUND | Attachment not found or deleted |
 
 ---
 

@@ -34,7 +34,7 @@ Each Django service has its own set of tables (own Django apps with own migratio
 
 | Service | Owned Tables |
 |---------|-------------|
-| gateway | `users`, `notifications`, `monitoring_alert_configs` |
+| gateway | `users`, `notifications`, `monitoring_alert_configs`, `attachments` |
 | core | `projects`, `project_collaborators`, `chat_messages`, `ai_reactions`, `user_reactions`, `requirements_document_drafts`, `requirements_document_versions`, `review_assignments`, `review_timeline_entries`, `collaboration_invitations`, `admin_parameters` |
 | ai | `chat_context_summaries`, `facilitator_context_bucket`, `context_agent_bucket`, `context_chunks` |
 
@@ -88,13 +88,14 @@ class Project(models.Model):
 - Cross-service transactions (use gRPC + distributed transaction patterns)
 - Gateway-owned tables (no mirroring needed — Gateway owns both model and migration)
 
-**Tables with mirror models (as of M4):**
+**Tables with mirror models (as of M22):**
 - `projects` (Core-owned, Gateway mirrors for `/api/projects` endpoints)
 - `project_collaborators` (Core-owned, Gateway mirrors for join queries in project lists)
 - `chat_messages` (Core-owned, Gateway mirrors for `/api/projects/:id/chat` endpoints)
 - `collaboration_invitations` (Core-owned, Gateway mirrors for `/api/invitations` endpoints)
+- `attachments` (Gateway-owned managed model, Core has unmanaged mirror for AI service gRPC access)
 
-**Future milestones:** Expect Gateway mirror models for `review_assignments`, `review_timeline_entries` (M10), and potentially others as more REST endpoints are exposed.
+**Note:** `attachments` table follows the reverse pattern — Gateway owns the managed model (creates migrations), Core has an unmanaged mirror for AI service to access attachment metadata via direct SQL (same cross-service raw SQL pattern used for `users` table lookups).
 
 **Note on `managed=False` pattern:** The `managed=False` Meta option is used for read-only mirror models where Gateway never runs tests against the table (e.g., `admin_parameters` in Gateway's admin app). For REST API mirror models where Gateway test suites query/mutate the table, migrations are required for Django test database creation.
 
@@ -198,6 +199,111 @@ class Migration(migrations.Migration):
 | **WebSocket** | Gateway → Frontend real-time broadcasts | Bidirectional |
 | **gRPC** | Gateway → Internal services (request/response) | Synchronous |
 | **Message Broker** | Service → Service async events (AI triggers, notifications, monitoring) | Asynchronous |
+
+### Storage Backend Abstraction (M22)
+
+> ⚙️ Attachment file storage pattern introduced in M22.
+
+**Module location:** `services/gateway/storage/` (not inside a Django app)
+
+Gateway service owns a storage abstraction layer for file attachments (images, PDFs). The abstraction allows switching between MinIO (dev) and Azure Blob Storage (prod) without code changes.
+
+**Architecture:**
+
+```python
+# services/gateway/storage/backends.py
+from abc import ABC, abstractmethod
+
+class StorageBackend(ABC):
+    """Abstract base class for file storage backends."""
+
+    @abstractmethod
+    def upload_file(self, file_obj, storage_key: str) -> None:
+        """Upload a file to storage."""
+        pass
+
+    @abstractmethod
+    def delete_file(self, storage_key: str) -> None:
+        """Delete a file from storage (best-effort)."""
+        pass
+
+    @abstractmethod
+    def get_presigned_url(self, storage_key: str, filename: str, ttl_seconds: int) -> str:
+        """Generate a presigned download URL."""
+        pass
+
+    @abstractmethod
+    def file_exists(self, storage_key: str) -> bool:
+        """Check if a file exists in storage."""
+        pass
+
+class MinIOBackend(StorageBackend):
+    """MinIO implementation for development."""
+    # Uses minio Python SDK, singleton pattern via get_storage_backend()
+
+class AzureBlobBackend(StorageBackend):
+    """Azure Blob Storage implementation for production."""
+    # Raises NotImplementedError — production deployment concern
+```
+
+**Factory pattern:**
+
+```python
+# services/gateway/storage/factory.py
+_backend = None  # Singleton
+
+def get_storage_backend() -> StorageBackend:
+    """Get the configured storage backend (singleton)."""
+    global _backend
+    if _backend is None:
+        backend_type = os.getenv("STORAGE_BACKEND", "minio")
+        if backend_type == "minio":
+            _backend = MinIOBackend(...)
+        elif backend_type == "azure_blob":
+            _backend = AzureBlobBackend(...)
+    return _backend
+
+def reset_storage_backend() -> None:
+    """Reset singleton (test teardown only)."""
+    global _backend
+    _backend = None
+```
+
+**Bucket initialization:**
+
+MinIO bucket auto-creation happens in `services/gateway/apps/projects/apps.py` (`ProjectsConfig.ready()`). Guarded with try/except to not break startup if MinIO is unreachable.
+
+**AI service file download:**
+
+AI service does NOT use Gateway's storage abstraction. It accesses MinIO directly via `minio` client for file downloads during extraction tasks. This avoids circular gRPC dependencies (AI → Gateway → back to storage).
+
+**Key files:**
+
+- `services/gateway/storage/__init__.py` — Package init
+- `services/gateway/storage/backends.py` — ABC + MinIOBackend + AzureBlobBackend
+- `services/gateway/storage/factory.py` — Singleton factory
+- `services/gateway/storage/tests/test_backends.py` — Backend unit tests
+
+**Usage in Gateway views:**
+
+```python
+from storage.factory import get_storage_backend
+
+def upload_attachment(request, project_id):
+    backend = get_storage_backend()
+    backend.upload_file(file_obj, storage_key)
+    # ...
+```
+
+**Test pattern:**
+
+Mock `_get_storage_backend()` wrapper (not direct import) to return `MagicMock()` for storage operations.
+
+**Notes:**
+
+- Presigned URLs include `response-content-disposition=attachment` parameter for forced download (security requirement).
+- Storage deletion is best-effort: logged on failure, doesn't block the DELETE endpoint.
+- Storage keys use format: `attachments/{project_id}/{uuid}.{ext}`
 
 ### Event Publisher Import Pattern (CRITICAL)
 

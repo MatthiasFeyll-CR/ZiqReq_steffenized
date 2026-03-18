@@ -22,6 +22,7 @@
 | admin_parameters | Runtime-configurable system parameters | varchar (key) | FK → users (updated_by) | core |
 | monitoring_alert_configs | Admin opt-in to monitoring alerts | uuid v4 | FK → users | gateway |
 | context_chunks | Chunked + embedded company context for RAG | uuid v4 | FK → context_agent_bucket | ai |
+| attachments | File attachments for chat messages (images, PDFs) | uuid v4 | FK → projects, FK → chat_messages (nullable) | gateway |
 
 > **Service ownership:** Each table is owned by one service. The owning service manages migrations and is the authority on schema. Cross-service data access happens via gRPC for business logic, but Gateway uses **mirror Django models** for REST API endpoints (see below). See `project-structure.md` for service decomposition.
 
@@ -441,6 +442,41 @@ Chunked and embedded company context for RAG retrieval. Populated by the AI serv
 
 ---
 
+### attachments
+
+File attachments for chat messages. Supports images (PNG, JPEG, WebP) and PDFs. Files stored in MinIO (dev) / Azure Blob Storage (prod).
+
+| Column | Type | Nullable | Default | Constraints | Notes |
+|--------|------|----------|---------|-------------|-------|
+| id | uuid | NO | gen_random_uuid() | PK | |
+| project_id | uuid | NO | — | FK → projects(id) ON DELETE CASCADE | |
+| message_id | uuid | YES | NULL | FK → chat_messages(id) ON DELETE CASCADE | Set when attachment is linked to a sent message. NULL for staged attachments. |
+| uploader_id | uuid | NO | — | FK → users(id) | User who uploaded the file |
+| filename | varchar(255) | NO | — | | Sanitized display name (no paths, safe characters only) |
+| storage_key | varchar(500) | NO | — | | UUID-based path: `attachments/{project_id}/{uuid}.{ext}` |
+| content_type | varchar(100) | NO | — | CHECK (content_type IN ('image/png', 'image/jpeg', 'image/webp', 'application/pdf')) | MIME type allowlist |
+| size_bytes | bigint | NO | — | | File size in bytes (max 100MB enforced at application level) |
+| extracted_content | text | YES | NULL | | AI-extracted text/description. Populated by Celery task after upload. |
+| extraction_status | varchar(20) | NO | 'pending' | CHECK (extraction_status IN ('pending', 'processing', 'completed', 'failed')) | AI extraction pipeline status |
+| created_at | timestamptz | NO | now() | | |
+| deleted_at | timestamptz | YES | NULL | | Soft delete timestamp. Frees project attachment count. |
+
+| Index Name | Columns | Type | Rationale |
+|------------|---------|------|-----------|
+| idx_attachments_project | project_id | btree | List attachments per project |
+| idx_attachments_message | message_id | btree | Load attachments for chat messages |
+| idx_attachments_project_deleted | (project_id, deleted_at) | btree | Count active attachments per project (deleted_at IS NULL) |
+
+**Notes:**
+- **Soft delete:** Setting `deleted_at` frees the project's attachment count (max 10 active per project). Storage deletion is best-effort (logged on failure).
+- **Immutability:** Once `message_id` is set (attachment linked to a sent message), DELETE is blocked. Only staged attachments (message_id IS NULL) can be deleted.
+- **Storage backend:** Files stored via `StorageBackend` abstraction (MinIO in dev, Azure Blob in prod). See project-structure.md storage patterns.
+- **AI extraction:** Celery task dispatched on upload. PDFs: text extraction + vision fallback for scanned pages. Images: GPT-4o vision description. Max 16000 chars (4000 tokens default).
+- **Validation:** Magic byte validation (prevents MIME spoofing), EXIF stripping (images), JavaScript stripping (PDFs), filename sanitization, rate limiting (10 uploads/min/user).
+- **Mirror model:** Core service has unmanaged mirror for AI service gRPC access. Gateway owns the managed model.
+
+---
+
 ## Relationships
 
 ```
@@ -457,9 +493,11 @@ projects 1──N requirements_document_versions
 projects 1──N review_assignments
 projects 1──N review_timeline_entries
 projects 1──N collaboration_invitations
+projects 1──N attachments
 
 chat_messages 0──1 ai_reactions
 chat_messages 0──N user_reactions
+chat_messages 0──N attachments
 
 review_timeline_entries 0──1 review_timeline_entries (parent_entry_id → nested replies)
 review_timeline_entries 0──1 requirements_document_versions (old_version_id)
@@ -497,6 +535,9 @@ context_agent_bucket 1──N context_chunks
 | users | idx_users_display_name | display_name | btree | User search by name (F-8.2, F-11.6) |
 | context_chunks | idx_chunks_embedding | embedding | hnsw (vector_cosine_ops) | Fast cosine similarity search for RAG retrieval |
 | context_chunks | idx_chunks_bucket | bucket_id | btree | Bulk delete + re-insert on bucket update |
+| attachments | idx_attachments_project | project_id | btree | List attachments per project |
+| attachments | idx_attachments_message | message_id | btree | Load attachments for chat messages |
+| attachments | idx_attachments_project_deleted | project_id, deleted_at | btree | Count active attachments per project (deleted_at IS NULL for active) |
 
 ---
 

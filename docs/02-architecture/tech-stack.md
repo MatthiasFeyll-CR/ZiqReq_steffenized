@@ -29,8 +29,10 @@
 | AI Provider | Azure OpenAI | managed | All AI features (Constraint #3). Model selection and agent architecture defined by AI Engineer in `docs/03-ai/` |
 | AI Orchestration | Semantic Kernel (Python SDK) | latest | Azure-native, automatic function calling for Facilitator/Requirements Agent, unified base layer across all 5 agents (Facilitator, Context Agent, Context Extension, Summarizing AI, Context Compression). See `docs/03-ai/` |
 | PDF Generation | WeasyPrint | 62.x | Python-native HTML-to-PDF; runs in container, no headless browser dependency (F-4.7). **Requires pydyf>=0.10,<0.12** (0.12.x breaks Stream.transform). System dependencies: libcairo2, libpango-1.0-0, libgdk-pixbuf-2.0-0 (Debian package names with hyphens). |
-| File Storage (Dev) | Local Docker volume | — | Mounted volume for storing generated PDF files during development |
-| File Storage (Prod) | Azure Blob Storage | managed | PDF file storage in production. `requirements_document_versions.pdf_file_path` stores the blob path. |
+| File Storage — PDFs (Dev) | Local Docker volume | — | Mounted volume for storing generated PDF files during development |
+| File Storage — PDFs (Prod) | Azure Blob Storage | managed | PDF file storage in production. `requirements_document_versions.pdf_file_path` stores the blob path. |
+| File Storage — Attachments (Dev) | MinIO | 2024.x | S3-compatible object storage for development. Docker container. Bucket auto-created on Gateway startup. Supports presigned URLs. |
+| File Storage — Attachments (Prod) | Azure Blob Storage | managed | Attachment file storage in production (images, PDFs). Storage abstraction layer (StorageBackend ABC) allows switching between MinIO/Azure without code changes. |
 | Reverse Proxy (Dev) | Nginx | latest | Docker container; routes frontend, API, and WebSocket under single origin |
 | Reverse Proxy (Prod) | Azure Container Apps ingress | managed | Ingress routing rules; same-origin for frontend + API + WebSocket |
 | Hosting | Azure Container Apps | managed | Corporate standard (Constraint #6) |
@@ -133,6 +135,9 @@
 | celery | Task scheduling | Periodic background jobs |
 | pydantic | Data validation | gRPC schemas, AI prompt/response contracts |
 | weasyprint | PDF generation | Requirements document to PDF (F-4.7) |
+| minio | Object storage client | MinIO SDK for attachment file storage (dev). Storage abstraction layer supports Azure Blob (prod). |
+| Pillow | Image processing | EXIF metadata stripping, image sanitization, thumbnail generation for attachments |
+| PyMuPDF (fitz) | PDF processing | PDF text extraction, JavaScript detection/stripping, page rendering for AI vision fallback |
 | openai (Azure SDK) | AI integration | Azure OpenAI API calls (used by AI service — see `docs/03-ai/`) |
 | pgvector | Vector search | PostgreSQL vector column type (VectorField) and HNSW indexes for RAG and similarity |
 | msal | Token validation | Backend Azure AD token verification |
@@ -161,7 +166,8 @@ nginx (reverse proxy)
 ├── celery-beat (task scheduler)
 ├── postgresql
 ├── redis
-└── rabbitmq
+├── rabbitmq
+└── minio (S3-compatible object storage for attachments)
 ```
 
 ### CI/CD
@@ -362,8 +368,13 @@ In addition to the application parameters listed in F-11.3, the following infras
 | AZURE_AD_TENANT_ID | Yes | Azure AD tenant identifier |
 | AZURE_AD_CLIENT_ID | Yes | Azure AD app registration client ID |
 | AZURE_AD_CLIENT_SECRET | Yes (backend) | Azure AD app registration secret |
-| AZURE_STORAGE_CONNECTION_STRING | Yes (prod) | Azure Blob Storage connection string for PDF file storage |
+| AZURE_STORAGE_CONNECTION_STRING | Yes (prod) | Azure Blob Storage connection string for PDF and attachment file storage |
 | PDF_STORAGE_PATH | Yes (dev) | Local filesystem path for PDF storage in development (Docker volume mount) |
+| MINIO_ENDPOINT | Yes (dev) | MinIO server endpoint (e.g., `minio:9000` in Docker Compose) |
+| MINIO_ACCESS_KEY | Yes (dev) | MinIO access key for authentication |
+| MINIO_SECRET_KEY | Yes (dev) | MinIO secret key for authentication |
+| MINIO_BUCKET | Yes (dev) | MinIO bucket name for attachments (default: `attachments`) |
+| STORAGE_BACKEND | No | Storage backend type: `minio` (dev) or `azure_blob` (prod). Defaults to `minio`. |
 | AUTH_BYPASS | No | Enable auth bypass (must pair with DEBUG=True) |
 | DEBUG | No | Enable debug mode |
 | SECRET_KEY | Yes | Django secret key |
