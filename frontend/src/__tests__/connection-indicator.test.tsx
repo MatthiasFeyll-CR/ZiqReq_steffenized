@@ -14,7 +14,7 @@ function createStore(connectionState: "online" | "offline") {
   return configureStore({
     reducer: { websocket: websocketReducer },
     preloadedState: {
-      websocket: { connectionState, reconnectCountdown: null, isIdleDisconnected: false },
+      websocket: { connectionState, reconnectCountdown: null, isIdleDisconnected: false, hasEverConnected: true },
     },
   });
 }

@@ -7,12 +7,14 @@ interface WebsocketState {
   connectionState: ConnectionState;
   reconnectCountdown: number | null;
   isIdleDisconnected: boolean;
+  hasEverConnected: boolean;
 }
 
 const initialState: WebsocketState = {
   connectionState: "offline",
   reconnectCountdown: null,
   isIdleDisconnected: false,
+  hasEverConnected: false,
 };
 
 const websocketSlice = createSlice({
@@ -24,6 +26,7 @@ const websocketSlice = createSlice({
       if (action.payload === "online") {
         state.reconnectCountdown = null;
         state.isIdleDisconnected = false;
+        state.hasEverConnected = true;
       }
     },
     setReconnectCountdown(state, action: PayloadAction<number | null>) {
@@ -46,5 +49,7 @@ export const selectIsOnline = (state: RootState) =>
   state.websocket.connectionState === "online";
 export const selectIsIdleDisconnected = (state: RootState) =>
   state.websocket.isIdleDisconnected;
+export const selectHasEverConnected = (state: RootState) =>
+  state.websocket.hasEverConnected;
 
 export const websocketReducer = websocketSlice.reducer;

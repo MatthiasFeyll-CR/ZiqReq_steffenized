@@ -33,6 +33,7 @@ function createStore(overrides: {
         connectionState: overrides.connectionState ?? "offline",
         reconnectCountdown: null,
         isIdleDisconnected: overrides.isIdleDisconnected ?? false,
+        hasEverConnected: true,
       },
     },
   });

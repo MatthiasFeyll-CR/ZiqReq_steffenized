@@ -269,6 +269,38 @@ services:
       redis:
         condition: service_healthy
 
+  celery-worker-ai:
+    build: ../../services/ai
+    command: celery -A ai_service worker -l info
+    volumes:
+      - ../../proto:/app/proto
+    environment:
+      DJANGO_SETTINGS_MODULE: ai_service.settings.development
+      SECRET_KEY: ${SECRET_KEY:-insecure-dev-key-change-me}
+      DB_HOST: ${POSTGRES_HOST:-postgresql}
+      DB_NAME: ${POSTGRES_DB:-ziqreq}
+      DB_USER: ${POSTGRES_USER:-ziqreq}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ziqreq_dev}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      BROKER_URL: ${BROKER_URL:-amqp://guest:guest@rabbitmq:5672/}
+      CORE_GRPC_ADDRESS: ${CORE_GRPC_ADDRESS:-core:50051}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-attachments}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
+      AZURE_OPENAI_DEFAULT_DEPLOYMENT: ${AZURE_OPENAI_DEFAULT_DEPLOYMENT:-}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
   celery-beat:
     build: ../../services/core
     command: celery -A core beat -l info

@@ -94,7 +94,7 @@ function renderLandingPage() {
   });
   const store = configureStore({
     reducer: { websocket: websocketReducer, toastNotifications: toastNotificationReducer },
-    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false } },
+    preloadedState: { websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false, hasEverConnected: true } },
   });
   return render(
     <Provider store={store}>

@@ -95,7 +95,7 @@ function renderWorkspacePage(path: string) {
       presence: presenceReducer,
     },
     preloadedState: {
-      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false },
+      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false, hasEverConnected: true },
     },
   });
   const queryClient = new QueryClient({

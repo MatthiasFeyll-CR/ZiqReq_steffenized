@@ -23,6 +23,7 @@ function createStore(overrides: {
         connectionState: overrides.connectionState ?? "offline",
         reconnectCountdown: overrides.reconnectCountdown ?? null,
         isIdleDisconnected: overrides.isIdleDisconnected ?? false,
+        hasEverConnected: true,
       },
     },
   });

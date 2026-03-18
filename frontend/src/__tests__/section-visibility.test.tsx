@@ -101,7 +101,7 @@ function renderWorkspace(project: Project, step?: string) {
   const store = configureStore({
     reducer: { presence: presenceReducer, websocket: websocketReducer },
     preloadedState: {
-      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false },
+      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false, hasEverConnected: true },
     },
   });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });

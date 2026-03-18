@@ -31,12 +31,12 @@ export function ContextWindowIndicator({ projectId, projectState }: ContextWindo
   }, [projectId]);
 
   useEffect(() => {
-    if (projectState !== "open") return;
+    if (projectState !== "open" || projectId === "new") return;
 
     void load();
     const interval = setInterval(() => void load(), POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [projectState, load]);
+  }, [projectState, projectId, load]);
 
   if (projectState !== "open") return null;
 

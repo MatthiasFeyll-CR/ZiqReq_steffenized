@@ -86,7 +86,7 @@ function renderLandingPage() {
   const store = configureStore({
     reducer: { websocket: websocketReducer },
     preloadedState: {
-      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false },
+      websocket: { connectionState: "online" as const, reconnectCountdown: null, isIdleDisconnected: false, hasEverConnected: true },
     },
   });
   return render(

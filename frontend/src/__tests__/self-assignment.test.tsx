@@ -95,6 +95,7 @@ function renderCard(
         connectionState: "online" as const,
         reconnectCountdown: null,
         isIdleDisconnected: false,
+        hasEverConnected: true,
       },
     },
   });

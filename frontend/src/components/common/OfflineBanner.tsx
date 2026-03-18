@@ -2,6 +2,7 @@ import { useWsReconnect } from "@/app/providers";
 import { Button } from "@/components/ui/button";
 import {
   selectConnectionState,
+  selectHasEverConnected,
   selectIsIdleDisconnected,
   selectReconnectCountdown,
 } from "@/store/websocket-slice";
@@ -17,7 +18,8 @@ export function OfflineBanner() {
   const isIdleDisconnected = useSelector(selectIsIdleDisconnected);
   const reconnect = useWsReconnect();
 
-  const isOffline = connectionState === "offline";
+  const hasEverConnected = useSelector(selectHasEverConnected);
+  const isOffline = connectionState === "offline" && hasEverConnected;
   const prefersReducedMotion = useReducedMotion();
 
   return (

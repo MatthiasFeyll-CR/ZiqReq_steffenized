@@ -14,6 +14,7 @@ vi.mock("@/app/providers", () => ({
 function createStore(overrides: {
   connectionState?: "online" | "offline";
   reconnectCountdown?: number | null;
+  hasEverConnected?: boolean;
 } = {}) {
   return configureStore({
     reducer: { websocket: websocketReducer },
@@ -22,6 +23,7 @@ function createStore(overrides: {
         connectionState: overrides.connectionState ?? "offline",
         reconnectCountdown: overrides.reconnectCountdown ?? null,
         isIdleDisconnected: false,
+        hasEverConnected: overrides.hasEverConnected ?? true,
       },
     },
   });
@@ -30,6 +32,7 @@ function createStore(overrides: {
 function renderBanner(overrides: {
   connectionState?: "online" | "offline";
   reconnectCountdown?: number | null;
+  hasEverConnected?: boolean;
 } = {}) {
   const store = createStore(overrides);
   return render(
@@ -48,6 +51,11 @@ describe("T-6.2.01: OfflineBanner", () => {
 
   it("does not render when connection state is online", () => {
     renderBanner({ connectionState: "online" });
+    expect(screen.queryByTestId("offline-banner")).not.toBeInTheDocument();
+  });
+
+  it("does not render during initial load before first connection", () => {
+    renderBanner({ connectionState: "offline", hasEverConnected: false });
     expect(screen.queryByTestId("offline-banner")).not.toBeInTheDocument();
   });
 
