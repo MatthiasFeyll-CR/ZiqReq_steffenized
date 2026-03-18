@@ -13,7 +13,8 @@
     "searching": "Suche...",
     "noResults": "Keine Ergebnisse gefunden",
     "close": "Schließen",
-    "back": "Zurück"
+    "back": "Zurück",
+    "confirm": "Bestätigen"
   },
   "nav": {
     "projects": "Projekte",
@@ -373,6 +374,27 @@
       "totalCount": "{{count}} Projekte",
       "failedLoad": "Projekte konnten nicht geladen werden",
       "next": "Weiter"
+    },
+    "attachments": {
+      "tab": "Anhänge",
+      "totalStorage": "Gesamtspeicher",
+      "totalFiles": "Gesamtanzahl Dateien",
+      "searchPlaceholder": "Nach Dateinamen suchen...",
+      "filterAll": "Alle",
+      "filterActive": "Aktiv",
+      "filterDeleted": "Gelöscht",
+      "noResults": "Keine Anhänge gefunden",
+      "totalCount": "{{count}} Anhänge",
+      "deleteConfirm": "Diesen Anhang endgültig löschen?",
+      "deleteSuccess": "Anhang gelöscht",
+      "restoreSuccess": "Anhang wiederhergestellt",
+      "uploaded": "Hochgeladen",
+      "failedLoad": "Anhänge konnten nicht geladen werden",
+      "failedDelete": "Anhang konnte nicht gelöscht werden",
+      "failedRestore": "Anhang konnte nicht wiederhergestellt werden",
+      "next": "Weiter",
+      "open": "Anhang öffnen",
+      "restore": "Wiederherstellen"
     }
   },
   "structure": {

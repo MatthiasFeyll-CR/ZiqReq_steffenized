@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Brain, Settings, BarChart3, Users, Lightbulb } from "lucide-react";
+import { Brain, Settings, BarChart3, Users, Lightbulb, Paperclip } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,8 +10,9 @@ import { ParametersTab } from "@/features/admin/ParametersTab";
 import { MonitoringTab } from "@/features/admin/MonitoringTab";
 import { UsersTab } from "@/features/admin/UsersTab";
 import { ProjectsTab } from "@/features/admin/ProjectsTab";
+import { AttachmentsTab } from "@/features/admin/AttachmentsTab";
 
-const VALID_TABS = ["ai-context", "parameters", "monitoring", "users", "projects"];
+const VALID_TABS = ["ai-context", "parameters", "monitoring", "users", "projects", "attachments"];
 
 export default function AdminPanel() {
   const { t } = useTranslation();
@@ -69,6 +70,13 @@ export default function AdminPanel() {
               <Lightbulb className="h-4 w-4" />
               {t("admin.projects.tab")}
             </TabsTrigger>
+            <TabsTrigger
+              value="attachments"
+              className="inline-flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:bg-muted/50 hover:text-foreground data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            >
+              <Paperclip className="h-4 w-4" />
+              {t("admin.attachments.tab")}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="ai-context">
@@ -85,6 +93,9 @@ export default function AdminPanel() {
           </TabsContent>
           <TabsContent value="projects">
             <ProjectsTab />
+          </TabsContent>
+          <TabsContent value="attachments">
+            <AttachmentsTab />
           </TabsContent>
         </Tabs>
       </div>

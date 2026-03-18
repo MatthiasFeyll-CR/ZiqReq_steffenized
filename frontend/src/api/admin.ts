@@ -252,6 +252,73 @@ export async function fetchAdminProjects(params?: {
   return res.json();
 }
 
+// ---------- Attachments (Admin) ----------
+
+export interface AdminAttachment {
+  id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  extraction_status: string;
+  created_at: string;
+  deleted_at: string | null;
+  message_id: string | null;
+  project: { id: string; title: string };
+}
+
+export interface AdminAttachmentsResponse {
+  results: AdminAttachment[];
+  count: number;
+  next: number | null;
+  previous: number | null;
+  stats: { total_size_bytes: number; total_count: number };
+}
+
+export async function fetchAdminAttachments(params?: {
+  page?: number;
+  page_size?: number;
+  filter?: "active" | "deleted" | "all";
+  search?: string;
+}): Promise<AdminAttachmentsResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.page_size) searchParams.set("page_size", String(params.page_size));
+  if (params?.filter) searchParams.set("filter", params.filter);
+  if (params?.search) searchParams.set("search", params.search);
+
+  const qs = searchParams.toString();
+  const res = await authFetch(`${env.apiBaseUrl}/admin/attachments${qs ? `?${qs}` : ""}`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteAdminAttachment(id: string): Promise<void> {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/attachments/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+}
+
+export async function restoreAdminAttachment(id: string): Promise<void> {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/attachments/${id}/restore/`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+}
+
 // ---------- Users ----------
 
 export async function searchUsers(query: string): Promise<AdminUser[]> {

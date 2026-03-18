@@ -13,7 +13,8 @@
     "searching": "Searching...",
     "noResults": "No results found",
     "close": "Close",
-    "back": "Back"
+    "back": "Back",
+    "confirm": "Confirm"
   },
   "nav": {
     "projects": "Projects",
@@ -373,6 +374,27 @@
       "totalCount": "{{count}} projects",
       "failedLoad": "Failed to load projects",
       "next": "Next"
+    },
+    "attachments": {
+      "tab": "Attachments",
+      "totalStorage": "Total Storage",
+      "totalFiles": "Total Files",
+      "searchPlaceholder": "Search by filename...",
+      "filterAll": "All",
+      "filterActive": "Active",
+      "filterDeleted": "Deleted",
+      "noResults": "No attachments found",
+      "totalCount": "{{count}} attachments",
+      "deleteConfirm": "Delete this attachment permanently?",
+      "deleteSuccess": "Attachment deleted",
+      "restoreSuccess": "Attachment restored",
+      "uploaded": "Uploaded",
+      "failedLoad": "Failed to load attachments",
+      "failedDelete": "Failed to delete attachment",
+      "failedRestore": "Failed to restore attachment",
+      "next": "Next",
+      "open": "Open attachment",
+      "restore": "Restore"
     }
   },
   "structure": {
