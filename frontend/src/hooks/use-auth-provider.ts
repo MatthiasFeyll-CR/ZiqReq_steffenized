@@ -3,23 +3,30 @@ import { getAccessToken } from "@/lib/auth-token";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AuthContextValue, AuthUser } from "./use-auth";
 
+// Prefetch auth at module level so it starts before React mounts.
+// This eliminates the delay between bundle load and auth check.
+const _apiBase = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const _prefetchedAuth: Promise<AuthUser | null> = fetch(`${_apiBase}/auth/me`, {
+  credentials: "include",
+})
+  .then((res) => (res.ok ? res.json() : null))
+  .then((data) => (data?.id ? (data as AuthUser) : null))
+  .catch(() => null);
+
 export function useAuthProvider(): AuthContextValue {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checked, setChecked] = useState(false);
 
   const isDevBypass = env.authBypass;
 
-  // On mount, try to restore user from existing backend session
+  // Use the module-level prefetched result
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_BASE_URL ?? "/api";
-    fetch(`${apiBase}/auth/me`, { credentials: "include" })
-      .then((res) => (res.ok ? res.json() : null))
+    _prefetchedAuth
       .then((data) => {
-        if (data?.id) {
-          setUser(data as AuthUser);
+        if (data) {
+          setUser(data);
         }
       })
-      .catch(() => {})
       .finally(() => setChecked(true));
   }, []);
 

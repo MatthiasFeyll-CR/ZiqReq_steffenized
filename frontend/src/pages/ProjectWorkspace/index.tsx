@@ -285,17 +285,24 @@ function ProjectWorkspaceContent({
   const handleStepChange = useCallback(
     (step: ProcessStep) => {
       setActiveStep(step);
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        if (step === "define") {
-          next.delete("step");
-        } else {
-          next.set("step", step);
-        }
-        return next;
-      }, { replace: true });
+      // Build the URL manually using the real project ID to avoid
+      // React Router using a stale "/project/new" route param after
+      // LazyProjectProvider replaced the URL via history.replaceState.
+      const basePath = `/project/${project.id}`;
+      const params = new URLSearchParams(window.location.search);
+      if (step === "define") {
+        params.delete("step");
+      } else {
+        params.set("step", step);
+      }
+      // Remove the type param once the project is persisted
+      if (project.id !== "new") {
+        params.delete("type");
+      }
+      const qs = params.toString();
+      window.history.replaceState(null, "", qs ? `${basePath}?${qs}` : basePath);
     },
-    [setSearchParams],
+    [project.id],
   );
 
   // has_been_submitted heuristic — deleted doesn't count

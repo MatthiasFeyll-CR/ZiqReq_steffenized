@@ -452,6 +452,7 @@
   "attachment": {
     "upload": "Datei anhängen",
     "dragDrop": "Dateien hier ablegen",
+    "dragDropHint": "PNG, JPEG, WebP oder PDF — max 100 MB",
     "typeError": "Dateityp nicht erlaubt: {{name}}",
     "sizeError": "Datei zu groß: {{name}} (max 100 MB)",
     "limitPerMessage": "Maximal 3 Anhänge pro Nachricht",

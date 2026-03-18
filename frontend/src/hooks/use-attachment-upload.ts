@@ -21,7 +21,11 @@ export interface PendingUpload {
   attachment?: Attachment;
 }
 
-export function useAttachmentUpload(projectId: string, projectAttachmentCount: number) {
+export function useAttachmentUpload(
+  projectId: string,
+  projectAttachmentCount: number,
+  ensureProject?: () => Promise<string>,
+) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<PendingUpload[]>([]);
   const nextId = useRef(0);
@@ -33,7 +37,7 @@ export function useAttachmentUpload(projectId: string, projectAttachmentCount: n
   const isUploading = pending.some((p) => p.status === "uploading");
 
   const addFiles = useCallback(
-    (files: FileList | File[]) => {
+    async (files: FileList | File[]) => {
       const fileArr = Array.from(files);
 
       // Check staging limit
@@ -47,6 +51,17 @@ export function useAttachmentUpload(projectId: string, projectAttachmentCount: n
       if (projectAttachmentCount + fileArr.length > MAX_PER_PROJECT) {
         toast.error(t("attachment.limitPerProject", "Maximum 10 attachments per project"));
         return;
+      }
+
+      // Ensure the project is persisted before uploading
+      let realProjectId = projectId;
+      if (ensureProject) {
+        try {
+          realProjectId = await ensureProject();
+        } catch {
+          toast.error(t("attachment.uploadFailed", "Upload failed: could not create project"));
+          return;
+        }
       }
 
       for (const file of fileArr) {
@@ -67,7 +82,7 @@ export function useAttachmentUpload(projectId: string, projectAttachmentCount: n
         const entry: PendingUpload = { id: uploadId, file, progress: 0, status: "uploading" };
         setPending((prev) => [...prev, entry]);
 
-        uploadAttachment(projectId, file, (progress) => {
+        uploadAttachment(realProjectId, file, (progress) => {
           setPending((prev) =>
             prev.map((p) => (p.id === uploadId ? { ...p, progress } : p)),
           );
@@ -85,7 +100,7 @@ export function useAttachmentUpload(projectId: string, projectAttachmentCount: n
           });
       }
     },
-    [projectId, pending, projectAttachmentCount, t],
+    [projectId, pending, projectAttachmentCount, t, ensureProject],
   );
 
   const removeAttachment = useCallback(

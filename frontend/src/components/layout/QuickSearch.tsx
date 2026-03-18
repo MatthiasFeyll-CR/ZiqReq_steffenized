@@ -148,12 +148,15 @@ export function QuickSearch({ open, onClose }: QuickSearchProps) {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "ArrowDown") {
+      const isDown = e.key === "ArrowDown" || (e.altKey && e.key === "j");
+      const isUp = e.key === "ArrowUp" || (e.altKey && e.key === "k");
+
+      if (isDown) {
         e.preventDefault();
         setActiveIndex((prev) =>
           prev < flatList.length - 1 ? prev + 1 : prev,
         );
-      } else if (e.key === "ArrowUp") {
+      } else if (isUp) {
         e.preventDefault();
         setActiveIndex((prev) => (prev > 0 ? prev - 1 : 0));
       } else if (e.key === "Enter") {
@@ -290,6 +293,9 @@ export function QuickSearch({ open, onClose }: QuickSearchProps) {
             </kbd>
             <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">
               &darr;
+            </kbd>
+            <kbd className="rounded border border-border bg-muted px-1 py-0.5 text-[10px]">
+              alt+j/k
             </kbd>
             {t("quickSearch.navigate", "navigate")}
           </span>

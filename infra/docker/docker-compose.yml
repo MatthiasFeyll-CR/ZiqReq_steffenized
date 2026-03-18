@@ -271,7 +271,7 @@ services:
 
   celery-worker-ai:
     build: ../../services/ai
-    command: celery -A ai_service worker -l info
+    command: celery -A ai_service worker -l info -Q ai
     volumes:
       - ../../proto:/app/proto
     environment:

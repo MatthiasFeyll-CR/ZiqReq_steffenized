@@ -1,9 +1,9 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { FileText, Image, X, Loader2 } from "lucide-react";
+import { FileText, Image, Loader2, X } from "lucide-react";
 import { toast } from "react-toastify";
-import { getAttachmentUrl } from "@/api/attachments";
 import type { Attachment } from "@/api/attachments";
+import { env } from "@/config/env";
 import { cn } from "@/lib/utils";
 
 interface AttachmentBoxProps {
@@ -34,24 +34,15 @@ export function AttachmentBox({
   thumbnailUrl,
 }: AttachmentBoxProps) {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
 
-  const handleClick = useCallback(async () => {
+  const handleClick = useCallback(() => {
     if (!clickable) {
       toast.info(t("attachment.readOnlyBlocked", "Download not available in read-only mode"));
       return;
     }
-    if (loading) return;
-    setLoading(true);
-    try {
-      const url = await getAttachmentUrl(projectId, attachment.id);
-      window.open(url, "_blank");
-    } catch {
-      toast.error(t("attachment.downloadFailed", "Download failed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [clickable, loading, projectId, attachment.id, t]);
+    const url = `${env.apiBaseUrl}/projects/${projectId}/attachments/${attachment.id}/download/`;
+    window.open(url, "_blank");
+  }, [clickable, projectId, attachment.id, t]);
 
   const isImage = isImageType(attachment.content_type);
   const Icon = isImage ? Image : FileText;
@@ -106,7 +97,6 @@ export function AttachmentBox({
           )}
         </div>
       </div>
-      {loading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
       {onRemove && (
         <button
           type="button"

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LockOverlay } from "./LockOverlay";
 import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
+import { ChatDropZone } from "@/components/chat/ChatDropZone";
 import { AIProcessingIndicator } from "@/components/chat/AIProcessingIndicator";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import type { Project } from "@/api/projects";
@@ -19,6 +20,13 @@ export function ChatPanel({ project, locked, lockReason, readOnly }: ChatPanelPr
   const { t } = useTranslation();
   const [newMessages, setNewMessages] = useState<ChatMessage[]>([]);
   const { isLimited } = useRateLimit(project.id);
+
+  // Ref to pass dropped files to ChatInput's attachment upload
+  const addFilesRef = useRef<((files: FileList | File[]) => void) | null>(null);
+
+  const handleDroppedFiles = useCallback((files: FileList) => {
+    addFilesRef.current?.(files);
+  }, []);
 
   const handleMessageSent = useCallback((message: ChatMessage) => {
     setNewMessages((prev) => [...prev, message]);
@@ -72,22 +80,25 @@ export function ChatPanel({ project, locked, lockReason, readOnly }: ChatPanelPr
       : null;
 
   return (
-    <div className="relative flex flex-col flex-1 min-h-0" data-testid="chat-panel-inner">
-      <ChatMessageList project={project} appendedMessages={newMessages} isReadOnly={readOnly} />
-      <AIProcessingIndicator projectId={project.id} />
-      {readOnly ? (
-        <div className="px-4 py-3 text-sm text-muted-foreground border-t text-center" data-testid="chat-read-only-notice">
-          Viewing shared project — chat is read-only
-        </div>
-      ) : (
-        <ChatInput
-          projectId={project.id}
-          project={project}
-          onMessageSent={handleMessageSent}
-          disabled={isDisabled}
-        />
-      )}
-      {!readOnly && isDisabled && overlayReason && <LockOverlay reason={overlayReason} />}
-    </div>
+    <ChatDropZone onFiles={handleDroppedFiles} disabled={readOnly || isDisabled}>
+      <div className="relative flex flex-col flex-1 min-h-0" data-testid="chat-panel-inner">
+        <ChatMessageList project={project} appendedMessages={newMessages} isReadOnly={readOnly} />
+        <AIProcessingIndicator projectId={project.id} />
+        {readOnly ? (
+          <div className="px-4 py-3 text-sm text-muted-foreground border-t text-center" data-testid="chat-read-only-notice">
+            Viewing shared project — chat is read-only
+          </div>
+        ) : (
+          <ChatInput
+            projectId={project.id}
+            project={project}
+            onMessageSent={handleMessageSent}
+            disabled={isDisabled}
+            addFilesRef={addFilesRef}
+          />
+        )}
+        {!readOnly && isDisabled && overlayReason && <LockOverlay reason={overlayReason} />}
+      </div>
+    </ChatDropZone>
   );
 }

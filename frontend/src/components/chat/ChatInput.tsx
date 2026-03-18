@@ -19,9 +19,10 @@ interface ChatInputProps {
   onMessageSent: (message: ChatMessage) => void;
   disabled?: boolean;
   projectAttachmentCount?: number;
+  addFilesRef?: React.MutableRefObject<((files: FileList | File[]) => void) | null>;
 }
 
-export function ChatInput({ projectId, project, onMessageSent, disabled, projectAttachmentCount = 0 }: ChatInputProps) {
+export function ChatInput({ projectId, project, onMessageSent, disabled, projectAttachmentCount = 0, addFilesRef }: ChatInputProps) {
   const { t } = useTranslation();
   const { ensureProject } = useLazyProject();
   const [value, setValue] = useState("");
@@ -31,7 +32,17 @@ export function ChatInput({ projectId, project, onMessageSent, disabled, project
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { pending, addFiles, removeAttachment, stagedAttachmentIds, clearStaged, isUploading } =
-    useAttachmentUpload(projectId, projectAttachmentCount);
+    useAttachmentUpload(projectId, projectAttachmentCount, ensureProject);
+
+  // Expose addFiles to parent via ref (for drop zone integration)
+  useEffect(() => {
+    if (addFilesRef) {
+      addFilesRef.current = addFiles;
+    }
+    return () => {
+      if (addFilesRef) addFilesRef.current = null;
+    };
+  }, [addFiles, addFilesRef]);
 
   // Mention state
   const [mentionOpen, setMentionOpen] = useState(false);

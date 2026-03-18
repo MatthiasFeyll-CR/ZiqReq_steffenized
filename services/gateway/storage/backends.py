@@ -25,6 +25,10 @@ class StorageBackend(abc.ABC):
         """Get a presigned URL for downloading a file. Default TTL is 15 minutes."""
 
     @abc.abstractmethod
+    def download_file(self, storage_key: str) -> tuple[bytes, str]:
+        """Download a file from storage. Returns (file_data, content_type)."""
+
+    @abc.abstractmethod
     def file_exists(self, storage_key: str) -> bool:
         """Check if a file exists in storage."""
 
@@ -81,6 +85,18 @@ class MinIOBackend(StorageBackend):
             extra_query_params=extra_query_params if extra_query_params else None,
         )
 
+    def download_file(self, storage_key: str) -> tuple[bytes, str]:
+        response = None
+        try:
+            response = self.client.get_object(self.bucket, storage_key)
+            data = response.read()
+            content_type = response.headers.get("Content-Type", "application/octet-stream")
+            return data, content_type
+        finally:
+            if response is not None:
+                response.close()
+                response.release_conn()
+
     def file_exists(self, storage_key: str) -> bool:
         try:
             self.client.stat_object(self.bucket, storage_key)
@@ -99,6 +115,9 @@ class AzureBlobBackend(StorageBackend):
         raise NotImplementedError("AzureBlobBackend is not implemented yet.")
 
     def get_presigned_url(self, storage_key: str, expires_seconds: int = 900, filename: str | None = None) -> str:
+        raise NotImplementedError("AzureBlobBackend is not implemented yet.")
+
+    def download_file(self, storage_key: str) -> tuple[bytes, str]:
         raise NotImplementedError("AzureBlobBackend is not implemented yet.")
 
     def file_exists(self, storage_key: str) -> bool:

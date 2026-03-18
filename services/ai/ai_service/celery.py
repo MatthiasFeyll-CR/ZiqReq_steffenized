@@ -19,6 +19,7 @@ app.config_from_object({
     "task_serializer": "json",
     "accept_content": ["json"],
     "task_always_eager": os.environ.get("CELERY_ALWAYS_EAGER", "false").lower() == "true",
+    "task_default_queue": "ai",
 })
 
 app.autodiscover_tasks(["tasks"])

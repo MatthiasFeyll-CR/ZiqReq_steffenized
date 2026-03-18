@@ -2,6 +2,7 @@ import logging
 import uuid
 
 from django.core.cache import cache
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, authentication_classes, parser_classes
@@ -90,25 +91,43 @@ def _get_storage_backend():
     return get_storage_backend()
 
 
-def _dispatch_extraction_task(attachment_id: str, project_id: str) -> None:
-    """Dispatch the Celery extraction task for the given attachment.
+_celery_app = None
 
-    Best-effort: logs warning on failure but does not block the upload response.
-    """
-    try:
+
+def _get_celery_app():
+    """Get or create a persistent Celery app for dispatching tasks to the AI service."""
+    global _celery_app
+    if _celery_app is None:
         from django.conf import settings
 
         broker_url = getattr(settings, "CELERY_BROKER_URL", None)
         if not broker_url:
-            logger.info("No CELERY_BROKER_URL configured, skipping extraction task dispatch")
-            return
+            return None
 
         from celery import Celery
 
-        celery_app = Celery("ai_service", broker=broker_url)
-        celery_app.send_task(
+        _celery_app = Celery("ai_service", broker=broker_url)
+    return _celery_app
+
+
+def _dispatch_extraction_task(attachment_id: str, project_id: str) -> None:
+    """Dispatch the Celery extraction task for the given attachment.
+
+    Best-effort: logs warning on failure but does not block the upload response.
+    Uses a persistent Celery connection with retry to avoid silent message drops.
+    """
+    try:
+        app = _get_celery_app()
+        if not app:
+            logger.info("No CELERY_BROKER_URL configured, skipping extraction task dispatch")
+            return
+
+        app.send_task(
             "tasks.extract_attachment_content",
             kwargs={"attachment_id": attachment_id, "project_id": project_id},
+            queue="ai",
+            retry=True,
+            retry_policy={"max_retries": 3, "interval_start": 0.1, "interval_step": 0.2},
         )
         logger.info("Dispatched extraction task for attachment %s", attachment_id)
     except Exception:
@@ -366,3 +385,54 @@ def attachment_url(request: Request, project_id: str, attachment_id: str) -> Res
         )
 
     return Response({"url": url})
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def attachment_download(request: Request, project_id: str, attachment_id: str) -> HttpResponse:
+    user = _require_auth(request)
+    if user is None:
+        return _unauthorized_response()
+
+    project, error = _get_project_or_error(project_id)
+    if error:
+        return error
+
+    if not _check_access(user, project):
+        return Response(
+            {"error": "ACCESS_DENIED", "message": "You do not have access to this project"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    try:
+        uuid.UUID(attachment_id)
+    except ValueError:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        attachment = Attachment.objects.get(
+            id=attachment_id, project_id=project.id, deleted_at__isnull=True
+        )
+    except Attachment.DoesNotExist:
+        return Response(
+            {"error": "NOT_FOUND", "message": "Attachment not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        backend = _get_storage_backend()
+        file_data, content_type = backend.download_file(attachment.storage_key)
+    except Exception:
+        logger.exception("Failed to download file from storage: %s", attachment.storage_key)
+        return Response(
+            {"error": "STORAGE_ERROR", "message": "Failed to download file"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    response = HttpResponse(file_data, content_type=content_type)
+    response["Content-Disposition"] = f'inline; filename="{attachment.filename}"'
+    response["Content-Length"] = len(file_data)
+    return response
