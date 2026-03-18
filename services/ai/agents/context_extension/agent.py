@@ -64,10 +64,20 @@ class ContextExtensionAgent(BaseAgent):
 
         messages: list[dict[str, Any]] = history_result.get("messages", [])
 
-        # If no messages, return early
-        if not messages:
+        # Load project attachments with completed extraction for extended search
+        attachments: list[dict[str, Any]] = []
+        try:
+            attachments = self._core_client.get_project_attachments(project_id)
+        except Exception:
+            logger.warning(
+                "[context_extension] Failed to load attachments for project %s",
+                project_id,
+            )
+
+        # If no messages and no attachments, return early
+        if not messages and not attachments:
             logger.info(
-                "[context_extension] No messages in history for project %s",
+                "[context_extension] No messages or attachments for project %s",
                 project_id,
             )
             return {
@@ -78,8 +88,8 @@ class ContextExtensionAgent(BaseAgent):
                 "messages_cited": [],
             }
 
-        # Build system prompt with query and full history
-        system_prompt = build_system_prompt(query, messages)
+        # Build system prompt with query, full history, and attachments
+        system_prompt = build_system_prompt(query, messages, attachments)
 
         # Create kernel with escalated tier deployment (larger context window)
         deployment = get_deployment("escalated")

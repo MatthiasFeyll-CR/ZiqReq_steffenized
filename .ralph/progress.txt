@@ -145,3 +145,22 @@ Started: 2026-03-18T01:03:58+0100
   - Docker test containers MUST be rebuilt (--build) after code changes — stale images cause false test failures
   - Test container had stale code on first attempt, leading to confusing failures
 ---
+
+## US-008: AI context integration (context assembler, prompt sandboxing, context extension)
+- Status: PASS
+- Attempts: 1
+- Changes: services/ai/grpc_clients/core_client.py, services/ai/processing/context_assembler.py, services/ai/agents/facilitator/prompt.py, services/ai/agents/facilitator/agent.py, services/ai/agents/context_extension/agent.py, services/ai/agents/context_extension/prompt.py, services/ai/tests/test_context_assembly_attachments.py (new), services/ai/tests/test_context_extension.py (updated)
+- Tests: 24 new context integration tests pass, 878 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - CoreClient.get_project_attachments() queries attachments table directly (same pattern as other CoreClient methods)
+  - ContextAssembler.assemble() now returns "attachments" key with list of completed-extraction attachments
+  - _load_project_attachments() is a module-level helper that catches exceptions (returns [] on failure)
+  - Facilitator prompt template uses {attachments_block} after </project> and {attachment_guidance_block} inside <conversation_rules>
+  - _render_attachments_block() wraps each attachment in <user_attachment> with WARNING attribute for prompt injection sandboxing
+  - Truncation per-attachment uses _get_max_content_chars() reading attachment_extraction_max_tokens admin param (default 16000 chars)
+  - _format_messages() in both facilitator/agent.py and context_extension/prompt.py now appends "[Attachments: file1, file2]" to message content
+  - Context extension agent now loads project attachments via get_project_attachments() and includes them in search prompt
+  - build_system_prompt() in context_extension/prompt.py accepts optional attachments parameter (backward compatible)
+  - Existing test_context_extension.py tests needed updates: mode string changed, empty history check also checks attachments
+  - Docker test containers MUST be rebuilt after code changes (confirmed again — stale images cause false failures)
+---

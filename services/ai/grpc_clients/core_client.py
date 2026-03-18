@@ -382,6 +382,34 @@ class CoreClient:
                 return row[0] or "software"
         return "software"
 
+    # ── Attachment operations ──
+
+    def get_project_attachments(self, project_id: str) -> list[dict[str, Any]]:
+        """Fetch all active attachments for a project with completed extraction."""
+        from django.db import connection
+
+        attachments: list[dict[str, Any]] = []
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, filename, content_type, size_bytes, extracted_content, "
+                "extraction_status, message_id "
+                "FROM attachments "
+                "WHERE project_id = %s AND deleted_at IS NULL AND extraction_status = 'completed'",
+                [project_id],
+            )
+            for row in cursor.fetchall():
+                attachments.append({
+                    "id": str(row[0]),
+                    "filename": row[1],
+                    "content_type": row[2],
+                    "size_bytes": row[3],
+                    "extracted_content": row[4] or "",
+                    "extraction_status": row[5],
+                    "message_id": str(row[6]) if row[6] else None,
+                })
+
+        return attachments
+
     # ── BRD operations ──
 
     def get_brd_draft(self, project_id: str) -> dict[str, Any]:
