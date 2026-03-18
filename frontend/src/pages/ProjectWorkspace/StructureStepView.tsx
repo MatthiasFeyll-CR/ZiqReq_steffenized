@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CheckCircle, Loader2, Lock, Unlock } from "lucide-react";
 import { toast } from "react-toastify";
@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { RequirementsPanel } from "@/components/workspace/RequirementsPanel";
 import { PDFPreviewPanel } from "@/components/workspace/PDFPreviewPanel";
 import { SubmitArea } from "@/components/review/SubmitArea";
+import { CollapsibleSection } from "@/components/workspace/CollapsibleSection";
+import { AttachmentSelector } from "@/components/workspace/AttachmentSelector";
 import {
   fetchRequirements,
   generateRequirements,
@@ -14,6 +16,7 @@ import {
   type ProjectType,
   type RequirementsDraft,
 } from "@/api/projects";
+import type { Attachment } from "@/api/attachments";
 import type { ProcessStep } from "@/components/workspace/ProcessStepper";
 
 interface StructureStepViewProps {
@@ -42,6 +45,16 @@ export function StructureStepView({
   const { t } = useTranslation();
   const [draft, setDraft] = useState<RequirementsDraft | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Collapsible state
+  const [advancedExpanded, setAdvancedExpanded] = useState(false);
+  const [submitExpanded, setSubmitExpanded] = useState(false);
+  const hasAutoExpandedSubmit = useRef(false);
+
+  // Attachment selection for PDF
+  const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<
+    Set<string>
+  >(new Set());
 
   // Fetch draft for action controls (readiness, gaps, locks)
   useEffect(() => {
@@ -137,8 +150,6 @@ export function StructureStepView({
       setDraft({ ...draft, allow_information_gaps: checked });
       try {
         await patchRequirements(projectId, {});
-        // The patchRequirements API doesn't support allow_information_gaps in its current type
-        // For now, optimistic update stays; the backend BRD draft API handles it
       } catch {
         setDraft(prev);
       }
@@ -157,7 +168,6 @@ export function StructureStepView({
       setDraft({ ...draft, item_locks: newLocks });
       try {
         // Optimistic update - item_locks are tracked in the draft
-        // If the backend supports patching item_locks, call it here
       } catch {
         setDraft(prev);
       }
@@ -165,12 +175,25 @@ export function StructureStepView({
     [draft],
   );
 
+  // Auto-select all attachments when they first load
+  const handleAttachmentsLoaded = useCallback((attachments: Attachment[]) => {
+    setSelectedAttachmentIds(new Set(attachments.map((a) => a.id)));
+  }, []);
+
   const handleSubmitted = useCallback(() => {
     onSubmitted?.();
     onStepChange("review");
   }, [onSubmitted, onStepChange]);
 
   const hasContent = draft && draft.structure.length > 0;
+
+  // Auto-expand submit when content appears
+  useEffect(() => {
+    if (hasContent && !hasAutoExpandedSubmit.current) {
+      setSubmitExpanded(true);
+      hasAutoExpandedSubmit.current = true;
+    }
+  }, [hasContent]);
 
   // Readiness evaluation summary
   const readinessEntries = draft?.readiness_evaluation
@@ -182,12 +205,26 @@ export function StructureStepView({
   const totalCount = readinessEntries.length;
   const allReady = totalCount > 0 && readyCount === totalCount;
 
+  // Collapsible summaries
+  const lockedCount = draft
+    ? Object.values(draft.item_locks).filter(Boolean).length
+    : 0;
+  const advancedParts: string[] = [];
+  if (lockedCount > 0) advancedParts.push(`${lockedCount} ${t("structure.locked", "locked")}`);
+  if (selectedAttachmentIds.size > 0) advancedParts.push(`${selectedAttachmentIds.size} ${t("structure.attachmentsSelected", "attachments selected")}`);
+  const advancedSummary = advancedParts.join(" | ") || undefined;
+
+  const canSubmit =
+    projectState &&
+    (projectState === "open" || projectState === "rejected") &&
+    hasContent;
+
   return (
     <div
       className="flex flex-1 min-h-0 flex-col"
       data-testid="structure-step-view"
     >
-      {/* Action bar */}
+      {/* Sticky toolbar */}
       <div className="shrink-0 flex items-center justify-between gap-4 px-6 py-3 border-b border-border bg-surface">
         <div className="flex items-center gap-4">
           <Button
@@ -243,68 +280,115 @@ export function StructureStepView({
             collaborators={collaborators}
             projectTitle={projectTitle}
           />
-
-          {/* Per-item lock controls */}
-          {draft && draft.structure.length > 0 && !readOnly && (
-            <div
-              className="shrink-0 border-t border-border px-4 py-2 flex flex-wrap gap-2"
-              data-testid="item-locks"
-            >
-              <span className="text-xs text-muted-foreground self-center mr-1">
-                {t("structure.locks", "Locks:")}
-              </span>
-              {draft.structure.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleToggleLock(item.id)}
-                  className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border transition-colors ${
-                    draft.item_locks[item.id]
-                      ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                      : "border-border bg-background text-muted-foreground hover:border-foreground/30"
-                  }`}
-                  title={
-                    draft.item_locks[item.id]
-                      ? t("structure.unlock", "Unlock (allow AI regeneration)")
-                      : t("structure.lock", "Lock (prevent AI regeneration)")
-                  }
-                  data-testid={`lock-${item.id}`}
-                >
-                  {draft.item_locks[item.id] ? (
-                    <Lock className="h-3 w-3" />
-                  ) : (
-                    <Unlock className="h-3 w-3" />
-                  )}
-                  <span className="truncate max-w-[120px]">{item.title}</span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Right: PDF preview sidebar (40%) */}
         <div className="flex-[2] border-l border-border p-4 min-h-0 hidden lg:flex lg:flex-col">
-          <PDFPreviewPanel projectId={projectId} />
+          <PDFPreviewPanel
+            projectId={projectId}
+            selectedAttachmentIds={selectedAttachmentIds}
+          />
         </div>
       </div>
 
-      {/* Submit section */}
-      {projectState &&
-        (projectState === "open" || projectState === "rejected") &&
-        hasContent && (
-          <div
-            className="shrink-0 border-t border-border bg-surface/80 backdrop-blur-sm px-6 py-4"
-            data-testid="structure-submit-area"
+      {/* Collapsible: Advanced Options */}
+      {hasContent && !readOnly && (
+        <div className="shrink-0 border-t border-border px-6 py-3">
+          <CollapsibleSection
+            title={t("structure.advancedOptions", "Advanced Options")}
+            summary={advancedSummary}
+            expanded={advancedExpanded}
+            onExpandedChange={setAdvancedExpanded}
+          >
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Left: Item locks */}
+              <div className="flex-[3] min-w-0">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                  {t("structure.itemLocks", "Item Locks")}
+                </h4>
+                <div
+                  className="flex flex-wrap gap-2"
+                  data-testid="item-locks"
+                >
+                  {draft!.structure.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleToggleLock(item.id)}
+                      className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded border transition-colors ${
+                        draft!.item_locks[item.id]
+                          ? "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                          : "border-border bg-background text-foreground hover:border-foreground/30"
+                      }`}
+                      title={
+                        draft!.item_locks[item.id]
+                          ? t(
+                              "structure.unlock",
+                              "Unlock (allow AI regeneration)",
+                            )
+                          : t(
+                              "structure.lock",
+                              "Lock (prevent AI regeneration)",
+                            )
+                      }
+                      data-testid={`lock-${item.id}`}
+                    >
+                      {draft!.item_locks[item.id] ? (
+                        <Lock className="h-3 w-3" />
+                      ) : (
+                        <Unlock className="h-3 w-3" />
+                      )}
+                      <span className="truncate max-w-[120px]">
+                        {item.title}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Attachment selector for PDF */}
+              <div className="flex-[2] min-w-0 border-t lg:border-t-0 lg:border-l border-border pt-3 lg:pt-0 lg:pl-6">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                  {t(
+                    "structure.attachmentsForPdf",
+                    "Attachments for PDF",
+                  )}
+                </h4>
+                <AttachmentSelector
+                  projectId={projectId}
+                  selectedIds={selectedAttachmentIds}
+                  onSelectionChange={setSelectedAttachmentIds}
+                  onAttachmentsLoaded={handleAttachmentsLoaded}
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+        </div>
+      )}
+
+      {/* Collapsible: Submit for Review */}
+      {canSubmit && (
+        <div
+          className="shrink-0 border-t border-border px-6 py-3"
+          data-testid="structure-submit-area"
+        >
+          <CollapsibleSection
+            title={t("submit.readyTitle", "Ready to submit?")}
+            summary={
+              !allReady && !draft?.allow_information_gaps
+                ? t("structure.notAllReady", "Not all items ready")
+                : undefined
+            }
+            expanded={submitExpanded}
+            onExpandedChange={setSubmitExpanded}
+            variant="success"
           >
             <div className="flex items-start gap-3 mb-3">
               <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-secondary/10 dark:bg-primary/10">
                 <CheckCircle className="h-4 w-4 text-secondary dark:text-primary" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-foreground">
-                  {t("submit.readyTitle", "Ready to submit?")}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground">
                   {t(
                     "submit.readyDescription",
                     "Once submitted, your project will be sent to reviewers for evaluation.",
@@ -325,8 +409,9 @@ export function StructureStepView({
               projectState={projectState}
               onSubmitted={handleSubmitted}
             />
-          </div>
-        )}
+          </CollapsibleSection>
+        </div>
+      )}
     </div>
   );
 }

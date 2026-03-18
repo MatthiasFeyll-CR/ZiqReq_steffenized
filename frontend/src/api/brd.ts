@@ -88,8 +88,12 @@ export async function patchBrdDraft(
   return res.json();
 }
 
-export async function fetchBrdPreviewPdf(projectId: string): Promise<Blob> {
-  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/pdf/preview`, {
+export async function fetchBrdPreviewPdf(projectId: string, attachmentIds?: string[]): Promise<Blob> {
+  const url = new URL(`${env.apiBaseUrl}/projects/${projectId}/brd/pdf/preview`, window.location.origin);
+  if (attachmentIds && attachmentIds.length > 0) {
+    url.searchParams.set("attachment_ids", attachmentIds.join(","));
+  }
+  const res = await authFetch(url.toString(), {
     credentials: "include",
   });
   if (!res.ok) {
@@ -101,8 +105,12 @@ export async function fetchBrdPreviewPdf(projectId: string): Promise<Blob> {
   return res.blob();
 }
 
-export async function fetchBrdPdf(projectId: string): Promise<Blob> {
-  const res = await authFetch(`${env.apiBaseUrl}/projects/${projectId}/brd/versions/latest/pdf`, {
+export async function fetchBrdPdf(projectId: string, attachmentIds?: string[]): Promise<Blob> {
+  const url = new URL(`${env.apiBaseUrl}/projects/${projectId}/brd/versions/latest/pdf`, window.location.origin);
+  if (attachmentIds && attachmentIds.length > 0) {
+    url.searchParams.set("attachment_ids", attachmentIds.join(","));
+  }
+  const res = await authFetch(url.toString(), {
     credentials: "include",
   });
   if (!res.ok) {

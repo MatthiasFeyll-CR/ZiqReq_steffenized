@@ -409,7 +409,16 @@
     "locks": "Locks:",
     "lock": "Lock (prevent AI regeneration)",
     "unlock": "Unlock (allow AI regeneration)",
-    "notReady": "Some items are not ready. Enable 'Allow information gaps' or complete all items."
+    "notReady": "Some items are not ready. Enable 'Allow information gaps' or complete all items.",
+    "advancedOptions": "Advanced Options",
+    "itemLocks": "Item Locks",
+    "attachmentsForPdf": "Attachments for PDF",
+    "noAttachments": "No attachments uploaded for this project.",
+    "selectAll": "Select All",
+    "selected": "selected",
+    "locked": "locked",
+    "attachmentsSelected": "attachments selected",
+    "notAllReady": "Not all items ready"
   },
   "brd": {
     "editDocument": "Edit Document",

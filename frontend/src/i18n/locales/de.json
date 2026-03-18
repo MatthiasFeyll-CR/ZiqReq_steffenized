@@ -409,7 +409,16 @@
     "locks": "Sperren:",
     "lock": "Sperren (KI-Neuerstellung verhindern)",
     "unlock": "Entsperren (KI-Neuerstellung zulassen)",
-    "notReady": "Einige Elemente sind nicht bereit. Aktivieren Sie 'Informationslücken zulassen' oder vervollständigen Sie alle Elemente."
+    "notReady": "Einige Elemente sind nicht bereit. Aktivieren Sie 'Informationslücken zulassen' oder vervollständigen Sie alle Elemente.",
+    "advancedOptions": "Erweiterte Optionen",
+    "itemLocks": "Element-Sperren",
+    "attachmentsForPdf": "Anhänge für PDF",
+    "noAttachments": "Keine Anhänge für dieses Projekt hochgeladen.",
+    "selectAll": "Alle auswählen",
+    "selected": "ausgewählt",
+    "locked": "gesperrt",
+    "attachmentsSelected": "Anhänge ausgewählt",
+    "notAllReady": "Nicht alle Elemente bereit"
   },
   "brd": {
     "editDocument": "Dokument bearbeiten",

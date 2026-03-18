@@ -7,9 +7,10 @@ import { fetchBrdPreviewPdf, fetchBrdPdf } from "@/api/brd";
 
 interface PDFPreviewPanelProps {
   projectId: string;
+  selectedAttachmentIds?: Set<string>;
 }
 
-export function PDFPreviewPanel({ projectId }: PDFPreviewPanelProps) {
+export function PDFPreviewPanel({ projectId, selectedAttachmentIds }: PDFPreviewPanelProps) {
   const { t } = useTranslation();
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,8 @@ export function PDFPreviewPanel({ projectId }: PDFPreviewPanelProps) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchBrdPreviewPdf(projectId)
+    const attachmentIds = selectedAttachmentIds ? [...selectedAttachmentIds] : undefined;
+    fetchBrdPreviewPdf(projectId, attachmentIds)
       .then((blob) => {
         if (!cancelled) setPdfBlob(blob);
       })
@@ -42,6 +44,7 @@ export function PDFPreviewPanel({ projectId }: PDFPreviewPanelProps) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   // Listen for brd_ready WebSocket events to refresh preview
@@ -50,7 +53,8 @@ export function PDFPreviewPanel({ projectId }: PDFPreviewPanelProps) {
       const detail = (e as CustomEvent).detail;
       if (detail?.project_id === projectId) {
         try {
-          const blob = await fetchBrdPreviewPdf(projectId);
+          const attachmentIds = selectedAttachmentIds ? [...selectedAttachmentIds] : undefined;
+          const blob = await fetchBrdPreviewPdf(projectId, attachmentIds);
           setPdfBlob(blob);
         } catch {
           // Ignore preview fetch failure
@@ -63,7 +67,8 @@ export function PDFPreviewPanel({ projectId }: PDFPreviewPanelProps) {
 
   const handleDownload = useCallback(async () => {
     try {
-      const blob = await fetchBrdPdf(projectId);
+      const attachmentIds = selectedAttachmentIds ? [...selectedAttachmentIds] : undefined;
+      const blob = await fetchBrdPdf(projectId, attachmentIds);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -78,7 +83,7 @@ export function PDFPreviewPanel({ projectId }: PDFPreviewPanelProps) {
           t("review.downloadError", "Failed to download PDF"),
       );
     }
-  }, [projectId, t]);
+  }, [projectId, selectedAttachmentIds, t]);
 
   return (
     <div
