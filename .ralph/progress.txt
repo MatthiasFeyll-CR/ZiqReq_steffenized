@@ -1,0 +1,90 @@
+# Ralph Progress Log — M22 (chat-attachments)
+Started: 2026-03-18T01:03:58+0100
+
+---
+
+## Implementation Log
+
+<!-- Ralph appends per-story entries below as it works. -->
+<!-- Each entry should include: story ID, what was done, files changed, -->
+<!-- decisions made, and any deviations from the spec. -->
+
+---
+
+## Codebase Patterns
+
+<!-- Ralph records reusable patterns discovered during implementation. -->
+<!-- These are extracted by the PRD Writer for future milestones. -->
+
+---
+
+## Deviations & Decisions
+
+<!-- Ralph records any spec deviations or implementation decisions -->
+<!-- that the Spec Reconciler should review. -->
+
+## US-001: MinIO service + storage abstraction layer
+- Status: PASS
+- Attempts: 1
+- Changes: infra/docker/docker-compose.yml, requirements.txt, services/gateway/requirements.txt, services/gateway/gateway/settings/base.py, services/gateway/apps/projects/apps.py, services/gateway/storage/__init__.py, services/gateway/storage/backends.py, services/gateway/storage/factory.py, services/gateway/storage/tests/__init__.py, services/gateway/storage/tests/test_backends.py
+- Tests: 21 new storage tests pass, 730 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - Storage module lives at services/gateway/storage/ (not inside an app), importable as `storage.backends`, `storage.factory`
+  - MinIO client is created as singleton via get_storage_backend() factory — call reset_storage_backend() in test tearDown
+  - Bucket auto-creation runs in ProjectsConfig.ready() — guarded with try/except to not break startup if MinIO is unreachable
+  - gateway_app AppConfig referenced in PRD notes does not exist — used ProjectsConfig.ready() instead
+  - Pre-existing ruff errors in services/ (ai, core migrations) — not from our changes
+  - Test Dockerfile uses root requirements.txt + requirements-dev.txt, so minio SDK needed in root requirements.txt too
+  - MinIO healthcheck in docker-compose uses `mc ready local` command
+  - presigned_get_object accepts extra_query_params dict for response-content-disposition
+---
+
+## US-002: Attachment model + migration (Gateway + Core)
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/projects/models.py, services/core/apps/projects/models.py, services/gateway/apps/projects/migrations/0007_attachment.py, services/gateway/apps/projects/tests/test_attachment_model.py
+- Tests: 16 new model tests pass, 746 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - App label is `gateway_projects` — migration dependencies reference this
+  - Latest migration before this was 0006_project_favorite
+  - Gateway Attachment is managed with db_table="attachments", Core mirror is managed=False with same db_table
+  - Indexes: idx_attachments_project, idx_attachments_message, idx_attachments_project_deleted (composite for count queries)
+  - active_count_for_project() is a classmethod that filters deleted_at__isnull=True
+  - Pre-existing ruff errors still in services/ (ai, core migrations) — not from our changes
+---
+
+## US-003: Attachment REST API (upload, list, delete, presigned URL)
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/attachments/__init__.py, services/gateway/apps/attachments/apps.py, services/gateway/apps/attachments/serializers.py, services/gateway/apps/attachments/urls.py, services/gateway/apps/attachments/views.py, services/gateway/apps/attachments/tests/__init__.py, services/gateway/apps/attachments/tests/test_views.py, services/gateway/apps/projects/urls.py, services/gateway/gateway/settings/base.py
+- Tests: 38 new endpoint tests pass, 784 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - Attachments app registered as `apps.attachments` with label `gateway_attachments` in INSTALLED_APPS
+  - URL patterns: attachments/ included under projects/<project_id>/attachments/ in apps/projects/urls.py
+  - Auth pattern reused: _require_auth, _get_project_or_error, _check_access (same as chat views)
+  - Storage backend accessed via _get_storage_backend() wrapper for easy mocking in tests
+  - Rate limiting uses django.core.cache (defaults to LocMemCache in test, works with Redis in prod)
+  - Cache key format: `upload_rate:{user_id}` with 60-second timeout
+  - Filename sanitization: strip path, replace non-alphanumeric (except .-_) with underscore, collapse consecutive underscores, truncate to 255
+  - DELETE is soft-delete (sets deleted_at), storage deletion is best-effort (logged on failure, doesn't block)
+  - Presigned URL passes filename to storage backend for Content-Disposition: attachment header
+  - MultiPartParser required for upload endpoint — use @parser_classes([MultiPartParser])
+  - Test pattern: patch _get_storage_backend to return MagicMock() for all storage operations
+---
+
+## US-004: Chat-attachment linking + serializer/broadcast update
+- Status: PASS
+- Attempts: 1
+- Changes: services/gateway/apps/chat/serializers.py, services/gateway/apps/chat/views.py, services/gateway/apps/attachments/views.py, proto/core.proto, proto/core_pb2.py, proto/core_pb2.pyi, proto/core_pb2_grpc.py, services/ai/grpc_clients/core_client.py, services/gateway/apps/chat/tests/test_chat_attachments.py
+- Tests: 12 new chat-attachment tests pass, 796 total Python tests pass, 362 frontend tests pass
+- Learnings for future iterations:
+  - ChatMessageCreateSerializer uses ListField(child=UUIDField(), max_length=3) for attachment_ids validation
+  - _link_attachments helper validates: belongs to project, message_id is null, deleted_at is null — skips invalid with warning log
+  - Attachment immutability: DELETE endpoint returns 400 if message_id is not null — prevents deletion of attachments already sent in a message
+  - _list_messages does manual prefetch: queries all attachments for page's message IDs in one query, then maps them per-message
+  - _broadcast_chat_message accepts optional attachments parameter and includes them in WebSocket payload
+  - CoreServicer is dead (replaced by direct DB access) — AI core_client.py uses raw SQL. Updated _populate_message_attachments helper to fetch attachment metadata with SUBSTRING for preview
+  - Proto stubs regenerated with: cd proto && python -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. core.proto
+  - AttachmentMetadata message added to core.proto with extracted_content_preview (first 500 chars)
+  - repeated AttachmentMetadata attachments added as field 8 to ChatMessage proto message
+---
