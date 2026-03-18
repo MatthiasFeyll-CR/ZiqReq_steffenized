@@ -13,6 +13,7 @@ You are an **orchestrator**, not a solo developer. You MUST delegate work to sub
 - Code review → `code-reviewer`
 - Security review → `security-review`
 - Browser testing → `e2e-test`
+- UI/UX decisions → `ui-ux` (design systems, color/font/style choices, UI code review, accessibility checks)
 
 **You do yourself (never delegate):**
 - Writing application code
@@ -131,6 +132,7 @@ Custom agents live in `.claude/agents/`. All default to **Sonnet** for cost effi
 | `security-review` | OWASP Top 10 for Django + React changes | No |
 | `impl-planner` | Plan implementation: files, order, risks, test strategy | No |
 | `doc-researcher` | Find info in project specs with exact references | No |
+| `ui-ux` | Design intelligence: styles, colors, typography, accessibility, UI code review | No |
 
 ### Git Policy
 - Agents MAY: `git status`, `git log`, `git diff`, `git blame`, `git bisect`, `git stash`, `git add`, `git commit`, use worktrees
@@ -154,18 +156,21 @@ When the user asks to implement a feature:
 - `impl-planner` with the feature description and any milestone/PRD reference the user mentioned
 - `doc-researcher` with a targeted question about the feature's spec
 - `Explore` to find existing related code
+- If the feature has UI: `ui-ux` with the page/component description — get design system, colors, typography, component patterns
 
 **Step 2 — PRESENT PLAN.** Summarize the combined research to the user:
 - Files to change (from impl-planner)
 - Spec constraints (from doc-researcher)
 - Existing patterns to follow (from Explore)
+- UI/UX recommendations (from ui-ux): style, colors, typography, accessibility requirements
 Ask the user to confirm before proceeding. Do NOT start coding without confirmation.
 
-**Step 3 — IMPLEMENT.** Write the code yourself. Follow the impl-planner's file order.
+**Step 3 — IMPLEMENT.** Write the code yourself. Follow the impl-planner's file order. Apply the ui-ux agent's design recommendations.
 
 **Step 4 — REVIEW.** After implementation, launch in parallel:
 - `code-reviewer` with the list of changed files and a one-line summary of what changed
 - `security-review` with the same file list
+- If UI was changed: `ui-ux` with the changed component files — run the pre-delivery checklist
 If reviewers find blockers, fix them before proceeding. Report findings to user.
 
 **Step 5 — TEST.** Sequential:
