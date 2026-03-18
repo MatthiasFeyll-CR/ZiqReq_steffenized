@@ -14,7 +14,7 @@ from services.pdf.generator.builder import (
     build_html,
     parse_structure_json,
 )
-from services.pdf.generator.renderer import render_pdf
+from services.pdf.generator.renderer import merge_attachments, render_pdf
 
 
 # Ensure proto directory is on sys.path for generated imports
@@ -63,13 +63,30 @@ class PdfServicer(pdf_pb2_grpc.PdfServiceServicer):
             generated_date=request.generated_date or "",
         )
 
+        # Extract attachment metadata for appendix listing
+        attachments = []
+        attachment_names = []
+        if request.attachments:
+            for att in request.attachments:
+                attachments.append({
+                    "filename": att.filename,
+                    "content_type": att.content_type,
+                    "file_data": att.file_data,
+                })
+                attachment_names.append(att.filename)
+
         try:
-            html_string = build_html(doc_content)
+            html_string = build_html(doc_content, attachment_names=attachment_names)
             pdf_bytes = render_pdf(html_string)
+
+            if attachments:
+                pdf_bytes = merge_attachments(pdf_bytes, attachments)
+
             logger.info(
-                "PDF generated successfully for '%s' (%d bytes)",
+                "PDF generated successfully for '%s' (%d bytes, %d attachments)",
                 title,
                 len(pdf_bytes),
+                len(attachments),
             )
             filename = f"requirements-{project_id}.pdf" if project_id else "requirements.pdf"
             return pdf_pb2.PdfGenerationResponse(

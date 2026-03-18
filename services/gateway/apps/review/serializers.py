@@ -8,6 +8,11 @@ class SubmitProjectSerializer(serializers.Serializer):
         required=False,
         default=list,
     )
+    attachment_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=False,
+        default=list,
+    )
 
 
 class ReviewActionCommentSerializer(serializers.Serializer):

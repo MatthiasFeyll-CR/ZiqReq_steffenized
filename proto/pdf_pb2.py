@@ -24,17 +24,19 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tpdf.proto\x12\nziqreq.pdf\"\x9a\x01\n\x14PdfGenerationRequest\x12\x12\n\nproject_id\x18\x01 \x01(\t\x12\x14\n\x0cproject_type\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x19\n\x11short_description\x18\x04 \x01(\t\x12\x16\n\x0estructure_json\x18\x05 \x01(\t\x12\x16\n\x0egenerated_date\x18\x06 \x01(\t\";\n\x15PdfGenerationResponse\x12\x10\n\x08pdf_data\x18\x01 \x01(\x0c\x12\x10\n\x08\x66ilename\x18\x02 \x01(\t2`\n\nPdfService\x12R\n\x0bGeneratePdf\x12 .ziqreq.pdf.PdfGenerationRequest\x1a!.ziqreq.pdf.PdfGenerationResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tpdf.proto\x12\nziqreq.pdf\"J\n\rPdfAttachment\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x14\n\x0c\x63ontent_type\x18\x02 \x01(\t\x12\x11\n\tfile_data\x18\x03 \x01(\x0c\"\xca\x01\n\x14PdfGenerationRequest\x12\x12\n\nproject_id\x18\x01 \x01(\t\x12\x14\n\x0cproject_type\x18\x02 \x01(\t\x12\r\n\x05title\x18\x03 \x01(\t\x12\x19\n\x11short_description\x18\x04 \x01(\t\x12\x16\n\x0estructure_json\x18\x05 \x01(\t\x12\x16\n\x0egenerated_date\x18\x06 \x01(\t\x12.\n\x0b\x61ttachments\x18\x07 \x03(\x0b\x32\x19.ziqreq.pdf.PdfAttachment\";\n\x15PdfGenerationResponse\x12\x10\n\x08pdf_data\x18\x01 \x01(\x0c\x12\x10\n\x08\x66ilename\x18\x02 \x01(\t2`\n\nPdfService\x12R\n\x0bGeneratePdf\x12 .ziqreq.pdf.PdfGenerationRequest\x1a!.ziqreq.pdf.PdfGenerationResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'pdf_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_PDFGENERATIONREQUEST']._serialized_start=26
-  _globals['_PDFGENERATIONREQUEST']._serialized_end=180
-  _globals['_PDFGENERATIONRESPONSE']._serialized_start=182
-  _globals['_PDFGENERATIONRESPONSE']._serialized_end=241
-  _globals['_PDFSERVICE']._serialized_start=243
-  _globals['_PDFSERVICE']._serialized_end=339
+  _globals['_PDFATTACHMENT']._serialized_start=25
+  _globals['_PDFATTACHMENT']._serialized_end=99
+  _globals['_PDFGENERATIONREQUEST']._serialized_start=102
+  _globals['_PDFGENERATIONREQUEST']._serialized_end=304
+  _globals['_PDFGENERATIONRESPONSE']._serialized_start=306
+  _globals['_PDFGENERATIONRESPONSE']._serialized_end=365
+  _globals['_PDFSERVICE']._serialized_start=367
+  _globals['_PDFSERVICE']._serialized_end=463
 # @@protoc_insertion_point(module_scope)

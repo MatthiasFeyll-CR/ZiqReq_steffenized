@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.projects.authentication import MiddlewareAuthentication
-from apps.projects.models import Project, ProjectCollaborator
+from apps.projects.models import Attachment, Project, ProjectCollaborator
 
 from .models import RequirementsDocumentDraft
 from .serializers import (
@@ -37,6 +37,51 @@ def _create_pdf_client():
     from grpc_clients.pdf_client import PdfClient
 
     return PdfClient()
+
+
+def _get_storage_backend():
+    from storage.factory import get_storage_backend
+
+    return get_storage_backend()
+
+
+def _fetch_attachment_files(project_id, attachment_ids: list[str]) -> list[dict]:
+    """Fetch attachment file data from storage for the given IDs.
+
+    Returns list of dicts with filename, content_type, file_data.
+    Skips attachments that are deleted, not found, or fail to download.
+    """
+    if not attachment_ids:
+        return []
+
+    valid_ids = []
+    for aid in attachment_ids:
+        try:
+            uuid.UUID(aid)
+            valid_ids.append(aid)
+        except ValueError:
+            logger.warning("Invalid attachment UUID skipped: %s", aid)
+            continue
+
+    attachments = Attachment.objects.filter(
+        id__in=valid_ids,
+        project_id=project_id,
+        deleted_at__isnull=True,
+    )
+
+    backend = _get_storage_backend()
+    result = []
+    for att in attachments:
+        try:
+            file_data, _ = backend.download_file(att.storage_key)
+            result.append({
+                "filename": att.filename,
+                "content_type": att.content_type,
+                "file_data": file_data,
+            })
+        except Exception:
+            logger.warning("Failed to download attachment %s for PDF merge", att.id)
+    return result
 
 
 def _require_auth(request: Request):
@@ -255,6 +300,10 @@ def requirements_preview_pdf(request: Request, project_id: str) -> Response | Ht
     if error:
         return error
 
+    access_error = _check_access(user, project)
+    if access_error:
+        return access_error
+
     try:
         draft = RequirementsDocumentDraft.objects.get(project_id=project.id)
     except RequirementsDocumentDraft.DoesNotExist:
@@ -272,6 +321,16 @@ def requirements_preview_pdf(request: Request, project_id: str) -> Response | Ht
 
     structure_json = json.dumps(draft.structure) if draft.structure else "[]"
 
+    # Fetch attachment files if requested (max 10)
+    attachment_ids_param = request.query_params.get("attachment_ids", "")
+    attachment_ids = [aid.strip() for aid in attachment_ids_param.split(",") if aid.strip()]
+    if len(attachment_ids) > 10:
+        return Response(
+            {"error": "VALIDATION_ERROR", "message": "Maximum 10 attachments per PDF"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    attachments = _fetch_attachment_files(project.id, attachment_ids)
+
     try:
         pdf_client = _create_pdf_client()
         result = pdf_client.generate_pdf(
@@ -280,6 +339,7 @@ def requirements_preview_pdf(request: Request, project_id: str) -> Response | Ht
             title=draft.title or project.title or "",
             short_description=draft.short_description or "",
             structure_json=structure_json,
+            attachments=attachments if attachments else None,
         )
     except Exception:
         logger.exception("PDF preview generation failed for project %s", project_id)

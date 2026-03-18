@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from apps.authentication.models import User
 from apps.projects.authentication import MiddlewareAuthentication
-from apps.projects.models import Project
+from apps.projects.models import Attachment, Project
 from apps.requirements_document.models import BrdDraft
 
 from .models import BrdVersion, ReviewAssignment, ReviewTimelineEntry
@@ -32,6 +32,50 @@ def _create_pdf_client():
     from grpc_clients.pdf_client import PdfClient
 
     return PdfClient()
+
+
+def _get_storage_backend():
+    from storage.factory import get_storage_backend
+
+    return get_storage_backend()
+
+
+def _fetch_attachment_files(project_id, attachment_ids: list) -> list[dict]:
+    """Fetch attachment file data from storage for the given IDs."""
+    if not attachment_ids:
+        return []
+
+    valid_ids = []
+    for aid in attachment_ids:
+        try:
+            uuid.UUID(str(aid))
+            valid_ids.append(aid)
+        except ValueError:
+            logger.warning("Invalid attachment UUID skipped: %s", aid)
+            continue
+
+    if not valid_ids:
+        return []
+
+    attachments = Attachment.objects.filter(
+        id__in=valid_ids,
+        project_id=project_id,
+        deleted_at__isnull=True,
+    )
+
+    backend = _get_storage_backend()
+    result = []
+    for att in attachments:
+        try:
+            file_data, _ = backend.download_file(att.storage_key)
+            result.append({
+                "filename": att.filename,
+                "content_type": att.content_type,
+                "file_data": file_data,
+            })
+        except Exception:
+            logger.warning("Failed to download attachment %s for PDF merge", att.id)
+    return result
 
 
 def _require_auth(request: Request):
@@ -102,6 +146,12 @@ def submit_project(request: Request, project_id: str) -> Response:
     validated = serializer.validated_data
     message = validated.get("message", "")
     reviewer_ids = validated.get("reviewer_ids", [])
+    attachment_ids = validated.get("attachment_ids", [])
+    if len(attachment_ids) > 10:
+        return Response(
+            {"error": "VALIDATION_ERROR", "message": "Maximum 10 attachments per PDF"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     # Get BRD draft for snapshot
     try:
@@ -114,6 +164,9 @@ def submit_project(request: Request, project_id: str) -> Response:
         max_v=Max("version_number")
     )["max_v"]
     next_version = (max_version or 0) + 1
+
+    # Fetch attachment files for PDF merge
+    pdf_attachments = _fetch_attachment_files(project.id, attachment_ids)
 
     # Generate PDF
     try:
@@ -133,6 +186,7 @@ def submit_project(request: Request, project_id: str) -> Response:
             title=title,
             short_description=short_description,
             structure_json=structure_json,
+            attachments=pdf_attachments if pdf_attachments else None,
         )
     except Exception:
         logger.exception("PDF generation failed for project %s", project_id)

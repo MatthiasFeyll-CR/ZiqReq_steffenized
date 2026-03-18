@@ -53,8 +53,21 @@ class PdfClient:
         short_description: str = "",
         structure_json: str = "[]",
         generated_date: str = "",
+        attachments: list[dict] | None = None,
     ) -> dict[str, Any]:
         stub = self._ensure_channel()
+
+        pdf_attachments = []
+        if attachments:
+            for att in attachments:
+                pdf_attachments.append(
+                    pdf_pb2.PdfAttachment(
+                        filename=att["filename"],
+                        content_type=att["content_type"],
+                        file_data=att["file_data"],
+                    )
+                )
+
         request = pdf_pb2.PdfGenerationRequest(
             project_id=project_id,
             project_type=project_type,
@@ -62,6 +75,7 @@ class PdfClient:
             short_description=short_description,
             structure_json=structure_json,
             generated_date=generated_date,
+            attachments=pdf_attachments,
         )
         response = stub.GeneratePdf(request)
         logger.info(

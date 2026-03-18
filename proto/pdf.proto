@@ -6,6 +6,12 @@ service PdfService {
   rpc GeneratePdf(PdfGenerationRequest) returns (PdfGenerationResponse);
 }
 
+message PdfAttachment {
+  string filename = 1;
+  string content_type = 2;
+  bytes file_data = 3;
+}
+
 message PdfGenerationRequest {
   string project_id = 1;
   string project_type = 2;
@@ -13,6 +19,7 @@ message PdfGenerationRequest {
   string short_description = 4;
   string structure_json = 5;
   string generated_date = 6;
+  repeated PdfAttachment attachments = 7;
 }
 
 message PdfGenerationResponse {

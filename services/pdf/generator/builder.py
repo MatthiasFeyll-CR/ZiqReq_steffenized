@@ -127,7 +127,22 @@ def _render_milestone(milestone: dict) -> str:
 </section>"""
 
 
-def build_html(content: RequirementsDocumentContent) -> str:
+def _render_attachments_section(attachment_names: list[str]) -> str:
+    """Render an Attachments appendix listing attached file names."""
+    if not attachment_names:
+        return ""
+    items = "\n".join(f"<li>{html.escape(name)}</li>" for name in attachment_names)
+    return f"""<section class="attachments-section">
+  <h2>Appendix: Attachments</h2>
+  <p>The following files are appended to this document:</p>
+  <ol>{items}</ol>
+</section>"""
+
+
+def build_html(
+    content: RequirementsDocumentContent,
+    attachment_names: list[str] | None = None,
+) -> str:
     """Build a complete HTML document from requirements content for PDF rendering."""
     css = _load_css()
 
@@ -137,6 +152,8 @@ def build_html(content: RequirementsDocumentContent) -> str:
     else:
         sections_html = "\n".join(_render_milestone(ms) for ms in content.structure)
         doc_type = "Project Requirements Document"
+
+    attachments_html = _render_attachments_section(attachment_names or [])
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -160,6 +177,7 @@ def build_html(content: RequirementsDocumentContent) -> str:
     <h1 class="project-title">{html.escape(content.title)}</h1>
     <p class="short-description">{html.escape(content.short_description)}</p>
     {sections_html}
+    {attachments_html}
   </main>
 
   <footer class="requirements-footer">
