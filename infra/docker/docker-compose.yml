@@ -56,6 +56,24 @@ services:
       retries: 10
       start_period: 30s
 
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   # Application
   frontend:
     build:
@@ -105,6 +123,12 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
       AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
       AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-minio}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-attachments}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -114,6 +138,8 @@ services:
         condition: service_healthy
       core:
         condition: service_started
+      minio:
+        condition: service_healthy
 
   core:
     build: ../../services/core
@@ -268,3 +294,4 @@ services:
 
 volumes:
   pgdata:
+  minio_data:
