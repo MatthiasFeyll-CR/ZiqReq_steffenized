@@ -587,10 +587,9 @@ def requirements_generate(request: Request, project_id: str) -> Response:
 
         address = os.environ.get("AI_GRPC_ADDRESS", "localhost:50052")
         ai_client = AiClient(address=address)
-        result = ai_client.trigger_requirements_generation(
+        result = ai_client.trigger_brd_generation(
             project_id=str(project.id),
             mode=mode,
-            locked_item_ids=locked_item_ids,
         )
     except Exception:
         logger.exception("AI service call failed for project %s", project_id)

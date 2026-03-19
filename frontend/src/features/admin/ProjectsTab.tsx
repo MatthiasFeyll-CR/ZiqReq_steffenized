@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Search, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, X, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,18 +156,23 @@ export function ProjectsTab() {
 
 function ProjectRow({ project }: { project: AdminProject }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const stateVariant = project.state as "open" | "in_review" | "accepted" | "dropped" | "rejected";
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30"
+      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30 cursor-pointer group"
       data-testid={`admin-project-row-${project.id}`}
+      onClick={() => navigate(`/project/${project.id}`)}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter") navigate(`/project/${project.id}`); }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-medium truncate">
+            <h4 className="text-sm font-medium truncate group-hover:text-primary transition-colors">
               {project.title || t("landing.untitled")}
             </h4>
             <Badge variant={stateVariant} className="flex-shrink-0">
@@ -179,12 +185,15 @@ function ProjectRow({ project }: { project: AdminProject }) {
             {new Date(project.updated_at).toLocaleDateString()}
           </p>
         </div>
-        <code className="text-[10px] text-muted-foreground font-mono hidden sm:block flex-shrink-0">
-          {project.id.slice(0, 8)}
-        </code>
+        <div className="flex items-center gap-2 shrink-0">
+          <code className="text-[10px] text-muted-foreground font-mono hidden sm:block">
+            {project.id.slice(0, 8)}
+          </code>
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
       </div>
 
-      {project.keywords.length > 0 && (
+      {project.keywords && project.keywords.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {project.keywords.map((kw) => (
             <span

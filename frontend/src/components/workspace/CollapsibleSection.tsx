@@ -1,5 +1,5 @@
-import { useCallback, useId } from "react";
 import { ChevronRight } from "lucide-react";
+import { useCallback, useId } from "react";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -8,6 +8,10 @@ interface CollapsibleSectionProps {
   onExpandedChange?: (expanded: boolean) => void;
   children: React.ReactNode;
   variant?: "default" | "success";
+  /** Label for a CTA button shown on the right side of the header when collapsed */
+  collapsedActionLabel?: string;
+  /** Callback when the collapsed CTA button is clicked (defaults to expanding) */
+  onCollapsedAction?: () => void;
 }
 
 export function CollapsibleSection({
@@ -17,6 +21,8 @@ export function CollapsibleSection({
   onExpandedChange,
   children,
   variant = "default",
+  collapsedActionLabel,
+  onCollapsedAction,
 }: CollapsibleSectionProps) {
   const id = useId();
   const buttonId = `${id}-button`;
@@ -56,6 +62,34 @@ export function CollapsibleSection({
             </span>
           )}
         </div>
+        {!isOpen && collapsedActionLabel && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onCollapsedAction) {
+                onCollapsedAction();
+              } else {
+                onExpandedChange?.(true);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onCollapsedAction) {
+                  onCollapsedAction();
+                } else {
+                  onExpandedChange?.(true);
+                }
+              }
+            }}
+            className="shrink-0 inline-flex items-center rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            {collapsedActionLabel}
+          </span>
+        )}
       </button>
 
       <div

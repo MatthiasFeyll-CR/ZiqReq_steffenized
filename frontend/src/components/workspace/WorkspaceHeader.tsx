@@ -106,10 +106,12 @@ export function WorkspaceHeader({
     window.addEventListener("ws:attachment_deleted", refresh);
     window.addEventListener("ws:attachment_restored", refresh);
     window.addEventListener("ws:attachment_extracted", refresh);
+    window.addEventListener("ws:chat_message", refresh);
     return () => {
       window.removeEventListener("ws:attachment_deleted", refresh);
       window.removeEventListener("ws:attachment_restored", refresh);
       window.removeEventListener("ws:attachment_extracted", refresh);
+      window.removeEventListener("ws:chat_message", refresh);
     };
   }, [project.id]);
 

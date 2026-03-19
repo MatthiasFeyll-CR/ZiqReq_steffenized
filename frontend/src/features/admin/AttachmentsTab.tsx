@@ -218,15 +218,45 @@ export function AttachmentsTab() {
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     {isDeleted ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => void handleRestore(att.id)}
-                        aria-label={t("admin.attachments.restore")}
-                      >
-                        <RotateCcw className="h-4 w-4 mr-1" />
-                        {t("admin.attachments.restore")}
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleRestore(att.id)}
+                          aria-label={t("admin.attachments.restore")}
+                        >
+                          <RotateCcw className="h-4 w-4 mr-1" />
+                          {t("admin.attachments.restore")}
+                        </Button>
+                        {confirmDeleteId === att.id ? (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => void handleDelete(att.id)}
+                            >
+                              {t("common.confirm")}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setConfirmDeleteId(null)}
+                            >
+                              {t("common.cancel")}
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setConfirmDeleteId(att.id)}
+                            aria-label={t("admin.attachments.permanentDelete", "Permanently delete")}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     ) : (
                       <>
                         <Button

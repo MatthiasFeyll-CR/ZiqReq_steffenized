@@ -14,7 +14,8 @@
     "noResults": "No results found",
     "close": "Close",
     "back": "Back",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "next": "Next"
   },
   "nav": {
     "projects": "Projects",
@@ -394,7 +395,8 @@
       "failedRestore": "Failed to restore attachment",
       "next": "Next",
       "open": "Open attachment",
-      "restore": "Restore"
+      "restore": "Restore",
+      "permanentDelete": "Permanently delete"
     },
     "jobs": {
       "tab": "Jobs",
@@ -418,7 +420,15 @@
       "storageCleanup": "Storage Cleanup",
       "storageCleanupDesc": "Hard-delete expired soft-deleted attachments and remove files from storage",
       "daily": "Daily",
-      "hourly": "Hourly"
+      "hourly": "Hourly",
+      "advancedOptions": "Advanced Options",
+      "overrideHint": "Override applies to this run only. Leave empty to use current parameter value.",
+      "currentValue": "Current",
+      "params": {
+        "softDeleteCountdown": "Soft Delete Countdown (days)",
+        "orphanTtlHours": "Orphan TTL (hours)",
+        "retentionHours": "Retention Period (hours)"
+      }
     }
   },
   "structure": {
@@ -437,6 +447,7 @@
     "advancedOptions": "Advanced Options",
     "itemLocks": "Item Locks",
     "attachmentsForPdf": "Attachments for PDF",
+    "attachmentsForPdfDesc": "Selected attachments will be appended to the generated PDF document.",
     "noAttachments": "No attachments uploaded for this project.",
     "selectAll": "Select All",
     "selected": "selected",

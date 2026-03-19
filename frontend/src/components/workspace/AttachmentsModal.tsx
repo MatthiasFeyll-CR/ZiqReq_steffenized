@@ -14,7 +14,6 @@ import {
   listAttachmentsIncludeDeleted,
   deleteAttachment,
   restoreAttachment,
-  getAttachmentUrl,
 } from "@/api/attachments";
 import { cn } from "@/lib/utils";
 
@@ -64,21 +63,17 @@ function AttachmentListItem({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const Icon = isImageType(attachment.content_type) ? Image : FileText;
 
-  const handleOpen = useCallback(async () => {
-    try {
-      const url = await getAttachmentUrl(projectId, attachment.id);
-      window.open(url, "_blank");
-    } catch {
-      toast.error(t("attachment.downloadFailed", "Download failed"));
-    }
-  }, [projectId, attachment.id, t]);
+  const handleOpen = useCallback(() => {
+    const url = `${window.location.origin}/api/projects/${projectId}/attachments/${attachment.id}/download/`;
+    window.open(url, "_blank");
+  }, [projectId, attachment.id]);
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background p-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Icon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium" title={attachment.filename}>
+          <p className="truncate text-sm font-medium text-foreground" title={attachment.filename}>
             {attachment.filename}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -264,7 +259,7 @@ export function AttachmentsModal({ projectId, open, onOpenChange }: AttachmentsM
           <>
             {/* Active Attachments */}
             <div>
-              <h4 className="text-sm font-medium mb-3">
+              <h4 className="text-sm font-medium text-foreground mb-3">
                 {t("attachments.active", "Active")} ({activeAttachments.length})
               </h4>
               {activeAttachments.length === 0 ? (
@@ -287,7 +282,7 @@ export function AttachmentsModal({ projectId, open, onOpenChange }: AttachmentsM
 
             {/* Deleted Attachments */}
             <div>
-              <h4 className="text-sm font-medium mb-2">
+              <h4 className="text-sm font-medium text-foreground mb-2">
                 {t("attachments.deleted", "Deleted")} ({deletedAttachments.length})
               </h4>
               <div className="bg-muted/30 border border-border rounded-md p-3 mb-3 flex items-start gap-2">

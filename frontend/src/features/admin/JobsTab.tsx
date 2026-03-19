@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-import { Play, Loader2, Clock, Timer } from "lucide-react";
+import { Play, Loader2, Clock, Timer, ChevronDown } from "lucide-react";
 import { fetchJobs, triggerJob, type AdminJob } from "@/api/admin";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -13,7 +14,6 @@ function formatRelativeTime(isoString: string): string {
   const diffMs = now.getTime() - date.getTime();
 
   if (diffMs < 0) {
-    // Future time
     const absDiff = Math.abs(diffMs);
     if (absDiff < 60_000) return `in ${Math.round(absDiff / 1000)}s`;
     if (absDiff < 3_600_000) return `in ${Math.round(absDiff / 60_000)}m`;
@@ -32,6 +32,8 @@ export function JobsTab() {
   const [jobs, setJobs] = useState<AdminJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [triggeringJob, setTriggeringJob] = useState<string | null>(null);
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+  const [overrides, setOverrides] = useState<Record<string, Record<string, string>>>({});
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadJobs = useCallback(async () => {
@@ -57,11 +59,44 @@ export function JobsTab() {
     };
   }, [loadJobs, t]);
 
+  const toggleAdvanced = useCallback((taskName: string) => {
+    setExpandedJobs((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskName)) {
+        next.delete(taskName);
+      } else {
+        next.add(taskName);
+      }
+      return next;
+    });
+  }, []);
+
+  const setOverrideValue = useCallback((taskName: string, paramKey: string, value: string) => {
+    setOverrides((prev) => ({
+      ...prev,
+      [taskName]: {
+        ...(prev[taskName] || {}),
+        [paramKey]: value,
+      },
+    }));
+  }, []);
+
   async function handleTrigger(taskName: string) {
     setTriggeringJob(taskName);
     try {
-      await triggerJob(taskName);
-      // Immediately refresh to show running state
+      const jobOverrides = overrides[taskName];
+      // Only send overrides that differ from current values
+      const job = jobs.find((j) => j.task_name === taskName);
+      const effectiveOverrides: Record<string, string> = {};
+      if (jobOverrides && job) {
+        for (const param of job.override_params) {
+          const val = jobOverrides[param.key];
+          if (val !== undefined && val !== "" && val !== param.current_value) {
+            effectiveOverrides[param.key] = val;
+          }
+        }
+      }
+      await triggerJob(taskName, Object.keys(effectiveOverrides).length > 0 ? effectiveOverrides : undefined);
       await loadJobs();
     } catch (err) {
       const message = (err as Error).message;
@@ -93,6 +128,8 @@ export function JobsTab() {
           const isCooldown = job.status === "cooldown";
           const isTriggering = triggeringJob === job.task_name;
           const isDisabled = isRunning || isCooldown || isTriggering;
+          const isAdvancedOpen = expandedJobs.has(job.task_name);
+          const hasOverrideParams = job.override_params && job.override_params.length > 0;
 
           return (
             <div
@@ -165,6 +202,54 @@ export function JobsTab() {
                   <pre className="max-h-40 overflow-auto rounded bg-muted p-2 text-xs">
                     {JSON.stringify(job.result, null, 2)}
                   </pre>
+                </div>
+              )}
+
+              {/* Advanced Options — expandable */}
+              {hasOverrideParams && (
+                <div className="mb-3">
+                  <button
+                    type="button"
+                    onClick={() => toggleAdvanced(job.task_name)}
+                    className="flex w-full items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <div className="flex-1 border-t border-border" />
+                    <span className="whitespace-nowrap flex items-center gap-1">
+                      {t("admin.jobs.advancedOptions", "Advanced Options")}
+                      <ChevronDown
+                        className={`h-3 w-3 transition-transform duration-200 ${isAdvancedOpen ? "rotate-180" : ""}`}
+                      />
+                    </span>
+                    <div className="flex-1 border-t border-border" />
+                  </button>
+                  {isAdvancedOpen && (
+                    <div className="mt-3 space-y-3">
+                      {job.override_params.map((param) => {
+                        const currentOverride = overrides[job.task_name]?.[param.key] ?? "";
+                        return (
+                          <div key={param.key}>
+                            <label className="text-xs font-medium text-foreground">
+                              {t(param.label_key, param.key)}
+                            </label>
+                            <p className="text-[10px] text-muted-foreground mb-1">
+                              {param.description}
+                            </p>
+                            <Input
+                              type={param.type === "integer" ? "number" : "text"}
+                              value={currentOverride}
+                              onChange={(e) => setOverrideValue(job.task_name, param.key, e.target.value)}
+                              placeholder={`${t("admin.jobs.currentValue", "Current")}: ${param.current_value}`}
+                              className="h-8 text-xs"
+                              data-testid={`override-${job.task_name}-${param.key}`}
+                            />
+                          </div>
+                        );
+                      })}
+                      <p className="text-[10px] text-muted-foreground italic">
+                        {t("admin.jobs.overrideHint", "Override applies to this run only. Leave empty to use current parameter value.")}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

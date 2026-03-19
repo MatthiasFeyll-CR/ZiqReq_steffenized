@@ -26,11 +26,14 @@ export function PDFPreviewPanel({ projectId, selectedAttachmentIds }: PDFPreview
     };
   }, [blobUrl]);
 
-  // Fetch preview on mount
+  // Serialize selectedAttachmentIds to a stable string for dependency tracking
+  const attachmentIdsKey = selectedAttachmentIds ? [...selectedAttachmentIds].sort().join(",") : "";
+
+  // Fetch preview on mount and when attachment selection changes
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const attachmentIds = selectedAttachmentIds ? [...selectedAttachmentIds] : undefined;
+    const attachmentIds = attachmentIdsKey ? attachmentIdsKey.split(",") : undefined;
     fetchBrdPreviewPdf(projectId, attachmentIds)
       .then((blob) => {
         if (!cancelled) setPdfBlob(blob);
@@ -44,8 +47,7 @@ export function PDFPreviewPanel({ projectId, selectedAttachmentIds }: PDFPreview
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, attachmentIdsKey]);
 
   // Listen for brd_ready WebSocket events to refresh preview
   useEffect(() => {

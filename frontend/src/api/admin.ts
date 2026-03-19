@@ -216,7 +216,7 @@ export interface AdminProject {
   id: string;
   title: string;
   state: "open" | "in_review" | "accepted" | "dropped" | "rejected";
-  keywords: string[];
+  keywords?: string[];
   owner: { id: string; display_name: string };
   created_at: string;
   updated_at: string;
@@ -321,6 +321,15 @@ export async function restoreAdminAttachment(id: string): Promise<void> {
 
 // ---------- Jobs ----------
 
+export interface JobOverrideParam {
+  key: string;
+  label_key: string;
+  type: string;
+  current_value: string;
+  default_value: string;
+  description: string;
+}
+
 export interface AdminJob {
   task_name: string;
   name_key: string;
@@ -333,6 +342,7 @@ export interface AdminJob {
   last_run: string | null;
   next_run: string | null;
   cooldown_remaining: number;
+  override_params: JobOverrideParam[];
 }
 
 export interface JobTriggerResponse {
@@ -352,12 +362,16 @@ export async function fetchJobs(): Promise<AdminJob[]> {
   return res.json();
 }
 
-export async function triggerJob(taskName: string): Promise<JobTriggerResponse> {
+export async function triggerJob(taskName: string, paramOverrides?: Record<string, string>): Promise<JobTriggerResponse> {
+  const body = paramOverrides && Object.keys(paramOverrides).length > 0
+    ? JSON.stringify({ param_overrides: paramOverrides })
+    : undefined;
   const res = await authFetch(
     `${env.apiBaseUrl}/admin/jobs/${encodeURIComponent(taskName)}/trigger`,
     {
       method: "POST",
       credentials: "include",
+      ...(body ? { headers: { "Content-Type": "application/json" }, body } : {}),
     },
   );
   if (!res.ok) {

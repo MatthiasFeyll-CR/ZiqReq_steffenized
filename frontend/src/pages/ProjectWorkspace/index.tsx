@@ -335,15 +335,16 @@ function ProjectWorkspaceContent({
     }
   }, [project.state, handleStepChange]);
 
-  // If landed on a gated step, redirect to define
+  // If landed on a gated step, redirect to define (only after hasMessages is resolved)
   useEffect(() => {
+    if (hasMessages === null) return; // Still loading — don't gate yet
     if (activeStep === "structure" && !canAccessStructure) {
       handleStepChange("define");
     } else if (activeStep === "review" && !canAccessReview) {
       // Redirect to structure if they can access it, otherwise define
       handleStepChange(canAccessStructure ? "structure" : "define");
     }
-  }, [activeStep, canAccessStructure, canAccessReview, handleStepChange]);
+  }, [activeStep, canAccessStructure, canAccessReview, handleStepChange, hasMessages]);
 
   // Subscribe to project's WebSocket group when connected (skip for drafts)
   useEffect(() => {

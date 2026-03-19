@@ -12,7 +12,7 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 
 
 @shared_task(name="projects.soft_delete_cleanup")
-def soft_delete_cleanup() -> dict:
+def soft_delete_cleanup(param_overrides: dict | None = None) -> dict:
     """Permanently delete projects that have been in trash beyond the countdown."""
     from datetime import timedelta
 
@@ -21,7 +21,8 @@ def soft_delete_cleanup() -> dict:
     from apps.admin_config.services import get_parameter
     from apps.projects.models import Project
 
-    countdown_days: int = get_parameter("soft_delete_countdown", default=30, cast=int)
+    overrides = param_overrides or {}
+    countdown_days: int = int(overrides["soft_delete_countdown"]) if "soft_delete_countdown" in overrides else get_parameter("soft_delete_countdown", default=30, cast=int)
     cutoff = timezone.now() - timedelta(days=countdown_days)
 
     expired_projects = Project.objects.filter(

@@ -14,7 +14,8 @@
     "noResults": "Keine Ergebnisse gefunden",
     "close": "Schließen",
     "back": "Zurück",
-    "confirm": "Bestätigen"
+    "confirm": "Bestätigen",
+    "next": "Weiter"
   },
   "nav": {
     "projects": "Projekte",
@@ -394,7 +395,8 @@
       "failedRestore": "Anhang konnte nicht wiederhergestellt werden",
       "next": "Weiter",
       "open": "Anhang öffnen",
-      "restore": "Wiederherstellen"
+      "restore": "Wiederherstellen",
+      "permanentDelete": "Endgültig löschen"
     },
     "jobs": {
       "tab": "Jobs",
@@ -418,7 +420,15 @@
       "storageCleanup": "Speicher bereinigen",
       "storageCleanupDesc": "Abgelaufene vorläufig gelöschte Anhänge endgültig löschen und Dateien aus dem Speicher entfernen",
       "daily": "Täglich",
-      "hourly": "Stündlich"
+      "hourly": "Stündlich",
+      "advancedOptions": "Erweiterte Optionen",
+      "overrideHint": "Überschreibung gilt nur für diesen Lauf. Leer lassen für aktuellen Parameterwert.",
+      "currentValue": "Aktuell",
+      "params": {
+        "softDeleteCountdown": "Löschfrist (Tage)",
+        "orphanTtlHours": "Verwaiste Anhänge TTL (Stunden)",
+        "retentionHours": "Aufbewahrungsfrist (Stunden)"
+      }
     }
   },
   "structure": {
@@ -437,6 +447,7 @@
     "advancedOptions": "Erweiterte Optionen",
     "itemLocks": "Element-Sperren",
     "attachmentsForPdf": "Anhänge für PDF",
+    "attachmentsForPdfDesc": "Ausgewählte Anhänge werden dem generierten PDF-Dokument angehängt.",
     "noAttachments": "Keine Anhänge für dieses Projekt hochgeladen.",
     "selectAll": "Alle auswählen",
     "selected": "ausgewählt",

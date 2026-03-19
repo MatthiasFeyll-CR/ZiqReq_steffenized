@@ -36,6 +36,9 @@ JOB_REGISTRY: dict[str, dict] = {
         "schedule_key": "admin.jobs.daily",
         "schedule_seconds": 86400,
         "queue": "celery",
+        "override_params": [
+            {"key": "soft_delete_countdown", "label_key": "admin.jobs.params.softDeleteCountdown", "type": "integer"},
+        ],
     },
     "attachments.orphan_cleanup": {
         "name_key": "admin.jobs.orphanCleanup",
@@ -43,6 +46,9 @@ JOB_REGISTRY: dict[str, dict] = {
         "schedule_key": "admin.jobs.hourly",
         "schedule_seconds": 3600,
         "queue": "gateway",
+        "override_params": [
+            {"key": "orphan_attachment_ttl_hours", "label_key": "admin.jobs.params.orphanTtlHours", "type": "integer"},
+        ],
     },
     "attachments.storage_cleanup": {
         "name_key": "admin.jobs.storageCleanup",
@@ -50,6 +56,9 @@ JOB_REGISTRY: dict[str, dict] = {
         "schedule_key": "admin.jobs.hourly",
         "schedule_seconds": 3600,
         "queue": "gateway",
+        "override_params": [
+            {"key": "soft_delete_retention_hours", "label_key": "admin.jobs.params.retentionHours", "type": "integer"},
+        ],
     },
 }
 
@@ -486,15 +495,43 @@ def jobs_list(request: Request) -> Response:
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
+    # Fetch current parameter values for override_params
+    param_keys = set()
+    for meta in JOB_REGISTRY.values():
+        for p in meta.get("override_params", []):
+            param_keys.add(p["key"])
+
+    current_params = {}
+    if param_keys:
+        from .models import AdminParameter
+        for ap in AdminParameter.objects.filter(key__in=param_keys):
+            current_params[ap.key] = {
+                "value": ap.value,
+                "default_value": ap.default_value,
+                "description": ap.description,
+            }
+
     jobs = []
     for task_name, meta in JOB_REGISTRY.items():
         state = _job_state(r, task_name)
+        override_params = []
+        for p in meta.get("override_params", []):
+            param_info = current_params.get(p["key"], {})
+            override_params.append({
+                "key": p["key"],
+                "label_key": p["label_key"],
+                "type": p["type"],
+                "current_value": param_info.get("value", ""),
+                "default_value": param_info.get("default_value", ""),
+                "description": param_info.get("description", ""),
+            })
         jobs.append({
             "task_name": task_name,
             "name_key": meta["name_key"],
             "description_key": meta["description_key"],
             "schedule_key": meta["schedule_key"],
             "queue": meta["queue"],
+            "override_params": override_params,
             **state,
         })
 
@@ -539,8 +576,19 @@ def job_trigger(request: Request, task_name: str) -> Response:
         )
 
     meta = JOB_REGISTRY[task_name]
+
+    # Extract parameter overrides from request body
+    allowed_override_keys = {p["key"] for p in meta.get("override_params", [])}
+    overrides = {}
+    raw_overrides = request.data.get("param_overrides", {}) if request.data else {}
+    if isinstance(raw_overrides, dict):
+        for k, v in raw_overrides.items():
+            if k in allowed_override_keys:
+                overrides[k] = v
+
     celery_app = _get_celery_app()
-    async_result = celery_app.send_task(task_name, queue=meta["queue"])
+    kwargs = {"param_overrides": overrides} if overrides else {}
+    async_result = celery_app.send_task(task_name, kwargs=kwargs, queue=meta["queue"])
 
     # Store active task id with 120s safety TTL (cleared when result is read)
     r.setex(f"jobs:active_task:{task_name}", 120, async_result.id)

@@ -23,7 +23,7 @@ def _write_last_run(task_name: str) -> None:
 
 
 @shared_task(name="attachments.orphan_cleanup")
-def orphan_cleanup() -> dict:
+def orphan_cleanup(param_overrides: dict | None = None) -> dict:
     """Soft-delete orphaned attachments (uploaded but never linked to a message) past TTL."""
     from datetime import timedelta
 
@@ -32,7 +32,8 @@ def orphan_cleanup() -> dict:
     from apps.admin_config.services import get_parameter
     from apps.projects.models import Attachment
 
-    ttl_hours: int = get_parameter("orphan_attachment_ttl_hours", default=96, cast=int)
+    overrides = param_overrides or {}
+    ttl_hours: int = int(overrides["orphan_attachment_ttl_hours"]) if "orphan_attachment_ttl_hours" in overrides else get_parameter("orphan_attachment_ttl_hours", default=96, cast=int)
     cutoff = timezone.now() - timedelta(hours=ttl_hours)
 
     orphaned = Attachment.objects.filter(
@@ -53,7 +54,7 @@ def orphan_cleanup() -> dict:
 
 
 @shared_task(name="attachments.storage_cleanup")
-def storage_cleanup() -> dict:
+def storage_cleanup(param_overrides: dict | None = None) -> dict:
     """Hard-delete expired soft-deleted attachments and their storage files."""
     from datetime import timedelta
 
@@ -63,7 +64,8 @@ def storage_cleanup() -> dict:
     from apps.admin_config.services import get_parameter
     from apps.projects.models import Attachment
 
-    retention_hours: int = get_parameter("soft_delete_retention_hours", default=720, cast=int)
+    overrides = param_overrides or {}
+    retention_hours: int = int(overrides["soft_delete_retention_hours"]) if "soft_delete_retention_hours" in overrides else get_parameter("soft_delete_retention_hours", default=720, cast=int)
     cutoff = timezone.now() - timedelta(hours=retention_hours)
 
     with transaction.atomic():

@@ -106,7 +106,7 @@ export async function fetchBrdPreviewPdf(projectId: string, attachmentIds?: stri
 }
 
 export async function fetchBrdPdf(projectId: string, attachmentIds?: string[]): Promise<Blob> {
-  const url = new URL(`${env.apiBaseUrl}/projects/${projectId}/brd/versions/latest/pdf`, window.location.origin);
+  const url = new URL(`${env.apiBaseUrl}/projects/${projectId}/brd/pdf/preview`, window.location.origin);
   if (attachmentIds && attachmentIds.length > 0) {
     url.searchParams.set("attachment_ids", attachmentIds.join(","));
   }

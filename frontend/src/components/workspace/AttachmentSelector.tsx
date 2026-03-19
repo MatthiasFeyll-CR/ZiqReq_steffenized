@@ -126,7 +126,7 @@ export function AttachmentSelector({
                 aria-label={att.filename}
               />
               <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="text-sm truncate min-w-0 flex-1">
+              <span className="text-sm truncate min-w-0 flex-1 text-foreground">
                 {att.filename}
               </span>
               <span className="text-xs text-muted-foreground shrink-0">
