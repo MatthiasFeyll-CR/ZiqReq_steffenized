@@ -1,10 +1,14 @@
 """Celery tasks: soft delete cleanup."""
 
 import logging
+import os
 
+import redis as redis_lib
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 
 
 @shared_task(name="projects.soft_delete_cleanup")
@@ -68,7 +72,15 @@ def soft_delete_cleanup() -> dict:
     else:
         logger.info("No expired soft-deleted projects found (countdown: %d days)", countdown_days)
 
-    return {"deleted_count": count, "countdown_days": countdown_days}
+    result = {"deleted_count": count, "countdown_days": countdown_days}
+
+    try:
+        r = redis_lib.from_url(REDIS_URL, socket_timeout=5)
+        r.set("jobs:last_run:projects.soft_delete_cleanup", timezone.now().isoformat())
+    except Exception:
+        logger.warning("Failed to write last_run timestamp to Redis")
+
+    return result
 
 
 def _dispatch_storage_cleanup(storage_keys: list[str]) -> None:

@@ -319,6 +319,54 @@ export async function restoreAdminAttachment(id: string): Promise<void> {
   }
 }
 
+// ---------- Jobs ----------
+
+export interface AdminJob {
+  task_name: string;
+  name_key: string;
+  description_key: string;
+  schedule_key: string;
+  queue: string;
+  status: "idle" | "running" | "cooldown";
+  task_id: string | null;
+  result: unknown | null;
+  last_run: string | null;
+  next_run: string | null;
+  cooldown_remaining: number;
+}
+
+export interface JobTriggerResponse {
+  task_name: string;
+  task_id: string;
+  status: string;
+}
+
+export async function fetchJobs(): Promise<AdminJob[]> {
+  const res = await authFetch(`${env.apiBaseUrl}/admin/jobs`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function triggerJob(taskName: string): Promise<JobTriggerResponse> {
+  const res = await authFetch(
+    `${env.apiBaseUrl}/admin/jobs/${encodeURIComponent(taskName)}/trigger`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
 // ---------- Users ----------
 
 export async function searchUsers(query: string): Promise<AdminUser[]> {

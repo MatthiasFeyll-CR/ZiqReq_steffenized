@@ -395,6 +395,30 @@
       "next": "Next",
       "open": "Open attachment",
       "restore": "Restore"
+    },
+    "jobs": {
+      "tab": "Jobs",
+      "loading": "Loading jobs...",
+      "failedLoad": "Failed to load jobs",
+      "triggerNow": "Trigger Now",
+      "running": "Running...",
+      "lastRun": "Last run",
+      "nextRun": "Next run",
+      "never": "Never",
+      "result": "Result",
+      "cooldownError": "Please wait before triggering this job again",
+      "alreadyRunning": "This job is already running",
+      "triggerError": "Failed to trigger job",
+      "cooldownRemaining": "Cooldown: {{seconds}}s remaining",
+      "cooldownBtn": "Wait {{seconds}}s",
+      "softDeleteCleanup": "Soft Delete Cleanup",
+      "softDeleteCleanupDesc": "Permanently delete projects that have been in trash beyond the countdown period",
+      "orphanCleanup": "Orphan Attachment Cleanup",
+      "orphanCleanupDesc": "Soft-delete uploaded attachments that were never linked to a message",
+      "storageCleanup": "Storage Cleanup",
+      "storageCleanupDesc": "Hard-delete expired soft-deleted attachments and remove files from storage",
+      "daily": "Daily",
+      "hourly": "Hourly"
     }
   },
   "structure": {

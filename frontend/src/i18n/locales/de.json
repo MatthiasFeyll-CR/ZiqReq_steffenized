@@ -395,6 +395,30 @@
       "next": "Weiter",
       "open": "Anhang öffnen",
       "restore": "Wiederherstellen"
+    },
+    "jobs": {
+      "tab": "Jobs",
+      "loading": "Jobs werden geladen...",
+      "failedLoad": "Jobs konnten nicht geladen werden",
+      "triggerNow": "Jetzt ausführen",
+      "running": "Wird ausgeführt...",
+      "lastRun": "Letzte Ausführung",
+      "nextRun": "Nächste Ausführung",
+      "never": "Nie",
+      "result": "Ergebnis",
+      "cooldownError": "Bitte warten Sie, bevor Sie diesen Job erneut auslösen",
+      "alreadyRunning": "Dieser Job wird bereits ausgeführt",
+      "triggerError": "Job konnte nicht ausgelöst werden",
+      "cooldownRemaining": "Abklingzeit: {{seconds}}s verbleibend",
+      "cooldownBtn": "Warten {{seconds}}s",
+      "softDeleteCleanup": "Papierkorb bereinigen",
+      "softDeleteCleanupDesc": "Projekte endgültig löschen, die sich über den Countdown-Zeitraum hinaus im Papierkorb befinden",
+      "orphanCleanup": "Verwaiste Anhänge bereinigen",
+      "orphanCleanupDesc": "Hochgeladene Anhänge vorläufig löschen, die nie mit einer Nachricht verknüpft wurden",
+      "storageCleanup": "Speicher bereinigen",
+      "storageCleanupDesc": "Abgelaufene vorläufig gelöschte Anhänge endgültig löschen und Dateien aus dem Speicher entfernen",
+      "daily": "Täglich",
+      "hourly": "Stündlich"
     }
   },
   "structure": {

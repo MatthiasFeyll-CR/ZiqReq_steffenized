@@ -1,5 +1,10 @@
+import json
 import logging
+import os
 
+import redis as redis_lib
+from celery import Celery
+from celery.result import AsyncResult
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
@@ -13,6 +18,49 @@ from .models import AdminParameter
 from .serializers import AdminParameterSerializer, AdminParameterUpdateSerializer
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Job registry — periodic Celery tasks exposed for manual triggering
+# ---------------------------------------------------------------------------
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+BROKER_URL = os.environ.get("BROKER_URL", "amqp://guest:guest@rabbitmq:5672/")
+RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/1")
+
+JOB_COOLDOWN_SECONDS = 60
+
+JOB_REGISTRY: dict[str, dict] = {
+    "projects.soft_delete_cleanup": {
+        "name_key": "admin.jobs.softDeleteCleanup",
+        "description_key": "admin.jobs.softDeleteCleanupDesc",
+        "schedule_key": "admin.jobs.daily",
+        "schedule_seconds": 86400,
+        "queue": "celery",
+    },
+    "attachments.orphan_cleanup": {
+        "name_key": "admin.jobs.orphanCleanup",
+        "description_key": "admin.jobs.orphanCleanupDesc",
+        "schedule_key": "admin.jobs.hourly",
+        "schedule_seconds": 3600,
+        "queue": "gateway",
+    },
+    "attachments.storage_cleanup": {
+        "name_key": "admin.jobs.storageCleanup",
+        "description_key": "admin.jobs.storageCleanupDesc",
+        "schedule_key": "admin.jobs.hourly",
+        "schedule_seconds": 3600,
+        "queue": "gateway",
+    },
+}
+
+
+def _get_redis() -> redis_lib.Redis:
+    return redis_lib.from_url(REDIS_URL, socket_timeout=5)
+
+
+def _get_celery_app() -> Celery:
+    app = Celery(broker=BROKER_URL, backend=RESULT_BACKEND)
+    return app
 
 
 def _require_admin(request: Request) -> Response | None:
@@ -323,3 +371,184 @@ def admin_projects_list(request: Request) -> Response:
             "previous": previous_page,
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# Jobs — list and manual trigger
+# ---------------------------------------------------------------------------
+
+
+def _job_state(r: redis_lib.Redis, task_name: str) -> dict:
+    """Derive the current state of a job from Redis keys.
+
+    Returns dict with keys: status, task_id, result, last_run, next_run, cooldown_remaining.
+    """
+    last_run_raw = r.get(f"jobs:last_run:{task_name}")
+    last_run = last_run_raw.decode() if last_run_raw else None
+
+    active_task_id_raw = r.get(f"jobs:active_task:{task_name}")
+    active_task_id = active_task_id_raw.decode() if active_task_id_raw else None
+
+    cooldown_ttl = r.ttl(f"jobs:cooldown:{task_name}")  # -2 = missing, -1 = no TTL
+
+    job_status = "idle"
+    result = None
+    task_id = None
+
+    if active_task_id:
+        # Check Celery result
+        celery_app = _get_celery_app()
+        async_result = AsyncResult(active_task_id, app=celery_app)
+        celery_status = async_result.status  # PENDING, STARTED, SUCCESS, FAILURE, etc.
+
+        if celery_status in ("PENDING", "STARTED"):
+            job_status = "running"
+            task_id = active_task_id
+        elif celery_status == "SUCCESS":
+            result = async_result.result
+            # Transition: clear running, set cooldown, update last_run, persist result
+            now_iso = timezone.now().isoformat()
+            pipe = r.pipeline()
+            pipe.delete(f"jobs:active_task:{task_name}")
+            pipe.setex(f"jobs:cooldown:{task_name}", JOB_COOLDOWN_SECONDS, "1")
+            pipe.set(f"jobs:last_run:{task_name}", now_iso)
+            pipe.setex(
+                f"jobs:last_result:{task_name}",
+                JOB_COOLDOWN_SECONDS,
+                json.dumps(result, default=str),
+            )
+            pipe.execute()
+            last_run = now_iso
+            cooldown_ttl = JOB_COOLDOWN_SECONDS
+            job_status = "cooldown"
+            task_id = active_task_id
+        elif celery_status in ("FAILURE", "REVOKED"):
+            try:
+                result = {"error": str(async_result.result)}
+            except Exception:
+                result = {"error": celery_status}
+            pipe = r.pipeline()
+            pipe.delete(f"jobs:active_task:{task_name}")
+            pipe.setex(f"jobs:cooldown:{task_name}", JOB_COOLDOWN_SECONDS, "1")
+            pipe.setex(
+                f"jobs:last_result:{task_name}",
+                JOB_COOLDOWN_SECONDS,
+                json.dumps(result, default=str),
+            )
+            pipe.execute()
+            cooldown_ttl = JOB_COOLDOWN_SECONDS
+            job_status = "cooldown"
+            task_id = active_task_id
+    elif cooldown_ttl > 0:
+        job_status = "cooldown"
+        # Read persisted result from previous transition
+        result_raw = r.get(f"jobs:last_result:{task_name}")
+        if result_raw:
+            try:
+                result = json.loads(result_raw.decode())
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                pass
+
+    # Calculate next run
+    schedule_seconds = JOB_REGISTRY[task_name]["schedule_seconds"]
+    next_run = None
+    if last_run:
+        from datetime import timedelta
+        from django.utils.dateparse import parse_datetime
+
+        parsed = parse_datetime(last_run)
+        if parsed:
+            next_run = (parsed + timedelta(seconds=schedule_seconds)).isoformat()
+
+    return {
+        "status": job_status,
+        "task_id": task_id,
+        "result": result,
+        "last_run": last_run,
+        "next_run": next_run,
+        "cooldown_remaining": max(cooldown_ttl, 0),
+    }
+
+
+@api_view(["GET"])
+@authentication_classes([MiddlewareAuthentication])
+def jobs_list(request: Request) -> Response:
+    """GET /api/admin/jobs — list all periodic jobs with current state."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    try:
+        r = _get_redis()
+    except Exception:
+        return Response(
+            {"error": "REDIS_UNAVAILABLE", "message": "Cannot connect to Redis"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    jobs = []
+    for task_name, meta in JOB_REGISTRY.items():
+        state = _job_state(r, task_name)
+        jobs.append({
+            "task_name": task_name,
+            "name_key": meta["name_key"],
+            "description_key": meta["description_key"],
+            "schedule_key": meta["schedule_key"],
+            "queue": meta["queue"],
+            **state,
+        })
+
+    return Response(jobs)
+
+
+@api_view(["POST"])
+@authentication_classes([MiddlewareAuthentication])
+def job_trigger(request: Request, task_name: str) -> Response:
+    """POST /api/admin/jobs/<task_name>/trigger — manually trigger a periodic job."""
+    denied = _require_admin(request)
+    if denied:
+        return denied
+
+    if task_name not in JOB_REGISTRY:
+        return Response(
+            {"error": "NOT_FOUND", "message": f"Unknown job: {task_name}"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    try:
+        r = _get_redis()
+    except Exception:
+        return Response(
+            {"error": "REDIS_UNAVAILABLE", "message": "Cannot connect to Redis"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+    # Check if already running
+    if r.exists(f"jobs:active_task:{task_name}"):
+        return Response(
+            {"error": "ALREADY_RUNNING", "message": "This job is already running"},
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    # Check cooldown
+    if r.ttl(f"jobs:cooldown:{task_name}") > 0:
+        remaining = r.ttl(f"jobs:cooldown:{task_name}")
+        return Response(
+            {"error": "COOLDOWN", "message": f"Please wait {remaining}s before re-triggering"},
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+    meta = JOB_REGISTRY[task_name]
+    celery_app = _get_celery_app()
+    async_result = celery_app.send_task(task_name, queue=meta["queue"])
+
+    # Store active task id with 120s safety TTL (cleared when result is read)
+    r.setex(f"jobs:active_task:{task_name}", 120, async_result.id)
+
+    logger.info("Admin %s manually triggered job %s (task_id=%s)", request.user.id, task_name, async_result.id)
+
+    return Response({
+        "task_name": task_name,
+        "task_id": async_result.id,
+        "status": "running",
+    })

@@ -9,4 +9,6 @@ urlpatterns = [
     path("attachments", views.admin_attachments_list),
     path("attachments/<str:attachment_id>", views.admin_attachment_delete),
     path("attachments/<str:attachment_id>/restore/", views.admin_attachment_restore),
+    path("jobs", views.jobs_list),
+    path("jobs/<str:task_name>/trigger", views.job_trigger),
 ]

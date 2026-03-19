@@ -1,10 +1,25 @@
 """Celery tasks for attachment cleanup."""
 
 import logging
+import os
 
+import redis as redis_lib
 from celery import shared_task
 
 logger = logging.getLogger(__name__)
+
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+
+
+def _write_last_run(task_name: str) -> None:
+    """Best-effort write of last-run timestamp to Redis."""
+    try:
+        from django.utils import timezone
+
+        r = redis_lib.from_url(REDIS_URL, socket_timeout=5)
+        r.set(f"jobs:last_run:{task_name}", timezone.now().isoformat())
+    except Exception:
+        logger.warning("Failed to write last_run timestamp for %s", task_name)
 
 
 @shared_task(name="attachments.orphan_cleanup")
@@ -32,7 +47,9 @@ def orphan_cleanup() -> dict:
     else:
         logger.info("No orphaned attachments found past %dh TTL", ttl_hours)
 
-    return {"soft_deleted_count": count, "ttl_hours": ttl_hours}
+    result = {"soft_deleted_count": count, "ttl_hours": ttl_hours}
+    _write_last_run("attachments.orphan_cleanup")
+    return result
 
 
 @shared_task(name="attachments.storage_cleanup")
@@ -67,7 +84,9 @@ def storage_cleanup() -> dict:
     else:
         logger.info("No expired soft-deleted attachments to clean up")
 
-    return {"hard_deleted_count": count, "retention_hours": retention_hours}
+    result = {"hard_deleted_count": count, "retention_hours": retention_hours}
+    _write_last_run("attachments.storage_cleanup")
+    return result
 
 
 @shared_task(name="attachments.bulk_delete_storage")
